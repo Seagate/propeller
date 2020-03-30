@@ -26,16 +26,21 @@ static int connect_socket(int *sock_fd)
 {
 	int ret, s;
 	struct sockaddr_un addr;
+	char *run_dir;
 
 	*sock_fd = -1;
 	s = socket(AF_LOCAL, SOCK_STREAM, 0);
 	if (s < 0)
 		return -errno;
 
+	run_dir = getenv("ILM_RUN_DIR");
+	if (!run_dir)
+		run_dir = ILM_DEFAULT_RUN_DIR;
+
 	memset(&addr, 0, sizeof(struct sockaddr_un));
 	addr.sun_family = AF_LOCAL;
 	snprintf(addr.sun_path, sizeof(addr.sun_path) - 1, "%s/%s",
-		 ILM_DEFAULT_RUN_DIR, ILM_SOCKET_NAME);
+		 run_dir, ILM_SOCKET_NAME);
 
 	ret = connect(s, (struct sockaddr *) &addr, sizeof(struct sockaddr_un));
 	if (ret < 0) {

@@ -31,7 +31,6 @@
 
 #define ILM_DAEMON_NAME		"seagate_ilm"
 
-#define ILM_LOG_DIR		"/var/log"
 #define ILM_LOG_FILE		"seagate_ilm.log"
 
 #define ILM_LOG_STR_LEN		(512)
@@ -209,7 +208,7 @@ int ilm_log_init(void)
 	int fd, rv;
 	char logfile_path[PATH_MAX];
 
-	snprintf(logfile_path, PATH_MAX, "%s/%s", ILM_LOG_DIR,
+	snprintf(logfile_path, PATH_MAX, "%s/%s", env.run_dir,
 		 ILM_LOG_FILE);
 
 	log_file_fp = fopen(logfile_path, "a+");

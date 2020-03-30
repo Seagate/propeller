@@ -16,4 +16,12 @@
 
 #define __maybe_unused		__attribute__((__unused__))
 
+struct ilm_env {
+	int debug;
+	int mlock;
+	char *run_dir;
+};
+
+struct ilm_env env;
+
 #endif /* __ILM_INTERNAL_H__ */
