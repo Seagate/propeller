@@ -1,9 +1,11 @@
-SUBDIRS = src
+SUBDIRS = src python
 
 .PHONY: all $(SUBDIRS) clean install cscope
 
-$(SUBDIRS):
-	$(MAKE) -C $@
+all:
+	for dir in $(SUBDIRS); do \
+		$(MAKE) -C $$dir; \
+	done
 
 clean install:
 	for dir in $(SUBDIRS); do \

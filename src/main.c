@@ -30,6 +30,53 @@
 int ilm_shutdown = 0;
 uuid_t ilm_uuid;
 
+struct ilm_env env;
+
+static int ilm_read_args(int argc, char *argv[])
+{
+	char opt;
+	char *arg, *p;
+	int i;
+
+	/* Skip the command name, start from argument 1 */
+	for (i = 1; i < argc;) {
+		p = argv[i];
+		if ((p[0] != '-') || (strlen(p) != 2)) {
+			fprintf(stderr, "Unknown option %s\n", p);
+			exit(EXIT_FAILURE);
+		}
+
+		opt = p[1];
+		if ((i + 1) >= argc) {
+			fprintf(stderr, "Option '%c' requires arg", opt);
+			exit(EXIT_FAILURE);
+		}
+
+		i++;
+		arg = argv[i];
+
+		switch (opt) {
+		case 'D':
+			env.debug = atoi(arg);
+			break;
+		case 'l':
+			env.mlock = atoi(arg);
+			break;
+		default:
+			fprintf(stderr, "Unknown Option '%c'", opt);
+			exit(EXIT_FAILURE);
+		}
+
+		i++;
+	}
+
+	env.run_dir = getenv("ILM_RUN_DIR");
+	if (!env.run_dir)
+		env.run_dir = ILM_DEFAULT_RUN_DIR;
+
+	return 0;
+}
+
 static int ilm_daemon_setup(void)
 {
 #if 0
@@ -38,16 +85,19 @@ static int ilm_daemon_setup(void)
 #endif
 	int ret;
 
-	if (daemon(0, 0) < 0) {
+	if (!env.debug && daemon(0, 0) < 0) {
 		ilm_log_err("Cannot set process as daemon\n");
 		return -1;
 	}
 
 	/* Lock process's virtual address space into RAM */
-	ret = mlockall(MCL_CURRENT | MCL_FUTURE);
-	if (ret < 0) {
-		ilm_log_err("mlockall failed: %s", strerror(errno));
-		return -1;
+	if (env.mlock) {
+		ret = mlockall(MCL_CURRENT | MCL_FUTURE);
+		if (ret < 0) {
+			ilm_log_err("mlockall failed: %s",
+				    strerror(errno));
+			return -1;
+		}
 	}
 
 	/* Disable below code due it fails to build on Ubuntu */
@@ -128,9 +178,13 @@ static int ilm_main_loop(void)
 	}
 }
 
-int main(void)
+int main(int argc, char *argv[])
 {
 	int ret;
+
+	ret = ilm_read_args(argc, argv);
+	if (ret < 0)
+		return EXIT_FAILURE;
 
 	ilm_log_init();
 

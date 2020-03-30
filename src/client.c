@@ -371,15 +371,14 @@ static int ilm_lock_file(void)
 	old_umask = umask(0002);
 
 	/* Create run directory */
-	ret = mkdir(ILM_DEFAULT_RUN_DIR, 0775);
+	ret = mkdir(env.run_dir, 0775);
 	if (ret < 0 && errno != EEXIST) {
 		umask(old_umask);
 		return ret;
 	}
 	umask(old_umask);
 
-	snprintf(path, PATH_MAX, "%s/%s",
-		 ILM_DEFAULT_RUN_DIR, ILM_LOCKFILE_NAME);
+	snprintf(path, PATH_MAX, "%s/%s", env.run_dir, ILM_LOCKFILE_NAME);
 
 	fd = open(path, O_CREAT|O_WRONLY|O_CLOEXEC, 0644);
 	if (fd < 0) {
@@ -437,7 +436,7 @@ int ilm_client_listener_init(void)
 	memset(&addr, 0, sizeof(struct sockaddr_un));
 	addr.sun_family = AF_LOCAL;
 	snprintf(addr.sun_path, sizeof(addr.sun_path) - 1, "%s/%s",
-		 ILM_DEFAULT_RUN_DIR, ILM_SOCKET_NAME);
+		 env.run_dir, ILM_SOCKET_NAME);
 
 	sock_fd = socket(AF_LOCAL, SOCK_STREAM, 0);
 	if (sock_fd < 0) {
