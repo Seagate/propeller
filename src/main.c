@@ -122,6 +122,9 @@ static int ilm_main_loop(void)
 			continue;
 
 		ilm_client_handle_request(pollfd, num);
+
+		if (ilm_shutdown)
+			break;
 	}
 }
 

@@ -44,7 +44,7 @@ static void ilm_cmd_del_lockspace(struct ilm_cmd *cmd)
 {
 	int ret;
 
-	ret = ilm_lockspace_delete(cmd->cl->ls);
+	ret = ilm_lockspace_delete(cmd, cmd->cl->ls);
 	if (ret < 0)
 		ilm_log_err("Fail to delete lockspace\n");
 }

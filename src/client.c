@@ -9,6 +9,7 @@
 
 #include <errno.h>
 #include <fcntl.h>
+#include <limits.h>
 #include <pthread.h>
 #include <poll.h>
 #include <stdio.h>
@@ -36,6 +37,7 @@ static int client_efd;
 static int client_updated = 0;
 static int client_num = 0;
 static int sock_fd;
+static int lock_fd;
 
 static int _client_is_valid(struct client *cl)
 {
@@ -281,12 +283,11 @@ int ilm_client_add(int fd,
 	return 0;
 }
 
-void ilm_send_result(int fd, struct ilm_msg_header *h_recv, int result,
-		     char *data, int data_len)
+void ilm_send_result(int fd, int result, char *data, int data_len)
 {
 	struct ilm_msg_header h;
 
-	memcpy(&h, h_recv, sizeof(struct ilm_msg_header));
+	h.magic  = ILM_MSG_MAGIC;
 	h.length = sizeof(h) + data_len;
 	h.result = result;
 	send(fd, &h, sizeof(h), MSG_NOSIGNAL);
@@ -359,10 +360,79 @@ int ilm_client_connect(struct client *cl)
 	return 0;
 }
 
+static int ilm_lock_file(void)
+{
+	char path[PATH_MAX];
+	char buf[16];
+	struct flock lock;
+	mode_t old_umask;
+	int fd, ret;
+
+	old_umask = umask(0002);
+
+	/* Create run directory */
+	ret = mkdir(ILM_DEFAULT_RUN_DIR, 0775);
+	if (ret < 0 && errno != EEXIST) {
+		umask(old_umask);
+		return ret;
+	}
+	umask(old_umask);
+
+	snprintf(path, PATH_MAX, "%s/%s",
+		 ILM_DEFAULT_RUN_DIR, ILM_LOCKFILE_NAME);
+
+	fd = open(path, O_CREAT|O_WRONLY|O_CLOEXEC, 0644);
+	if (fd < 0) {
+		ilm_log_err("lockfile open error %s: %s", path,
+			    strerror(errno));
+		return -1;
+	}
+
+	lock.l_type = F_WRLCK;
+	lock.l_start = 0;
+	lock.l_whence = SEEK_SET;
+	lock.l_len = 0;
+
+	ret = fcntl(fd, F_SETLK, &lock);
+	if (ret < 0) {
+		ilm_log_err("lockfile setlk error %s: %s", path,
+			    strerror(errno));
+		goto fail;
+	}
+
+	ret = ftruncate(fd, 0);
+	if (ret < 0) {
+		ilm_log_err("lockfile truncate error %s: %s", path,
+			    strerror(errno));
+		goto fail;
+	}
+
+	memset(buf, 0, sizeof(buf));
+	snprintf(buf, sizeof(buf), "%d\n", getpid());
+
+	ret = write(fd, buf, strlen(buf));
+	if (ret <= 0) {
+		ilm_log_err("lockfile write error %s: %s",
+			    path, strerror(errno));
+		goto fail;
+	}
+
+	return fd;
+fail:
+	close(fd);
+	return -1;
+}
+
 int ilm_client_listener_init(void)
 {
 	struct sockaddr_un addr;
 	int ret;
+
+	lock_fd = ilm_lock_file();
+	if (lock_fd < 0) {
+		ilm_log_err("Cannot create lock file\n");
+		return -1;
+	}
 
 	memset(&addr, 0, sizeof(struct sockaddr_un));
 	addr.sun_family = AF_LOCAL;
@@ -371,15 +441,15 @@ int ilm_client_listener_init(void)
 
 	sock_fd = socket(AF_LOCAL, SOCK_STREAM, 0);
 	if (sock_fd < 0) {
-		ilm_log_err("Cannot create lock socket\n");
-		return -1;
+		ilm_log_err("Cannot create socket\n");
+		goto sock_fail;
 	}
 
 	unlink(addr.sun_path);
 	ret = bind(sock_fd, (struct sockaddr *)&addr,
 		   sizeof(struct sockaddr_un));
 	if (ret < 0) {
-		ilm_log_err("Cannot create lock socket\n");
+		ilm_log_err("Cannot bind socket\n");
 		goto out;
 	}
 
@@ -409,6 +479,8 @@ int ilm_client_listener_init(void)
 
 	return 0;
 
+sock_fail:
+	close(lock_fd);
 out:
 	close(sock_fd);
 	return -1;
@@ -416,5 +488,6 @@ out:
 
 void ilm_client_listener_exit(void)
 {
+	close(lock_fd);
 	close(sock_fd);
 }

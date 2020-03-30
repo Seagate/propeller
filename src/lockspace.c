@@ -16,6 +16,7 @@
 #include <uuid/uuid.h>
 #include <unistd.h>
 
+#include "client.h"
 #include "cmd.h"
 #include "list.h"
 #include "log.h"
@@ -100,6 +101,8 @@ int ilm_lockspace_create(struct ilm_cmd *cmd, struct ilm_lockspace **ls_out)
 		goto fail;
 	}
 
+	*ls_out = ilm_ls;
+	ilm_send_result(cmd->cl->fd, 0, NULL, 0);
 	return 0;
 
 fail:
@@ -111,7 +114,7 @@ fail:
 	return -1;
 }
 
-int ilm_lockspace_delete(struct ilm_lockspace *ilm_ls)
+int ilm_lockspace_delete(struct ilm_cmd *cmd, struct ilm_lockspace *ilm_ls)
 {
 	int ret;
 
@@ -130,5 +133,6 @@ int ilm_lockspace_delete(struct ilm_lockspace *ilm_ls)
 	list_del(&ilm_ls->list);
 	pthread_mutex_unlock(&ls_mutex);
 
+	ilm_send_result(cmd->cl->fd, 0, NULL, 0);
 	return ret;
 }

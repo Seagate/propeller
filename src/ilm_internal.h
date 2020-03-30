@@ -12,6 +12,7 @@
 
 #define ILM_DEFAULT_RUN_DIR	"/run/seagate_ilm"
 #define ILM_SOCKET_NAME		"main.sock"
+#define ILM_LOCKFILE_NAME	"main.pid"
 
 #define __maybe_unused		__attribute__((__unused__))
 
