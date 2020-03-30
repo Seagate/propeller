@@ -93,7 +93,7 @@ retry:
 	return ret;
 }
 
-int send_command(int cmd, int data_len)
+static int send_command(int cmd, int data_len)
 {
 	int ret, sock;
 
