@@ -17,7 +17,8 @@ SOURCE = main.c \
 	 log.c \
 	 client.c \
 	 cmd.c \
-	 lockspace.c
+	 lockspace.c \
+	 lock.c
 
 LIB_SOURCE = lib_client.c
 

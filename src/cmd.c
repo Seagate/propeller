@@ -19,6 +19,7 @@
 #include "cmd.h"
 #include "list.h"
 #include "lockspace.h"
+#include "lock.h"
 #include "log.h"
 
 struct ilm_cmd_queue {
@@ -49,6 +50,51 @@ static void ilm_cmd_del_lockspace(struct ilm_cmd *cmd)
 		ilm_log_err("Fail to delete lockspace\n");
 }
 
+static void ilm_cmd_acquire(struct ilm_cmd *cmd)
+{
+	int ret;
+
+	ret = ilm_acquire(cmd, cmd->cl->ls);
+	if (ret < 0)
+		ilm_log_err("Fail to acquire IDM\n");
+}
+
+static void ilm_cmd_release(struct ilm_cmd *cmd)
+{
+	int ret;
+
+	ret = ilm_release(cmd, cmd->cl->ls);
+	if (ret < 0)
+		ilm_log_err("Fail to release IDM\n");
+}
+
+static void ilm_cmd_convert(struct ilm_cmd *cmd)
+{
+	int ret;
+
+	ret = ilm_convert(cmd, cmd->cl->ls);
+	if (ret < 0)
+		ilm_log_err("Fail to convert IDM mode\n");
+}
+
+static void ilm_cmd_lvb_write(struct ilm_cmd *cmd)
+{
+	int ret;
+
+	ret = ilm_lvb_write(cmd, cmd->cl->ls);
+	if (ret < 0)
+		ilm_log_err("Fail to write LVB\n");
+}
+
+static void ilm_cmd_lvb_read(struct ilm_cmd *cmd)
+{
+	int ret;
+
+	ret = ilm_lvb_read(cmd, cmd->cl->ls);
+	if (ret < 0)
+		ilm_log_err("Fail to read LVB\n");
+}
+
 static void ilm_cmd_handle(struct ilm_cmd *cmd)
 {
 	switch (cmd->cmd) {
@@ -57,6 +103,21 @@ static void ilm_cmd_handle(struct ilm_cmd *cmd)
 		break;
 	case ILM_CMD_DEL_LOCKSPACE:
 		ilm_cmd_del_lockspace(cmd);
+		break;
+	case ILM_CMD_ACQUIRE:
+		ilm_cmd_acquire(cmd);
+		break;
+	case ILM_CMD_RELEASE:
+		ilm_cmd_release(cmd);
+		break;
+	case ILM_CMD_CONVERT:
+		ilm_cmd_convert(cmd);
+		break;
+	case ILM_CMD_WRITE_LVB:
+		ilm_cmd_lvb_write(cmd);
+		break;
+	case ILM_CMD_READ_LVB:
+		ilm_cmd_lvb_read(cmd);
 		break;
 	default:
 		break;
