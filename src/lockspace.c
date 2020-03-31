@@ -19,6 +19,7 @@
 #include "client.h"
 #include "cmd.h"
 #include "list.h"
+#include "lock.h"
 #include "log.h"
 
 struct ilm_lockspace {
@@ -134,5 +135,64 @@ int ilm_lockspace_delete(struct ilm_cmd *cmd, struct ilm_lockspace *ilm_ls)
 	pthread_mutex_unlock(&ls_mutex);
 
 	ilm_send_result(cmd->cl->fd, 0, NULL, 0);
+	return ret;
+}
+
+int ilm_lockspace_add_lock(struct ilm_lockspace *ls,
+			   struct ilm_lock *lock)
+{
+	int ret;
+
+	if (!_ls_is_valid(ls)) {
+		ilm_log_err("%s: lockspace is invalid\n", __func__);
+		return -1;
+	}
+
+	pthread_mutex_lock(&ls->mutex);
+	list_add(&lock->list, &ls->lock_list);
+	pthread_mutex_unlock(&ls->mutex);
+
+	return 0;
+}
+
+int ilm_lockspace_del_lock(struct ilm_lockspace *ls, struct ilm_lock *lock)
+{
+	int ret;
+
+	if (!_ls_is_valid(ls)) {
+		ilm_log_err("%s: lockspace is invalid\n", __func__);
+		return -1;
+	}
+
+	pthread_mutex_lock(&ls->mutex);
+	list_del(&lock->list);
+	pthread_mutex_unlock(&ls->mutex);
+
+	return 0;
+}
+
+int ilm_lockspace_find_lock(struct ilm_lockspace *ls, char *lock_id,
+			    struct ilm_lock **lock)
+{
+	struct ilm_lock *pos;
+	int ret = -1;
+
+	if (!_ls_is_valid(ls)) {
+		ilm_log_err("%s: lockspace is invalid\n", __func__);
+		return -1;
+	}
+
+	pthread_mutex_lock(&ls->mutex);
+
+	list_for_each_entry(pos, &ls->lock_list, list) {
+
+		if (!memcmp(pos->lock_id, lock_id, ILM_ID_LENGTH)) {
+			*lock = pos;
+			ret = 0;
+			break;
+		}
+	}
+
+	pthread_mutex_unlock(&ls->mutex);
 	return ret;
 }
