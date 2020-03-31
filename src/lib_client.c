@@ -21,6 +21,7 @@
 #include "client.h"
 #include "cmd.h"
 #include "ilm_internal.h"
+#include "lock.h"
 
 static int connect_socket(int *sock_fd)
 {
@@ -168,5 +169,165 @@ int ilm_disconnect(int sock)
 		return ret;
 
 	close(sock);
+	return 0;
+}
+
+int idm_lock(int sock, struct idm_lock_id *id, struct idm_lock_op *op)
+{
+	struct ilm_lock_payload payload;
+	int i, len, ret;
+
+	len = sizeof(struct ilm_lock_payload);
+
+	for (i = 0; i < op->drive_num; i++)
+		len += strlen(op->drives[i]) + 1;
+
+	ret = send_header(sock, ILM_CMD_ACQUIRE, len);
+	if (ret < 0)
+		return ret;
+
+	payload.magic = ILM_LOCK_MAGIC;
+	payload.mode = op->mode;
+	payload.drive_num = op->drive_num;
+	payload.timeout = op->timeout;
+	payload.quiescent = op->quiescent;
+
+	memcpy(payload.lock_id, &id->lv_uuid, sizeof(uuid_t));
+	memcpy(payload.lock_id + sizeof(uuid_t),
+	       &id->vg_uuid, sizeof(uuid_t));
+
+	ret = send_data(sock, &payload, sizeof(struct ilm_lock_payload), 0);
+	if (ret < 0)
+		return ret;
+
+	for (i = 0; i < op->drive_num; i++) {
+		ret = send_data(sock, op->drives[i],
+				strlen(op->drives[i]) + 1, 0);
+		if (ret < 0)
+			return ret;
+	}
+
+	ret = recv_result(sock);
+	if (ret < 0)
+		return ret;
+
+	return 0;
+}
+
+int idm_unlock(int sock, struct idm_lock_id *id)
+{
+	struct ilm_lock_payload payload;
+	int i, len, ret;
+
+	len = sizeof(struct ilm_lock_payload);
+
+	ret = send_header(sock, ILM_CMD_RELEASE, len);
+	if (ret < 0)
+		return ret;
+
+	payload.magic = ILM_LOCK_MAGIC;
+	memcpy(payload.lock_id, &id->lv_uuid, sizeof(uuid_t));
+	memcpy(payload.lock_id + sizeof(uuid_t),
+	       &id->vg_uuid, sizeof(uuid_t));
+
+	ret = send_data(sock, &payload, sizeof(struct ilm_lock_payload), 0);
+	if (ret < 0)
+		return ret;
+
+	ret = recv_result(sock);
+	if (ret < 0)
+		return ret;
+
+	return 0;
+}
+
+int idm_convert(int sock, struct idm_lock_id *id, uint32_t mode)
+{
+	struct ilm_lock_payload payload;
+	int i, len, ret;
+
+	len = sizeof(struct ilm_lock_payload);
+
+	ret = send_header(sock, ILM_CMD_CONVERT, len);
+	if (ret < 0)
+		return ret;
+
+	payload.magic = ILM_LOCK_MAGIC;
+	payload.mode = mode;
+	memcpy(payload.lock_id, &id->lv_uuid, sizeof(uuid_t));
+	memcpy(payload.lock_id + sizeof(uuid_t),
+	       &id->vg_uuid, sizeof(uuid_t));
+
+	ret = send_data(sock, &payload, sizeof(struct ilm_lock_payload), 0);
+	if (ret < 0)
+		return ret;
+
+	ret = recv_result(sock);
+	if (ret < 0)
+		return ret;
+
+	return 0;
+}
+
+int idm_write_lvb(int sock, struct idm_lock_id *id, char *lvb, int lvb_len)
+{
+	struct ilm_lock_payload payload;
+	int i, len, ret;
+
+	len = sizeof(struct ilm_lock_payload);
+	len += lvb_len;
+
+	ret = send_header(sock, ILM_CMD_WRITE_LVB, len);
+	if (ret < 0)
+		return ret;
+
+	payload.magic = ILM_LOCK_MAGIC;
+	memcpy(payload.lock_id, &id->lv_uuid, sizeof(uuid_t));
+	memcpy(payload.lock_id + sizeof(uuid_t),
+	       &id->vg_uuid, sizeof(uuid_t));
+
+	ret = send_data(sock, &payload, sizeof(struct ilm_lock_payload), 0);
+	if (ret < 0)
+		return ret;
+
+	ret = send_data(sock, lvb, lvb_len, 0);
+	if (ret < 0)
+		return ret;
+
+	ret = recv_result(sock);
+	if (ret < 0)
+		return ret;
+
+	return 0;
+}
+
+int idm_read_lvb(int sock, struct idm_lock_id *id, char *lvb, int lvb_len)
+{
+	struct ilm_lock_payload payload;
+	int i, len, ret;
+
+	len = sizeof(struct ilm_lock_payload);
+
+	ret = send_header(sock, ILM_CMD_READ_LVB, len);
+	if (ret < 0)
+		return ret;
+
+	payload.magic = ILM_LOCK_MAGIC;
+	memcpy(payload.lock_id, &id->lv_uuid, sizeof(uuid_t));
+	memcpy(payload.lock_id + sizeof(uuid_t),
+	       &id->vg_uuid, sizeof(uuid_t));
+
+	ret = send_data(sock, &payload, sizeof(struct ilm_lock_payload), 0);
+	if (ret < 0)
+		return ret;
+
+	ret = recv_result(sock);
+	if (ret < 0)
+		return ret;
+
+	ret = recv_data(sock, lvb, lvb_len, 0);
+	if (ret < 0)
+		return ret;
+
 	return 0;
 }
