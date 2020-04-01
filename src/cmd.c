@@ -54,7 +54,7 @@ static void ilm_cmd_acquire(struct ilm_cmd *cmd)
 {
 	int ret;
 
-	ret = ilm_acquire(cmd, cmd->cl->ls);
+	ret = ilm_lock_acquire(cmd, cmd->cl->ls);
 	if (ret < 0)
 		ilm_log_err("Fail to acquire IDM\n");
 }
@@ -63,7 +63,7 @@ static void ilm_cmd_release(struct ilm_cmd *cmd)
 {
 	int ret;
 
-	ret = ilm_release(cmd, cmd->cl->ls);
+	ret = ilm_lock_release(cmd, cmd->cl->ls);
 	if (ret < 0)
 		ilm_log_err("Fail to release IDM\n");
 }
@@ -72,7 +72,7 @@ static void ilm_cmd_convert(struct ilm_cmd *cmd)
 {
 	int ret;
 
-	ret = ilm_convert(cmd, cmd->cl->ls);
+	ret = ilm_lock_convert_mode(cmd, cmd->cl->ls);
 	if (ret < 0)
 		ilm_log_err("Fail to convert IDM mode\n");
 }
@@ -81,7 +81,7 @@ static void ilm_cmd_lvb_write(struct ilm_cmd *cmd)
 {
 	int ret;
 
-	ret = ilm_lvb_write(cmd, cmd->cl->ls);
+	ret = ilm_lock_vb_write(cmd, cmd->cl->ls);
 	if (ret < 0)
 		ilm_log_err("Fail to write LVB\n");
 }
@@ -90,7 +90,7 @@ static void ilm_cmd_lvb_read(struct ilm_cmd *cmd)
 {
 	int ret;
 
-	ret = ilm_lvb_read(cmd, cmd->cl->ls);
+	ret = ilm_lock_vb_read(cmd, cmd->cl->ls);
 	if (ret < 0)
 		ilm_log_err("Fail to read LVB\n");
 }
@@ -123,6 +123,7 @@ static void ilm_cmd_handle(struct ilm_cmd *cmd)
 		break;
 	}
 
+	ilm_client_resume(cmd->cl);
 	return;
 }
 

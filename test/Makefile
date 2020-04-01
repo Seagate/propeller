@@ -1,2 +1,2 @@
 all:
-	gcc -I../src -o smoke_test smoke_test.c -L../src -lseagate_ilm
+	gcc -I../src -ggdb -o smoke_test smoke_test.c -L../src -lseagate_ilm -luuid
