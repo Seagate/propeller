@@ -123,6 +123,7 @@ static void ilm_cmd_handle(struct ilm_cmd *cmd)
 		break;
 	}
 
+	ilm_client_resume(cmd->cl);
 	return;
 }
 

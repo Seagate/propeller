@@ -36,5 +36,7 @@ int ilm_client_handle_request(struct pollfd *poll_fd, int num);
 void ilm_send_result(int fd, int result, char *data, int data_len);
 int ilm_client_listener_init(void);
 void ilm_client_listener_exit(void);
+int ilm_client_suspend(struct client *cl);
+int ilm_client_resume(struct client *cl);
 
 #endif

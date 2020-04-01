@@ -188,6 +188,10 @@ int ilm_client_suspend(struct client *cl)
 
         pthread_mutex_unlock(&cl->mutex);
 
+	pthread_mutex_lock(&client_list_mutex);
+	client_updated = 1;
+	pthread_mutex_unlock(&client_list_mutex);
+
 	return ret;
 }
 
@@ -211,6 +215,10 @@ int ilm_client_resume(struct client *cl)
 	}
 
         pthread_mutex_unlock(&cl->mutex);
+
+	pthread_mutex_lock(&client_list_mutex);
+	client_updated = 1;
+	pthread_mutex_unlock(&client_list_mutex);
 
 	/* Notify main poll that the client resumes back */
 	eventfd_write(client_efd, 1);
@@ -328,6 +336,13 @@ int ilm_client_request(struct client *cl)
 
 	cmd->cmd = hdr.cmd;
 	cmd->cl = cl;
+
+	ret = ilm_client_suspend(cl);
+	if (ret < 0) {
+		free(cmd);
+		goto dead;
+	}
+
 	ret = ilm_cmd_queue_add_work(cmd);
 	if (ret < 0) {
 		free(cmd);
