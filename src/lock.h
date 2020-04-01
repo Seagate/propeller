@@ -29,10 +29,10 @@ struct ilm_lock_payload {
 	int quiescent;
 };
 
-int ilm_acquire(struct ilm_cmd *cmd, struct ilm_lockspace *ls);
-int ilm_release(struct ilm_cmd *cmd, struct ilm_lockspace *ls);
-int ilm_convert(struct ilm_cmd *cmd, struct ilm_lockspace *ls);
-int ilm_lvb_write(struct ilm_cmd *cmd, struct ilm_lockspace *ls);
-int ilm_lvb_read(struct ilm_cmd *cmd, struct ilm_lockspace *ls);
+int ilm_lock_acquire(struct ilm_cmd *cmd, struct ilm_lockspace *ls);
+int ilm_lock_release(struct ilm_cmd *cmd, struct ilm_lockspace *ls);
+int ilm_lock_convert_mode(struct ilm_cmd *cmd, struct ilm_lockspace *ls);
+int ilm_lock_vb_write(struct ilm_cmd *cmd, struct ilm_lockspace *ls);
+int ilm_lock_vb_read(struct ilm_cmd *cmd, struct ilm_lockspace *ls);
 
 #endif /* __LOCK_H__ */

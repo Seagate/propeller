@@ -29,7 +29,7 @@ static int ilm_lock_payload_read(struct ilm_cmd *cmd,
 
 	ret = recv(cmd->cl->fd, payload,
 		   sizeof(struct ilm_lock_payload), MSG_WAITALL);
-	if (!ret || (ret != sizeof(payload))) {
+	if (!ret || (ret != sizeof(struct ilm_lock_payload))) {
 		ilm_log_err("Client fd %d recv lock payload errno %d\n",
 			    cmd->cl->fd, errno);
 		return -EIO;
@@ -37,7 +37,7 @@ static int ilm_lock_payload_read(struct ilm_cmd *cmd,
 
 	if (payload->magic != ILM_LOCK_MAGIC) {
 	        ilm_log_err("Client fd %d ret %d magic %x vs %x\n",
-			    cmd->cl->fd, ret, payload->magic, ILM_MSG_MAGIC);
+			    cmd->cl->fd, ret, payload->magic, ILM_LOCK_MAGIC);
 		return -EINVAL;
 	}
 
@@ -100,7 +100,7 @@ static int ilm_free(struct ilm_lockspace *ls, struct ilm_lock *lock)
 	return 0;
 }
 
-int ilm_acquire(struct ilm_cmd *cmd, struct ilm_lockspace *ls)
+int ilm_lock_acquire(struct ilm_cmd *cmd, struct ilm_lockspace *ls)
 {
 	struct ilm_lock_payload payload;
 	struct ilm_lock *lock;
@@ -135,7 +135,7 @@ fail:
 	return ret;
 }
 
-int ilm_release(struct ilm_cmd *cmd, struct ilm_lockspace *ls)
+int ilm_lock_release(struct ilm_cmd *cmd, struct ilm_lockspace *ls)
 {
 	struct ilm_lock_payload payload;
 	struct ilm_lock *lock;
@@ -163,7 +163,7 @@ fail:
 	return ret;
 }
 
-int ilm_convert(struct ilm_cmd *cmd, struct ilm_lockspace *ls)
+int ilm_lock_convert_mode(struct ilm_cmd *cmd, struct ilm_lockspace *ls)
 {
 	struct ilm_lock_payload payload;
 	struct ilm_lock *lock;
@@ -187,7 +187,7 @@ fail:
 	return ret;
 }
 
-int ilm_lvb_write(struct ilm_cmd *cmd, struct ilm_lockspace *ls)
+int ilm_lock_vb_write(struct ilm_cmd *cmd, struct ilm_lockspace *ls)
 {
 	struct ilm_lock_payload payload;
 	struct ilm_lock *lock;
@@ -220,7 +220,7 @@ fail:
 	return ret;
 }
 
-int ilm_lvb_read(struct ilm_cmd *cmd, struct ilm_lockspace *ls)
+int ilm_lock_vb_read(struct ilm_cmd *cmd, struct ilm_lockspace *ls)
 {
 	struct ilm_lock_payload payload;
 	struct ilm_lock *lock;
