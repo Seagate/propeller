@@ -24,6 +24,23 @@
 /* Timeout 5s (5000ms) */
 #define ILM_MAJORITY_TIMEOUT		5000
 
+/*
+ * Every IDM drive's state machine is maintained as below:
+ *
+ *              +---->  NOACCESS  <----------------------------+
+ *              |          |                                   |
+ *  Timeout, or |          |  Acquired IDM, needs to break the |
+ *  release the |          |  ownership or handle duplicate    |
+ *  lock        |          |  acquisition.                     |  Timeout,
+ *              |          V                                   |  release
+ *              +----  ACCESSED                                |  the lock
+ *                         |                                   |
+ *                         |  Errors (e.g -EIO, -EFAULT, etc)  |
+ *                         |                                   |
+ *                         |                                   |
+ *                         V                                   |
+ *                      FAILED  -------------------------------+
+ */
 static int _raid_lock(struct ilm_lock *lock, int mode, char *host_id,
 		      struct ilm_drive *drive)
 {
@@ -34,10 +51,10 @@ static int _raid_lock(struct ilm_lock *lock, int mode, char *host_id,
 	if (!ret) {
 		return 0;
 	/*
-	 * The idm has been acquired successfully before, but for some reaons
-	 * (e.g. the host lost connection with drive and reconnect again) the
-	 * host tries to acquire it again and the host's membership isn't
-	 * expired.  So it reports the error -EAGAIN.
+	 * The idm has been acquired by other hosts, but not sure if these
+	 * hosts have been timeout or not or if set an infinite timeout
+	 * value.  If all hosts have been timeout, we can break the idm's
+	 * current granting and has chance to take this idm.
 	 */
 	} else if (ret == -EBUSY) {
 #if 0
@@ -74,7 +91,7 @@ static int _raid_lock(struct ilm_lock *lock, int mode, char *host_id,
 		ret = idm_drive_unlock(lock->id, host_id, drive->path);
 		/*
 		 * If the host has been expired for its membership,
-		 * still take it can unlock successfully.
+		 * take it as being unlocked.
 		 */
 		if (ret && ret != -ETIME)
 			return ret;
@@ -133,11 +150,10 @@ int idm_raid_lock(struct ilm_lock *lock, char *host_id)
 			if (drive->state != ILM_DRIVE_ACCESSED)
 				continue;
 
-			ret = idm_drive_unlock(lock->id, host_id, drive->path);
-			if (!ret)
-				continue;
+			idm_drive_unlock(lock->id, host_id, drive->path);
 
-			drive->state = ILM_DRIVE_FAILED;
+			/* Always make success to unlock */
+			drive->state = ILM_DRIVE_NOACCESS;
 		}
 
 		/*
@@ -165,7 +181,7 @@ int idm_raid_unlock(struct ilm_lock *lock, char *host_id)
 		drive = &lock->drive[i];
 		idm_drive_unlock(lock->id, host_id, drive->path);
 
-		/* Always Make success to unlock */
+		/* Always make success to unlock */
 		drive->state = ILM_DRIVE_NOACCESS;
 	}
 
@@ -179,34 +195,46 @@ static int _raid_convert_lock(struct ilm_lock *lock, int mode,
 	int i, ret;
 
 	switch (drive->state) {
-	case ILM_DRIVE_ACCESSED:
-		ret = idm_drive_convert_lock(lock->id, mode,
-					     host_id, drive->path);
-		if (!ret)
-			return 0;
-
-		if (ret == -EIO)
-			drive->state = ILM_DRIVE_FAILED;
-		break;
-	/* Handle for failed drive */
-	case ILM_DRIVE_FAILED:
-		/* Try to release lock firstly */
-		ret = idm_drive_unlock(lock->id, host_id, drive->path);
-		if (ret && ret != -ETIME)
-			return ret;
-
-		drive->state = ILM_DRIVE_NOACCESS;
-
-		/* fall through */
-
 	/*
 	 * The drive has not been acquired when the lock is granted,
 	 * take this chance to extend majority.
 	 */
 	case ILM_DRIVE_NOACCESS:
 		ret = _raid_lock(lock, mode, host_id, drive);
-		if (!ret)
+		if (ret)
+			return ret;
+
+		drive->state = ILM_DRIVE_ACCESSED;
+
+		/* fall through */
+
+	case ILM_DRIVE_ACCESSED:
+	case ILM_DRIVE_FAILED:
+		ret = idm_drive_convert_lock(lock->id, mode,
+					     host_id, drive->path);
+		/* Convert mode successfully */
+		if (!ret) {
 			drive->state = ILM_DRIVE_ACCESSED;
+			return 0;
+		}
+
+		/* Drive failure, directly bail out */
+		if (ret == -EIO) {
+			drive->state = ILM_DRIVE_FAILED;
+			return ret;
+		}
+
+		/*
+		 * If the membership is timeout, needs to release lock and
+		 * try to acquire again (in next loop or any new request
+		 * later.
+		 */
+		if (ret == -ETIME) {
+			ret = idm_drive_unlock(lock->id, host_id, drive->path);
+			drive->state = ILM_DRIVE_NOACCESS;
+		}
+
+		/* If returns -EPERM, will return -1 */
 		break;
 	default:
 		ilm_log_err("%s: unexpected drive state %d\n",
@@ -214,7 +242,7 @@ static int _raid_convert_lock(struct ilm_lock *lock, int mode,
 		break;
 	}
 
-	return ret;
+	return -1;
 }
 
 int idm_raid_convert_lock(struct ilm_lock *lock, char *host_id, int mode)
@@ -275,44 +303,53 @@ static int _raid_renew_lock(struct ilm_lock *lock, char *host_id,
 	int ret;
 
 	switch (drive->state) {
+	case ILM_DRIVE_NOACCESS:
+		ret = _raid_lock(lock, lock->mode, host_id, drive);
+		/* Fail to acquire a lock */
+		if (ret)
+			return ret;
+
+		drive->state = ILM_DRIVE_ACCESSED;
+
+		/* fall through */
+
 	case ILM_DRIVE_ACCESSED:
+	case ILM_DRIVE_FAILED:
 		ret = idm_drive_renew_lock(lock->id, lock->mode, host_id,
 					   drive->path);
 		if (!ret) {
 			drive->state = ILM_DRIVE_ACCESSED;
-		} else if (ret == -EIO) {
-			drive->state = ILM_DRIVE_FAILED;
-		} else if (ret == -EFAULT) {
-			/* Try to release lock firstly */
-			ret = idm_drive_unlock(lock->id, host_id, drive->path);
-			if (ret && ret != -ETIME)
-				return ret;
+			return 0;
+		}
 
+		if (ret == -EIO) {
+			drive->state = ILM_DRIVE_FAILED;
+			return ret;
+		}
+
+		/*
+		 * The lock mode cahed in lock manager is not same with the mode
+		 * in the drive, it's possible that it's caused by the drive
+		 * failure before and the lock manager missed to update the
+		 * drive's lock mode.  For this case, release the idm and
+		 * acquire it again to get a clean context for the idm.
+		 */
+		if (ret == -EFAULT) {
+			idm_drive_unlock(lock->id, host_id, drive->path);
 			drive->state = ILM_DRIVE_NOACCESS;
 
 			ret = idm_drive_lock(lock->id, lock->mode, host_id,
 					     drive->path, lock->timeout);
 			if (!ret)
 				drive->state = ILM_DRIVE_ACCESSED;
-		} else {
-			ilm_log_err("%s: fail to renew %d\n", __func__, ret);
 		}
-		break;
-	/* Handle for failed drive */
-	case ILM_DRIVE_FAILED:
-		/* Try to release lock firstly */
-		ret = idm_drive_unlock(lock->id, host_id, drive->path);
-		if (ret && ret != -ETIME)
-			return ret;
 
-		drive->state = ILM_DRIVE_NOACCESS;
+		if (ret == -ETIME) {
+			idm_drive_unlock(lock->id, host_id, drive->path);
+			drive->state = ILM_DRIVE_NOACCESS;
+		}
 
-		/* fall through */
-
-	case ILM_DRIVE_NOACCESS:
-		ret = _raid_lock(lock, lock->mode, host_id, drive);
-		if (!ret)
-			drive->state = ILM_DRIVE_ACCESSED;
+		ilm_log_err("%s: fail to renew lock: ret=%d\n", __func__, ret);
 		break;
 	default:
 		ilm_log_err("%s: unexpected drive state %d\n",
@@ -320,7 +357,7 @@ static int _raid_renew_lock(struct ilm_lock *lock, char *host_id,
 		break;
 	}
 
-	return ret;
+	return -1;
 }
 
 int idm_raid_renew_lock(struct ilm_lock *lock, char *host_id)
@@ -361,32 +398,39 @@ static int _raid_write_lvb(struct ilm_lock *lock, char *host_id,
 	int ret;
 
 	switch (drive->state) {
-	case ILM_DRIVE_FAILED:
-		/* Try to release lock firstly */
-		ret = idm_drive_unlock(lock->id, host_id, drive->path);
-		if (ret && ret != -ETIME)
+	case ILM_DRIVE_NOACCESS:
+		ret = _raid_lock(lock, lock->mode, host_id, drive);
+		if (ret)
 			return ret;
 
-		drive->state = ILM_DRIVE_NOACCESS;
+		drive->state = ILM_DRIVE_ACCESSED;
 
 		/* fall through */
 
-	case ILM_DRIVE_NOACCESS:
-		ret = _raid_lock(lock, lock->mode, host_id, drive);
-		if (!ret)
-			drive->state = ILM_DRIVE_ACCESSED;
-		break;
 	case ILM_DRIVE_ACCESSED:
+	case ILM_DRIVE_FAILED:
+		ret = idm_drive_write_lvb(lock->id, host_id,
+					  lvb, lvb_size, drive->path);
+		if (!ret) {
+			drive->state = ILM_DRIVE_ACCESSED;
+			return 0;
+		}
+
+		if (ret == -EIO) {
+			drive->state = ILM_DRIVE_FAILED;
+			return ret;
+		}
+
+		if (ret == -ETIME) {
+			idm_drive_unlock(lock->id, host_id, drive->path);
+			drive->state = ILM_DRIVE_NOACCESS;
+		}
+
+		ilm_log_err("%s: fail to write lvb: ret=%d\n", __func__, ret);
+		break;
 	default:
 		break;
 	};
-
-	if (drive->state != ILM_DRIVE_ACCESSED)
-		return ret;
-
-	ret = idm_drive_write_lvb(lock->id, lvb, lvb_size, drive->path);
-	if (ret)
-		drive->state = ILM_DRIVE_FAILED;
 
 	return ret;
 }
@@ -429,32 +473,39 @@ static int _raid_read_lvb(struct ilm_lock *lock, char *host_id,
 	int ret;
 
 	switch (drive->state) {
-	case ILM_DRIVE_FAILED:
-		/* Try to release lock firstly */
-		ret = idm_drive_unlock(lock->id, host_id, drive->path);
-		if (ret && ret != -ETIME)
+	case ILM_DRIVE_NOACCESS:
+		ret = _raid_lock(lock, lock->mode, host_id, drive);
+		if (ret)
 			return ret;
 
-		drive->state = ILM_DRIVE_NOACCESS;
+		drive->state = ILM_DRIVE_ACCESSED;
 
 		/* fall through */
 
-	case ILM_DRIVE_NOACCESS:
-		ret = _raid_lock(lock, lock->mode, host_id, drive);
-		if (!ret)
-			drive->state = ILM_DRIVE_ACCESSED;
-		break;
 	case ILM_DRIVE_ACCESSED:
+	case ILM_DRIVE_FAILED:
+		ret = idm_drive_read_lvb(lock->id, host_id,
+					 lvb, lvb_size, drive->path);
+		if (!ret) {
+			drive->state = ILM_DRIVE_ACCESSED;
+			return 0;
+		}
+
+		if (ret == -EIO) {
+			drive->state = ILM_DRIVE_FAILED;
+			return ret;
+		}
+
+		if (ret == -ETIME) {
+			idm_drive_unlock(lock->id, host_id, drive->path);
+			drive->state = ILM_DRIVE_NOACCESS;
+		}
+
+		ilm_log_err("%s: fail to write lvb: ret=%d\n", __func__, ret);
+		break;
 	default:
 		break;
 	};
-
-	if (drive->state != ILM_DRIVE_ACCESSED)
-		return ret;
-
-	ret = idm_drive_read_lvb(lock->id, lvb, lvb_size, drive->path);
-	if (ret)
-		drive->state = ILM_DRIVE_FAILED;
 
 	return ret;
 }

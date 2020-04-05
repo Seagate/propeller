@@ -705,7 +705,8 @@ fail_host:
  *
  * Returns zero or a negative error (ie. EINVAL).
  */
-int idm_drive_write_lvb(char *lock_id, void *lvb, int lvb_size, char *drive)
+int idm_drive_write_lvb(char *lock_id, char *host_id,
+			void *lvb, int lvb_size, char *drive)
 {
 	struct idm_emulation *idm;
 	struct idm_host *host;
@@ -721,11 +722,21 @@ int idm_drive_write_lvb(char *lock_id, void *lvb, int lvb_size, char *drive)
 	if (!idm)
 		return -EINVAL;
 
+	host = idm_host_find(idm, host_id);
+	if (!host)
+		return -EINVAL;
+
 	pthread_mutex_lock(&idm->mutex);
+
+	if (idm_host_is_expired(host)) {
+		host->state = IDM_STATE_TIMEOUT;
+		ret = -ETIME;
+		goto out;
+	}
 
 	/* The host is not running state? */
 	if (host->state != IDM_STATE_RUN) {
-		ret = -EINVAL;
+		ret = -ETIME;
 		goto out;
 	}
 
@@ -746,7 +757,8 @@ out:
  *
  * Returns zero or a negative error (ie. EINVAL).
  */
-int idm_drive_read_lvb(char *lock_id, void *lvb, int lvb_size, char *drive)
+int idm_drive_read_lvb(char *lock_id, char *host_id,
+		       void *lvb, int lvb_size, char *drive)
 {
 	struct idm_emulation *idm;
 	struct idm_host *host;
@@ -762,7 +774,17 @@ int idm_drive_read_lvb(char *lock_id, void *lvb, int lvb_size, char *drive)
 	if (!idm)
 		return -EINVAL;
 
+	host = idm_host_find(idm, host_id);
+	if (!host)
+		return -EINVAL;
+
 	pthread_mutex_lock(&idm->mutex);
+
+	if (idm_host_is_expired(host)) {
+		host->state = IDM_STATE_TIMEOUT;
+		ret = -ETIME;
+		goto out;
+	}
 
 	/* The host is not running state? */
 	if (host->state != IDM_STATE_RUN) {
