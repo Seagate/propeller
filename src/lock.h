@@ -23,7 +23,7 @@ struct ilm_drive {
 
 struct ilm_lock {
 	struct list_head list;
-	char lock_id[IDM_LOCK_ID_LEN];
+	char id[IDM_LOCK_ID_LEN];
 	int mode;
 	int timeout;
 

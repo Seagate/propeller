@@ -123,7 +123,7 @@ int ilm_lock_acquire(struct ilm_cmd *cmd, struct ilm_lockspace *ls)
 		goto fail;
 	}
 
-	memcpy(lock->lock_id, payload.lock_id, IDM_LOCK_ID_LEN);
+	memcpy(lock->id, payload.lock_id, IDM_LOCK_ID_LEN);
 
 	/* TODO: add majority locking algorithm */
 
