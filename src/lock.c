@@ -68,8 +68,8 @@ static struct ilm_lock *ilm_alloc(struct ilm_cmd *cmd,
 			goto drive_fail;
 		}
 
-		lock->drive_list[i] = strdup(path);
-		if (!lock->drive_list[i]) {
+		lock->drive[i].path = strdup(path);
+		if (!lock->drive[i].path) {
 	        	ilm_log_err("Failed to copy drive path\n");
 			goto drive_fail;
 		}
@@ -83,7 +83,7 @@ static struct ilm_lock *ilm_alloc(struct ilm_cmd *cmd,
 
 drive_fail:
 	for (i = 0; i < copied; i++)
-		free(lock->drive_list[i]);
+		free(lock->drive[i].path);
 	free(lock);
 	return NULL;
 }
@@ -123,7 +123,7 @@ int ilm_lock_acquire(struct ilm_cmd *cmd, struct ilm_lockspace *ls)
 		goto fail;
 	}
 
-	memcpy(lock->lock_id, payload.lock_id, ILM_ID_LENGTH);
+	memcpy(lock->lock_id, payload.lock_id, IDM_LOCK_ID_LEN);
 
 	/* TODO: add majority locking algorithm */
 
