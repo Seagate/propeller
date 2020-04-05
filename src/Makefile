@@ -19,7 +19,8 @@ SOURCE = main.c \
 	 cmd.c \
 	 lockspace.c \
 	 lock.c \
-	 util.c
+	 util.c \
+	 idm_pthread_backend.c
 
 LIB_SOURCE = lib_client.c
 

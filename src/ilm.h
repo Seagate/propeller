@@ -8,6 +8,10 @@
 
 #define ILM_DRIVE_MAX_NUM	32
 
+#define IDM_MODE_UNLOCK			0
+#define IDM_MODE_EXCLUSIVE		1
+#define IDM_MODE_SHAREABLE		2
+
 struct idm_lock_id {
 	uuid_t vg_uuid;
 	uuid_t lv_uuid;
