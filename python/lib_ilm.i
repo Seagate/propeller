@@ -19,7 +19,6 @@ struct idm_lock_op {
         char *drives[ILM_DRIVE_MAX_NUM];
 
         int timeout; /* -1 means unlimited timeout */
-        int quiescent;
 };
 
 int ilm_connect(int *sock);
@@ -45,7 +44,6 @@ struct idm_lock_op {
         char *drives[ILM_DRIVE_MAX_NUM];
 
         int timeout; /* -1 means unlimited timeout */
-        int quiescent;
 };
 
 int ilm_connect(int *sock);
