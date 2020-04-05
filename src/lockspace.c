@@ -24,7 +24,7 @@
 
 struct ilm_lockspace {
 	struct list_head list;
-	uuid_t host_uuid;
+	char host_id[IDM_HOST_ID_LEN];
 
 	struct list_head lock_list;
 
@@ -88,6 +88,12 @@ int ilm_lockspace_create(struct ilm_cmd *cmd, struct ilm_lockspace **ls_out)
 	if (!ilm_ls)
 		return -ENOMEM;
 	memset(ilm_ls, 0, sizeof(struct ilm_lockspace));
+
+	/*
+	 * As the first step, simply copy ilm UUID and always set PID = 0;
+	 * TODO: add pid into host ID.
+	 */
+	memcpy(ilm_ls->host_id, &ilm_uuid, sizeof(uuid_t));
 
 	INIT_LIST_HEAD(&ilm_ls->lock_list);
 	pthread_mutex_init(&ilm_ls->mutex, NULL);

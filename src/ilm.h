@@ -22,6 +22,7 @@ struct idm_lock_op {
 	int timeout; /* -1 means unlimited timeout */
 };
 
+uuid_t ilm_uuid;
 int ilm_connect(int *sock);
 int ilm_disconnect(int sock);
 int ilm_lock(int sock, struct idm_lock_id *id, struct idm_lock_op *op);
