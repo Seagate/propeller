@@ -9,7 +9,6 @@
 #include "lockspace.h"
 
 #define IDM_LOCK_ID_LEN			64
-#define IDM_HOST_ID_LEN			32
 #define IDM_VALUE_LEN			8
 
 struct ilm_drive {

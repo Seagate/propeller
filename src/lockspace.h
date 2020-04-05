@@ -1,7 +1,26 @@
 #ifndef __LOCKSPACE_H__
 #define __LOCKSPACE_H__
 
-struct ilm_lockspace;
+#include <pthread.h>
+
+#include "cmd.h"
+#include "list.h"
+
+#define IDM_HOST_ID_LEN			32
+
+struct ilm_lockspace {
+	struct list_head list;
+	char host_id[IDM_HOST_ID_LEN];
+
+	struct list_head lock_list;
+
+	int exit;
+	pthread_t thd;
+	pthread_mutex_t mutex;
+
+	/* TODO: support event and timeout */
+};
+
 struct ilm_lock;
 
 int ilm_lockspace_create(struct ilm_cmd *cmd, struct ilm_lockspace **ls_out);

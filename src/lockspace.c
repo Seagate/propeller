@@ -22,19 +22,6 @@
 #include "lock.h"
 #include "log.h"
 
-struct ilm_lockspace {
-	struct list_head list;
-	char host_id[IDM_HOST_ID_LEN];
-
-	struct list_head lock_list;
-
-	int exit;
-	pthread_t thd;
-	pthread_mutex_t mutex;
-
-	/* TODO: support event and timeout */
-};
-
 static struct list_head ls_list = LIST_HEAD_INIT(ls_list);
 static pthread_mutex_t ls_mutex = PTHREAD_MUTEX_INITIALIZER;
 
