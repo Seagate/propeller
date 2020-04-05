@@ -22,19 +22,6 @@
 #include "lock.h"
 #include "log.h"
 
-struct ilm_lockspace {
-	struct list_head list;
-	uuid_t host_uuid;
-
-	struct list_head lock_list;
-
-	int exit;
-	pthread_t thd;
-	pthread_mutex_t mutex;
-
-	/* TODO: support event and timeout */
-};
-
 static struct list_head ls_list = LIST_HEAD_INIT(ls_list);
 static pthread_mutex_t ls_mutex = PTHREAD_MUTEX_INITIALIZER;
 
@@ -88,6 +75,12 @@ int ilm_lockspace_create(struct ilm_cmd *cmd, struct ilm_lockspace **ls_out)
 	if (!ilm_ls)
 		return -ENOMEM;
 	memset(ilm_ls, 0, sizeof(struct ilm_lockspace));
+
+	/*
+	 * As the first step, simply copy ilm UUID and always set PID = 0;
+	 * TODO: add pid into host ID.
+	 */
+	memcpy(ilm_ls->host_id, &ilm_uuid, sizeof(uuid_t));
 
 	INIT_LIST_HEAD(&ilm_ls->lock_list);
 	pthread_mutex_init(&ilm_ls->mutex, NULL);
@@ -186,7 +179,7 @@ int ilm_lockspace_find_lock(struct ilm_lockspace *ls, char *lock_id,
 
 	list_for_each_entry(pos, &ls->lock_list, list) {
 
-		if (!memcmp(pos->lock_id, lock_id, ILM_ID_LENGTH)) {
+		if (!memcmp(pos->id, lock_id, IDM_LOCK_ID_LEN)) {
 			*lock = pos;
 			ret = 0;
 			break;

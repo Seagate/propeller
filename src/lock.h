@@ -3,18 +3,35 @@
 
 #include <uuid/uuid.h>
 
+#include "cmd.h"
 #include "ilm.h"
+#include "list.h"
+#include "lockspace.h"
 
-#define ILM_ID_LENGTH		32
+#define IDM_LOCK_ID_LEN			64
+#define IDM_VALUE_LEN			8
+
+struct ilm_drive {
+	int state;
+	char *path;
+};
+
+#define ILM_DRIVE_NO_ACCESS		0
+#define ILM_DRIVE_ACCESSED		1
+#define ILM_DRIVE_FAILED		2
 
 struct ilm_lock {
 	struct list_head list;
-	char lock_id[ILM_ID_LENGTH];
-	int flag;
+	char id[IDM_LOCK_ID_LEN];
 	int mode;
+	int timeout;
 
 	int drive_num;
-	char *drive_list[ILM_DRIVE_MAX_NUM];
+	struct ilm_drive drive[ILM_DRIVE_MAX_NUM];
+
+	char vb[IDM_VALUE_LEN];
+
+	int convert_failed;
 };
 
 #define ILM_LOCK_MAGIC		0x4C4F434B
@@ -24,9 +41,8 @@ struct ilm_lock_payload {
 	uint32_t magic;
 	uint32_t mode;
 	uint32_t drive_num;
-	char lock_id[ILM_ID_LENGTH];
+	char lock_id[IDM_LOCK_ID_LEN];
 	int timeout;
-	int quiescent;
 };
 
 int ilm_lock_acquire(struct ilm_cmd *cmd, struct ilm_lockspace *ls);

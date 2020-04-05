@@ -8,6 +8,10 @@
 
 #define ILM_DRIVE_MAX_NUM	32
 
+#define IDM_MODE_UNLOCK			0
+#define IDM_MODE_EXCLUSIVE		1
+#define IDM_MODE_SHAREABLE		2
+
 struct idm_lock_id {
 	uuid_t vg_uuid;
 	uuid_t lv_uuid;
@@ -20,9 +24,9 @@ struct idm_lock_op {
 	char *drives[ILM_DRIVE_MAX_NUM];
 
 	int timeout; /* -1 means unlimited timeout */
-	int quiescent;
 };
 
+uuid_t ilm_uuid;
 int ilm_connect(int *sock);
 int ilm_disconnect(int sock);
 int ilm_lock(int sock, struct idm_lock_id *id, struct idm_lock_op *op);

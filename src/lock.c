@@ -21,6 +21,7 @@
 #include "lockspace.h"
 #include "lock.h"
 #include "log.h"
+#include "raid_lock.h"
 
 static int ilm_lock_payload_read(struct ilm_cmd *cmd,
 				 struct ilm_lock_payload *payload)
@@ -68,8 +69,8 @@ static struct ilm_lock *ilm_alloc(struct ilm_cmd *cmd,
 			goto drive_fail;
 		}
 
-		lock->drive_list[i] = strdup(path);
-		if (!lock->drive_list[i]) {
+		lock->drive[i].path = strdup(path);
+		if (!lock->drive[i].path) {
 	        	ilm_log_err("Failed to copy drive path\n");
 			goto drive_fail;
 		}
@@ -83,7 +84,7 @@ static struct ilm_lock *ilm_alloc(struct ilm_cmd *cmd,
 
 drive_fail:
 	for (i = 0; i < copied; i++)
-		free(lock->drive_list[i]);
+		free(lock->drive[i].path);
 	free(lock);
 	return NULL;
 }
@@ -108,29 +109,29 @@ int ilm_lock_acquire(struct ilm_cmd *cmd, struct ilm_lockspace *ls)
 
 	ret = ilm_lock_payload_read(cmd, &payload);
 	if (ret < 0)
-		goto fail;
+		goto out;
 
 	if (payload.drive_num > ILM_DRIVE_MAX_NUM) {
 	        ilm_log_err("Drive list is out of scope: drive_num %d\n",
 			    payload.drive_num);
 		ret = -EINVAL;
-		goto fail;
+		goto out;
 	}
 
 	lock = ilm_alloc(cmd, ls, payload.drive_num);
 	if (!lock) {
 		ret = -ENOMEM;
-		goto fail;
+		goto out;
 	}
 
-	memcpy(lock->lock_id, payload.lock_id, ILM_ID_LENGTH);
+	memcpy(lock->id, payload.lock_id, IDM_LOCK_ID_LEN);
+	lock->mode = payload.mode;
 
-	/* TODO: add majority locking algorithm */
+	ret = idm_raid_lock(lock, ls->host_id);
+	if (ret)
+	        ilm_log_err("Fail to acquire raid lock %d\n", ret);
 
-	ilm_send_result(cmd->cl->fd, 0, NULL, 0);
-	return 0;
-
-fail:
+out:
 	ilm_send_result(cmd->cl->fd, ret, NULL, 0);
 	return ret;
 }
@@ -143,22 +144,18 @@ int ilm_lock_release(struct ilm_cmd *cmd, struct ilm_lockspace *ls)
 
 	ret = ilm_lock_payload_read(cmd, &payload);
 	if (ret < 0)
-		goto fail;
+		goto out;
 
 	ret = ilm_lockspace_find_lock(ls, payload.lock_id, &lock);
 	if (ret < 0)
-		goto fail;
+		goto out;
 
-	/* TODO: add majority locking algorithm */
+	idm_raid_lock(lock, ls->host_id);
 
 	ret = ilm_free(ls, lock);
-	if (ret < 0)
-		goto fail;
-
-	ilm_send_result(cmd->cl->fd, 0, NULL, 0);
-	return 0;
-
-fail:
+	if (ret)
+	        ilm_log_err("Fail to free raid lock %d\n", ret);
+out:
 	ilm_send_result(cmd->cl->fd, ret, NULL, 0);
 	return ret;
 }
@@ -171,18 +168,21 @@ int ilm_lock_convert_mode(struct ilm_cmd *cmd, struct ilm_lockspace *ls)
 
 	ret = ilm_lock_payload_read(cmd, &payload);
 	if (ret < 0)
-		goto fail;
+		goto out;
 
 	ret = ilm_lockspace_find_lock(ls, payload.lock_id, &lock);
 	if (ret < 0)
-		goto fail;
+		goto out;
 
-	/* TODO: add majority locking algorithm */
+	ret = idm_raid_convert_lock(lock, ls->host_id, payload.mode);
+	if (ret)
+	        ilm_log_err("Fail to convert raid lock %d mode %d vs %d\n",
+			    ret, lock->mode, payload.mode);
+	else
+		/* Update after convert mode successfully */
+		lock->mode = payload.mode;
 
-	ilm_send_result(cmd->cl->fd, 0, NULL, 0);
-	return 0;
-
-fail:
+out:
 	ilm_send_result(cmd->cl->fd, ret, NULL, 0);
 	return ret;
 }
@@ -191,31 +191,33 @@ int ilm_lock_vb_write(struct ilm_cmd *cmd, struct ilm_lockspace *ls)
 {
 	struct ilm_lock_payload payload;
 	struct ilm_lock *lock;
-	char buf[ILM_LVB_SIZE];
+	char buf[IDM_VALUE_LEN];
 	int ret;
 
 	ret = ilm_lock_payload_read(cmd, &payload);
 	if (ret < 0)
-		goto fail;
+		goto out;
 
 	ret = ilm_lockspace_find_lock(ls, payload.lock_id, &lock);
 	if (ret < 0)
-		goto fail;
+		goto out;
 
-	ret = recv(cmd->cl->fd, buf, ILM_LVB_SIZE, MSG_WAITALL);
+	ret = recv(cmd->cl->fd, buf, IDM_VALUE_LEN, MSG_WAITALL);
 	if (ret != ILM_LVB_SIZE) {
 		ilm_log_err("Fail to receive LVB fd %d errno %d\n",
 			    cmd->cl->fd, errno);
 		ret = -EIO;
-		goto fail;
+		goto out;
 	}
 
-	/* TODO: add majority locking algorithm */
+	ret = idm_raid_write_lvb(lock, ls->host_id, buf, IDM_VALUE_LEN);
+	if (ret)
+	        ilm_log_err("Fail to write lvb %d\n", ret);
+	else
+		/* Update after convert mode successfully */
+		memcpy(lock->vb, buf, IDM_VALUE_LEN);
 
-	ilm_send_result(cmd->cl->fd, 0, NULL, 0);
-	return 0;
-
-fail:
+out:
 	ilm_send_result(cmd->cl->fd, ret, NULL, 0);
 	return ret;
 }
@@ -224,7 +226,7 @@ int ilm_lock_vb_read(struct ilm_cmd *cmd, struct ilm_lockspace *ls)
 {
 	struct ilm_lock_payload payload;
 	struct ilm_lock *lock;
-	char buf[ILM_LVB_SIZE];
+	char buf[IDM_VALUE_LEN];
 	int ret;
 
 	ret = ilm_lock_payload_read(cmd, &payload);
@@ -235,9 +237,16 @@ int ilm_lock_vb_read(struct ilm_cmd *cmd, struct ilm_lockspace *ls)
 	if (ret < 0)
 		goto fail;
 
-	/* TODO: add majority locking algorithm */
+	ret = idm_raid_read_lvb(lock, ls->host_id, buf, IDM_VALUE_LEN);
+	if (ret) {
+	        ilm_log_err("Fail to write lvb %d\n", ret);
+		goto fail;
+	} else {
+		/* Update the cached LVB */
+		memcpy(lock->vb, buf, IDM_VALUE_LEN);
+	}
 
-	ilm_send_result(cmd->cl->fd, 0, buf, ILM_LVB_SIZE);
+	ilm_send_result(cmd->cl->fd, 0, buf, IDM_VALUE_LEN);
 	return 0;
 
 fail:
