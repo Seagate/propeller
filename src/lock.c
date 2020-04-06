@@ -76,6 +76,8 @@ static struct ilm_lock *ilm_alloc(struct ilm_cmd *cmd,
 		}
 	}
 
+	lock->drive_num = drive_num;
+
 	ret = ilm_lockspace_add_lock(ls, lock);
 	if (ret < 0)
 		goto drive_fail;
