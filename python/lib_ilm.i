@@ -32,6 +32,10 @@ int ilm_read_lvb(int sock, struct idm_lock_id *id, char *lvb, int lvb_len);
 
 #define ILM_DRIVE_MAX_NUM       32
 
+#define IDM_MODE_UNLOCK         0
+#define IDM_MODE_EXCLUSIVE      1
+#define IDM_MODE_SHAREABLE      2
+
 struct idm_lock_id {
         char *vg_uuid;
         char *lv_uuid;
