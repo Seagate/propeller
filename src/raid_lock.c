@@ -138,7 +138,7 @@ int idm_raid_lock(struct ilm_lock *lock, char *host_id)
 		}
 
 		/* Acquired majoirty */
-		if (score >= (lock->drive_num >> 1 + 1))
+		if (score >= ((lock->drive_num >> 1) + 1))
 			return 0;
 
 		/*
@@ -266,7 +266,7 @@ int idm_raid_convert_lock(struct ilm_lock *lock, char *host_id, int mode)
 	}
 
 	/* Has achieved majoirty */
-	if (score >= (lock->drive_num >> 1 + 1))
+	if (score >= ((lock->drive_num >> 1) + 1))
 		return 0;
 
 	/*
@@ -287,7 +287,7 @@ int idm_raid_convert_lock(struct ilm_lock *lock, char *host_id, int mode)
 	}
 
 	/* Unfortunately, fail to revert to old mode. */
-	if (score < (lock->drive_num >> 1 + 1)) {
+	if (score < ((lock->drive_num >> 1) + 1)) {
 		ilm_log_warn("Fail to revert lock mode, old %d vs new %d\n",
 			     lock->mode, mode);
 		ilm_log_warn("Defer to resolve this when renew the lock\n");
@@ -382,7 +382,7 @@ int idm_raid_renew_lock(struct ilm_lock *lock, char *host_id)
 
 		/* Drives have odd number */
 		if ((lock->drive_num & 1) &&
-		    (score >= (lock->drive_num >> 1 + 1)))
+		    (score >= ((lock->drive_num >> 1) + 1)))
 			return 0;
 
 	} while (ilm_curr_time() < timeout);
@@ -452,7 +452,7 @@ int idm_raid_write_lvb(struct ilm_lock *lock, char *host_id,
 				score++;
 		}
 
-		if (score >= (lock->drive_num >> 1 + 1))
+		if (score >= ((lock->drive_num >> 1) + 1))
 			return 0;
 	} while (ilm_curr_time() < timeout);
 
@@ -527,7 +527,7 @@ int idm_raid_read_lvb(struct ilm_lock *lock, char *host_id,
 				score++;
 		}
 
-		if (score >= (lock->drive_num >> 1 + 1))
+		if (score >= ((lock->drive_num >> 1) + 1))
 			return 0;
 	} while (ilm_curr_time() < timeout);
 
@@ -576,7 +576,7 @@ int idm_raid_count(struct ilm_lock *lock, int *count)
 			stat_max = i;
 	}
 
-	if (stat[stat_max] >= (lock->drive_num >> 1 + 1)) {
+	if (stat[stat_max] >= ((lock->drive_num >> 1) + 1)) {
 		*count = stat_max;
 		return 0;
 	}
@@ -623,7 +623,7 @@ int idm_raid_mode(struct ilm_lock *lock, int *mode)
 			mode_max = i;
 	}
 
-	if (stat_mode[mode_max] >= (lock->drive_num >> 1 + 1)) {
+	if (stat_mode[mode_max] >= ((lock->drive_num >> 1) + 1)) {
 		*mode = mode_max;
 		return 0;
 	}
