@@ -625,7 +625,7 @@ int idm_drive_break_lock(char *lock_id, int mode, char *host_id,
 {
 	struct idm_emulation *idm;
 	struct idm_host *host, *next;
-	int ret = 0;
+	int ret = 0, can_break;
 
 	if (!lock_id || !host_id || !drive)
 		return -EINVAL;
@@ -649,14 +649,35 @@ int idm_drive_break_lock(char *lock_id, int mode, char *host_id,
 
 	pthread_mutex_lock(&idm->mutex);
 
+	can_break = 1;
 	list_for_each_entry_safe(host, next, &idm->host_list, list) {
-		/*
-		 * If the host is timeout or its countdown is -1ULL,
-		 * remove it from the host list.
-		 */
+		/* If the host is timeout, remove it from the host list. */
 		if (host->state == IDM_STATE_TIMEOUT ||
-		    idm_host_is_expired(host) ||
-		    host->countdown == -1ULL) {
+		    idm_host_is_expired(host)) {
+			list_del(&host->list);
+			free(host);
+			continue;
+		}
+
+		/*
+		 * If the host is not timeout and countdown is not -1ULL,
+		 * this host cannot be broken.  So set the flag for this.
+		 *
+		 * At this timeout, don't exit the loop and take chance to
+		 * remove other hosts have been timeout.
+		 */
+		if (host->countdown != -1ULL)
+			can_break = 0;
+	}
+
+	if (!can_break) {
+		ret = -EBUSY;
+		goto fail_break;
+	}
+
+	/* Remove the host with its countdown is -1ULL. */
+	list_for_each_entry_safe(host, next, &idm->host_list, list) {
+		if (host->countdown == -1ULL) {
 			list_del(&host->list);
 			free(host);
 		}
