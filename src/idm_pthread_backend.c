@@ -144,7 +144,7 @@ static struct idm_emulation *_idm_get(char *lock_id, char *drive, int alloc)
 	pthread_mutex_lock(&idm->mutex);
 	idm->mode = IDM_MODE_UNLOCK;
 	idm->user_count++;
-	pthread_mutex_lock(&idm->mutex);
+	pthread_mutex_unlock(&idm->mutex);
 
 	/* Add a new idm into list */
 	list_add(&idm->list, &idm_list);
