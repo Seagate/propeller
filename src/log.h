@@ -29,9 +29,18 @@ int log_stderr_priority;
 extern void ilm_log(int level, const char *fmt, ...)
 	__attribute__((format(printf, 2, 3)));
 
+extern void ilm_log_array(int level, char *array_name, char *buf, int buf_len);
+
 #define ilm_log_dbg(fmt, args...)	ilm_log(LOG_DEBUG, fmt, ##args)
 #define ilm_log_warn(fmt, args...)	ilm_log(LOG_WARNING, fmt, ##args)
 #define ilm_log_err(fmt, args...)	ilm_log(LOG_ERR, fmt, ##args)
+
+#define ilm_log_array_dbg(array_name, buf, buf_len)	\
+	ilm_log_array(LOG_DEBUG, array_name, buf, buf_len)
+#define ilm_log_array_warn(array_name, buf, buf_len)	\
+	ilm_log_array(LOG_WARNING, array_name, buf, buf_len)
+#define ilm_log_array_err(array_name, buf, buf_len)	\
+	ilm_log_array(LOG_ERR, array_name, buf, buf_len)
 
 extern int ilm_log_init(void);
 extern void ilm_log_exit(void);
