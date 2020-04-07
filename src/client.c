@@ -281,6 +281,7 @@ int ilm_client_add(int fd,
 	cl->fd = fd;
 	cl->workfn = workfn;
 	cl->deadfn = deadfn ? deadfn : ilm_client_del;
+	pthread_mutex_init(&cl->mutex, NULL);
 
 	/* Add client into list */
 	pthread_mutex_lock(&client_list_mutex);
