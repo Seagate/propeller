@@ -97,6 +97,8 @@ static void ilm_cmd_lvb_read(struct ilm_cmd *cmd)
 
 static void ilm_cmd_handle(struct ilm_cmd *cmd)
 {
+	ilm_log_dbg("cmd=%d", cmd->cmd);
+
 	switch (cmd->cmd) {
 	case ILM_CMD_ADD_LOCKSPACE:
 		ilm_cmd_add_lockspace(cmd);

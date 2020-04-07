@@ -19,7 +19,9 @@ def start_daemon():
            # don't set daemon so print log to stderr
            "-D", "1",
            # don't use mlockall
-           "-l", "0"]
+           "-l", "0",
+           # Log level is LOG_DEBUG
+           "-L", "7"]
     return subprocess.Popen(cmd)
 
 def wait_for_daemon(timeout):

@@ -8,8 +8,8 @@
 #define ILM_DRIVE_MAX_NUM       32
 
 struct idm_lock_id {
-        char *vg_uuid;
-        char *lv_uuid;
+        char vg_uuid[16];
+        char lv_uuid[16];
 };
 
 struct idm_lock_op {
@@ -32,9 +32,13 @@ int ilm_read_lvb(int sock, struct idm_lock_id *id, char *lvb, int lvb_len);
 
 #define ILM_DRIVE_MAX_NUM       32
 
+#define IDM_MODE_UNLOCK         0
+#define IDM_MODE_EXCLUSIVE      1
+#define IDM_MODE_SHAREABLE      2
+
 struct idm_lock_id {
-        char *vg_uuid;
-        char *lv_uuid;
+        char vg_uuid[16];
+        char lv_uuid[16];
 };
 
 struct idm_lock_op {
@@ -55,7 +59,17 @@ int ilm_write_lvb(int sock, struct idm_lock_id *id, char *lvb, int lvb_len);
 int ilm_read_lvb(int sock, struct idm_lock_id *id, char *lvb, int lvb_len);
 
 %extend idm_lock_op {
-        char **get_array_element(int i) {
-                return &$self->drives[i];
+        void set_drive_names(int i, char *path) {
+                $self->drives[i] = strdup(path);
+        }
+}
+
+%extend idm_lock_id {
+        void set_vg_uuid(char *id) {
+                memcpy($self->vg_uuid, id, 16);
+        }
+
+        void set_lv_uuid(char *id) {
+                memcpy($self->lv_uuid, id, 16);
         }
 }

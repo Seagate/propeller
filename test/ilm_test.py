@@ -24,18 +24,15 @@ def test_lock(ilm_daemon):
     assert s > 0
 
     lock_id = ilm.idm_lock_id()
-    lock_id.vg_uuid = "1111222233334444"
-    lock_id.lv_uuid = "0123456789abcdef"
+    lock_id.set_vg_uuid("0000000000000001")
+    lock_id.set_lv_uuid("0123456789abcdef")
 
     lock_op = ilm.idm_lock_op()
-    lock_op.mode = 0
-    lock_op.drive_name = 2
-    drive = lock_op.get_array_element(0)
-    drive = "/dev/sda1"
-    drive = lock_op.get_array_element(1)
-    drive = "/dev/sda2"
+    lock_op.mode = ilm.IDM_MODE_SHAREABLE
+    lock_op.drive_num = 2
+    lock_op.set_drive_names(0, "/dev/sda1")
+    lock_op.set_drive_names(1, "/dev/sda2")
     lock_op.timeout = 0
-    lock_op.quiescent = 0
 
     ret = ilm.ilm_lock(s, lock_id, lock_op)
     assert ret == 0

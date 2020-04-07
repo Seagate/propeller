@@ -147,6 +147,53 @@ void ilm_log(int level, const char *fmt, ...)
 	pthread_mutex_unlock(&log_mutex);
 }
 
+void ilm_log_array(int level, char *array_name, char *buf, int buf_len)
+{
+	int i, tail, tail_len;
+
+	ilm_log(level, "array: %s", array_name);
+
+	tail_len = buf_len % 4;
+
+	tail = 0;
+	for (i = 0; i < tail_len; i++)
+		tail |= (buf[buf_len - tail_len + i] << (i * 8));
+
+	i = 0;
+	while (buf_len >= 16) {
+		ilm_log(level, "%08x %08x %08x %08x",
+			*(int *)(buf + i), *(int *)(buf + i + 4),
+			*(int *)(buf + i + 8), *(int *)(buf + i + 12));
+		i += 16;
+		buf_len -= 16;
+	}
+
+	if (buf_len > 12) {
+		ilm_log(level, "%08x %08x %08x %08x",
+			*(int *)(buf + i), *(int *)(buf + i + 4),
+			*(int *)(buf + i + 8), tail);
+	} else if (buf_len > 8) {
+		if (buf_len == 12)
+			ilm_log(level, "%08x %08x %08x",
+				*(int *)(buf + i), *(int *)(buf + i + 4),
+				*(int *)(buf + i + 8));
+		else
+			ilm_log(level, "%08x %08x %08x",
+				*(int *)(buf + i), *(int *)(buf + i + 4), tail);
+	} else if (buf_len > 4) {
+		if (buf_len == 8)
+			ilm_log(level, "%08x %08x",
+				*(int *)(buf + i), *(int *)(buf + i + 4));
+		else
+			ilm_log(level, "%08x %08x", *(int *)(buf + i), tail);
+	} else if (buf_len > 0) {
+		if (buf_len == 4)
+			ilm_log(level, "%08x", *(int *)(buf + i));
+		else
+			ilm_log(level, "%08x", tail);
+	}
+}
+
 static void log_write_record(int level, char *str)
 {
 	if (level <= log_file_priority && log_file_fp) {

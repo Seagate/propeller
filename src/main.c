@@ -59,6 +59,18 @@ static int ilm_read_args(int argc, char *argv[])
 		case 'D':
 			env.debug = atoi(arg);
 			break;
+		case 'L':
+			log_file_priority = atoi(arg);
+			break;
+		case 'U':
+			log_file_use_utc = atoi(arg);
+			break;
+		case 'S':
+			log_syslog_priority = atoi(arg);
+			break;
+		case 'E':
+			log_stderr_priority = atoi(arg);
+			break;
 		case 'l':
 			env.mlock = atoi(arg);
 			break;
