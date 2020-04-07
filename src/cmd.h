@@ -28,6 +28,7 @@ struct ilm_cmd {
 	struct list_head list; /* thread_pool data */
 	struct client *cl;
 	uint32_t cmd;
+	int sock_msg_len;
 };
 
 int ilm_cmd_queue_add_work(struct ilm_cmd *cmd);

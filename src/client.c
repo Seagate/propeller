@@ -336,6 +336,7 @@ int ilm_client_request(struct client *cl)
 
 	cmd->cmd = hdr.cmd;
 	cmd->cl = cl;
+	cmd->sock_msg_len = hdr.length;
 
 	ret = ilm_client_suspend(cl);
 	if (ret < 0) {
@@ -355,6 +356,45 @@ dead:
 	if (cl->deadfn)
 		cl->deadfn(cl);
 	return -1;
+}
+
+void ilm_client_recv_all(struct client *cl, int msg_len, int pos)
+{
+        char trash[64];
+        int left = msg_len - sizeof(struct ilm_msg_header) - pos;
+        int ret, total = 0, retries = 0, trash_len;
+
+	ilm_log_dbg("%s: msg_len %d pos %d left %d", __func__,
+		    msg_len, pos, left);
+
+        while (left > 0) {
+		/* The read length should always less or equal than left */
+		trash_len = sizeof(trash);
+		if (trash_len > left)
+			trash_len = left;
+
+                ret = recv(cl->fd, trash, trash_len, MSG_DONTWAIT);
+
+		/* Read successfully */
+		if (ret > 0)
+			left -= ret;
+
+		/* Failed, but can try again */
+                if (ret == -1 && errno == EAGAIN) {
+                        usleep(1000);
+                        if (retries < 20) {
+                                retries++;
+                                continue;
+			}
+		}
+
+		/* Failed and cannot fixup, bail out */
+		if (ret <= 0)
+			break;
+	}
+
+        ilm_log_dbg("%s: fd %d pid %d pos %d ret %d errno %d retries %d left %d",
+		    __func__, cl->fd, cl->pid, pos, ret, errno, retries, left);
 }
 
 int ilm_client_connect(struct client *cl)
