@@ -118,7 +118,7 @@ static struct idm_emulation *_idm_get(char *lock_id, char *drive, int alloc)
 
 			pthread_mutex_lock(&idm->mutex);
 			idm->user_count++;
-			pthread_mutex_lock(&idm->mutex);
+			pthread_mutex_unlock(&idm->mutex);
 
 			goto out;
 		}
