@@ -24,6 +24,16 @@
 /* Timeout 5s (5000ms) */
 #define ILM_MAJORITY_TIMEOUT		5000
 
+static void ilm_raid_lock_dump(char *str, struct ilm_lock *lock)
+{
+	int i;
+
+	ilm_log_dbg("Drive state: %s", str);
+	for (i = 0; i < lock->drive_num; i++)
+		ilm_log_dbg("drive[%d]: path=%s state=%d",
+			    i, lock->drive[i].path, lock->drive[i].state);
+}
+
 /*
  * Every IDM drive's state machine is maintained as below:
  *
@@ -119,6 +129,8 @@ int idm_raid_lock(struct ilm_lock *lock, char *host_id)
 	for (i = 0; i < lock->drive_num; i++)
 		lock->drive[i].state = ILM_DRIVE_NOACCESS;
 
+	ilm_raid_lock_dump("Enter raid_lock", lock);
+
 	do {
 		score = 0;
 		for (i = 0; i < lock->drive_num; i++) {
@@ -138,8 +150,10 @@ int idm_raid_lock(struct ilm_lock *lock, char *host_id)
 		}
 
 		/* Acquired majoirty */
-		if (score >= ((lock->drive_num >> 1) + 1))
+		if (score >= ((lock->drive_num >> 1) + 1)) {
+			ilm_raid_lock_dump("Exit raid_lock", lock);
 			return 0;
+		}
 
 		/*
                  * Fail to achieve majority, release IDMs has been
@@ -168,6 +182,8 @@ int idm_raid_lock(struct ilm_lock *lock, char *host_id)
 
 	} while (ilm_curr_time() < timeout);
 
+	ilm_log_dbg("%s: Timeout", __func__);
+
 	/* Timeout, fail to acquire lock with majoirty */
 	return -1;
 }
@@ -177,6 +193,8 @@ int idm_raid_unlock(struct ilm_lock *lock, char *host_id)
 	struct ilm_drive *drive;
 	int i;
 
+	ilm_raid_lock_dump("Enter raid_unlock", lock);
+
 	for (i = 0; i < lock->drive_num; i++) {
 		drive = &lock->drive[i];
 		idm_drive_unlock(lock->id, host_id, drive->path);
@@ -184,6 +202,8 @@ int idm_raid_unlock(struct ilm_lock *lock, char *host_id)
 		/* Always make success to unlock */
 		drive->state = ILM_DRIVE_NOACCESS;
 	}
+
+	ilm_raid_lock_dump("Exit raid_unlock", lock);
 
 	/* Always success */
 	return 0;
@@ -250,6 +270,8 @@ int idm_raid_convert_lock(struct ilm_lock *lock, char *host_id, int mode)
 	struct ilm_drive *drive;
 	int i, score, ret;
 
+	ilm_raid_lock_dump("Enter raid_convert_lock", lock);
+
 	/*
 	 * If fail to convert mode previously, afterwards cannot convert
 	 * mode anymore.
@@ -264,6 +286,8 @@ int idm_raid_convert_lock(struct ilm_lock *lock, char *host_id, int mode)
 		if (!ret)
 			score++;
 	}
+
+	ilm_raid_lock_dump("Finish raid_convert_lock", lock);
 
 	/* Has achieved majoirty */
 	if (score >= ((lock->drive_num >> 1) + 1))
@@ -294,6 +318,7 @@ int idm_raid_convert_lock(struct ilm_lock *lock, char *host_id, int mode)
 		lock->convert_failed = 1;
 	}
 
+	ilm_raid_lock_dump("Exit raid_convert_lock", lock);
 	return -1;
 }
 
@@ -366,6 +391,8 @@ int idm_raid_renew_lock(struct ilm_lock *lock, char *host_id)
 	uint64_t timeout = ilm_curr_time() + ILM_MAJORITY_TIMEOUT;
 	int score, i, ret;
 
+	ilm_raid_lock_dump("Enter raid_renew_lock", lock);
+
 	do {
 		score = 0;
 		for (i = 0; i < lock->drive_num; i++) {
@@ -377,15 +404,21 @@ int idm_raid_renew_lock(struct ilm_lock *lock, char *host_id)
 
 		/* Drives have even number */
 		if (!(lock->drive_num & 1) &&
-		    (score >= (lock->drive_num >> 1)))
+		    (score >= (lock->drive_num >> 1))) {
+			ilm_raid_lock_dump("Exit raid_renew_lock", lock);
 			return 0;
+		}
 
 		/* Drives have odd number */
 		if ((lock->drive_num & 1) &&
-		    (score >= ((lock->drive_num >> 1) + 1)))
+		    (score >= ((lock->drive_num >> 1) + 1))) {
+			ilm_raid_lock_dump("Exit raid_renew_lock", lock);
 			return 0;
+		}
 
 	} while (ilm_curr_time() < timeout);
+
+	ilm_log_dbg("%s: Timeout", __func__);
 
 	/* Timeout, fail to acquire lock with majoirty */
 	return -1;
@@ -442,6 +475,8 @@ int idm_raid_write_lvb(struct ilm_lock *lock, char *host_id,
 	uint64_t timeout = ilm_curr_time() + ILM_MAJORITY_TIMEOUT;
 	int score, i, ret;
 
+	ilm_raid_lock_dump("Enter raid_write_lvb", lock);
+
 	do {
 		score = 0;
 		for (i = 0; i < lock->drive_num; i++) {
@@ -452,8 +487,10 @@ int idm_raid_write_lvb(struct ilm_lock *lock, char *host_id,
 				score++;
 		}
 
-		if (score >= ((lock->drive_num >> 1) + 1))
+		if (score >= ((lock->drive_num >> 1) + 1)) {
+			ilm_raid_lock_dump("Exit raid_write_lvb", lock);
 			return 0;
+		}
 	} while (ilm_curr_time() < timeout);
 
 	/* Rollback to the old lvb */
@@ -461,6 +498,8 @@ int idm_raid_write_lvb(struct ilm_lock *lock, char *host_id,
 		drive = &lock->drive[i];
 		_raid_write_lvb(lock, host_id, lock->vb, lvb_size, drive);
 	}
+
+	ilm_raid_lock_dump("Rollback raid_write_lvb", lock);
 
 	/* Timeout, return failure */
 	return -1;
@@ -517,6 +556,8 @@ int idm_raid_read_lvb(struct ilm_lock *lock, char *host_id,
 	uint64_t timeout = ilm_curr_time() + ILM_MAJORITY_TIMEOUT;
 	int score, i, ret;
 
+	ilm_raid_lock_dump("Enter raid_read_lvb", lock);
+
 	do {
 		score = 0;
 		for (i = 0; i < lock->drive_num; i++) {
@@ -527,9 +568,13 @@ int idm_raid_read_lvb(struct ilm_lock *lock, char *host_id,
 				score++;
 		}
 
-		if (score >= ((lock->drive_num >> 1) + 1))
+		if (score >= ((lock->drive_num >> 1) + 1)) {
+			ilm_raid_lock_dump("Exit raid_read_lvb", lock);
 			return 0;
+		}
 	} while (ilm_curr_time() < timeout);
+
+	ilm_log_dbg("%s: Timeout", __func__);
 
 	/* Timeout, return failure */
 	return -1;

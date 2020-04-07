@@ -103,6 +103,18 @@ static int ilm_free(struct ilm_lockspace *ls, struct ilm_lock *lock)
 	return 0;
 }
 
+static void ilm_lock_dump(char *str, struct ilm_lock *lock)
+{
+	int i;
+
+	ilm_log_dbg("Lock context in %s", str);
+	ilm_log_dbg("drive_num=%d", lock->drive_num);
+	for (i = 0; i < lock->drive_num; i++)
+		ilm_log_dbg("drive_path[%d]=%s", i, lock->drive[i].path);
+	ilm_log_dbg("mode=%d", lock->mode);
+	ilm_log_array_dbg("lock ID:", lock->id, IDM_LOCK_ID_LEN);
+}
+
 int ilm_lock_acquire(struct ilm_cmd *cmd, struct ilm_lockspace *ls)
 {
 	struct ilm_lock_payload payload;
@@ -112,6 +124,7 @@ int ilm_lock_acquire(struct ilm_cmd *cmd, struct ilm_lockspace *ls)
 	ret = ilm_lock_payload_read(cmd, &payload);
 	if (ret < 0)
 		goto out;
+
 
 	if (payload.drive_num > ILM_DRIVE_MAX_NUM) {
 	        ilm_log_err("Drive list is out of scope: drive_num %d\n",
@@ -128,6 +141,8 @@ int ilm_lock_acquire(struct ilm_cmd *cmd, struct ilm_lockspace *ls)
 
 	memcpy(lock->id, payload.lock_id, IDM_LOCK_ID_LEN);
 	lock->mode = payload.mode;
+
+	ilm_lock_dump("lock_acquire", lock);
 
 	ret = idm_raid_lock(lock, ls->host_id);
 	if (ret)
@@ -152,6 +167,8 @@ int ilm_lock_release(struct ilm_cmd *cmd, struct ilm_lockspace *ls)
 	if (ret < 0)
 		goto out;
 
+	ilm_lock_dump("lock_release", lock);
+
 	idm_raid_lock(lock, ls->host_id);
 
 	ret = ilm_free(ls, lock);
@@ -175,6 +192,9 @@ int ilm_lock_convert_mode(struct ilm_cmd *cmd, struct ilm_lockspace *ls)
 	ret = ilm_lockspace_find_lock(ls, payload.lock_id, &lock);
 	if (ret < 0)
 		goto out;
+
+	ilm_lock_dump("lock_convert", lock);
+	ilm_log_dbg("new mode %d", payload.mode);
 
 	ret = idm_raid_convert_lock(lock, ls->host_id, payload.mode);
 	if (ret)
@@ -212,6 +232,9 @@ int ilm_lock_vb_write(struct ilm_cmd *cmd, struct ilm_lockspace *ls)
 		goto out;
 	}
 
+	ilm_lock_dump("lock_vb_write", lock);
+	ilm_log_array_dbg("value buffer:", buf, IDM_VALUE_LEN);
+
 	ret = idm_raid_write_lvb(lock, ls->host_id, buf, IDM_VALUE_LEN);
 	if (ret)
 	        ilm_log_err("Fail to write lvb %d\n", ret);
@@ -239,6 +262,8 @@ int ilm_lock_vb_read(struct ilm_cmd *cmd, struct ilm_lockspace *ls)
 	if (ret < 0)
 		goto fail;
 
+	ilm_lock_dump("lock_vb_read", lock);
+
 	ret = idm_raid_read_lvb(lock, ls->host_id, buf, IDM_VALUE_LEN);
 	if (ret) {
 	        ilm_log_err("Fail to write lvb %d\n", ret);
@@ -247,6 +272,8 @@ int ilm_lock_vb_read(struct ilm_cmd *cmd, struct ilm_lockspace *ls)
 		/* Update the cached LVB */
 		memcpy(lock->vb, buf, IDM_VALUE_LEN);
 	}
+
+	ilm_log_array_dbg("value buffer:", buf, IDM_VALUE_LEN);
 
 	ilm_send_result(cmd->cl->fd, 0, buf, IDM_VALUE_LEN);
 	return 0;
