@@ -22,6 +22,7 @@ enum {
 	ILM_CMD_CONVERT,
 	ILM_CMD_WRITE_LVB,
 	ILM_CMD_READ_LVB,
+	ILM_CMD_SET_HOST_ID	/* For testing purpose */
 };
 
 struct ilm_cmd {

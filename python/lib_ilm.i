@@ -28,6 +28,7 @@ int ilm_unlock(int sock, struct idm_lock_id *id);
 int ilm_convert(int sock, struct idm_lock_id *id, uint32_t mode);
 int ilm_write_lvb(int sock, struct idm_lock_id *id, char *lvb, int lvb_len);
 int ilm_read_lvb(int sock, struct idm_lock_id *id, char *lvb, int lvb_len);
+int ilm_set_host_id(int sock, char *id, int id_len);
 %}
 
 #define ILM_DRIVE_MAX_NUM       32
@@ -57,6 +58,7 @@ int ilm_unlock(int sock, struct idm_lock_id *id);
 int ilm_convert(int sock, struct idm_lock_id *id, uint32_t mode);
 int ilm_write_lvb(int sock, struct idm_lock_id *id, char *lvb, int lvb_len);
 int ilm_read_lvb(int sock, struct idm_lock_id *id, char *lvb, int lvb_len);
+int ilm_set_host_id(int sock, char *id, int id_len);
 
 %extend idm_lock_op {
         void set_drive_names(int i, char *path) {
