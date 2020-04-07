@@ -11,6 +11,7 @@
 #include <pthread.h>
 #include <stdlib.h>
 #include <string.h>
+#include <sys/socket.h>
 #include <sys/time.h>
 #include <time.h>
 #include <uuid/uuid.h>
@@ -77,10 +78,11 @@ int ilm_lockspace_create(struct ilm_cmd *cmd, struct ilm_lockspace **ls_out)
 	memset(ilm_ls, 0, sizeof(struct ilm_lockspace));
 
 	/*
-	 * As the first step, simply copy ilm UUID and always set PID = 0;
-	 * TODO: add pid into host ID.
+	 * ILM UUID is copied to high 16 bytes and PID is copied into low 16
+	 * bytes.
 	 */
-	memcpy(ilm_ls->host_id, &ilm_uuid, sizeof(uuid_t));
+	memcpy(ilm_ls->host_id + 16, &ilm_uuid, sizeof(uuid_t));
+	memcpy(ilm_ls->host_id, &cmd->cl->pid, sizeof(int));
 
 	INIT_LIST_HEAD(&ilm_ls->lock_list);
 	pthread_mutex_init(&ilm_ls->mutex, NULL);
@@ -188,5 +190,29 @@ int ilm_lockspace_find_lock(struct ilm_lockspace *ls, char *lock_id,
 	}
 
 	pthread_mutex_unlock(&ls->mutex);
+	return ret;
+}
+
+int ilm_lockspace_set_host_id(struct ilm_cmd *cmd, struct ilm_lockspace *ilm_ls)
+{
+	char host_id[IDM_HOST_ID_LEN];
+	int ret;
+
+	if (!_ls_is_valid(ilm_ls)) {
+		ilm_log_err("%s: lockspace is invalid\n", __func__);
+		return -EINVAL;
+	}
+
+	ret = recv(cmd->cl->fd, host_id, IDM_HOST_ID_LEN, MSG_WAITALL);
+	if (ret <= 0) {
+		ilm_log_err("Failed to read out host ID\n");
+		goto out;
+	}
+
+	memcpy(ilm_ls->host_id, host_id, IDM_HOST_ID_LEN);
+
+	ilm_log_array_dbg("Host ID:", host_id, IDM_HOST_ID_LEN);
+out:
+	ilm_send_result(cmd->cl->fd, ret, NULL, 0);
 	return ret;
 }

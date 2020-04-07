@@ -330,3 +330,22 @@ int ilm_read_lvb(int sock, struct idm_lock_id *id, char *lvb, int lvb_len)
 
 	return 0;
 }
+
+int ilm_set_host_id(int sock, char *id, int id_len)
+{
+	int ret;
+
+	ret = send_header(sock, ILM_CMD_SET_HOST_ID, id_len);
+	if (ret < 0)
+		return ret;
+
+	ret = send_data(sock, id, id_len, 0);
+	if (ret < 0)
+		return ret;
+
+	ret = recv_result(sock);
+	if (ret < 0)
+		return ret;
+
+	return 0;
+}

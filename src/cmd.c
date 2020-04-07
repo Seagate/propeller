@@ -50,6 +50,15 @@ static void ilm_cmd_del_lockspace(struct ilm_cmd *cmd)
 		ilm_log_err("Fail to delete lockspace\n");
 }
 
+static void ilm_cmd_set_host_id(struct ilm_cmd *cmd)
+{
+	int ret;
+
+	ret = ilm_lockspace_set_host_id(cmd, cmd->cl->ls);
+	if (ret < 0)
+		ilm_log_err("Fail to set host ID\n");
+}
+
 static void ilm_cmd_acquire(struct ilm_cmd *cmd)
 {
 	int ret;
@@ -120,6 +129,9 @@ static void ilm_cmd_handle(struct ilm_cmd *cmd)
 		break;
 	case ILM_CMD_READ_LVB:
 		ilm_cmd_lvb_read(cmd);
+		break;
+	case ILM_CMD_SET_HOST_ID:
+		ilm_cmd_set_host_id(cmd);
 		break;
 	default:
 		break;
