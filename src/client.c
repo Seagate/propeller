@@ -17,6 +17,7 @@
 #include <sys/eventfd.h>
 #include <sys/socket.h>
 #include <sys/stat.h>
+#include <sys/types.h>
 #include <sys/un.h>
 #include <unistd.h>
 
@@ -81,6 +82,17 @@ static struct client *_fd_to_client(int fd)
 	return NULL;
 }
 
+static int ilm_get_peer_pid(int fd)
+{
+	struct ucred cred;
+	unsigned int len = sizeof(struct ucred);
+
+	if (getsockopt(fd, SOL_SOCKET, SO_PEERCRED, &cred, &len) != 0)
+		return -1;
+
+	return cred.pid;
+}
+
 int ilm_client_is_updated(void)
 {
 	int updated;
@@ -140,7 +152,8 @@ int ilm_client_handle_request(struct pollfd *poll_fd, int num)
 
 	for (i = 0; i < num; i++) {
 
-		if (poll_fd[i].fd == client_efd) {
+		if (poll_fd[i].fd == client_efd &&
+		    poll_fd[i].revents & POLLIN) {
 			eventfd_read(client_efd, &event_data);
 			continue;
 		}
@@ -278,8 +291,10 @@ int ilm_client_add(int fd,
 
 	cl->state = CLIENT_STATE_RUN;
 	cl->fd = fd;
+	cl->pid = ilm_get_peer_pid(fd);
 	cl->workfn = workfn;
 	cl->deadfn = deadfn ? deadfn : ilm_client_del;
+	pthread_mutex_init(&cl->mutex, NULL);
 
 	/* Add client into list */
 	pthread_mutex_lock(&client_list_mutex);
@@ -336,6 +351,7 @@ int ilm_client_request(struct client *cl)
 
 	cmd->cmd = hdr.cmd;
 	cmd->cl = cl;
+	cmd->sock_msg_len = hdr.length;
 
 	ret = ilm_client_suspend(cl);
 	if (ret < 0) {
@@ -355,6 +371,45 @@ dead:
 	if (cl->deadfn)
 		cl->deadfn(cl);
 	return -1;
+}
+
+void ilm_client_recv_all(struct client *cl, int msg_len, int pos)
+{
+        char trash[64];
+        int left = msg_len - sizeof(struct ilm_msg_header) - pos;
+        int ret, total = 0, retries = 0, trash_len;
+
+	ilm_log_dbg("%s: msg_len %d pos %d left %d", __func__,
+		    msg_len, pos, left);
+
+        while (left > 0) {
+		/* The read length should always less or equal than left */
+		trash_len = sizeof(trash);
+		if (trash_len > left)
+			trash_len = left;
+
+                ret = recv(cl->fd, trash, trash_len, MSG_DONTWAIT);
+
+		/* Read successfully */
+		if (ret > 0)
+			left -= ret;
+
+		/* Failed, but can try again */
+                if (ret == -1 && errno == EAGAIN) {
+                        usleep(1000);
+                        if (retries < 20) {
+                                retries++;
+                                continue;
+			}
+		}
+
+		/* Failed and cannot fixup, bail out */
+		if (ret <= 0)
+			break;
+	}
+
+        ilm_log_dbg("%s: fd %d pid %d pos %d ret %d errno %d retries %d left %d",
+		    __func__, cl->fd, cl->pid, pos, ret, errno, retries, left);
 }
 
 int ilm_client_connect(struct client *cl)

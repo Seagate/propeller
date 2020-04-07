@@ -180,7 +180,8 @@ int ilm_lockspace_find_lock(struct ilm_lockspace *ls, char *lock_id,
 	list_for_each_entry(pos, &ls->lock_list, list) {
 
 		if (!memcmp(pos->id, lock_id, IDM_LOCK_ID_LEN)) {
-			*lock = pos;
+			if (lock)
+				*lock = pos;
 			ret = 0;
 			break;
 		}

@@ -34,6 +34,7 @@ int ilm_client_is_updated(void);
 int ilm_client_alloc_pollfd(struct pollfd **poll_fd, int *num);
 int ilm_client_handle_request(struct pollfd *poll_fd, int num);
 void ilm_send_result(int fd, int result, char *data, int data_len);
+void ilm_client_recv_all(struct client *cl, int msg_len, int pos);
 int ilm_client_listener_init(void);
 void ilm_client_listener_exit(void);
 int ilm_client_suspend(struct client *cl);

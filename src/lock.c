@@ -42,12 +42,12 @@ static int ilm_lock_payload_read(struct ilm_cmd *cmd,
 		return -EINVAL;
 	}
 
-	return 0;
+	return ret;
 }
 
 static struct ilm_lock *ilm_alloc(struct ilm_cmd *cmd,
 				  struct ilm_lockspace *ls,
-				  int drive_num)
+				  int drive_num, int *pos)
 {
 	char path[PATH_MAX];
 	struct ilm_lock *lock;
@@ -68,6 +68,8 @@ static struct ilm_lock *ilm_alloc(struct ilm_cmd *cmd,
 	        	ilm_log_err("Failed to read out drive path\n");
 			goto drive_fail;
 		}
+
+		*pos += ret;
 
 		lock->drive[i].path = strdup(path);
 		if (!lock->drive[i].path) {
@@ -119,12 +121,12 @@ int ilm_lock_acquire(struct ilm_cmd *cmd, struct ilm_lockspace *ls)
 {
 	struct ilm_lock_payload payload;
 	struct ilm_lock *lock;
-	int ret;
+	int ret, pos = 0;
 
 	ret = ilm_lock_payload_read(cmd, &payload);
 	if (ret < 0)
 		goto out;
-
+	pos += ret;
 
 	if (payload.drive_num > ILM_DRIVE_MAX_NUM) {
 	        ilm_log_err("Drive list is out of scope: drive_num %d\n",
@@ -133,7 +135,15 @@ int ilm_lock_acquire(struct ilm_cmd *cmd, struct ilm_lockspace *ls)
 		goto out;
 	}
 
-	lock = ilm_alloc(cmd, ls, payload.drive_num);
+	ret = ilm_lockspace_find_lock(ls, payload.lock_id, NULL);
+	if (!ret) {
+		ilm_log_err("Has acquired the lock yet!\n");
+		ilm_log_array_err("Lock ID:", payload.lock_id, IDM_LOCK_ID_LEN);
+		ret = -EBUSY;
+		goto out;
+	}
+
+	lock = ilm_alloc(cmd, ls, payload.drive_num, &pos);
 	if (!lock) {
 		ret = -ENOMEM;
 		goto out;
@@ -149,6 +159,7 @@ int ilm_lock_acquire(struct ilm_cmd *cmd, struct ilm_lockspace *ls)
 	        ilm_log_err("Fail to acquire raid lock %d\n", ret);
 
 out:
+	ilm_client_recv_all(cmd->cl, cmd->sock_msg_len, pos);
 	ilm_send_result(cmd->cl->fd, ret, NULL, 0);
 	return ret;
 }
@@ -164,8 +175,11 @@ int ilm_lock_release(struct ilm_cmd *cmd, struct ilm_lockspace *ls)
 		goto out;
 
 	ret = ilm_lockspace_find_lock(ls, payload.lock_id, &lock);
-	if (ret < 0)
+	if (ret < 0) {
+		ilm_log_err("%s: Don't find data for the lock ID!\n", __func__);
+		ilm_log_array_err("Lock ID:", payload.lock_id, IDM_LOCK_ID_LEN);
 		goto out;
+	}
 
 	ilm_lock_dump("lock_release", lock);
 
@@ -190,8 +204,11 @@ int ilm_lock_convert_mode(struct ilm_cmd *cmd, struct ilm_lockspace *ls)
 		goto out;
 
 	ret = ilm_lockspace_find_lock(ls, payload.lock_id, &lock);
-	if (ret < 0)
+	if (ret < 0) {
+		ilm_log_err("%s: Don't find data for the lock ID!\n", __func__);
+		ilm_log_array_err("Lock ID:", payload.lock_id, IDM_LOCK_ID_LEN);
 		goto out;
+	}
 
 	ilm_lock_dump("lock_convert", lock);
 	ilm_log_dbg("new mode %d", payload.mode);
@@ -221,8 +238,11 @@ int ilm_lock_vb_write(struct ilm_cmd *cmd, struct ilm_lockspace *ls)
 		goto out;
 
 	ret = ilm_lockspace_find_lock(ls, payload.lock_id, &lock);
-	if (ret < 0)
+	if (ret < 0) {
+		ilm_log_err("%s: Don't find data for the lock ID!\n", __func__);
+		ilm_log_array_err("Lock ID:", payload.lock_id, IDM_LOCK_ID_LEN);
 		goto out;
+	}
 
 	ret = recv(cmd->cl->fd, buf, IDM_VALUE_LEN, MSG_WAITALL);
 	if (ret != ILM_LVB_SIZE) {
@@ -259,8 +279,11 @@ int ilm_lock_vb_read(struct ilm_cmd *cmd, struct ilm_lockspace *ls)
 		goto fail;
 
 	ret = ilm_lockspace_find_lock(ls, payload.lock_id, &lock);
-	if (ret < 0)
+	if (ret < 0) {
+		ilm_log_err("%s: Don't find data for the lock ID!\n", __func__);
+		ilm_log_array_err("Lock ID:", payload.lock_id, IDM_LOCK_ID_LEN);
 		goto fail;
+	}
 
 	ilm_lock_dump("lock_vb_read", lock);
 
