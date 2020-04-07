@@ -178,10 +178,7 @@ int ilm_lock(int sock, struct idm_lock_id *id, struct idm_lock_op *op)
 	int i, len, ret;
 	char path[PATH_MAX];
 
-	len = sizeof(struct ilm_lock_payload);
-
-	for (i = 0; i < op->drive_num; i++)
-		len += strlen(op->drives[i]) + 1;
+	len = sizeof(struct ilm_lock_payload) + op->drive_num * PATH_MAX;
 
 	ret = send_header(sock, ILM_CMD_ACQUIRE, len);
 	if (ret < 0)
