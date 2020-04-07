@@ -12,6 +12,11 @@
 
 #include <syslog.h>
 
+int log_file_priority;
+int log_file_use_utc;
+int log_syslog_priority;
+int log_stderr_priority;
+
 /*
  * Log levels are used mainly to indicate where the message should be
  * recorded:
