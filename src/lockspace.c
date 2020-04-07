@@ -77,10 +77,11 @@ int ilm_lockspace_create(struct ilm_cmd *cmd, struct ilm_lockspace **ls_out)
 	memset(ilm_ls, 0, sizeof(struct ilm_lockspace));
 
 	/*
-	 * As the first step, simply copy ilm UUID and always set PID = 0;
-	 * TODO: add pid into host ID.
+	 * ILM UUID is copied to high 16 bytes and PID is copied into low 16
+	 * bytes.
 	 */
-	memcpy(ilm_ls->host_id, &ilm_uuid, sizeof(uuid_t));
+	memcpy(ilm_ls->host_id + 16, &ilm_uuid, sizeof(uuid_t));
+	memcpy(ilm_ls->host_id, &cmd->cl->pid, sizeof(int));
 
 	INIT_LIST_HEAD(&ilm_ls->lock_list);
 	pthread_mutex_init(&ilm_ls->mutex, NULL);
