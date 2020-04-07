@@ -140,7 +140,8 @@ int ilm_client_handle_request(struct pollfd *poll_fd, int num)
 
 	for (i = 0; i < num; i++) {
 
-		if (poll_fd[i].fd == client_efd) {
+		if (poll_fd[i].fd == client_efd &&
+		    poll_fd[i].revents & POLLIN) {
 			eventfd_read(client_efd, &event_data);
 			continue;
 		}
