@@ -25,7 +25,7 @@ SOURCE = main.c \
 
 LIB_SOURCE = lib_client.c
 
-CFLAGS = -fPIE -DPIE
+CFLAGS = -fPIE -DPIE -D_GNU_SOURCE
 LIB_CFLAGS = -fPIC
 
 LDFLAGS = -Wl,-z,relro -pie

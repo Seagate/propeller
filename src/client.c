@@ -17,6 +17,7 @@
 #include <sys/eventfd.h>
 #include <sys/socket.h>
 #include <sys/stat.h>
+#include <sys/types.h>
 #include <sys/un.h>
 #include <unistd.h>
 
@@ -79,6 +80,17 @@ static struct client *_fd_to_client(int fd)
 		return cl;
 
 	return NULL;
+}
+
+static int ilm_get_peer_pid(int fd)
+{
+	struct ucred cred;
+	unsigned int len = sizeof(struct ucred);
+
+	if (getsockopt(fd, SOL_SOCKET, SO_PEERCRED, &cred, &len) != 0)
+		return -1;
+
+	return cred.pid;
 }
 
 int ilm_client_is_updated(void)
@@ -279,6 +291,7 @@ int ilm_client_add(int fd,
 
 	cl->state = CLIENT_STATE_RUN;
 	cl->fd = fd;
+	cl->pid = ilm_get_peer_pid(fd);
 	cl->workfn = workfn;
 	cl->deadfn = deadfn ? deadfn : ilm_client_del;
 	pthread_mutex_init(&cl->mutex, NULL);
