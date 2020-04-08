@@ -352,3 +352,33 @@ int ilm_set_host_id(int sock, char *id, int id_len)
 
 	return 0;
 }
+
+int ilm_stop_renew(int sock)
+{
+	int ret;
+
+	ret = send_header(sock, ILM_CMD_STOP_RENEW, 0);
+	if (ret < 0)
+		return ret;
+
+	ret = recv_result(sock);
+	if (ret < 0)
+		return ret;
+
+	return 0;
+}
+
+int ilm_start_renew(int sock)
+{
+	int ret;
+
+	ret = send_header(sock, ILM_CMD_START_RENEW, 0);
+	if (ret < 0)
+		return ret;
+
+	ret = recv_result(sock);
+	if (ret < 0)
+		return ret;
+
+	return 0;
+}

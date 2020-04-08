@@ -64,6 +64,11 @@ static void *ilm_lockspace_thread(void *data)
 			break;
 
 		pthread_mutex_lock(&ls->mutex);
+
+		/* Test timeout related features */
+		if (ls->stop_renew)
+			goto sleep_loop;
+
 		list_for_each_entry(lock, &ls->lock_list, list) {
 
 			now = ilm_curr_time();
@@ -93,6 +98,8 @@ static void *ilm_lockspace_thread(void *data)
 				pthread_mutex_unlock(&lock->mutex);
 			}
 		}
+
+sleep_loop:
 		pthread_mutex_unlock(&ls->mutex);
 
 		sleep(1);
@@ -246,6 +253,44 @@ int ilm_lockspace_set_host_id(struct ilm_cmd *cmd, struct ilm_lockspace *ilm_ls)
 	memcpy(ilm_ls->host_id, host_id, IDM_HOST_ID_LEN);
 
 	ilm_log_array_dbg("Host ID:", host_id, IDM_HOST_ID_LEN);
+out:
+	ilm_send_result(cmd->cl->fd, ret, NULL, 0);
+	return ret;
+}
+
+int ilm_lockspace_stop_renew(struct ilm_cmd *cmd, struct ilm_lockspace *ilm_ls)
+{
+	int ret = 0;
+
+	if (!_ls_is_valid(ilm_ls)) {
+		ilm_log_err("%s: lockspace is invalid\n", __func__);
+		ret = -EINVAL;
+		goto out;
+	}
+
+	pthread_mutex_lock(&ilm_ls->mutex);
+	ilm_ls->stop_renew = 1;
+	pthread_mutex_unlock(&ilm_ls->mutex);
+
+out:
+	ilm_send_result(cmd->cl->fd, ret, NULL, 0);
+	return ret;
+}
+
+int ilm_lockspace_start_renew(struct ilm_cmd *cmd, struct ilm_lockspace *ilm_ls)
+{
+	int ret = 0;
+
+	if (!_ls_is_valid(ilm_ls)) {
+		ilm_log_err("%s: lockspace is invalid\n", __func__);
+		ret = -EINVAL;
+		goto out;
+	}
+
+	pthread_mutex_lock(&ilm_ls->mutex);
+	ilm_ls->stop_renew = 0;
+	pthread_mutex_unlock(&ilm_ls->mutex);
+
 out:
 	ilm_send_result(cmd->cl->fd, ret, NULL, 0);
 	return ret;

@@ -19,6 +19,9 @@ struct ilm_lockspace {
 	pthread_mutex_t mutex;
 
 	/* TODO: support event and timeout */
+
+	/* Testing purpose */
+	int stop_renew;
 };
 
 struct ilm_lock;
@@ -31,5 +34,7 @@ int ilm_lockspace_add_lock(struct ilm_lockspace *ls,
 int ilm_lockspace_del_lock(struct ilm_lockspace *ls, struct ilm_lock *lock);
 int ilm_lockspace_find_lock(struct ilm_lockspace *ls, char *lock_uuid,
 			    struct ilm_lock **lock);
+int ilm_lockspace_stop_renew(struct ilm_cmd *cmd, struct ilm_lockspace *ilm_ls);
+int ilm_lockspace_start_renew(struct ilm_cmd *cmd, struct ilm_lockspace *ilm_ls);
 
 #endif /* __LOCKSPACE_H__ */

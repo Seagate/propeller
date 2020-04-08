@@ -59,6 +59,24 @@ static void ilm_cmd_set_host_id(struct ilm_cmd *cmd)
 		ilm_log_err("Fail to set host ID\n");
 }
 
+static void ilm_cmd_stop_renew(struct ilm_cmd *cmd)
+{
+	int ret;
+
+	ret = ilm_lockspace_stop_renew(cmd, cmd->cl->ls);
+	if (ret < 0)
+		ilm_log_err("Fail to set host ID\n");
+}
+
+static void ilm_cmd_start_renew(struct ilm_cmd *cmd)
+{
+	int ret;
+
+	ret = ilm_lockspace_start_renew(cmd, cmd->cl->ls);
+	if (ret < 0)
+		ilm_log_err("Fail to set host ID\n");
+}
+
 static void ilm_cmd_acquire(struct ilm_cmd *cmd)
 {
 	int ret;
@@ -132,6 +150,12 @@ static void ilm_cmd_handle(struct ilm_cmd *cmd)
 		break;
 	case ILM_CMD_SET_HOST_ID:
 		ilm_cmd_set_host_id(cmd);
+		break;
+	case ILM_CMD_STOP_RENEW:
+		ilm_cmd_stop_renew(cmd);
+		break;
+	case ILM_CMD_START_RENEW:
+		ilm_cmd_stop_renew(cmd);
 		break;
 	default:
 		break;
