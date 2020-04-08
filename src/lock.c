@@ -135,6 +135,13 @@ int ilm_lock_acquire(struct ilm_cmd *cmd, struct ilm_lockspace *ls)
 		goto out;
 	}
 
+	if (payload.mode != IDM_MODE_EXCLUSIVE &&
+	    payload.mode != IDM_MODE_SHAREABLE) {
+	        ilm_log_err("Lock mode is not supported: %d\n", payload.mode);
+		ret = -EINVAL;
+		goto out;
+	}
+
 	ret = ilm_lockspace_find_lock(ls, payload.lock_id, NULL);
 	if (!ret) {
 		ilm_log_err("Has acquired the lock yet!\n");
