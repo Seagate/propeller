@@ -151,6 +151,7 @@ int ilm_lock_acquire(struct ilm_cmd *cmd, struct ilm_lockspace *ls)
 
 	memcpy(lock->id, payload.lock_id, IDM_LOCK_ID_LEN);
 	lock->mode = payload.mode;
+	lock->timeout = payload.timeout;
 
 	ilm_lock_dump("lock_acquire", lock);
 
