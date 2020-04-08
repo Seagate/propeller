@@ -1,6 +1,7 @@
 %module ilm
 
 %include "typemaps.i"
+%include "stdint.i"
 
 %apply int *OUTPUT { int *sock };
 
