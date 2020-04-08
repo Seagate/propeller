@@ -201,11 +201,9 @@ int ilm_lock_release(struct ilm_cmd *cmd, struct ilm_lockspace *ls)
 
 	ilm_lock_dump("lock_release", lock);
 
-	idm_raid_unlock(lock, ls->host_id);
+	ret = idm_raid_unlock(lock, ls->host_id);
 
-	ret = ilm_free(ls, lock);
-	if (ret)
-	        ilm_log_err("Fail to free raid lock %d\n", ret);
+	ilm_free(ls, lock);
 out:
 	ilm_send_result(cmd->cl->fd, ret, NULL, 0);
 	return ret;

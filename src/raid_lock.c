@@ -28,7 +28,7 @@ static void ilm_raid_lock_dump(char *str, struct ilm_lock *lock)
 {
 	int i;
 
-	ilm_log_dbg("Drive state: %s", str);
+	ilm_log_dbg("RAID lock dump: %s", str);
 	for (i = 0; i < lock->drive_num; i++)
 		ilm_log_dbg("drive[%d]: path=%s state=%d",
 			    i, lock->drive[i].path, lock->drive[i].state);
@@ -191,22 +191,20 @@ int idm_raid_lock(struct ilm_lock *lock, char *host_id)
 int idm_raid_unlock(struct ilm_lock *lock, char *host_id)
 {
 	struct ilm_drive *drive;
-	int i;
+	int i, ret;
 
 	ilm_raid_lock_dump("Enter raid_unlock", lock);
 
 	for (i = 0; i < lock->drive_num; i++) {
 		drive = &lock->drive[i];
-		idm_drive_unlock(lock->id, host_id, drive->path);
+		ret = idm_drive_unlock(lock->id, host_id, drive->path);
 
 		/* Always make success to unlock */
 		drive->state = ILM_DRIVE_NOACCESS;
 	}
 
 	ilm_raid_lock_dump("Exit raid_unlock", lock);
-
-	/* Always success */
-	return 0;
+	return ret;
 }
 
 static int _raid_convert_lock(struct ilm_lock *lock, int mode,
@@ -252,6 +250,7 @@ static int _raid_convert_lock(struct ilm_lock *lock, int mode,
 		if (ret == -ETIME) {
 			ret = idm_drive_unlock(lock->id, host_id, drive->path);
 			drive->state = ILM_DRIVE_NOACCESS;
+			return ret;
 		}
 
 		/* If returns -EPERM, will return -1 */
@@ -268,7 +267,7 @@ static int _raid_convert_lock(struct ilm_lock *lock, int mode,
 int idm_raid_convert_lock(struct ilm_lock *lock, char *host_id, int mode)
 {
 	struct ilm_drive *drive;
-	int i, score, ret;
+	int i, score, ret, timeout = 0;
 
 	ilm_raid_lock_dump("Enter raid_convert_lock", lock);
 
@@ -285,6 +284,9 @@ int idm_raid_convert_lock(struct ilm_lock *lock, char *host_id, int mode)
 		ret = _raid_convert_lock(lock, mode, host_id, drive);
 		if (!ret)
 			score++;
+
+		if (ret == -ETIME)
+			timeout++;
 	}
 
 	ilm_raid_lock_dump("Finish raid_convert_lock", lock);
@@ -292,6 +294,10 @@ int idm_raid_convert_lock(struct ilm_lock *lock, char *host_id, int mode)
 	/* Has achieved majoirty */
 	if (score >= ((lock->drive_num >> 1) + 1))
 		return 0;
+
+	/* All drives have been timeout */
+	if (timeout == lock->drive_num)
+		return -ETIME;
 
 	/*
 	 * Always return success when the mode is demotion, if it fails to
@@ -305,6 +311,25 @@ int idm_raid_convert_lock(struct ilm_lock *lock, char *host_id, int mode)
 
 	score = 0;
 	for (i = 0; i < lock->drive_num; i++) {
+		drive = &lock->drive[i];
+		/*
+		 * There have two reasons for the drive state is NOACCESS:
+		 *
+		 * the first reason is the I/O errors, even have retried at the
+		 * beginning of this function, it fails to convert to a new mode
+		 * thus it's not necessary to revert to old mode.
+		 *
+		 * the second reason is timeout, for this reason the IDM has
+		 * been released.
+		 *
+		 * Thus skip to revert to old lock mode when drive state is
+		 * NOACCESS.
+		 */
+		if (drive->state == ILM_DRIVE_NOACCESS) {
+			score++;
+			continue;
+		}
+
 		ret = _raid_convert_lock(lock, mode, host_id, drive);
 		if (!ret)
 			score++;
