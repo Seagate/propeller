@@ -22,6 +22,10 @@
 #include "list.h"
 #include "lock.h"
 #include "log.h"
+#include "raid_lock.h"
+#include "util.h"
+
+#define IDM_QUIESCENT_PERIOD	50000	/* 50 seconds */
 
 static struct list_head ls_list = LIST_HEAD_INIT(ls_list);
 static pthread_mutex_t ls_mutex = PTHREAD_MUTEX_INITIALIZER;
@@ -47,19 +51,49 @@ static int _ls_is_valid(struct ilm_lockspace *ilm_ls)
 
 static void *ilm_lockspace_thread(void *data)
 {
-	struct ilm_lockspace *ilm_ls = data;
-	int exit;
+	struct ilm_lockspace *ls = data;
+	struct ilm_lock *lock;
+	int exit, ret, now;
 
 	while (1) {
-		pthread_mutex_lock(&ilm_ls->mutex);
-		exit = ilm_ls->exit;
-		pthread_mutex_unlock(&ilm_ls->mutex);
+		pthread_mutex_lock(&ls->mutex);
+		exit = ls->exit;
+		pthread_mutex_unlock(&ls->mutex);
 
 		if (exit)
 			break;
 
+		pthread_mutex_lock(&ls->mutex);
+		list_for_each_entry(lock, &ls->lock_list, list) {
 
-		/* TODO: refresh lock membership */
+			now = ilm_curr_time();
+
+			/*
+			 * If an IDM has been added into lock list but has not
+			 * been acquired the raid lock yet, its renewal_success
+			 * is zero, so skip to renew it.
+			 *
+			 * If an IDM has been failed to renew for more than
+			 * IDM_QUIESCENT_PERIOD, the lock manager will stop
+			 * to try to renew it anymore.
+			 */
+			pthread_mutex_lock(&lock->mutex);
+			if (!lock->last_renewal_success ||
+			    now > lock->last_renewal_success +
+					IDM_QUIESCENT_PERIOD) {
+				pthread_mutex_unlock(&lock->mutex);
+				continue;
+			}
+			pthread_mutex_unlock(&lock->mutex);
+
+			ret = idm_raid_renew_lock(lock, ls->host_id);
+			if (!ret) {
+				pthread_mutex_lock(&lock->mutex);
+				lock->last_renewal_success = ilm_curr_time();
+				pthread_mutex_unlock(&lock->mutex);
+			}
+		}
+		pthread_mutex_unlock(&ls->mutex);
 
 		sleep(1);
 	}

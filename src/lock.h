@@ -26,6 +26,7 @@ struct ilm_lock {
 	char id[IDM_LOCK_ID_LEN];
 	int mode;
 	int timeout;
+	uint64_t last_renewal_success;
 
 	int drive_num;
 	struct ilm_drive drive[ILM_DRIVE_MAX_NUM];
