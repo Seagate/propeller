@@ -147,7 +147,7 @@ void ilm_log(int level, const char *fmt, ...)
 	pthread_mutex_unlock(&log_mutex);
 }
 
-void ilm_log_array(int level, char *array_name, char *buf, int buf_len)
+void ilm_log_array(int level, const char *array_name, char *buf, int buf_len)
 {
 	int i, tail, tail_len;
 
