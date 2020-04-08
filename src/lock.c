@@ -22,6 +22,7 @@
 #include "lock.h"
 #include "log.h"
 #include "raid_lock.h"
+#include "util.h"
 
 static int ilm_lock_payload_read(struct ilm_cmd *cmd,
 				 struct ilm_lock_payload *payload)
@@ -61,6 +62,7 @@ static struct ilm_lock *ilm_alloc(struct ilm_cmd *cmd,
 	memset(lock, 0, sizeof(struct ilm_lock));
 
 	INIT_LIST_HEAD(&lock->list);
+	pthread_mutex_init(&lock->mutex, NULL);
 
 	for (i = 0, copied = 0; i < drive_num; i++, copied++) {
 		ret = recv(cmd->cl->fd, &path, sizeof(path), MSG_WAITALL);
@@ -135,6 +137,13 @@ int ilm_lock_acquire(struct ilm_cmd *cmd, struct ilm_lockspace *ls)
 		goto out;
 	}
 
+	if (payload.mode != IDM_MODE_EXCLUSIVE &&
+	    payload.mode != IDM_MODE_SHAREABLE) {
+	        ilm_log_err("Lock mode is not supported: %d\n", payload.mode);
+		ret = -EINVAL;
+		goto out;
+	}
+
 	ret = ilm_lockspace_find_lock(ls, payload.lock_id, NULL);
 	if (!ret) {
 		ilm_log_err("Has acquired the lock yet!\n");
@@ -149,14 +158,23 @@ int ilm_lock_acquire(struct ilm_cmd *cmd, struct ilm_lockspace *ls)
 		goto out;
 	}
 
+	pthread_mutex_lock(&lock->mutex);
 	memcpy(lock->id, payload.lock_id, IDM_LOCK_ID_LEN);
 	lock->mode = payload.mode;
+	lock->timeout = payload.timeout;
+	pthread_mutex_unlock(&lock->mutex);
 
 	ilm_lock_dump("lock_acquire", lock);
 
 	ret = idm_raid_lock(lock, ls->host_id);
-	if (ret)
+	if (ret) {
 	        ilm_log_err("Fail to acquire raid lock %d\n", ret);
+		ilm_free(ls, lock);
+	} else {
+		pthread_mutex_lock(&lock->mutex);
+		lock->last_renewal_success = ilm_curr_time();
+		pthread_mutex_unlock(&lock->mutex);
+	}
 
 out:
 	ilm_client_recv_all(cmd->cl, cmd->sock_msg_len, pos);
@@ -183,11 +201,9 @@ int ilm_lock_release(struct ilm_cmd *cmd, struct ilm_lockspace *ls)
 
 	ilm_lock_dump("lock_release", lock);
 
-	idm_raid_lock(lock, ls->host_id);
+	ret = idm_raid_unlock(lock, ls->host_id);
 
-	ret = ilm_free(ls, lock);
-	if (ret)
-	        ilm_log_err("Fail to free raid lock %d\n", ret);
+	ilm_free(ls, lock);
 out:
 	ilm_send_result(cmd->cl->fd, ret, NULL, 0);
 	return ret;
@@ -217,9 +233,12 @@ int ilm_lock_convert_mode(struct ilm_cmd *cmd, struct ilm_lockspace *ls)
 	if (ret)
 	        ilm_log_err("Fail to convert raid lock %d mode %d vs %d\n",
 			    ret, lock->mode, payload.mode);
-	else
+	else {
 		/* Update after convert mode successfully */
+		pthread_mutex_lock(&lock->mutex);
 		lock->mode = payload.mode;
+		pthread_mutex_unlock(&lock->mutex);
+	}
 
 out:
 	ilm_send_result(cmd->cl->fd, ret, NULL, 0);
@@ -256,11 +275,14 @@ int ilm_lock_vb_write(struct ilm_cmd *cmd, struct ilm_lockspace *ls)
 	ilm_log_array_dbg("value buffer:", buf, IDM_VALUE_LEN);
 
 	ret = idm_raid_write_lvb(lock, ls->host_id, buf, IDM_VALUE_LEN);
-	if (ret)
+	if (ret) {
 	        ilm_log_err("Fail to write lvb %d\n", ret);
-	else
+	} else {
 		/* Update after convert mode successfully */
+		pthread_mutex_lock(&lock->mutex);
 		memcpy(lock->vb, buf, IDM_VALUE_LEN);
+		pthread_mutex_unlock(&lock->mutex);
+	}
 
 out:
 	ilm_send_result(cmd->cl->fd, ret, NULL, 0);
@@ -293,7 +315,9 @@ int ilm_lock_vb_read(struct ilm_cmd *cmd, struct ilm_lockspace *ls)
 		goto fail;
 	} else {
 		/* Update the cached LVB */
+		pthread_mutex_lock(&lock->mutex);
 		memcpy(lock->vb, buf, IDM_VALUE_LEN);
+		pthread_mutex_unlock(&lock->mutex);
 	}
 
 	ilm_log_array_dbg("value buffer:", buf, IDM_VALUE_LEN);

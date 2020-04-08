@@ -251,6 +251,7 @@ int ilm_convert(int sock, struct idm_lock_id *id, uint32_t mode)
 	if (ret < 0)
 		return ret;
 
+	memset(&payload, 0, sizeof(struct ilm_lock_payload));
 	payload.magic = ILM_LOCK_MAGIC;
 	payload.mode = mode;
 	memcpy(payload.lock_id, &id->lv_uuid, sizeof(uuid_t));
@@ -280,6 +281,7 @@ int ilm_write_lvb(int sock, struct idm_lock_id *id, char *lvb, int lvb_len)
 	if (ret < 0)
 		return ret;
 
+	memset(&payload, 0, sizeof(struct ilm_lock_payload));
 	payload.magic = ILM_LOCK_MAGIC;
 	memcpy(payload.lock_id, &id->lv_uuid, sizeof(uuid_t));
 	memcpy(payload.lock_id + sizeof(uuid_t),
@@ -311,6 +313,7 @@ int ilm_read_lvb(int sock, struct idm_lock_id *id, char *lvb, int lvb_len)
 	if (ret < 0)
 		return ret;
 
+	memset(&payload, 0, sizeof(struct ilm_lock_payload));
 	payload.magic = ILM_LOCK_MAGIC;
 	memcpy(payload.lock_id, &id->lv_uuid, sizeof(uuid_t));
 	memcpy(payload.lock_id + sizeof(uuid_t),
@@ -340,6 +343,36 @@ int ilm_set_host_id(int sock, char *id, int id_len)
 		return ret;
 
 	ret = send_data(sock, id, id_len, 0);
+	if (ret < 0)
+		return ret;
+
+	ret = recv_result(sock);
+	if (ret < 0)
+		return ret;
+
+	return 0;
+}
+
+int ilm_stop_renew(int sock)
+{
+	int ret;
+
+	ret = send_header(sock, ILM_CMD_STOP_RENEW, 0);
+	if (ret < 0)
+		return ret;
+
+	ret = recv_result(sock);
+	if (ret < 0)
+		return ret;
+
+	return 0;
+}
+
+int ilm_start_renew(int sock)
+{
+	int ret;
+
+	ret = send_header(sock, ILM_CMD_START_RENEW, 0);
 	if (ret < 0)
 		return ret;
 

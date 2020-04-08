@@ -18,7 +18,7 @@ def test_lockspace(ilm_daemon):
     ret = ilm.ilm_disconnect(s)
     assert ret == 0
 
-def test_lock_shareable__smoke_test(ilm_daemon):
+def test_lock__shareable_smoke_test(ilm_daemon):
     ret, s = ilm.ilm_connect()
     assert ret == 0
     assert s > 0
@@ -32,7 +32,7 @@ def test_lock_shareable__smoke_test(ilm_daemon):
     lock_op.drive_num = 2
     lock_op.set_drive_names(0, "/dev/sda1")
     lock_op.set_drive_names(1, "/dev/sda2")
-    lock_op.timeout = 0
+    lock_op.timeout = 60000     # Timeout: 60s
 
     ret = ilm.ilm_lock(s, lock_id, lock_op)
     assert ret == 0
@@ -43,7 +43,7 @@ def test_lock_shareable__smoke_test(ilm_daemon):
     ret = ilm.ilm_disconnect(s)
     assert ret == 0
 
-def test_lock_shareable__100_times(ilm_daemon):
+def test_lock__shareable_100_times(ilm_daemon):
     ret, s = ilm.ilm_connect()
     assert ret == 0
     assert s > 0
@@ -58,7 +58,7 @@ def test_lock_shareable__100_times(ilm_daemon):
         lock_op.drive_num = 2
         lock_op.set_drive_names(0, "/dev/sda1")
         lock_op.set_drive_names(1, "/dev/sda2")
-        lock_op.timeout = 0
+        lock_op.timeout = 60000     # Timeout: 60s
 
         ret = ilm.ilm_lock(s, lock_id, lock_op)
         assert ret == 0
@@ -69,7 +69,7 @@ def test_lock_shareable__100_times(ilm_daemon):
     ret = ilm.ilm_disconnect(s)
     assert ret == 0
 
-def test_lock_exclusive__smoke_test(ilm_daemon):
+def test_lock__exclusive_smoke_test(ilm_daemon):
     ret, s = ilm.ilm_connect()
     assert ret == 0
     assert s > 0
@@ -83,7 +83,7 @@ def test_lock_exclusive__smoke_test(ilm_daemon):
     lock_op.drive_num = 2
     lock_op.set_drive_names(0, "/dev/sda1")
     lock_op.set_drive_names(1, "/dev/sda2")
-    lock_op.timeout = 0
+    lock_op.timeout = 60000     # Timeout: 60s
 
     ret = ilm.ilm_lock(s, lock_id, lock_op)
     assert ret == 0
@@ -94,7 +94,7 @@ def test_lock_exclusive__smoke_test(ilm_daemon):
     ret = ilm.ilm_disconnect(s)
     assert ret == 0
 
-def test_lock_exclusive__100_times(ilm_daemon):
+def test_lock__exclusive_100_times(ilm_daemon):
     ret, s = ilm.ilm_connect()
     assert ret == 0
     assert s > 0
@@ -109,7 +109,7 @@ def test_lock_exclusive__100_times(ilm_daemon):
         lock_op.drive_num = 2
         lock_op.set_drive_names(0, "/dev/sda1")
         lock_op.set_drive_names(1, "/dev/sda2")
-        lock_op.timeout = 0
+        lock_op.timeout = 60000     # Timeout: 60s
 
         ret = ilm.ilm_lock(s, lock_id, lock_op)
         assert ret == 0
@@ -120,7 +120,7 @@ def test_lock_exclusive__100_times(ilm_daemon):
     ret = ilm.ilm_disconnect(s)
     assert ret == 0
 
-def test_lock_wrong_mode(ilm_daemon):
+def test_lock__wrong_mode(ilm_daemon):
     ret, s = ilm.ilm_connect()
     assert ret == 0
     assert s > 0
@@ -134,21 +134,18 @@ def test_lock_wrong_mode(ilm_daemon):
     lock_op.drive_num = 2
     lock_op.set_drive_names(0, "/dev/sda1")
     lock_op.set_drive_names(1, "/dev/sda2")
-    lock_op.timeout = 0
+    lock_op.timeout = 60000     # Timeout: 60s
 
     ret = ilm.ilm_lock(s, lock_id, lock_op)
-    assert ret == -1
+    assert ret == -22
 
     ret = ilm.ilm_disconnect(s)
     assert ret == 0
 
-def test_lock_exclusive__one_fail_one_success(ilm_daemon):
-    ret, s1 = ilm.ilm_connect()
+def test_lock__one_host_exclusive_twice(ilm_daemon):
+    ret, s = ilm.ilm_connect()
     assert ret == 0
-    assert s1 > 0
-
-    host_id = "00000000000000010000000000000001"
-    ret = ilm.ilm_set_host_id(s1, host_id, 32)
+    assert s > 0
 
     lock_id = ilm.idm_lock_id()
     lock_id.set_vg_uuid("0000000000000001")
@@ -159,21 +156,77 @@ def test_lock_exclusive__one_fail_one_success(ilm_daemon):
     lock_op.drive_num = 2
     lock_op.set_drive_names(0, "/dev/sda1")
     lock_op.set_drive_names(1, "/dev/sda2")
-    lock_op.timeout = 0
+    lock_op.timeout = 60000     # Timeout: 60s
 
-    ret = ilm.ilm_lock(s1, lock_id, lock_op)
+    ret = ilm.ilm_lock(s, lock_id, lock_op)
     assert ret == 0
 
-    ret = ilm.ilm_lock(s1, lock_id, lock_op)
+    ret = ilm.ilm_lock(s, lock_id, lock_op)
     assert ret == -16
 
-    ret = ilm.ilm_unlock(s1, lock_id)
+    ret = ilm.ilm_unlock(s, lock_id)
     assert ret == 0
 
-    ret = ilm.ilm_disconnect(s1)
+    ret = ilm.ilm_disconnect(s)
     assert ret == 0
 
-def test_lock_exclusive__two_host_one_fail_one_success(ilm_daemon):
+def test_lock__one_host_shareable_twice(ilm_daemon):
+    ret, s = ilm.ilm_connect()
+    assert ret == 0
+    assert s > 0
+
+    lock_id = ilm.idm_lock_id()
+    lock_id.set_vg_uuid("0000000000000001")
+    lock_id.set_lv_uuid("0123456789abcdef")
+
+    lock_op = ilm.idm_lock_op()
+    lock_op.mode = ilm.IDM_MODE_SHAREABLE
+    lock_op.drive_num = 2
+    lock_op.set_drive_names(0, "/dev/sda1")
+    lock_op.set_drive_names(1, "/dev/sda2")
+    lock_op.timeout = 60000     # Timeout: 60s
+
+    ret = ilm.ilm_lock(s, lock_id, lock_op)
+    assert ret == 0
+
+    ret = ilm.ilm_lock(s, lock_id, lock_op)
+    assert ret == -16
+
+    ret = ilm.ilm_unlock(s, lock_id)
+    assert ret == 0
+
+    ret = ilm.ilm_disconnect(s)
+    assert ret == 0
+
+def test_lock__one_host_release_twice(ilm_daemon):
+    ret, s = ilm.ilm_connect()
+    assert ret == 0
+    assert s > 0
+
+    lock_id = ilm.idm_lock_id()
+    lock_id.set_vg_uuid("0000000000000001")
+    lock_id.set_lv_uuid("0123456789abcdef")
+
+    lock_op = ilm.idm_lock_op()
+    lock_op.mode = ilm.IDM_MODE_SHAREABLE
+    lock_op.drive_num = 2
+    lock_op.set_drive_names(0, "/dev/sda1")
+    lock_op.set_drive_names(1, "/dev/sda2")
+    lock_op.timeout = 60000     # Timeout: 60s
+
+    ret = ilm.ilm_lock(s, lock_id, lock_op)
+    assert ret == 0
+
+    ret = ilm.ilm_unlock(s, lock_id)
+    assert ret == 0
+
+    ret = ilm.ilm_unlock(s, lock_id)
+    assert ret == -1
+
+    ret = ilm.ilm_disconnect(s)
+    assert ret == 0
+
+def test_lock__two_hosts_exclusive_success_exclusive_fail(ilm_daemon):
     ret, s1 = ilm.ilm_connect()
     assert ret == 0
     assert s1 > 0
@@ -197,7 +250,7 @@ def test_lock_exclusive__two_host_one_fail_one_success(ilm_daemon):
     lock_op.drive_num = 2
     lock_op.set_drive_names(0, "/dev/sda1")
     lock_op.set_drive_names(1, "/dev/sda2")
-    lock_op.timeout = 0
+    lock_op.timeout = 60000     # Timeout: 60s
 
     ret = ilm.ilm_lock(s1, lock_id, lock_op)
     assert ret == 0
@@ -212,4 +265,553 @@ def test_lock_exclusive__two_host_one_fail_one_success(ilm_daemon):
     assert ret == 0
 
     ret = ilm.ilm_disconnect(s2)
+    assert ret == 0
+
+
+def test_lock__two_hosts_shareable_success_shareable_success(ilm_daemon):
+    ret, s1 = ilm.ilm_connect()
+    assert ret == 0
+    assert s1 > 0
+
+    host_id = "00000000000000000000000000000000"
+    ret = ilm.ilm_set_host_id(s1, host_id, 32)
+
+    ret, s2 = ilm.ilm_connect()
+    assert ret == 0
+    assert s2 > 0
+
+    host_id = "11111111111111111111111111111111"
+    ret = ilm.ilm_set_host_id(s2, host_id, 32)
+
+    lock_id = ilm.idm_lock_id()
+    lock_id.set_vg_uuid("0000000000000001")
+    lock_id.set_lv_uuid("0123456789abcdef")
+
+    lock_op = ilm.idm_lock_op()
+    lock_op.mode = ilm.IDM_MODE_SHAREABLE
+    lock_op.drive_num = 2
+    lock_op.set_drive_names(0, "/dev/sda1")
+    lock_op.set_drive_names(1, "/dev/sda2")
+    lock_op.timeout = 60000     # Timeout: 60s
+
+    ret = ilm.ilm_lock(s1, lock_id, lock_op)
+    assert ret == 0
+
+    ret = ilm.ilm_lock(s2, lock_id, lock_op)
+    assert ret == 0
+
+    ret = ilm.ilm_unlock(s1, lock_id)
+    assert ret == 0
+
+    ret = ilm.ilm_unlock(s2, lock_id)
+    assert ret == 0
+
+    ret = ilm.ilm_disconnect(s1)
+    assert ret == 0
+
+    ret = ilm.ilm_disconnect(s2)
+    assert ret == 0
+
+def test_lock__two_hosts_shareable_success_exclusive_fail(ilm_daemon):
+    ret, s1 = ilm.ilm_connect()
+    assert ret == 0
+    assert s1 > 0
+
+    host_id = "00000000000000000000000000000000"
+    ret = ilm.ilm_set_host_id(s1, host_id, 32)
+
+    ret, s2 = ilm.ilm_connect()
+    assert ret == 0
+    assert s2 > 0
+
+    host_id = "11111111111111111111111111111111"
+    ret = ilm.ilm_set_host_id(s2, host_id, 32)
+
+    lock_id = ilm.idm_lock_id()
+    lock_id.set_vg_uuid("0000000000000001")
+    lock_id.set_lv_uuid("0123456789abcdef")
+
+    lock_op = ilm.idm_lock_op()
+    lock_op.mode = ilm.IDM_MODE_SHAREABLE
+    lock_op.drive_num = 2
+    lock_op.set_drive_names(0, "/dev/sda1")
+    lock_op.set_drive_names(1, "/dev/sda2")
+    lock_op.timeout = 60000     # Timeout: 60s
+
+    ret = ilm.ilm_lock(s1, lock_id, lock_op)
+    assert ret == 0
+
+    lock_op = ilm.idm_lock_op()
+    lock_op.mode = ilm.IDM_MODE_EXCLUSIVE
+    lock_op.drive_num = 2
+    lock_op.set_drive_names(0, "/dev/sda1")
+    lock_op.set_drive_names(1, "/dev/sda2")
+    lock_op.timeout = 60000     # Timeout: 60s
+
+    ret = ilm.ilm_lock(s2, lock_id, lock_op)
+    assert ret == -1
+
+    ret = ilm.ilm_unlock(s1, lock_id)
+    assert ret == 0
+
+    ret = ilm.ilm_unlock(s2, lock_id)
+    assert ret == -1
+
+    ret = ilm.ilm_disconnect(s1)
+    assert ret == 0
+
+    ret = ilm.ilm_disconnect(s2)
+    assert ret == 0
+
+def test_lock__two_hosts_exclusive_success_shareable_fail(ilm_daemon):
+    ret, s1 = ilm.ilm_connect()
+    assert ret == 0
+    assert s1 > 0
+
+    host_id = "00000000000000000000000000000000"
+    ret = ilm.ilm_set_host_id(s1, host_id, 32)
+
+    ret, s2 = ilm.ilm_connect()
+    assert ret == 0
+    assert s2 > 0
+
+    host_id = "11111111111111111111111111111111"
+    ret = ilm.ilm_set_host_id(s2, host_id, 32)
+
+    lock_id = ilm.idm_lock_id()
+    lock_id.set_vg_uuid("0000000000000001")
+    lock_id.set_lv_uuid("0123456789abcdef")
+
+    lock_op = ilm.idm_lock_op()
+    lock_op.mode = ilm.IDM_MODE_EXCLUSIVE
+    lock_op.drive_num = 2
+    lock_op.set_drive_names(0, "/dev/sda1")
+    lock_op.set_drive_names(1, "/dev/sda2")
+    lock_op.timeout = 60000     # Timeout: 60s
+
+    ret = ilm.ilm_lock(s1, lock_id, lock_op)
+    assert ret == 0
+
+    lock_op = ilm.idm_lock_op()
+    lock_op.mode = ilm.IDM_MODE_SHAREABLE
+    lock_op.drive_num = 2
+    lock_op.set_drive_names(0, "/dev/sda1")
+    lock_op.set_drive_names(1, "/dev/sda2")
+    lock_op.timeout = 60000     # Timeout: 60s
+
+    ret = ilm.ilm_lock(s2, lock_id, lock_op)
+    assert ret == -1
+
+    ret = ilm.ilm_unlock(s1, lock_id)
+    assert ret == 0
+
+    ret = ilm.ilm_unlock(s2, lock_id)
+    assert ret == -1
+
+    ret = ilm.ilm_disconnect(s1)
+    assert ret == 0
+
+    ret = ilm.ilm_disconnect(s2)
+    assert ret == 0
+
+def test_lock__two_hosts_exclusive_wrong_release_ahead(ilm_daemon):
+    ret, s1 = ilm.ilm_connect()
+    assert ret == 0
+    assert s1 > 0
+
+    host_id = "00000000000000000000000000000000"
+    ret = ilm.ilm_set_host_id(s1, host_id, 32)
+
+    ret, s2 = ilm.ilm_connect()
+    assert ret == 0
+    assert s2 > 0
+
+    host_id = "11111111111111111111111111111111"
+    ret = ilm.ilm_set_host_id(s2, host_id, 32)
+
+    lock_id = ilm.idm_lock_id()
+    lock_id.set_vg_uuid("0000000000000001")
+    lock_id.set_lv_uuid("0123456789abcdef")
+
+    lock_op = ilm.idm_lock_op()
+    lock_op.mode = ilm.IDM_MODE_EXCLUSIVE
+    lock_op.drive_num = 2
+    lock_op.set_drive_names(0, "/dev/sda1")
+    lock_op.set_drive_names(1, "/dev/sda2")
+    lock_op.timeout = 60000     # Timeout: 60s
+
+    ret = ilm.ilm_lock(s1, lock_id, lock_op)
+    assert ret == 0
+
+    ret = ilm.ilm_unlock(s2, lock_id)
+    assert ret == -1
+
+    ret = ilm.ilm_unlock(s1, lock_id)
+    assert ret == 0
+
+    ret = ilm.ilm_disconnect(s1)
+    assert ret == 0
+
+    ret = ilm.ilm_disconnect(s2)
+    assert ret == 0
+
+def test_lock__two_hosts_exclusive_wrong_release_after(ilm_daemon):
+    ret, s1 = ilm.ilm_connect()
+    assert ret == 0
+    assert s1 > 0
+
+    host_id = "00000000000000000000000000000000"
+    ret = ilm.ilm_set_host_id(s1, host_id, 32)
+
+    ret, s2 = ilm.ilm_connect()
+    assert ret == 0
+    assert s2 > 0
+
+    host_id = "11111111111111111111111111111111"
+    ret = ilm.ilm_set_host_id(s2, host_id, 32)
+
+    lock_id = ilm.idm_lock_id()
+    lock_id.set_vg_uuid("0000000000000001")
+    lock_id.set_lv_uuid("0123456789abcdef")
+
+    lock_op = ilm.idm_lock_op()
+    lock_op.mode = ilm.IDM_MODE_EXCLUSIVE
+    lock_op.drive_num = 2
+    lock_op.set_drive_names(0, "/dev/sda1")
+    lock_op.set_drive_names(1, "/dev/sda2")
+    lock_op.timeout = 60000     # Timeout: 60s
+
+    ret = ilm.ilm_lock(s1, lock_id, lock_op)
+    assert ret == 0
+
+    ret = ilm.ilm_unlock(s1, lock_id)
+    assert ret == 0
+
+    ret = ilm.ilm_unlock(s2, lock_id)
+    assert ret == -1
+
+    ret = ilm.ilm_disconnect(s1)
+    assert ret == 0
+
+    ret = ilm.ilm_disconnect(s2)
+    assert ret == 0
+
+def test_lock__convert_shareable_to_shareable(ilm_daemon):
+    ret, s = ilm.ilm_connect()
+    assert ret == 0
+    assert s > 0
+
+    lock_id = ilm.idm_lock_id()
+    lock_id.set_vg_uuid("0000000000000001")
+    lock_id.set_lv_uuid("0123456789abcdef")
+
+    lock_op = ilm.idm_lock_op()
+    lock_op.mode = ilm.IDM_MODE_SHAREABLE
+    lock_op.drive_num = 2
+    lock_op.set_drive_names(0, "/dev/sda1")
+    lock_op.set_drive_names(1, "/dev/sda2")
+    lock_op.timeout = 60000     # Timeout: 60s
+
+    ret = ilm.ilm_lock(s, lock_id, lock_op)
+    assert ret == 0
+
+    ret = ilm.ilm_convert(s, lock_id, ilm.IDM_MODE_SHAREABLE)
+    assert ret == 0
+
+    ret = ilm.ilm_unlock(s, lock_id)
+    assert ret == 0
+
+    ret = ilm.ilm_disconnect(s)
+    assert ret == 0
+
+def test_lock__convert_shareable_to_exclusive(ilm_daemon):
+    ret, s = ilm.ilm_connect()
+    assert ret == 0
+    assert s > 0
+
+    lock_id = ilm.idm_lock_id()
+    lock_id.set_vg_uuid("0000000000000001")
+    lock_id.set_lv_uuid("0123456789abcdef")
+
+    lock_op = ilm.idm_lock_op()
+    lock_op.mode = ilm.IDM_MODE_SHAREABLE
+    lock_op.drive_num = 2
+    lock_op.set_drive_names(0, "/dev/sda1")
+    lock_op.set_drive_names(1, "/dev/sda2")
+    lock_op.timeout = 60000     # Timeout: 60s
+
+    ret = ilm.ilm_lock(s, lock_id, lock_op)
+    assert ret == 0
+
+    ret = ilm.ilm_convert(s, lock_id, ilm.IDM_MODE_EXCLUSIVE)
+    assert ret == 0
+
+    ret = ilm.ilm_unlock(s, lock_id)
+    assert ret == 0
+
+    ret = ilm.ilm_disconnect(s)
+    assert ret == 0
+
+def test_lock__convert_exclusive_to_shareable(ilm_daemon):
+    ret, s = ilm.ilm_connect()
+    assert ret == 0
+    assert s > 0
+
+    lock_id = ilm.idm_lock_id()
+    lock_id.set_vg_uuid("0000000000000001")
+    lock_id.set_lv_uuid("0123456789abcdef")
+
+    lock_op = ilm.idm_lock_op()
+    lock_op.mode = ilm.IDM_MODE_EXCLUSIVE
+    lock_op.drive_num = 2
+    lock_op.set_drive_names(0, "/dev/sda1")
+    lock_op.set_drive_names(1, "/dev/sda2")
+    lock_op.timeout = 60000     # Timeout: 60s
+
+    ret = ilm.ilm_lock(s, lock_id, lock_op)
+    assert ret == 0
+
+    ret = ilm.ilm_convert(s, lock_id, ilm.IDM_MODE_SHAREABLE)
+    assert ret == 0
+
+    ret = ilm.ilm_unlock(s, lock_id)
+    assert ret == 0
+
+    ret = ilm.ilm_disconnect(s)
+    assert ret == 0
+
+def test_lock__convert_exclusive_to_exclusive(ilm_daemon):
+    ret, s = ilm.ilm_connect()
+    assert ret == 0
+    assert s > 0
+
+    lock_id = ilm.idm_lock_id()
+    lock_id.set_vg_uuid("0000000000000001")
+    lock_id.set_lv_uuid("0123456789abcdef")
+
+    lock_op = ilm.idm_lock_op()
+    lock_op.mode = ilm.IDM_MODE_EXCLUSIVE
+    lock_op.drive_num = 2
+    lock_op.set_drive_names(0, "/dev/sda1")
+    lock_op.set_drive_names(1, "/dev/sda2")
+    lock_op.timeout = 60000     # Timeout: 60s
+
+    ret = ilm.ilm_lock(s, lock_id, lock_op)
+    assert ret == 0
+
+    ret = ilm.ilm_convert(s, lock_id, ilm.IDM_MODE_EXCLUSIVE)
+    assert ret == 0
+
+    ret = ilm.ilm_unlock(s, lock_id)
+    assert ret == 0
+
+    ret = ilm.ilm_disconnect(s)
+    assert ret == 0
+
+def test_lock__two_hosts_convert_shareable_to_exclusive(ilm_daemon):
+    ret, s1 = ilm.ilm_connect()
+    assert ret == 0
+    assert s1 > 0
+
+    host_id = "00000000000000000000000000000000"
+    ret = ilm.ilm_set_host_id(s1, host_id, 32)
+
+    ret, s2 = ilm.ilm_connect()
+    assert ret == 0
+    assert s2 > 0
+
+    host_id = "11111111111111111111111111111111"
+    ret = ilm.ilm_set_host_id(s2, host_id, 32)
+
+    lock_id = ilm.idm_lock_id()
+    lock_id.set_vg_uuid("0000000000000001")
+    lock_id.set_lv_uuid("0123456789abcdef")
+
+    lock_op = ilm.idm_lock_op()
+    lock_op.mode = ilm.IDM_MODE_SHAREABLE
+    lock_op.drive_num = 2
+    lock_op.set_drive_names(0, "/dev/sda1")
+    lock_op.set_drive_names(1, "/dev/sda2")
+    lock_op.timeout = 60000     # Timeout: 60s
+
+    ret = ilm.ilm_lock(s1, lock_id, lock_op)
+    assert ret == 0
+
+    ret = ilm.ilm_lock(s2, lock_id, lock_op)
+    assert ret == 0
+
+    ret = ilm.ilm_convert(s1, lock_id, ilm.IDM_MODE_EXCLUSIVE)
+    assert ret == -1
+
+    ret = ilm.ilm_convert(s2, lock_id, ilm.IDM_MODE_EXCLUSIVE)
+    assert ret == -1
+
+    ret = ilm.ilm_unlock(s1, lock_id)
+    assert ret == 0
+
+    ret = ilm.ilm_unlock(s2, lock_id)
+    assert ret == 0
+
+    ret = ilm.ilm_disconnect(s1)
+    assert ret == 0
+
+    ret = ilm.ilm_disconnect(s2)
+    assert ret == 0
+
+def test_lock__two_hosts_convert_shareable_to_exclusive_success(ilm_daemon):
+    ret, s1 = ilm.ilm_connect()
+    assert ret == 0
+    assert s1 > 0
+
+    host_id = "00000000000000000000000000000000"
+    ret = ilm.ilm_set_host_id(s1, host_id, 32)
+
+    ret, s2 = ilm.ilm_connect()
+    assert ret == 0
+    assert s2 > 0
+
+    host_id = "11111111111111111111111111111111"
+    ret = ilm.ilm_set_host_id(s2, host_id, 32)
+
+    lock_id = ilm.idm_lock_id()
+    lock_id.set_vg_uuid("0000000000000001")
+    lock_id.set_lv_uuid("0123456789abcdef")
+
+    lock_op = ilm.idm_lock_op()
+    lock_op.mode = ilm.IDM_MODE_SHAREABLE
+    lock_op.drive_num = 2
+    lock_op.set_drive_names(0, "/dev/sda1")
+    lock_op.set_drive_names(1, "/dev/sda2")
+    lock_op.timeout = 60000     # Timeout: 60s
+
+    ret = ilm.ilm_lock(s1, lock_id, lock_op)
+    assert ret == 0
+
+    ret = ilm.ilm_lock(s2, lock_id, lock_op)
+    assert ret == 0
+
+    ret = ilm.ilm_unlock(s1, lock_id)
+    assert ret == 0
+
+    ret = ilm.ilm_convert(s1, lock_id, ilm.IDM_MODE_EXCLUSIVE)
+    assert ret == -1
+
+    ret = ilm.ilm_convert(s2, lock_id, ilm.IDM_MODE_EXCLUSIVE)
+    assert ret == 0
+
+    ret = ilm.ilm_unlock(s2, lock_id)
+    assert ret == 0
+
+    ret = ilm.ilm_disconnect(s1)
+    assert ret == 0
+
+    ret = ilm.ilm_disconnect(s2)
+    assert ret == 0
+
+def test_lock__timeout(ilm_daemon):
+    ret, s = ilm.ilm_connect()
+    assert ret == 0
+    assert s > 0
+
+    lock_id = ilm.idm_lock_id()
+    lock_id.set_vg_uuid("0000000000000001")
+    lock_id.set_lv_uuid("0123456789abcdef")
+
+    lock_op = ilm.idm_lock_op()
+    lock_op.mode = ilm.IDM_MODE_SHAREABLE
+    lock_op.drive_num = 2
+    lock_op.set_drive_names(0, "/dev/sda1")
+    lock_op.set_drive_names(1, "/dev/sda2")
+    lock_op.timeout = 3000     # Timeout: 3s
+
+    ret = ilm.ilm_lock(s, lock_id, lock_op)
+    assert ret == 0
+
+    ret = ilm.ilm_stop_renew(s)
+    assert ret == 0
+
+    time.sleep(5)
+
+    # Unlock will receive -ETIME
+    ret = ilm.ilm_unlock(s, lock_id)
+    assert ret == -62
+
+    ret = ilm.ilm_disconnect(s)
+    assert ret == 0
+
+def test_lock__timeout_convert1(ilm_daemon):
+    ret, s = ilm.ilm_connect()
+    assert ret == 0
+    assert s > 0
+
+    lock_id = ilm.idm_lock_id()
+    lock_id.set_vg_uuid("0000000000000001")
+    lock_id.set_lv_uuid("0123456789abcdef")
+
+    lock_op = ilm.idm_lock_op()
+    lock_op.mode = ilm.IDM_MODE_SHAREABLE
+    lock_op.drive_num = 2
+    lock_op.set_drive_names(0, "/dev/sda1")
+    lock_op.set_drive_names(1, "/dev/sda2")
+    lock_op.timeout = 3000     # Timeout: 3s
+
+    ret = ilm.ilm_lock(s, lock_id, lock_op)
+    assert ret == 0
+
+    ret = ilm.ilm_stop_renew(s)
+    assert ret == 0
+
+    time.sleep(5)
+
+    # If the lock is timeout, cannot convert the mode;
+    # will receive -ETIME
+    ret = ilm.ilm_convert(s, lock_id, ilm.IDM_MODE_EXCLUSIVE)
+    assert ret == -62
+
+    # Unlock will receive -EINVAL
+    ret = ilm.ilm_unlock(s, lock_id)
+    assert ret == -22
+
+    ret = ilm.ilm_disconnect(s)
+    assert ret == 0
+
+def test_lock__timeout_convert2(ilm_daemon):
+    ret, s = ilm.ilm_connect()
+    assert ret == 0
+    assert s > 0
+
+    lock_id = ilm.idm_lock_id()
+    lock_id.set_vg_uuid("0000000000000001")
+    lock_id.set_lv_uuid("0123456789abcdef")
+
+    lock_op = ilm.idm_lock_op()
+    lock_op.mode = ilm.IDM_MODE_SHAREABLE
+    lock_op.drive_num = 2
+    lock_op.set_drive_names(0, "/dev/sda1")
+    lock_op.set_drive_names(1, "/dev/sda2")
+    lock_op.timeout = 3000     # Timeout: 3s
+
+    ret = ilm.ilm_lock(s, lock_id, lock_op)
+    assert ret == 0
+
+    time.sleep(5)
+
+    ret = ilm.ilm_convert(s, lock_id, ilm.IDM_MODE_EXCLUSIVE)
+    assert ret == 0
+
+    ret = ilm.ilm_stop_renew(s)
+    assert ret == 0
+
+    time.sleep(5)
+
+    # If the lock is timeout, cannot convert the mode;
+    # will receive -ETIME
+    ret = ilm.ilm_convert(s, lock_id, ilm.IDM_MODE_SHAREABLE)
+    assert ret == -62
+
+    # Unlock will receive -EINVAL
+    ret = ilm.ilm_unlock(s, lock_id)
+    assert ret == -22
+
+    ret = ilm.ilm_disconnect(s)
     assert ret == 0

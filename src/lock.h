@@ -22,9 +22,11 @@ struct ilm_drive {
 
 struct ilm_lock {
 	struct list_head list;
+	pthread_mutex_t mutex;
 	char id[IDM_LOCK_ID_LEN];
 	int mode;
 	int timeout;
+	uint64_t last_renewal_success;
 
 	int drive_num;
 	struct ilm_drive drive[ILM_DRIVE_MAX_NUM];
