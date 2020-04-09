@@ -13,6 +13,7 @@
 #include "ilm.h"
 
 #include "idm_wrapper.h"
+#include "inject_fault.h"
 #include "lock.h"
 #include "log.h"
 #include "util.h"
@@ -134,6 +135,9 @@ int idm_raid_lock(struct ilm_lock *lock, char *host_id)
 	do {
 		score = 0;
 		for (i = 0; i < lock->drive_num; i++) {
+			/* Update inject fault */
+			ilm_inject_fault_update(lock->drive_num, i);
+
 			drive = &lock->drive[i];
 			ret = _raid_lock(lock, lock->mode, host_id, drive);
 			/* Make success in one drive */
@@ -196,6 +200,9 @@ int idm_raid_unlock(struct ilm_lock *lock, char *host_id)
 	ilm_raid_lock_dump("Enter raid_unlock", lock);
 
 	for (i = 0; i < lock->drive_num; i++) {
+		/* Update inject fault */
+		ilm_inject_fault_update(lock->drive_num, i);
+
 		drive = &lock->drive[i];
 		ret = idm_drive_unlock(lock->id, host_id, drive->path);
 
@@ -280,6 +287,9 @@ int idm_raid_convert_lock(struct ilm_lock *lock, char *host_id, int mode)
 
 	score = 0;
 	for (i = 0; i < lock->drive_num; i++) {
+		/* Update inject fault */
+		ilm_inject_fault_update(lock->drive_num, i);
+
 		drive = &lock->drive[i];
 		ret = _raid_convert_lock(lock, mode, host_id, drive);
 		if (!ret)
@@ -421,6 +431,9 @@ int idm_raid_renew_lock(struct ilm_lock *lock, char *host_id)
 	do {
 		score = 0;
 		for (i = 0; i < lock->drive_num; i++) {
+			/* Update inject fault */
+			ilm_inject_fault_update(lock->drive_num, i);
+
 			drive = &lock->drive[i];
 			ret = _raid_renew_lock(lock, host_id, drive);
 			if (!ret)
@@ -505,6 +518,9 @@ int idm_raid_write_lvb(struct ilm_lock *lock, char *host_id,
 	do {
 		score = 0;
 		for (i = 0; i < lock->drive_num; i++) {
+			/* Update inject fault */
+			ilm_inject_fault_update(lock->drive_num, i);
+
 			drive = &lock->drive[i];
 			ret = _raid_write_lvb(lock, host_id, lvb, lvb_size,
 					      drive);
@@ -586,6 +602,9 @@ int idm_raid_read_lvb(struct ilm_lock *lock, char *host_id,
 	do {
 		score = 0;
 		for (i = 0; i < lock->drive_num; i++) {
+			/* Update inject fault */
+			ilm_inject_fault_update(lock->drive_num, i);
+
 			drive = &lock->drive[i];
 			ret = _raid_read_lvb(lock, host_id, lvb, lvb_size,
 					     drive);
@@ -623,8 +642,10 @@ int idm_raid_count(struct ilm_lock *lock, int *count)
 	struct ilm_drive *drive;
 
 	for (i = 0; i < lock->drive_num; i++) {
-		drive = &lock->drive[i];
+		/* Update inject fault */
+		ilm_inject_fault_update(lock->drive_num, i);
 
+		drive = &lock->drive[i];
 		ret = idm_drive_lock_count(lock->id, &cnt, drive->path);
 		if (ret) {
 			no_ent++;
@@ -673,8 +694,10 @@ int idm_raid_mode(struct ilm_lock *lock, int *mode)
 	struct ilm_drive *drive;
 
 	for (i = 0; i < lock->drive_num; i++) {
-		drive = &lock->drive[i];
+		/* Update inject fault */
+		ilm_inject_fault_update(lock->drive_num, i);
 
+		drive = &lock->drive[i];
 		ret = idm_drive_lock_mode(lock->id, &m, drive->path);
 		if (ret) {
 			no_ent++;
