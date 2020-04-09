@@ -840,7 +840,7 @@ int idm_drive_lock_count(char *lock_id, int *count, char *drive)
 
 	idm = idm_find(lock_id, drive);
 	if (!idm)
-		return -EINVAL;
+		return -ENOENT;
 
 	pthread_mutex_lock(&idm->mutex);
 	*count = idm->user_count;
@@ -869,7 +869,7 @@ int idm_drive_lock_mode(char *lock_id, int *mode, char *drive)
 
 	idm = idm_find(lock_id, drive);
 	if (!idm)
-		return -EINVAL;
+		return -ENOENT;
 
 	pthread_mutex_lock(&idm->mutex);
 	*mode = idm->mode;

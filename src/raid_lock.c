@@ -619,18 +619,17 @@ int idm_raid_count(struct ilm_lock *lock, int *count)
 {
 	int ret, i;
 	int cnt;
-	int stat[3] = { 0 }, stat_max = 0;
+	int stat[3] = { 0 }, stat_max = 0, no_ent = 0;
 	struct ilm_drive *drive;
 
 	for (i = 0; i < lock->drive_num; i++) {
 		drive = &lock->drive[i];
 
-		if (drive->state != ILM_DRIVE_ACCESSED)
-			continue;
-
 		ret = idm_drive_lock_count(lock->id, &cnt, drive->path);
-		if (ret)
+		if (ret) {
+			no_ent++;
 			continue;
+		}
 
 		if (cnt >= 0 && cnt < 3)
 			stat[cnt]++;
@@ -639,6 +638,10 @@ int idm_raid_count(struct ilm_lock *lock, int *count)
 		else
 			ilm_log_warn("wrong idm count %d\n", cnt);
 	}
+
+	/* The IDM doesn't exist */
+	if (no_ent == lock->drive_num)
+		return -ENOENT;
 
 	/* Figure out which index is maximum */
 	for (i = 0; i < 3; i++) {
@@ -666,18 +669,17 @@ int idm_raid_mode(struct ilm_lock *lock, int *mode)
 {
 	int ret, i;
 	int m, t;
-	int stat_mode[3] = { 0 }, mode_max = 0;
+	int stat_mode[3] = { 0 }, mode_max = 0, no_ent = 0;
 	struct ilm_drive *drive;
 
 	for (i = 0; i < lock->drive_num; i++) {
 		drive = &lock->drive[i];
 
-		if (drive->state != ILM_DRIVE_ACCESSED)
-			continue;
-
 		ret = idm_drive_lock_mode(lock->id, &m, drive->path);
-		if (ret)
+		if (ret) {
+			no_ent++;
 			continue;
+		}
 
 		if (m < 3 && m >= 0)
 			stat_mode[m]++;
@@ -686,6 +688,10 @@ int idm_raid_mode(struct ilm_lock *lock, int *mode)
 		else
 			ilm_log_warn("wrong idm mode %d\n", m);
 	}
+
+	/* The IDM doesn't exist */
+	if (no_ent == lock->drive_num)
+		return -ENOENT;
 
 	/* Figure out which index is maximum */
 	for (i = 0; i < 3; i++) {

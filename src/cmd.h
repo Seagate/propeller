@@ -22,6 +22,8 @@ enum {
 	ILM_CMD_CONVERT,
 	ILM_CMD_WRITE_LVB,
 	ILM_CMD_READ_LVB,
+	ILM_CMD_LOCK_HOST_COUNT,
+	ILM_CMD_LOCK_MODE,
 	ILM_CMD_SET_HOST_ID,	/* For testing purpose */
 	ILM_CMD_STOP_RENEW,	/* For testing purpose */
 	ILM_CMD_START_RENEW,	/* For testing purpose */
