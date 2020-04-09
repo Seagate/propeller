@@ -41,5 +41,6 @@ int ilm_get_mode(int sock, struct idm_lock_id *id,
 int ilm_set_host_id(int sock, char *id, int id_len);
 int ilm_stop_renew(int sock);
 int ilm_start_renew(int sock);
+int ilm_inject_fault(int sock, int percentage);
 
 #endif /* __ILM_H__ */

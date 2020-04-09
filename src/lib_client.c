@@ -474,3 +474,22 @@ int ilm_start_renew(int sock)
 
 	return 0;
 }
+
+int ilm_inject_fault(int sock, int percentage)
+{
+	int ret;
+
+	ret = send_header(sock, ILM_CMD_INJECT_FAULT, sizeof(int));
+	if (ret < 0)
+		return ret;
+
+	ret = send_data(sock, &percentage, sizeof(int), 0);
+	if (ret < 0)
+		return ret;
+
+	ret = recv_result(sock);
+	if (ret < 0)
+		return ret;
+
+	return 0;
+}

@@ -17,10 +17,12 @@
 
 #include "client.h"
 #include "cmd.h"
+#include "inject_fault.h"
 #include "list.h"
 #include "lockspace.h"
 #include "lock.h"
 #include "log.h"
+#include "util.h"
 
 struct ilm_cmd_queue {
 	int exit;
@@ -140,6 +142,15 @@ static void ilm_cmd_lock_mode(struct ilm_cmd *cmd)
 		ilm_log_err("Fail to read host count\n");
 }
 
+static void ilm_cmd_inject_fault(struct ilm_cmd *cmd)
+{
+	int ret;
+
+	ret = ilm_inject_fault_set_percentage(cmd);
+	if (ret < 0)
+		ilm_log_err("Fail to inject failure\n");
+}
+
 static void ilm_cmd_handle(struct ilm_cmd *cmd)
 {
 	ilm_log_dbg("cmd=%d", cmd->cmd);
@@ -180,6 +191,9 @@ static void ilm_cmd_handle(struct ilm_cmd *cmd)
 		break;
 	case ILM_CMD_START_RENEW:
 		ilm_cmd_stop_renew(cmd);
+		break;
+	case ILM_CMD_INJECT_FAULT:
+		ilm_cmd_inject_fault(cmd);
 		break;
 	default:
 		break;
