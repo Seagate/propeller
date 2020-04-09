@@ -122,6 +122,24 @@ static void ilm_cmd_lvb_read(struct ilm_cmd *cmd)
 		ilm_log_err("Fail to read LVB\n");
 }
 
+static void ilm_cmd_lock_host_count(struct ilm_cmd *cmd)
+{
+	int ret;
+
+	ret = ilm_lock_host_count(cmd, cmd->cl->ls);
+	if (ret < 0)
+		ilm_log_err("Fail to read host count\n");
+}
+
+static void ilm_cmd_lock_mode(struct ilm_cmd *cmd)
+{
+	int ret;
+
+	ret = ilm_lock_mode(cmd, cmd->cl->ls);
+	if (ret < 0)
+		ilm_log_err("Fail to read host count\n");
+}
+
 static void ilm_cmd_handle(struct ilm_cmd *cmd)
 {
 	ilm_log_dbg("cmd=%d", cmd->cmd);
@@ -147,6 +165,12 @@ static void ilm_cmd_handle(struct ilm_cmd *cmd)
 		break;
 	case ILM_CMD_READ_LVB:
 		ilm_cmd_lvb_read(cmd);
+		break;
+	case ILM_CMD_LOCK_HOST_COUNT:
+		ilm_cmd_lock_host_count(cmd);
+		break;
+	case ILM_CMD_LOCK_MODE:
+		ilm_cmd_lock_mode(cmd);
 		break;
 	case ILM_CMD_SET_HOST_ID:
 		ilm_cmd_set_host_id(cmd);

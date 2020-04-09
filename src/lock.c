@@ -276,7 +276,7 @@ int ilm_lock_vb_write(struct ilm_cmd *cmd, struct ilm_lockspace *ls)
 
 	ret = idm_raid_write_lvb(lock, ls->host_id, buf, IDM_VALUE_LEN);
 	if (ret) {
-	        ilm_log_err("Fail to write lvb %d\n", ret);
+		ilm_log_err("Fail to write lvb %d\n", ret);
 	} else {
 		/* Update after convert mode successfully */
 		pthread_mutex_lock(&lock->mutex);
@@ -311,7 +311,7 @@ int ilm_lock_vb_read(struct ilm_cmd *cmd, struct ilm_lockspace *ls)
 
 	ret = idm_raid_read_lvb(lock, ls->host_id, buf, IDM_VALUE_LEN);
 	if (ret) {
-	        ilm_log_err("Fail to write lvb %d\n", ret);
+		ilm_log_err("Fail to read lvb %d\n", ret);
 		goto fail;
 	} else {
 		/* Update the cached LVB */
@@ -327,5 +327,108 @@ int ilm_lock_vb_read(struct ilm_cmd *cmd, struct ilm_lockspace *ls)
 
 fail:
 	ilm_send_result(cmd->cl->fd, ret, NULL, 0);
+	return ret;
+}
+
+int ilm_lock_host_count(struct ilm_cmd *cmd, struct ilm_lockspace *ls)
+{
+	struct ilm_lock_payload payload;
+	struct ilm_lock *lock = NULL;
+	int count, allocated = 0, pos = 0, ret;
+
+	ret = ilm_lock_payload_read(cmd, &payload);
+	if (ret < 0)
+		goto out;
+	pos += ret;
+
+	if (payload.drive_num > ILM_DRIVE_MAX_NUM) {
+	        ilm_log_err("Drive list is out of scope: drive_num %d\n",
+			    payload.drive_num);
+		ret = -EINVAL;
+		goto out;
+	}
+
+	ret = ilm_lockspace_find_lock(ls, payload.lock_id, &lock);
+	if (ret < 0) {
+		ilm_log_warn("%s: Fail find lock!\n", __func__);
+		ilm_log_array_warn("Lock ID:", payload.lock_id, IDM_LOCK_ID_LEN);
+		lock = ilm_alloc(cmd, ls, payload.drive_num, &pos);
+		if (!lock) {
+			ret = -ENOMEM;
+			goto out;
+		}
+		memcpy(lock->id, payload.lock_id, IDM_LOCK_ID_LEN);
+		allocated = 1;
+	}
+
+	ilm_lock_dump("lock_host_count", lock);
+
+	ret = idm_raid_count(lock, &count);
+	if (ret) {
+		ilm_log_err("Fail to read count %d\n", ret);
+		goto out;
+	}
+	ilm_log_dbg("Lock host count %d\n", count);
+
+out:
+	if (allocated)
+		ilm_free(ls, lock);
+
+	ilm_client_recv_all(cmd->cl, cmd->sock_msg_len, pos);
+	if (!ret)
+		ilm_send_result(cmd->cl->fd, ret, (char *)&count, sizeof(count));
+	else
+		ilm_send_result(cmd->cl->fd, ret, NULL, 0);
+	return ret;
+}
+
+int ilm_lock_mode(struct ilm_cmd *cmd, struct ilm_lockspace *ls)
+{
+	struct ilm_lock_payload payload;
+	struct ilm_lock *lock = NULL;
+	int mode, allocated = 0, pos = 0, ret;
+
+	ret = ilm_lock_payload_read(cmd, &payload);
+	if (ret < 0)
+		goto out;
+	pos += ret;
+
+	if (payload.drive_num > ILM_DRIVE_MAX_NUM) {
+	        ilm_log_err("Drive list is out of scope: drive_num %d\n",
+			    payload.drive_num);
+		ret = -EINVAL;
+		goto out;
+	}
+
+	ret = ilm_lockspace_find_lock(ls, payload.lock_id, &lock);
+	if (ret < 0) {
+		ilm_log_warn("%s: Fail find lock!\n", __func__);
+		ilm_log_array_warn("Lock ID:", payload.lock_id, IDM_LOCK_ID_LEN);
+		lock = ilm_alloc(cmd, ls, payload.drive_num, &pos);
+		if (!lock) {
+			ret = -ENOMEM;
+			goto out;
+		}
+		memcpy(lock->id, payload.lock_id, IDM_LOCK_ID_LEN);
+		allocated = 1;
+	}
+	ilm_lock_dump("lock_host_mode", lock);
+
+	ret = idm_raid_mode(lock, &mode);
+	if (ret) {
+		ilm_log_err("Fail to read mode %d\n", ret);
+		goto out;
+	}
+	ilm_log_dbg("Lock mode %d\n", mode);
+
+out:
+	if (allocated)
+		ilm_free(ls, lock);
+
+	ilm_client_recv_all(cmd->cl, cmd->sock_msg_len, pos);
+	if (!ret)
+		ilm_send_result(cmd->cl->fd, ret, (char *)&mode, sizeof(mode));
+	else
+		ilm_send_result(cmd->cl->fd, ret, NULL, 0);
 	return ret;
 }
