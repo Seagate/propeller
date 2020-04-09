@@ -334,6 +334,98 @@ int ilm_read_lvb(int sock, struct idm_lock_id *id, char *lvb, int lvb_len)
 	return 0;
 }
 
+int ilm_get_host_count(int sock, struct idm_lock_id *id,
+		       struct idm_lock_op *op, int *count)
+{
+	struct ilm_lock_payload payload;
+	int i, len, ret;
+	char path[PATH_MAX];
+
+	len = sizeof(struct ilm_lock_payload) + op->drive_num * PATH_MAX;
+
+	ret = send_header(sock, ILM_CMD_LOCK_HOST_COUNT, len);
+	if (ret < 0)
+		return ret;
+
+	memset(&payload, 0, sizeof(struct ilm_lock_payload));
+	payload.magic = ILM_LOCK_MAGIC;
+	payload.drive_num = op->drive_num;
+
+	memcpy(payload.lock_id, &id->lv_uuid, sizeof(uuid_t));
+	memcpy(payload.lock_id + sizeof(uuid_t),
+	       &id->vg_uuid, sizeof(uuid_t));
+
+	ret = send_data(sock, &payload, sizeof(struct ilm_lock_payload), 0);
+	if (ret < 0)
+		return ret;
+
+	for (i = 0; i < op->drive_num; i++) {
+		strncpy(path, op->drives[i], PATH_MAX);
+		ret = send_data(sock, path, PATH_MAX, 0);
+		if (ret < 0)
+			return ret;
+	}
+
+	ret = recv_result(sock);
+	if (ret == -ENOENT)
+		*count = 0;
+
+	if (ret < 0)
+		return ret;
+
+	ret = recv_data(sock, (char *)count, sizeof(int), 0);
+	if (ret < 0)
+		return ret;
+
+	return 0;
+}
+
+int ilm_get_mode(int sock, struct idm_lock_id *id,
+		 struct idm_lock_op *op, int *mode)
+{
+	struct ilm_lock_payload payload;
+	char path[PATH_MAX];
+	int i, len, ret;
+
+	len = sizeof(struct ilm_lock_payload) + op->drive_num * PATH_MAX;
+
+	ret = send_header(sock, ILM_CMD_LOCK_MODE, len);
+	if (ret < 0)
+		return ret;
+
+	memset(&payload, 0, sizeof(struct ilm_lock_payload));
+	payload.magic = ILM_LOCK_MAGIC;
+	payload.drive_num = op->drive_num;
+
+	memcpy(payload.lock_id, &id->lv_uuid, sizeof(uuid_t));
+	memcpy(payload.lock_id + sizeof(uuid_t),
+	       &id->vg_uuid, sizeof(uuid_t));
+
+	ret = send_data(sock, &payload, sizeof(struct ilm_lock_payload), 0);
+	if (ret < 0)
+		return ret;
+
+	for (i = 0; i < op->drive_num; i++) {
+		strncpy(path, op->drives[i], PATH_MAX);
+		ret = send_data(sock, path, PATH_MAX, 0);
+		if (ret < 0)
+			return ret;
+	}
+
+	ret = recv_result(sock);
+	if (ret == -ENOENT)
+		*mode = 0;
+
+	if (ret < 0)
+		return ret;
+
+	ret = recv_data(sock, (char *)mode, sizeof(int), 0);
+	if (ret < 0)
+		return ret;
+
+	return 0;
+}
+
 int ilm_set_host_id(int sock, char *id, int id_len)
 {
 	int ret;
