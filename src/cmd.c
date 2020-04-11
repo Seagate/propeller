@@ -190,7 +190,7 @@ static void ilm_cmd_handle(struct ilm_cmd *cmd)
 		ilm_cmd_stop_renew(cmd);
 		break;
 	case ILM_CMD_START_RENEW:
-		ilm_cmd_stop_renew(cmd);
+		ilm_cmd_start_renew(cmd);
 		break;
 	case ILM_CMD_INJECT_FAULT:
 		ilm_cmd_inject_fault(cmd);
