@@ -16,6 +16,7 @@
 #include "ilm.h"
 
 #include "idm_wrapper.h"
+#include "inject_fault.h"
 #include "list.h"
 #include "log.h"
 #include "util.h"
@@ -353,6 +354,9 @@ int idm_drive_lock(char *lock_id, int mode, char *host_id,
 	struct idm_host *host;
 	int ret = 0, user_count, cur_mode;
 
+	if (ilm_inject_fault_is_hit())
+		return -EIO;
+
 	if (mode == IDM_MODE_UNLOCK)
 		return -EINVAL;
 
@@ -441,6 +445,9 @@ int idm_drive_unlock(char *lock_id, char *host_id, char *drive)
 	struct idm_host *host;
 	int ret = 0;
 
+	if (ilm_inject_fault_is_hit())
+		return -EIO;
+
 	if (!lock_id || !host_id || !drive)
 		return -EINVAL;
 
@@ -495,6 +502,9 @@ int idm_drive_convert_lock(char *lock_id, int mode,
 	struct idm_emulation *idm;
 	struct idm_host *host;
 	int ret = 0;
+
+	if (ilm_inject_fault_is_hit())
+		return -EIO;
 
 	if (!lock_id || !host_id || !drive)
 		return -EINVAL;
@@ -576,6 +586,9 @@ int idm_drive_renew_lock(char *lock_id, int mode,
 	struct idm_host *host;
 	int ret = 0;
 
+	if (ilm_inject_fault_is_hit())
+		return -EIO;
+
 	if (!lock_id || !host_id || !drive)
 		return -EINVAL;
 
@@ -626,6 +639,9 @@ int idm_drive_break_lock(char *lock_id, int mode, char *host_id,
 	struct idm_emulation *idm;
 	struct idm_host *host, *next;
 	int ret = 0, can_break;
+
+	if (ilm_inject_fault_is_hit())
+		return -EIO;
 
 	if (!lock_id || !host_id || !drive)
 		return -EINVAL;
@@ -733,6 +749,9 @@ int idm_drive_write_lvb(char *lock_id, char *host_id,
 	struct idm_host *host;
 	int ret = 0;
 
+	if (ilm_inject_fault_is_hit())
+		return -EIO;
+
 	if (!lock_id || !drive)
 		return -EINVAL;
 
@@ -785,6 +804,9 @@ int idm_drive_read_lvb(char *lock_id, char *host_id,
 	struct idm_host *host;
 	int ret = 0;
 
+	if (ilm_inject_fault_is_hit())
+		return -EIO;
+
 	if (!lock_id || !drive)
 		return -EINVAL;
 
@@ -832,6 +854,9 @@ int idm_drive_lock_count(char *lock_id, int *count, char *drive)
 {
 	struct idm_emulation *idm;
 
+	if (ilm_inject_fault_is_hit())
+		return -EIO;
+
 	if (!count)
 		return -EINVAL;
 
@@ -860,6 +885,9 @@ int idm_drive_lock_mode(char *lock_id, int *mode, char *drive)
 {
 	struct idm_emulation *idm;
 	int ret = 0;
+
+	if (ilm_inject_fault_is_hit())
+		return -EIO;
 
 	if (!mode)
 		return -EINVAL;

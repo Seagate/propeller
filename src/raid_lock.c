@@ -13,6 +13,7 @@
 #include "ilm.h"
 
 #include "idm_wrapper.h"
+#include "inject_fault.h"
 #include "lock.h"
 #include "log.h"
 #include "util.h"
@@ -123,6 +124,7 @@ int idm_raid_lock(struct ilm_lock *lock, char *host_id)
 	uint64_t timeout = ilm_curr_time() + ILM_MAJORITY_TIMEOUT;
 	struct ilm_drive *drive;
 	int rand_sleep;
+	int io_err;
 	int score, i, ret;
 
 	/* Initialize all drives state to NO_ACCESS */
@@ -133,7 +135,11 @@ int idm_raid_lock(struct ilm_lock *lock, char *host_id)
 
 	do {
 		score = 0;
+		io_err = 0;
 		for (i = 0; i < lock->drive_num; i++) {
+			/* Update inject fault */
+			ilm_inject_fault_update(lock->drive_num, i);
+
 			drive = &lock->drive[i];
 			ret = _raid_lock(lock, lock->mode, host_id, drive);
 			/* Make success in one drive */
@@ -141,6 +147,9 @@ int idm_raid_lock(struct ilm_lock *lock, char *host_id)
 				drive->state = ILM_DRIVE_ACCESSED;
 				score++;
 			}
+
+			if (ret == -EIO)
+				io_err++;
 
 			/*
 			 * NOTE: don't change the drive state for any failure;
@@ -184,6 +193,19 @@ int idm_raid_lock(struct ilm_lock *lock, char *host_id)
 
 	ilm_log_dbg("%s: Timeout", __func__);
 
+	/*
+	 * If I/O error prevents to achieve the majority, this is different
+	 * for the cases with even and odd drive number.  E.g. for odd drive
+	 * number, the I/O error must occur at least for (drive_num >> 1 + 1)
+	 * times; for even drive number, the I/O error must occur at least
+	 * for (drive_num >> 1) time.
+	 *
+	 * We can use the formula (drive_num - (drive_num >> 1)) to calculate
+	 * it.
+	 */
+	if (io_err >= (lock->drive_num - (lock->drive_num >> 1)))
+		return -EIO;
+
 	/* Timeout, fail to acquire lock with majoirty */
 	return -1;
 }
@@ -191,17 +213,35 @@ int idm_raid_lock(struct ilm_lock *lock, char *host_id)
 int idm_raid_unlock(struct ilm_lock *lock, char *host_id)
 {
 	struct ilm_drive *drive;
+	int io_err = 0, timeout = 0;
 	int i, ret;
 
 	ilm_raid_lock_dump("Enter raid_unlock", lock);
 
+	io_err = 0;
 	for (i = 0; i < lock->drive_num; i++) {
+		/* Update inject fault */
+		ilm_inject_fault_update(lock->drive_num, i);
+
 		drive = &lock->drive[i];
 		ret = idm_drive_unlock(lock->id, host_id, drive->path);
+
+		if (ret == -ETIME)
+			timeout++;
+
+		if (ret == -EIO)
+			io_err++;
 
 		/* Always make success to unlock */
 		drive->state = ILM_DRIVE_NOACCESS;
 	}
+
+	/* All drives have been timeout */
+	if (timeout >= (lock->drive_num - (lock->drive_num >> 1)))
+		return -ETIME;
+
+	if (io_err >= (lock->drive_num - (lock->drive_num >> 1)))
+		return -EIO;
 
 	ilm_raid_lock_dump("Exit raid_unlock", lock);
 	return ret;
@@ -267,6 +307,7 @@ static int _raid_convert_lock(struct ilm_lock *lock, int mode,
 int idm_raid_convert_lock(struct ilm_lock *lock, char *host_id, int mode)
 {
 	struct ilm_drive *drive;
+	int io_err = 0;
 	int i, score, ret, timeout = 0;
 
 	ilm_raid_lock_dump("Enter raid_convert_lock", lock);
@@ -280,6 +321,9 @@ int idm_raid_convert_lock(struct ilm_lock *lock, char *host_id, int mode)
 
 	score = 0;
 	for (i = 0; i < lock->drive_num; i++) {
+		/* Update inject fault */
+		ilm_inject_fault_update(lock->drive_num, i);
+
 		drive = &lock->drive[i];
 		ret = _raid_convert_lock(lock, mode, host_id, drive);
 		if (!ret)
@@ -287,6 +331,9 @@ int idm_raid_convert_lock(struct ilm_lock *lock, char *host_id, int mode)
 
 		if (ret == -ETIME)
 			timeout++;
+
+		if (ret == -EIO)
+			io_err++;
 	}
 
 	ilm_raid_lock_dump("Finish raid_convert_lock", lock);
@@ -295,9 +342,13 @@ int idm_raid_convert_lock(struct ilm_lock *lock, char *host_id, int mode)
 	if (score >= ((lock->drive_num >> 1) + 1))
 		return 0;
 
-	/* All drives have been timeout */
-	if (timeout == lock->drive_num)
+	/* Majority drives have been timeout */
+	if (timeout >= (lock->drive_num - (lock->drive_num >> 1)))
 		return -ETIME;
+
+	/* Majority drives have I/O error */
+	if (io_err >= (lock->drive_num - (lock->drive_num >> 1)))
+		return -EIO;
 
 	/*
 	 * Always return success when the mode is demotion, if it fails to
@@ -421,6 +472,9 @@ int idm_raid_renew_lock(struct ilm_lock *lock, char *host_id)
 	do {
 		score = 0;
 		for (i = 0; i < lock->drive_num; i++) {
+			/* Update inject fault */
+			ilm_inject_fault_update(lock->drive_num, i);
+
 			drive = &lock->drive[i];
 			ret = _raid_renew_lock(lock, host_id, drive);
 			if (!ret)
@@ -505,6 +559,9 @@ int idm_raid_write_lvb(struct ilm_lock *lock, char *host_id,
 	do {
 		score = 0;
 		for (i = 0; i < lock->drive_num; i++) {
+			/* Update inject fault */
+			ilm_inject_fault_update(lock->drive_num, i);
+
 			drive = &lock->drive[i];
 			ret = _raid_write_lvb(lock, host_id, lvb, lvb_size,
 					      drive);
@@ -586,6 +643,9 @@ int idm_raid_read_lvb(struct ilm_lock *lock, char *host_id,
 	do {
 		score = 0;
 		for (i = 0; i < lock->drive_num; i++) {
+			/* Update inject fault */
+			ilm_inject_fault_update(lock->drive_num, i);
+
 			drive = &lock->drive[i];
 			ret = _raid_read_lvb(lock, host_id, lvb, lvb_size,
 					     drive);
@@ -623,8 +683,10 @@ int idm_raid_count(struct ilm_lock *lock, int *count)
 	struct ilm_drive *drive;
 
 	for (i = 0; i < lock->drive_num; i++) {
-		drive = &lock->drive[i];
+		/* Update inject fault */
+		ilm_inject_fault_update(lock->drive_num, i);
 
+		drive = &lock->drive[i];
 		ret = idm_drive_lock_count(lock->id, &cnt, drive->path);
 		if (ret) {
 			no_ent++;
@@ -673,8 +735,10 @@ int idm_raid_mode(struct ilm_lock *lock, int *mode)
 	struct ilm_drive *drive;
 
 	for (i = 0; i < lock->drive_num; i++) {
-		drive = &lock->drive[i];
+		/* Update inject fault */
+		ilm_inject_fault_update(lock->drive_num, i);
 
+		drive = &lock->drive[i];
 		ret = idm_drive_lock_mode(lock->id, &m, drive->path);
 		if (ret) {
 			no_ent++;

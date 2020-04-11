@@ -38,6 +38,7 @@ int ilm_get_mode(int sock, struct idm_lock_id *id,
 int ilm_set_host_id(int sock, char *id, int id_len);
 int ilm_stop_renew(int sock);
 int ilm_start_renew(int sock);
+int ilm_inject_fault(int sock, int percentage);
 %}
 
 #define ILM_DRIVE_MAX_NUM       32
@@ -74,6 +75,7 @@ int ilm_get_mode(int sock, struct idm_lock_id *id,
 int ilm_set_host_id(int sock, char *id, int id_len);
 int ilm_stop_renew(int sock);
 int ilm_start_renew(int sock);
+int ilm_inject_fault(int sock, int percentage);
 
 %extend idm_lock_op {
         void set_drive_names(int i, char *path) {
