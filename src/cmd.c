@@ -52,6 +52,24 @@ static void ilm_cmd_del_lockspace(struct ilm_cmd *cmd)
 		ilm_log_err("Fail to delete lockspace\n");
 }
 
+static void ilm_cmd_set_signal(struct ilm_cmd *cmd)
+{
+	int ret;
+
+	ret = ilm_lockspace_set_signal(cmd, cmd->cl->ls);
+	if (ret < 0)
+		ilm_log_err("Fail to set signal\n");
+}
+
+static void ilm_cmd_set_killpath(struct ilm_cmd *cmd)
+{
+	int ret;
+
+	ret = ilm_lockspace_set_killpath(cmd, cmd->cl->ls);
+	if (ret < 0)
+		ilm_log_err("Fail to set killpath\n");
+}
+
 static void ilm_cmd_set_host_id(struct ilm_cmd *cmd)
 {
 	int ret;
@@ -182,6 +200,12 @@ static void ilm_cmd_handle(struct ilm_cmd *cmd)
 		break;
 	case ILM_CMD_LOCK_MODE:
 		ilm_cmd_lock_mode(cmd);
+		break;
+	case ILM_CMD_SET_SIGNAL:
+		ilm_cmd_set_signal(cmd);
+		break;
+	case ILM_CMD_SET_KILLPATH:
+		ilm_cmd_set_killpath(cmd);
 		break;
 	case ILM_CMD_SET_HOST_ID:
 		ilm_cmd_set_host_id(cmd);
