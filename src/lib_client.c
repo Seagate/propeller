@@ -334,6 +334,56 @@ int ilm_read_lvb(int sock, struct idm_lock_id *id, char *lvb, int lvb_len)
 	return 0;
 }
 
+int ilm_set_signal(int sock, int signo)
+{
+	int ret;
+
+	ret = send_header(sock, ILM_CMD_SET_SIGNAL, sizeof(int));
+	if (ret < 0)
+		return ret;
+
+	ret = send_data(sock, &signo, sizeof(int), 0);
+	if (ret < 0)
+		return ret;
+
+	ret = recv_result(sock);
+	if (ret < 0)
+		return ret;
+
+	return 0;
+}
+
+int ilm_set_killpath(int sock, char *killpath, char *killargs)
+{
+	char path[IDM_FAILURE_PATH_LEN];
+	char args[IDM_FAILURE_ARGS_LEN];
+
+	int len, ret;
+
+	len = sizeof(struct ilm_lock_payload) +
+	      IDM_FAILURE_PATH_LEN + IDM_FAILURE_ARGS_LEN;
+
+	ret = send_header(sock, ILM_CMD_SET_KILLPATH, len);
+	if (ret < 0)
+		return ret;
+
+	strncpy(path, killpath, IDM_FAILURE_PATH_LEN);
+	ret = send_data(sock, path, IDM_FAILURE_PATH_LEN, 0);
+	if (ret < 0)
+		return ret;
+
+	strncpy(args, killargs, IDM_FAILURE_ARGS_LEN);
+	ret = send_data(sock, args, IDM_FAILURE_ARGS_LEN, 0);
+	if (ret < 0)
+		return ret;
+
+	ret = recv_result(sock);
+	if (ret < 0)
+		return ret;
+
+	return 0;
+}
+
 int ilm_get_host_count(int sock, struct idm_lock_id *id,
 		       struct idm_lock_op *op, int *count)
 {
