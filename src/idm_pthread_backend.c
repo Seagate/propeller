@@ -192,7 +192,7 @@ out:
 	return ret;
 }
 
-static struct idm_emulation *idm_alloc_and_get(char *lock_id, char *drive)
+static struct idm_emulation *idm_get_and_alloc(char *lock_id, char *drive)
 {
 	return _idm_get(lock_id, drive, 1);
 }
@@ -294,7 +294,7 @@ out:
 	return 0;
 }
 
-static struct idm_host *idm_host_alloc_and_get(struct idm_emulation *idm,
+static struct idm_host *idm_host_get_and_alloc(struct idm_emulation *idm,
 					       char *host_id,
 					       uint64_t timeout)
 {
@@ -383,11 +383,11 @@ int idm_drive_lock(char *lock_id, int mode, char *host_id,
 	}
 
 	/* idm has not been created, allocate a new one */
-	idm = idm_alloc_and_get(lock_id, drive);
+	idm = idm_get_and_alloc(lock_id, drive);
 	if (!idm)
 		return -ENOMEM;
 
-	host = idm_host_alloc_and_get(idm, host_id, timeout);
+	host = idm_host_get_and_alloc(idm, host_id, timeout);
 	if (!host) {
 		ret = -ENOMEM;
 		goto fail_idm;
@@ -696,7 +696,7 @@ int idm_drive_break_lock(char *lock_id, int mode, char *host_id,
 	pthread_mutex_unlock(&idm->mutex);
 
 	/* No other hosts, let's acquire it */
-	host = idm_host_alloc_and_get(idm, host_id, timeout);
+	host = idm_host_get_and_alloc(idm, host_id, timeout);
 	if (!host) {
 		ret = -ENOMEM;
 		goto fail_host;
