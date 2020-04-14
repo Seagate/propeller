@@ -22,7 +22,8 @@ SOURCE = main.c \
 	 util.c \
 	 idm_pthread_backend.c \
 	 raid_lock.c \
-	 inject_fault.c
+	 inject_fault.c \
+	 failure.c
 
 LIB_SOURCE = lib_client.c
 

@@ -19,6 +19,7 @@
 
 #include "client.h"
 #include "cmd.h"
+#include "failure.h"
 #include "list.h"
 #include "lock.h"
 #include "log.h"
@@ -53,6 +54,7 @@ static void *ilm_lockspace_thread(void *data)
 {
 	struct ilm_lockspace *ls = data;
 	struct ilm_lock *lock;
+	int failure_handled = 0;
 	int exit, ret, now;
 
 	while (1) {
@@ -60,8 +62,20 @@ static void *ilm_lockspace_thread(void *data)
 		exit = ls->exit;
 		pthread_mutex_unlock(&ls->mutex);
 
-		if (exit)
+		if (exit) {
+			ilm_log_dbg("%s: lockspace is exiting ...", __func__);
 			break;
+		}
+
+		if (ls->failed == 1) {
+			if (!list_empty(&ls->lock_list))
+				ilm_log_warn("Failure has been handled ...");
+				ilm_log_warn("But lock still is not released");
+			ls->failed++;
+		}
+
+		if (ls->failed)
+			continue;
 
 		pthread_mutex_lock(&ls->mutex);
 
@@ -87,7 +101,9 @@ static void *ilm_lockspace_thread(void *data)
 			    now > lock->last_renewal_success +
 					IDM_QUIESCENT_PERIOD) {
 				pthread_mutex_unlock(&lock->mutex);
-				continue;
+				ilm_failure_handler(ls);
+				ls->failed = 1;
+				goto sleep_loop;
 			}
 			pthread_mutex_unlock(&lock->mutex);
 
@@ -124,6 +140,7 @@ int ilm_lockspace_create(struct ilm_cmd *cmd, struct ilm_lockspace **ls_out)
 	 */
 	memcpy(ilm_ls->host_id + 16, &ilm_uuid, sizeof(uuid_t));
 	memcpy(ilm_ls->host_id, &cmd->cl->pid, sizeof(int));
+	ilm_ls->kill_pid = cmd->cl->pid;
 
 	INIT_LIST_HEAD(&ilm_ls->lock_list);
 	pthread_mutex_init(&ilm_ls->mutex, NULL);
@@ -170,6 +187,12 @@ int ilm_lockspace_delete(struct ilm_cmd *cmd, struct ilm_lockspace *ilm_ls)
 	list_del(&ilm_ls->list);
 	pthread_mutex_unlock(&ls_mutex);
 
+	if (ilm_ls->kill_path)
+		free(ilm_ls->kill_path);
+	if (ilm_ls->kill_args)
+		free(ilm_ls->kill_args);
+	free(ilm_ls);
+
 	ilm_send_result(cmd->cl->fd, 0, NULL, 0);
 	return ret;
 }
@@ -207,6 +230,76 @@ int ilm_lockspace_del_lock(struct ilm_lockspace *ls, struct ilm_lock *lock)
 	return 0;
 }
 
+int ilm_lockspace_set_signal(struct ilm_cmd *cmd, struct ilm_lockspace *ls)
+{
+	int signo, ret;
+
+	if (!_ls_is_valid(ls)) {
+		ilm_log_err("%s: lockspace is invalid\n", __func__);
+		ret = -EINVAL;
+		goto out;
+	}
+
+	ret = recv(cmd->cl->fd, &signo, sizeof(int), MSG_WAITALL);
+	if (ret <= 0) {
+		ilm_log_err("Failed to read out singal number\n");
+		goto out;
+	}
+
+	ls->kill_sig = signo;
+
+out:
+	ilm_send_result(cmd->cl->fd, ret, NULL, 0);
+	return ret;
+}
+
+int ilm_lockspace_set_killpath(struct ilm_cmd *cmd, struct ilm_lockspace *ls)
+{
+	char path[IDM_FAILURE_PATH_LEN];
+	char args[IDM_FAILURE_ARGS_LEN];
+	int ret, pos = 0;
+
+	if (!_ls_is_valid(ls)) {
+		ilm_log_err("%s: lockspace is invalid\n", __func__);
+		ret = -EINVAL;
+		goto out;
+	}
+
+	ret = recv(cmd->cl->fd, path, IDM_FAILURE_PATH_LEN, MSG_WAITALL);
+	if (!ret || (ret != IDM_FAILURE_PATH_LEN)) {
+		ilm_log_err("Fail to receive kill path %d", errno);
+		ret = -EIO;
+		goto out;
+	}
+	pos += ret;
+
+	ls->kill_path = strndup(path, IDM_FAILURE_PATH_LEN);
+	if (!ls->kill_path) {
+		ilm_log_err("Fail to allocate memory for kill path");
+		ret = -ENOMEM;
+		goto out;
+	}
+
+	ret = recv(cmd->cl->fd, args, IDM_FAILURE_ARGS_LEN, MSG_WAITALL);
+	if (!ret || (ret != IDM_FAILURE_ARGS_LEN)) {
+		ilm_log_err("Fail to receive kill args %d", errno);
+		ret = -EIO;
+		goto out;
+	}
+	pos += ret;
+
+	ls->kill_args = strndup(args, IDM_FAILURE_ARGS_LEN);
+	if (!ls->kill_args) {
+		ilm_log_err("Fail to allocate memory for kill args");
+		ret = -ENOMEM;
+	}
+
+out:
+	ilm_client_recv_all(cmd->cl, cmd->sock_msg_len, pos);
+	ilm_send_result(cmd->cl->fd, ret, NULL, 0);
+	return ret;
+}
+
 int ilm_lockspace_find_lock(struct ilm_lockspace *ls, char *lock_id,
 			    struct ilm_lock **lock)
 {
@@ -219,9 +312,7 @@ int ilm_lockspace_find_lock(struct ilm_lockspace *ls, char *lock_id,
 	}
 
 	pthread_mutex_lock(&ls->mutex);
-
 	list_for_each_entry(pos, &ls->lock_list, list) {
-
 		if (!memcmp(pos->id, lock_id, IDM_LOCK_ID_LEN)) {
 			if (lock)
 				*lock = pos;
@@ -311,4 +402,38 @@ int ilm_lockspace_start_renew(struct ilm_cmd *cmd, struct ilm_lockspace *ilm_ls)
 out:
 	ilm_send_result(cmd->cl->fd, ret, NULL, 0);
 	return ret;
+}
+
+int ilm_lockspace_terminate(struct ilm_lockspace *ls)
+{
+	struct ilm_lock *lock, *next;
+
+	if (!_ls_is_valid(ls)) {
+		ilm_log_err("%s: lockspace is invalid", __func__);
+		return -1;
+	}
+
+	pthread_mutex_lock(&ls->mutex);
+
+	list_for_each_entry_safe(lock, next, &ls->lock_list, list) {
+		list_del(&lock->list);
+		ilm_lock_terminate(ls, lock);
+	}
+
+	ls->exit = 1;
+
+	pthread_mutex_unlock(&ls->mutex);
+
+	pthread_join(ls->thd, NULL);
+
+	pthread_mutex_lock(&ls_mutex);
+	list_del(&ls->list);
+	pthread_mutex_unlock(&ls_mutex);
+
+	if (ls->kill_path)
+		free(ls->kill_path);
+	if (ls->kill_args)
+		free(ls->kill_args);
+	free(ls);
+	return 0;
 }

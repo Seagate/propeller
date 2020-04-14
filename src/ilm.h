@@ -12,6 +12,9 @@
 #define IDM_MODE_EXCLUSIVE		1
 #define IDM_MODE_SHAREABLE		2
 
+#define IDM_FAILURE_PATH_LEN		128
+#define IDM_FAILURE_ARGS_LEN		128
+
 struct idm_lock_id {
 	uuid_t vg_uuid;
 	uuid_t lv_uuid;
@@ -34,6 +37,8 @@ int ilm_unlock(int sock, struct idm_lock_id *id);
 int ilm_convert(int sock, struct idm_lock_id *id, uint32_t mode);
 int ilm_write_lvb(int sock, struct idm_lock_id *id, char *lvb, int lvb_len);
 int ilm_read_lvb(int sock, struct idm_lock_id *id, char *lvb, int lvb_len);
+int ilm_set_signal(int sock, int signo);
+int ilm_set_killpath(int sock, char *killpath, char *killargs);
 int ilm_get_host_count(int sock, struct idm_lock_id *id,
 		       struct idm_lock_op *op, int *count);
 int ilm_get_mode(int sock, struct idm_lock_id *id,

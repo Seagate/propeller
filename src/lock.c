@@ -432,3 +432,15 @@ out:
 		ilm_send_result(cmd->cl->fd, ret, NULL, 0);
 	return ret;
 }
+
+int ilm_lock_terminate(struct ilm_lockspace *ls, struct ilm_lock *lock)
+{
+	int ret;
+
+	ret = idm_raid_unlock(lock, ls->host_id);
+	if (ret < 0)
+		return ret;
+
+	free(lock);
+	return 0;
+}
