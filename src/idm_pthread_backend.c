@@ -366,9 +366,13 @@ int idm_drive_lock(char *lock_id, int mode, char *host_id,
 	/*
 	 * Let's firstly find if the idm and the host has been existed:
 	 *
-	 * - idm is existed, host is not existed: idm is busy;
-	 * - idm is existed, host is existed: the host acquires the
-	 *   same idm twice.
+	 * If idm is existed and the corresponding host can be found on
+	 * the idm's host list, this means the same host is trying to
+	 * acquire the same idm twice; for this case, directly bail out
+	 * with error -EAGAIN.
+	 *
+	 * If idm is existed but host is not existed, let it to continue
+	 * and check mode permission in idm_lock_mode_is_permitted().
 	 */
 	idm = idm_find(lock_id, drive);
 	if (idm) {
@@ -376,22 +380,6 @@ int idm_drive_lock(char *lock_id, int mode, char *host_id,
 		host = idm_host_find(idm, host_id);
 		if (host)
 			return -EAGAIN;
-
-		pthread_mutex_lock(&idm->mutex);
-		cur_mode = idm->mode;
-		pthread_mutex_unlock(&idm->mutex);
-
-		/*
-		 * If idm structure is found but haven't the associated
-		 * host data structure, it's likely the lock has been
-		 * granted to other hosts.
-		 *
-		 * For this case, return -EBUSY when detects the lock's
-		 * current mode is not equal to the request mode.
-		 */
-		if (cur_mode != IDM_MODE_UNLOCK &&
-		    cur_mode != mode)
-			return -EBUSY;
 	}
 
 	/* idm has not been created, allocate a new one */
@@ -410,7 +398,7 @@ int idm_drive_lock(char *lock_id, int mode, char *host_id,
 	ret = idm_lock_mode_is_permitted(idm, mode);
 	if (!ret) {
 		pthread_mutex_unlock(&idm->mutex);
-		ret = -EPERM;
+		ret = -EBUSY;
 		goto fail_host;
 	}
 
