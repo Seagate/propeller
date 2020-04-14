@@ -62,15 +62,20 @@ static void *ilm_lockspace_thread(void *data)
 		exit = ls->exit;
 		pthread_mutex_unlock(&ls->mutex);
 
-		if (exit)
+		if (exit) {
+			ilm_log_dbg("%s: lockspace is exiting ...", __func__);
 			break;
+		}
 
 		if (ls->failed == 1) {
 			if (!list_empty(&ls->lock_list))
 				ilm_log_warn("Failure has been handled ...");
 				ilm_log_warn("But lock still is not released");
-			return NULL;
+			ls->failed++;
 		}
+
+		if (ls->failed)
+			continue;
 
 		pthread_mutex_lock(&ls->mutex);
 
@@ -181,6 +186,12 @@ int ilm_lockspace_delete(struct ilm_cmd *cmd, struct ilm_lockspace *ilm_ls)
 	pthread_mutex_lock(&ls_mutex);
 	list_del(&ilm_ls->list);
 	pthread_mutex_unlock(&ls_mutex);
+
+	if (ilm_ls->kill_path)
+		free(ilm_ls->kill_path);
+	if (ilm_ls->kill_args)
+		free(ilm_ls->kill_args);
+	free(ilm_ls);
 
 	ilm_send_result(cmd->cl->fd, 0, NULL, 0);
 	return ret;
@@ -301,9 +312,7 @@ int ilm_lockspace_find_lock(struct ilm_lockspace *ls, char *lock_id,
 	}
 
 	pthread_mutex_lock(&ls->mutex);
-
 	list_for_each_entry(pos, &ls->lock_list, list) {
-
 		if (!memcmp(pos->id, lock_id, IDM_LOCK_ID_LEN)) {
 			if (lock)
 				*lock = pos;
@@ -393,4 +402,38 @@ int ilm_lockspace_start_renew(struct ilm_cmd *cmd, struct ilm_lockspace *ilm_ls)
 out:
 	ilm_send_result(cmd->cl->fd, ret, NULL, 0);
 	return ret;
+}
+
+int ilm_lockspace_terminate(struct ilm_lockspace *ls)
+{
+	struct ilm_lock *lock, *next;
+
+	if (!_ls_is_valid(ls)) {
+		ilm_log_err("%s: lockspace is invalid", __func__);
+		return -1;
+	}
+
+	pthread_mutex_lock(&ls->mutex);
+
+	list_for_each_entry_safe(lock, next, &ls->lock_list, list) {
+		list_del(&lock->list);
+		ilm_lock_terminate(ls, lock);
+	}
+
+	ls->exit = 1;
+
+	pthread_mutex_unlock(&ls->mutex);
+
+	pthread_join(ls->thd, NULL);
+
+	pthread_mutex_lock(&ls_mutex);
+	list_del(&ls->list);
+	pthread_mutex_unlock(&ls_mutex);
+
+	if (ls->kill_path)
+		free(ls->kill_path);
+	if (ls->kill_args)
+		free(ls->kill_args);
+	free(ls);
+	return 0;
 }

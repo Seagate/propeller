@@ -268,6 +268,8 @@ int ilm_client_del(struct client *cl)
 	client_num--;
 	pthread_mutex_unlock(&client_list_mutex);
 
+	ilm_lockspace_terminate(cl->ls);
+
 	/* Cleanup client */
 	if (cl->fd != -1)
 		close(cl->fd);

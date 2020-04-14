@@ -54,5 +54,6 @@ int ilm_lock_vb_write(struct ilm_cmd *cmd, struct ilm_lockspace *ls);
 int ilm_lock_vb_read(struct ilm_cmd *cmd, struct ilm_lockspace *ls);
 int ilm_lock_host_count(struct ilm_cmd *cmd, struct ilm_lockspace *ls);
 int ilm_lock_mode(struct ilm_cmd *cmd, struct ilm_lockspace *ls);
+int ilm_lock_terminate(struct ilm_lockspace *ls, struct ilm_lock *lock);
 
 #endif /* __LOCK_H__ */

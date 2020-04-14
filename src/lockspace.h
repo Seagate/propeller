@@ -43,5 +43,6 @@ int ilm_lockspace_find_lock(struct ilm_lockspace *ls, char *lock_uuid,
 			    struct ilm_lock **lock);
 int ilm_lockspace_stop_renew(struct ilm_cmd *cmd, struct ilm_lockspace *ilm_ls);
 int ilm_lockspace_start_renew(struct ilm_cmd *cmd, struct ilm_lockspace *ilm_ls);
+int ilm_lockspace_terminate(struct ilm_lockspace *ls);
 
 #endif /* __LOCKSPACE_H__ */
