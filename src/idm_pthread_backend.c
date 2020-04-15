@@ -296,6 +296,22 @@ static int idm_host_is_expired(struct idm_host *host)
 	return 0;
 }
 
+static int idm_host_count(struct idm_emulation *idm)
+{
+	struct idm_host *host;
+	int count = 0;
+
+	list_for_each_entry(host, &idm->host_list, list) {
+		if (host->state == IDM_STATE_TIMEOUT ||
+		    idm_host_is_expired(host))
+			continue;
+
+		count++;
+	}
+
+	return count;
+}
+
 /**
  * idm_drive_lock - acquire an IDM on a specified drive
  * @lock_id:		Lock ID (64 bytes).
@@ -510,7 +526,7 @@ int idm_drive_convert_lock(char *lock_id, int mode,
 	 * convert to exclusive mode.
 	 */
 	if (idm->mode == IDM_MODE_SHAREABLE && mode == IDM_MODE_EXCLUSIVE) {
-		if (idm->user_count > 1) {
+		if (idm_host_count(idm) > 1) {
 			ilm_log_err("%s: old mode %d new mode %d\n",
 				    __func__, idm->mode, mode);
 			ret = -EPERM;
@@ -838,7 +854,7 @@ int idm_drive_lock_count(char *lock_id, int *count, char *drive)
 		return -ENOENT;
 
 	pthread_mutex_lock(&idm->mutex);
-	*count = idm->user_count;
+	*count = idm_host_count(idm);
 	pthread_mutex_unlock(&idm->mutex);
 	idm_put(lock_id, drive);
 	return 0;
