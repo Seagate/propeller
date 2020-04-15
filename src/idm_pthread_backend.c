@@ -430,7 +430,8 @@ fail_idm:
 int idm_drive_unlock(char *lock_id, char *host_id, char *drive)
 {
 	struct idm_emulation *idm;
-	struct idm_host *host;
+	struct idm_host *host, *pos;
+	int hosts_count = 0;
 	int ret = 0;
 
 	if (ilm_inject_fault_is_hit())
@@ -447,31 +448,30 @@ int idm_drive_unlock(char *lock_id, char *host_id, char *drive)
 	if (!host)
 		return -EINVAL;
 
+	pthread_mutex_lock(&idm->mutex);
+
 	/*
 	 * Even detects the host has expired, this is a good chance
 	 * to release the resources associated with the expired host.
 	 */
-	pthread_mutex_lock(&idm->mutex);
 	if (idm_host_is_expired(host))
 		ret = -ETIME;
-	pthread_mutex_unlock(&idm->mutex);
 
-	/*
-	 * We don't need to change anything for lock mode, if there have other
-	 * hosts are acquiring the IDM, the lock mode will keep the same.
-	 *
-	 * If this host is the last one who uses this IDM, the IDM will be
-	 * released in function idm_put_and_free() and it will be allocated
-	 * new buffer if later acquires the same IDM.
-	 *
-	 * For these reasons, it's pointless to maintain lock state.
-	 */
+	/* Calculate how many alive hosts */
+	list_for_each_entry(pos, &idm->host_list, list) {
+		hosts_count++;
+	}
+
+	if (hosts_count == 1)
+		idm->mode = IDM_MODE_UNLOCK;
+
+	pthread_mutex_unlock(&idm->mutex);
 
 	/* Remove host from IDM's host list  */
 	idm_host_put_and_free(idm, host_id);
 
-	/* The IDM will be freed if no user uses it */
-	idm_put_and_free(lock_id, drive);
+	/* Decrease the user count */
+	idm_put(lock_id, drive);
 	return ret;
 }
 
