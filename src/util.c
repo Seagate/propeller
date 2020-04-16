@@ -38,6 +38,13 @@ int ilm_rand(int min, int max)
 
 int ilm_read_blk_uuid(char *dev, uuid_t *uuid)
 {
+#ifdef IDM_PTHREAD_EMULATION
+	uuid_t id;
+
+	uuid_generate(id);
+	memcpy(uuid, &id, sizeof(uuid_t));
+	return 0;
+#else
 	blkid_probe probe;
 	const char *uuid_str;
 	size_t uuid_str_size;
@@ -65,4 +72,5 @@ int ilm_read_blk_uuid(char *dev, uuid_t *uuid)
 out:
 	blkid_free_probe(probe);
 	return ret;
+#endif
 }
