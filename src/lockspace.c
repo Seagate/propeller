@@ -408,10 +408,14 @@ int ilm_lockspace_terminate(struct ilm_lockspace *ls)
 {
 	struct ilm_lock *lock, *next;
 
-	if (!_ls_is_valid(ls)) {
-		ilm_log_err("%s: lockspace is invalid", __func__);
-		return -1;
-	}
+	/*
+	 * If client has released locks and deleted lockspace, bail out
+	 * and do nothing.  Otherwise, if the client exits abnormally
+	 * and losts connection with daemon, this function is used to
+	 * release locks and its lockspace.
+	 */
+	if (!_ls_is_valid(ls))
+		return 0;
 
 	pthread_mutex_lock(&ls->mutex);
 
