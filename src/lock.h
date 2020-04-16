@@ -14,6 +14,7 @@
 struct ilm_drive {
 	int state;
 	char *path;
+	uuid_t uuid;
 };
 
 #define ILM_DRIVE_NO_ACCESS		0

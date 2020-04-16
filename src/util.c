@@ -7,9 +7,12 @@
  * warranty of any kind, whether express or implied.
  */
 
+#include <blkid/blkid.h>
 #include <stdlib.h>
+#include <string.h>
 #include <time.h>
 
+#include "log.h"
 #include "util.h"
 
 /* Get current time in millisecond */
@@ -31,4 +34,43 @@ int ilm_rand(int min, int max)
                 return min;
 
         return min + (int)(((float)(max - min + 1)) * ret / (RAND_MAX + 1.0));
+}
+
+int ilm_read_blk_uuid(char *dev, uuid_t *uuid)
+{
+#ifdef IDM_PTHREAD_EMULATION
+	uuid_t id;
+
+	uuid_generate(id);
+	memcpy(uuid, &id, sizeof(uuid_t));
+	return 0;
+#else
+	blkid_probe probe;
+	const char *uuid_str;
+	size_t uuid_str_size;
+	uuid_t id;
+	int ret;
+
+	probe = blkid_new_probe_from_filename(dev);
+	if (!probe) {
+		ilm_log_err("fail to create blkid probe for %s", dev);
+		return -1;
+	}
+
+	blkid_do_probe(probe);
+
+	ret = blkid_probe_lookup_value(probe, "UUID",
+				       &uuid_str, &uuid_str_size);
+	if (ret) {
+		ilm_log_err("fail to lookup blkid value %s", dev);
+		goto out;
+	}
+
+	uuid_parse(uuid_str, id);
+
+	memcpy(uuid, &id, sizeof(uuid_t));
+out:
+	blkid_free_probe(probe);
+	return ret;
+#endif
 }

@@ -28,11 +28,16 @@ SOURCE = main.c \
 LIB_SOURCE = lib_client.c
 
 CFLAGS = -fPIE -DPIE -D_GNU_SOURCE
+
+ifdef IDM_PTHREAD_EMULATION
+CFLAGS += -DIDM_PTHREAD_EMULATION
+endif
+
 LIB_CFLAGS = -fPIC
 
 LDFLAGS = -Wl,-z,relro -pie
 
-LDLIBS = -lpthread -luuid
+LDLIBS = -lpthread -luuid -lblkid
 
 all: $(LIBSO_TARGET) $(TARGET)
 
