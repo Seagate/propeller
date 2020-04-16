@@ -412,7 +412,8 @@ fail_idm:
  *
  * Returns zero or a negative error (ie. EINVAL, ETIME).
  */
-int idm_drive_unlock(char *lock_id, char *host_id, char *drive)
+int idm_drive_unlock(char *lock_id, char *host_id,
+		     void *lvb, int lvb_size, char *drive)
 {
 	struct idm_emulation *idm;
 	struct idm_host *host, *pos;
@@ -423,6 +424,9 @@ int idm_drive_unlock(char *lock_id, char *host_id, char *drive)
 		return -EIO;
 
 	if (!lock_id || !host_id || !drive)
+		return -EINVAL;
+
+	if (lvb_size > IDM_VALUE_LEN)
 		return -EINVAL;
 
 	idm = idm_get(lock_id, drive);
@@ -449,6 +453,9 @@ int idm_drive_unlock(char *lock_id, char *host_id, char *drive)
 
 	if (hosts_count == 1)
 		idm->mode = IDM_MODE_UNLOCK;
+
+	if (lvb)
+		memcpy(idm->vb, lvb, lvb_size);
 
 	pthread_mutex_unlock(&idm->mutex);
 
