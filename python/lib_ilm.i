@@ -2,6 +2,9 @@
 
 %include "typemaps.i"
 %include "stdint.i"
+%include "carrays.i"
+
+%array_class(char, charArray);
 
 %apply int *OUTPUT { int *sock };
 %apply int *OUTPUT { int *count};

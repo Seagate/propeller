@@ -7,6 +7,7 @@
  * warranty of any kind, whether express or implied.
  */
 
+#include <assert.h>
 #include <errno.h>
 #include <unistd.h>
 
@@ -16,6 +17,7 @@
 #include "inject_fault.h"
 #include "lock.h"
 #include "log.h"
+#include "string.h"
 #include "util.h"
 
 #define ILM_DRIVE_NOACCESS		0
@@ -99,7 +101,7 @@ static int _raid_lock(struct ilm_lock *lock, int mode, char *host_id,
 	 * expired.  So it reports the error -EAGAIN.
 	 */
 	} else if (ret == -EAGAIN) {
-		ret = idm_drive_unlock(lock->id, host_id, drive->path);
+		ret = idm_drive_unlock(lock->id, host_id, NULL, 0, drive->path);
 		/*
 		 * If the host has been expired for its membership,
 		 * take it as being unlocked.
@@ -173,7 +175,7 @@ int idm_raid_lock(struct ilm_lock *lock, char *host_id)
 			if (drive->state != ILM_DRIVE_ACCESSED)
 				continue;
 
-			idm_drive_unlock(lock->id, host_id, drive->path);
+			idm_drive_unlock(lock->id, host_id, NULL, 0, drive->path);
 
 			/* Always make success to unlock */
 			drive->state = ILM_DRIVE_NOACCESS;
@@ -224,7 +226,8 @@ int idm_raid_unlock(struct ilm_lock *lock, char *host_id)
 		ilm_inject_fault_update(lock->drive_num, i);
 
 		drive = &lock->drive[i];
-		ret = idm_drive_unlock(lock->id, host_id, drive->path);
+		ret = idm_drive_unlock(lock->id, host_id,
+				       lock->vb, IDM_VALUE_LEN, drive->path);
 
 		if (ret == -ETIME)
 			timeout++;
@@ -288,7 +291,8 @@ static int _raid_convert_lock(struct ilm_lock *lock, int mode,
 		 * later.
 		 */
 		if (ret == -ETIME) {
-			ret = idm_drive_unlock(lock->id, host_id, drive->path);
+			ret = idm_drive_unlock(lock->id, host_id,
+					       NULL, 0, drive->path);
 			drive->state = ILM_DRIVE_NOACCESS;
 			return ret;
 		}
@@ -436,7 +440,7 @@ static int _raid_renew_lock(struct ilm_lock *lock, char *host_id,
 		 * acquire it again to get a clean context for the idm.
 		 */
 		if (ret == -EFAULT) {
-			idm_drive_unlock(lock->id, host_id, drive->path);
+			idm_drive_unlock(lock->id, host_id, NULL, 0, drive->path);
 			drive->state = ILM_DRIVE_NOACCESS;
 
 			ret = idm_drive_lock(lock->id, lock->mode, host_id,
@@ -446,7 +450,7 @@ static int _raid_renew_lock(struct ilm_lock *lock, char *host_id,
 		}
 
 		if (ret == -ETIME) {
-			idm_drive_unlock(lock->id, host_id, drive->path);
+			idm_drive_unlock(lock->id, host_id, NULL, 0, drive->path);
 			drive->state = ILM_DRIVE_NOACCESS;
 		}
 
@@ -503,6 +507,7 @@ int idm_raid_renew_lock(struct ilm_lock *lock, char *host_id)
 	return -1;
 }
 
+#if 0
 static int _raid_write_lvb(struct ilm_lock *lock, char *host_id,
 			   char *lvb, int lvb_size,
 			   struct ilm_drive *drive)
@@ -586,6 +591,7 @@ int idm_raid_write_lvb(struct ilm_lock *lock, char *host_id,
 	/* Timeout, return failure */
 	return -1;
 }
+#endif
 
 static int _raid_read_lvb(struct ilm_lock *lock, char *host_id,
 			  char *lvb, int lvb_size,
@@ -618,7 +624,7 @@ static int _raid_read_lvb(struct ilm_lock *lock, char *host_id,
 		}
 
 		if (ret == -ETIME) {
-			idm_drive_unlock(lock->id, host_id, drive->path);
+			idm_drive_unlock(lock->id, host_id, NULL, 0, drive->path);
 			drive->state = ILM_DRIVE_NOACCESS;
 		}
 
@@ -637,8 +643,11 @@ int idm_raid_read_lvb(struct ilm_lock *lock, char *host_id,
 	struct ilm_drive *drive;
 	uint64_t timeout = ilm_curr_time() + ILM_MAJORITY_TIMEOUT;
 	int score, i, ret;
+	uint64_t max_vb = 0, vb;
 
 	ilm_raid_lock_dump("Enter raid_read_lvb", lock);
+
+	assert(lvb_size == sizeof(uint64_t));
 
 	do {
 		score = 0;
@@ -647,13 +656,26 @@ int idm_raid_read_lvb(struct ilm_lock *lock, char *host_id,
 			ilm_inject_fault_update(lock->drive_num, i);
 
 			drive = &lock->drive[i];
-			ret = _raid_read_lvb(lock, host_id, lvb, lvb_size,
-					     drive);
-			if (!ret)
+			ret = _raid_read_lvb(lock, host_id,
+					     (char *)&vb, sizeof(vb), drive);
+			if (!ret) {
 				score++;
+
+				/*
+				 * FIXME: so far VB only has 8 bytes, so simply
+				 * use uint64_t to compare the maximum value.
+				 * Need to fix this if VB is longer than 8 bytes.
+				 */
+				if (vb > max_vb)
+					max_vb = vb;
+
+				ilm_log_err("%s: i %d vb=%lx max_vb=%lx\n",
+					    __func__, i, vb, max_vb);
+			}
 		}
 
 		if (score >= ((lock->drive_num >> 1) + 1)) {
+			memcpy(lvb, (char *)&max_vb, sizeof(uint64_t));
 			ilm_raid_lock_dump("Exit raid_read_lvb", lock);
 			return 0;
 		}

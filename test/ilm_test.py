@@ -963,7 +963,8 @@ def test_lock__get_host_count(ilm_daemon):
     assert ret == 0
 
     ret, count = ilm.ilm_get_host_count(s, lock_id, lock_op)
-    assert ret == -2
+    assert ret == 0
+    assert count == 0
 
     ret = ilm.ilm_disconnect(s)
     assert ret == 0
@@ -1015,7 +1016,7 @@ def test_lock__two_hosts_get_host_count(ilm_daemon):
     assert ret == 0
 
     ret, count = ilm.ilm_get_host_count(s1, lock_id, lock_op)
-    assert ret == -2
+    assert ret == 0
     assert count == 0
 
     ret = ilm.ilm_disconnect(s1)
@@ -1101,7 +1102,7 @@ def test_lock__three_hosts_get_host_count(ilm_daemon):
 
     # All hosts have released the IDM, so return -ENOENT
     ret, count = ilm.ilm_get_host_count(s1, lock_id, lock_op)
-    assert ret == -2
+    assert ret == 0
     assert count == 0
 
     ret = ilm.ilm_disconnect(s1)

@@ -274,6 +274,7 @@ int ilm_lock_vb_write(struct ilm_cmd *cmd, struct ilm_lockspace *ls)
 	ilm_lock_dump("lock_vb_write", lock);
 	ilm_log_array_dbg("value buffer:", buf, IDM_VALUE_LEN);
 
+#if 0
 	ret = idm_raid_write_lvb(lock, ls->host_id, buf, IDM_VALUE_LEN);
 	if (ret) {
 		ilm_log_err("Fail to write lvb %d\n", ret);
@@ -283,6 +284,16 @@ int ilm_lock_vb_write(struct ilm_cmd *cmd, struct ilm_lockspace *ls)
 		memcpy(lock->vb, buf, IDM_VALUE_LEN);
 		pthread_mutex_unlock(&lock->mutex);
 	}
+#else
+	/*
+	 * Update the cached LVB, which will be deferred to write
+	 * into IDM when unlock it.
+	 */
+	pthread_mutex_lock(&lock->mutex);
+	memcpy(lock->vb, buf, IDM_VALUE_LEN);
+	pthread_mutex_unlock(&lock->mutex);
+	ret = 0;
+#endif
 
 out:
 	ilm_send_result(cmd->cl->fd, ret, NULL, 0);

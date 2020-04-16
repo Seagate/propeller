@@ -81,28 +81,6 @@ struct idm_emulation {
 static struct list_head idm_list = LIST_HEAD_INIT(idm_list);
 static pthread_mutex_t idm_list_mutex = PTHREAD_MUTEX_INITIALIZER;
 
-static struct idm_emulation *idm_find(char *lock_id, char *drive)
-{
-        struct idm_emulation *pos, *idm = NULL;
-
-	pthread_mutex_lock(&idm_list_mutex);
-
-	/* Firstly search if has existed idm */
-	list_for_each_entry(pos, &idm_list, list) {
-
-		if (!memcmp(pos->id, lock_id, IDM_LOCK_ID_LEN) &&
-		    !strcmp(pos->drive_path, drive)) {
-			/* Find the matched idm */
-			idm = pos;
-			goto out;
-		}
-	}
-
-out:
-	pthread_mutex_unlock(&idm_list_mutex);
-	return idm;
-}
-
 static struct idm_emulation *_idm_get(char *lock_id, char *drive, int alloc)
 {
         struct idm_emulation *pos, *idm = NULL;
@@ -192,7 +170,7 @@ out:
 	return ret;
 }
 
-static struct idm_emulation *idm_alloc_and_get(char *lock_id, char *drive)
+static struct idm_emulation *idm_get_and_alloc(char *lock_id, char *drive)
 {
 	return _idm_get(lock_id, drive, 1);
 }
@@ -210,25 +188,6 @@ static struct idm_emulation *idm_get(char *lock_id, char *drive)
 static int idm_put(char *lock_id, char *drive)
 {
 	return _idm_put(lock_id, drive, 0);
-}
-
-static struct idm_host *idm_host_find(struct idm_emulation *idm,
-				      char *host_id)
-{
-        struct idm_host *pos, *host = NULL;
-
-	pthread_mutex_lock(&idm->mutex);
-
-	list_for_each_entry(pos, &idm->host_list, list) {
-		if (!memcmp(pos->id, host_id, IDM_HOST_ID_LEN)) {
-			host = pos;
-			goto out;
-		}
-	}
-
-out:
-	pthread_mutex_unlock(&idm->mutex);
-	return host;
 }
 
 static struct idm_host *_idm_host_get(struct idm_emulation *idm,
@@ -294,7 +253,7 @@ out:
 	return 0;
 }
 
-static struct idm_host *idm_host_alloc_and_get(struct idm_emulation *idm,
+static struct idm_host *idm_host_get_and_alloc(struct idm_emulation *idm,
 					       char *host_id,
 					       uint64_t timeout)
 {
@@ -337,6 +296,22 @@ static int idm_host_is_expired(struct idm_host *host)
 	return 0;
 }
 
+static int idm_host_count(struct idm_emulation *idm)
+{
+	struct idm_host *host;
+	int count = 0;
+
+	list_for_each_entry(host, &idm->host_list, list) {
+		if (host->state == IDM_STATE_TIMEOUT ||
+		    idm_host_is_expired(host))
+			continue;
+
+		count++;
+	}
+
+	return count;
+}
+
 /**
  * idm_drive_lock - acquire an IDM on a specified drive
  * @lock_id:		Lock ID (64 bytes).
@@ -353,6 +328,7 @@ int idm_drive_lock(char *lock_id, int mode, char *host_id,
 	struct idm_emulation *idm;
 	struct idm_host *host;
 	int ret = 0, user_count, cur_mode;
+	int alloc_idm = 0;
 
 	if (ilm_inject_fault_is_hit())
 		return -EIO;
@@ -363,43 +339,34 @@ int idm_drive_lock(char *lock_id, int mode, char *host_id,
 	if (!lock_id || !host_id || !drive)
 		return -EINVAL;
 
-	/*
-	 * Let's firstly find if the idm and the host has been existed:
-	 *
-	 * - idm is existed, host is not existed: idm is busy;
-	 * - idm is existed, host is existed: the host acquires the
-	 *   same idm twice.
-	 */
-	idm = idm_find(lock_id, drive);
-	if (idm) {
-		/* Acquire the same idm twice? */
-		host = idm_host_find(idm, host_id);
-		if (host)
-			return -EAGAIN;
-
-		pthread_mutex_lock(&idm->mutex);
-		cur_mode = idm->mode;
-		pthread_mutex_unlock(&idm->mutex);
-
+	idm = idm_get(lock_id, drive);
+	if (!idm) {
+		idm = idm_get_and_alloc(lock_id, drive);
+		if (!idm)
+			return -ENOMEM;
+		alloc_idm = 1;
+	} else {
 		/*
-		 * If idm structure is found but haven't the associated
-		 * host data structure, it's likely the lock has been
-		 * granted to other hosts.
+		 * Let's firstly find if the idm and the host has been existed:
 		 *
-		 * For this case, return -EBUSY when detects the lock's
-		 * current mode is not equal to the request mode.
+		 * If idm is existed and the corresponding host can be found on
+		 * the idm's host list, this means the same host is trying to
+		 * acquire the same idm twice; for this case, directly bail out
+		 * with error -EAGAIN.
+		 *
+		 * If idm is existed but host is not existed, let it to continue
+		 * and check mode permission in idm_lock_mode_is_permitted().
 		 */
-		if (cur_mode != IDM_MODE_UNLOCK &&
-		    cur_mode != mode)
-			return -EBUSY;
+		host = idm_host_get(idm, host_id);
+		/* Acquire the same idm twice? */
+		if (host) {
+			idm_host_put(idm, host_id);
+			idm_put(lock_id, drive);
+			return -EAGAIN;
+		}
 	}
 
-	/* idm has not been created, allocate a new one */
-	idm = idm_alloc_and_get(lock_id, drive);
-	if (!idm)
-		return -ENOMEM;
-
-	host = idm_host_alloc_and_get(idm, host_id, timeout);
+	host = idm_host_get_and_alloc(idm, host_id, timeout);
 	if (!host) {
 		ret = -ENOMEM;
 		goto fail_idm;
@@ -410,7 +377,7 @@ int idm_drive_lock(char *lock_id, int mode, char *host_id,
 	ret = idm_lock_mode_is_permitted(idm, mode);
 	if (!ret) {
 		pthread_mutex_unlock(&idm->mutex);
-		ret = -EPERM;
+		ret = -EBUSY;
 		goto fail_host;
 	}
 
@@ -422,12 +389,18 @@ int idm_drive_lock(char *lock_id, int mode, char *host_id,
 	host->last_renew_time = ilm_curr_time();
 
 	pthread_mutex_unlock(&idm->mutex);
+
+	idm_host_put(idm, host_id);
+	idm_put(lock_id, drive);
 	return 0;
 
 fail_host:
 	idm_host_put_and_free(idm, host_id);
 fail_idm:
-	idm_put_and_free(lock_id, drive);
+	if (alloc_idm)
+		idm_put_and_free(lock_id, drive);
+	else
+		idm_put(lock_id, drive);
 	return ret;
 }
 
@@ -439,10 +412,12 @@ fail_idm:
  *
  * Returns zero or a negative error (ie. EINVAL, ETIME).
  */
-int idm_drive_unlock(char *lock_id, char *host_id, char *drive)
+int idm_drive_unlock(char *lock_id, char *host_id,
+		     void *lvb, int lvb_size, char *drive)
 {
 	struct idm_emulation *idm;
-	struct idm_host *host;
+	struct idm_host *host, *pos;
+	int hosts_count = 0;
 	int ret = 0;
 
 	if (ilm_inject_fault_is_hit())
@@ -451,39 +426,44 @@ int idm_drive_unlock(char *lock_id, char *host_id, char *drive)
 	if (!lock_id || !host_id || !drive)
 		return -EINVAL;
 
-	idm = idm_find(lock_id, drive);
+	if (lvb_size > IDM_VALUE_LEN)
+		return -EINVAL;
+
+	idm = idm_get(lock_id, drive);
 	if (!idm)
 		return -EINVAL;
 
-	host = idm_host_find(idm, host_id);
+	host = idm_host_get(idm, host_id);
 	if (!host)
 		return -EINVAL;
+
+	pthread_mutex_lock(&idm->mutex);
 
 	/*
 	 * Even detects the host has expired, this is a good chance
 	 * to release the resources associated with the expired host.
 	 */
-	pthread_mutex_lock(&idm->mutex);
 	if (idm_host_is_expired(host))
 		ret = -ETIME;
-	pthread_mutex_unlock(&idm->mutex);
 
-	/*
-	 * We don't need to change anything for lock mode, if there have other
-	 * hosts are acquiring the IDM, the lock mode will keep the same.
-	 *
-	 * If this host is the last one who uses this IDM, the IDM will be
-	 * released in function idm_put_and_free() and it will be allocated
-	 * new buffer if later acquires the same IDM.
-	 *
-	 * For these reasons, it's pointless to maintain lock state.
-	 */
+	/* Calculate how many alive hosts */
+	list_for_each_entry(pos, &idm->host_list, list) {
+		hosts_count++;
+	}
+
+	if (hosts_count == 1)
+		idm->mode = IDM_MODE_UNLOCK;
+
+	if (lvb)
+		memcpy(idm->vb, lvb, lvb_size);
+
+	pthread_mutex_unlock(&idm->mutex);
 
 	/* Remove host from IDM's host list  */
 	idm_host_put_and_free(idm, host_id);
 
-	/* The IDM will be freed if no user uses it */
-	idm_put_and_free(lock_id, drive);
+	/* Decrease the user count */
+	idm_put(lock_id, drive);
 	return ret;
 }
 
@@ -509,13 +489,15 @@ int idm_drive_convert_lock(char *lock_id, int mode,
 	if (!lock_id || !host_id || !drive)
 		return -EINVAL;
 
-	idm = idm_find(lock_id, drive);
+	idm = idm_get(lock_id, drive);
 	if (!idm)
 		return -EINVAL;
 
-	host = idm_host_find(idm, host_id);
-	if (!host)
+	host = idm_host_get(idm, host_id);
+	if (!host) {
+		idm_put(lock_id, drive);
 		return -EINVAL;
+	}
 
 	pthread_mutex_lock(&idm->mutex);
 
@@ -551,7 +533,7 @@ int idm_drive_convert_lock(char *lock_id, int mode,
 	 * convert to exclusive mode.
 	 */
 	if (idm->mode == IDM_MODE_SHAREABLE && mode == IDM_MODE_EXCLUSIVE) {
-		if (idm->user_count > 1) {
+		if (idm_host_count(idm) > 1) {
 			ilm_log_err("%s: old mode %d new mode %d\n",
 				    __func__, idm->mode, mode);
 			ret = -EPERM;
@@ -567,6 +549,8 @@ int idm_drive_convert_lock(char *lock_id, int mode,
 
 out:
 	pthread_mutex_unlock(&idm->mutex);
+	idm_host_put(idm, host_id);
+	idm_put(lock_id, drive);
 	return ret;
 }
 
@@ -592,13 +576,15 @@ int idm_drive_renew_lock(char *lock_id, int mode,
 	if (!lock_id || !host_id || !drive)
 		return -EINVAL;
 
-	idm = idm_find(lock_id, drive);
+	idm = idm_get(lock_id, drive);
 	if (!idm)
 		return -EINVAL;
 
-	host = idm_host_find(idm, host_id);
-	if (!host)
+	host = idm_host_get(idm, host_id);
+	if (!host) {
+		idm_put(lock_id, drive);
 		return -EINVAL;
+	}
 
 	pthread_mutex_lock(&idm->mutex);
 
@@ -617,6 +603,8 @@ int idm_drive_renew_lock(char *lock_id, int mode,
 
 out:
 	pthread_mutex_unlock(&idm->mutex);
+	idm_host_put(idm, host_id);
+	idm_put(lock_id, drive);
 	return ret;
 }
 
@@ -650,7 +638,7 @@ int idm_drive_break_lock(char *lock_id, int mode, char *host_id,
 	if (!idm)
 		return -EINVAL;
 
-	host = idm_host_find(idm, host_id);
+	host = idm_host_get(idm, host_id);
 	/*
 	 * The host_id should not be the owner at this moment,
 	 * though we can permit this situation to happen, so
@@ -708,7 +696,7 @@ int idm_drive_break_lock(char *lock_id, int mode, char *host_id,
 	pthread_mutex_unlock(&idm->mutex);
 
 	/* No other hosts, let's acquire it */
-	host = idm_host_alloc_and_get(idm, host_id, timeout);
+	host = idm_host_get_and_alloc(idm, host_id, timeout);
 	if (!host) {
 		ret = -ENOMEM;
 		goto fail_host;
@@ -722,9 +710,6 @@ int idm_drive_break_lock(char *lock_id, int mode, char *host_id,
 	/* Update the host state */
 	host->state = IDM_STATE_RUN;
 	host->last_renew_time = ilm_curr_time();
-
-	pthread_mutex_unlock(&idm->mutex);
-	return 0;
 
 fail_break:
 	pthread_mutex_unlock(&idm->mutex);
@@ -758,13 +743,15 @@ int idm_drive_write_lvb(char *lock_id, char *host_id,
 	if (lvb_size > IDM_VALUE_LEN)
 		return -EINVAL;
 
-	idm = idm_find(lock_id, drive);
+	idm = idm_get(lock_id, drive);
 	if (!idm)
 		return -EINVAL;
 
-	host = idm_host_find(idm, host_id);
-	if (!host)
+	host = idm_host_get(idm, host_id);
+	if (!host) {
+		idm_put(lock_id, drive);
 		return -EINVAL;
+	}
 
 	pthread_mutex_lock(&idm->mutex);
 
@@ -784,6 +771,8 @@ int idm_drive_write_lvb(char *lock_id, char *host_id,
 
 out:
 	pthread_mutex_unlock(&idm->mutex);
+	idm_host_put(idm, host_id);
+	idm_put(lock_id, drive);
 	return ret;
 
 }
@@ -813,13 +802,15 @@ int idm_drive_read_lvb(char *lock_id, char *host_id,
 	if (lvb_size > IDM_VALUE_LEN)
 		return -EINVAL;
 
-	idm = idm_find(lock_id, drive);
+	idm = idm_get(lock_id, drive);
 	if (!idm)
 		return -EINVAL;
 
-	host = idm_host_find(idm, host_id);
-	if (!host)
+	host = idm_host_get(idm, host_id);
+	if (!host) {
+		idm_host_put(idm, host_id);
 		return -EINVAL;
+	}
 
 	pthread_mutex_lock(&idm->mutex);
 
@@ -839,6 +830,8 @@ int idm_drive_read_lvb(char *lock_id, char *host_id,
 
 out:
 	pthread_mutex_unlock(&idm->mutex);
+	idm_host_put(idm, host_id);
+	idm_put(lock_id, drive);
 	return ret;
 }
 
@@ -863,13 +856,14 @@ int idm_drive_lock_count(char *lock_id, int *count, char *drive)
 	if (!lock_id || !drive)
 		return -EINVAL;
 
-	idm = idm_find(lock_id, drive);
+	idm = idm_get(lock_id, drive);
 	if (!idm)
 		return -ENOENT;
 
 	pthread_mutex_lock(&idm->mutex);
-	*count = idm->user_count;
+	*count = idm_host_count(idm);
 	pthread_mutex_unlock(&idm->mutex);
+	idm_put(lock_id, drive);
 	return 0;
 }
 
@@ -895,13 +889,14 @@ int idm_drive_lock_mode(char *lock_id, int *mode, char *drive)
 	if (!lock_id || !drive)
 		return -EINVAL;
 
-	idm = idm_find(lock_id, drive);
+	idm = idm_get(lock_id, drive);
 	if (!idm)
 		return -ENOENT;
 
 	pthread_mutex_lock(&idm->mutex);
 	*mode = idm->mode;
 	pthread_mutex_unlock(&idm->mutex);
+	idm_put(lock_id, drive);
 	return 0;
 }
 
@@ -926,17 +921,21 @@ int idm_drive_host_state(char *lock_id,
 	if (!lock_id || !host_id || !drive)
 		return -EINVAL;
 
-	idm = idm_find(lock_id, drive);
+	idm = idm_get(lock_id, drive);
 	if (!idm)
 		return -EINVAL;
 
-	host = idm_host_find(idm, host_id);
-	if (!host)
+	host = idm_host_get(idm, host_id);
+	if (!host) {
+		idm_put(lock_id, drive);
 		return -EINVAL;
+	}
 
 	pthread_mutex_lock(&idm->mutex);
 	*host_state = host->state;
 	pthread_mutex_unlock(&idm->mutex);
+	idm_host_put(idm, host_id);
+	idm_put(lock_id, drive);
 	return 0;
 }
 

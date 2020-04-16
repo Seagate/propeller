@@ -1,4 +1,4 @@
-SUBDIRS = src python
+SUBDIRS = src python test
 
 .PHONY: all $(SUBDIRS) clean install cscope
 

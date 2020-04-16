@@ -15,15 +15,18 @@ int idm_drive_destroy(char *lock_id, char *host_id, char *drive);
 
 int idm_drive_lock(char *lock_id, int mode, char *host_id,
                    char *drive, uint64_t timeout);
-int idm_drive_unlock(char *lock_id, char *host_id, char *drive);
+int idm_drive_unlock(char *lock_id, char *host_id,
+		     void *lvb, int lvb_size, char *drive);
 int idm_drive_convert_lock(char *lock_id, int mode,
                            char *host_id, char *drive);
 int idm_drive_renew_lock(char *lock_id, int mode,
                          char *host_id, char *drive);
 int idm_drive_break_lock(char *lock_id, int mode, char *host_id,
 			 char *drive, uint64_t timeout);
+#if 0
 int idm_drive_write_lvb(char *lock_id, char *host_id,
 			void *lvb, int lvb_size, char *drive);
+#endif
 int idm_drive_read_lvb(char *lock_id, char *host_id,
 		       void *lvb, int lvb_size, char *drive);
 int idm_drive_lock_count(char *lock_id, int *count, char *drive);
