@@ -46,6 +46,58 @@ static int ilm_lock_payload_read(struct ilm_cmd *cmd,
 	return ret;
 }
 
+static int ilm_sort_drives(struct ilm_lock *lock)
+{
+	int drive_num = lock->drive_num;
+	int i, j, ret;
+	char *tmp;
+	uuid_t uuid;
+
+	for (i = 1; i < drive_num; i++) {
+		for (j = i; j > 0; j--) {
+			ret = memcmp(&lock->drive[j].uuid,
+				     &lock->drive[j - 1].uuid,
+				     sizeof(uuid_t));
+
+			if (ret == 0) {
+				ilm_log_err("Two drives have same UUID?");
+				ilm_log_err("drive path=%s",
+					    lock->drive[j].path);
+				ilm_log_array_err("drive UUID",
+						  (char *)&lock->drive[j].uuid,
+						  sizeof(uuid_t));
+				ilm_log_err("drive path=%s",
+					    lock->drive[j - 1].path);
+				ilm_log_array_err("drive UUID",
+						  (char *)&lock->drive[j - 1].uuid,
+						  sizeof(uuid_t));
+				return -1;
+			}
+
+			if (ret > 0)
+				continue;
+
+			/* Swap two drives */
+			tmp = lock->drive[j].path;
+			lock->drive[j].path = lock->drive[j - 1].path;
+			lock->drive[j - 1].path = tmp;
+
+			memcpy(&uuid, &lock->drive[j].uuid, sizeof(uuid_t));
+			memcpy(&lock->drive[j].uuid, &lock->drive[j - 1].uuid,
+			       sizeof(uuid_t));
+			memcpy(&lock->drive[j - 1].uuid, &uuid, sizeof(uuid_t));
+		}
+	}
+
+	for (i = 0; i < drive_num; i++) {
+		ilm_log_dbg("Index %d drive path=%s", i, lock->drive[i].path);
+		ilm_log_array_dbg("drive UUID",
+				  (char *)&lock->drive[i].uuid, sizeof(uuid_t));
+	}
+
+	return 0;
+}
+
 static struct ilm_lock *ilm_alloc(struct ilm_cmd *cmd,
 				  struct ilm_lockspace *ls,
 				  int drive_num, int *pos)
@@ -67,7 +119,7 @@ static struct ilm_lock *ilm_alloc(struct ilm_cmd *cmd,
 	for (i = 0, copied = 0; i < drive_num; i++, copied++) {
 		ret = recv(cmd->cl->fd, &path, sizeof(path), MSG_WAITALL);
 		if (ret <= 0) {
-	        	ilm_log_err("Failed to read out drive path\n");
+			ilm_log_err("Fail to read out drive path\n");
 			goto drive_fail;
 		}
 
@@ -75,12 +127,23 @@ static struct ilm_lock *ilm_alloc(struct ilm_cmd *cmd,
 
 		lock->drive[i].path = strdup(path);
 		if (!lock->drive[i].path) {
-	        	ilm_log_err("Failed to copy drive path\n");
+			ilm_log_err("Fail to copy drive path\n");
+			goto drive_fail;
+		}
+
+		ret = ilm_read_blk_uuid(lock->drive[i].path,
+					&lock->drive[i].uuid);
+		if (ret) {
+			ilm_log_err("Fail to read drive uuid\n");
 			goto drive_fail;
 		}
 	}
 
 	lock->drive_num = drive_num;
+
+	ret = ilm_sort_drives(lock);
+	if (ret < 0)
+		goto drive_fail;
 
 	ret = ilm_lockspace_add_lock(ls, lock);
 	if (ret < 0)
