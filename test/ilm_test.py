@@ -768,9 +768,8 @@ def test_lock__timeout_convert1(ilm_daemon):
     ret = ilm.ilm_convert(s, lock_id, ilm.IDM_MODE_EXCLUSIVE)
     assert ret == -62
 
-    # Unlock will receive -EINVAL
     ret = ilm.ilm_unlock(s, lock_id)
-    assert ret == -22
+    assert ret == 0
 
     ret = ilm.ilm_disconnect(s)
     assert ret == 0
@@ -809,9 +808,8 @@ def test_lock__timeout_convert2(ilm_daemon):
     ret = ilm.ilm_convert(s, lock_id, ilm.IDM_MODE_SHAREABLE)
     assert ret == -62
 
-    # Unlock will receive -EINVAL
     ret = ilm.ilm_unlock(s, lock_id)
-    assert ret == -22
+    assert ret == 0
 
     ret = ilm.ilm_disconnect(s)
     assert ret == 0
