@@ -14,4 +14,7 @@ int idm_raid_read_lvb(struct ilm_lock *lock, char *host_id,
 int idm_raid_count(struct ilm_lock *lock, int *count);
 int idm_raid_mode(struct ilm_lock *lock, int *mode);
 
+int idm_raid_thread_create(struct _raid_thread **rth);
+void idm_raid_thread_free(void *rth);
+
 #endif

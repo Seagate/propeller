@@ -137,6 +137,8 @@ static struct ilm_lock *ilm_alloc(struct ilm_cmd *cmd,
 			ilm_log_err("Fail to read drive uuid\n");
 			goto drive_fail;
 		}
+
+		lock->drive[i].index = i;
 	}
 
 	lock->drive_num = drive_num;
@@ -149,8 +151,14 @@ static struct ilm_lock *ilm_alloc(struct ilm_cmd *cmd,
 	if (ret < 0)
 		goto drive_fail;
 
+	ret = idm_raid_thread_create(&lock->raid_th);
+	if (ret < 0)
+		goto raid_thread_fail;
+
 	return lock;
 
+raid_thread_fail:
+	ilm_lockspace_del_lock(ls, lock);
 drive_fail:
 	for (i = 0; i < copied; i++)
 		free(lock->drive[i].path);
@@ -161,6 +169,8 @@ drive_fail:
 static int ilm_free(struct ilm_lockspace *ls, struct ilm_lock *lock)
 {
 	int ret;
+
+	idm_raid_thread_free(lock->raid_th);
 
 	ret = ilm_lockspace_del_lock(ls, lock);
 	if (ret < 0)

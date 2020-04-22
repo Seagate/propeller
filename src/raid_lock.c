@@ -9,6 +9,7 @@
 
 #include <assert.h>
 #include <errno.h>
+#include <stdlib.h>
 #include <unistd.h>
 
 #include "ilm.h"
@@ -51,7 +52,9 @@ struct _raid_state_transition {
 	int next;
 };
 
-struct _raid_request_data {
+struct _raid_request {
+	struct list_head list;
+
 	int op;
 
 	struct ilm_lock *lock;
@@ -62,6 +65,32 @@ struct _raid_request_data {
 	int lvb_size;
 	int count;
 	int mode;
+
+	int fd;
+	int result;
+};
+
+struct _raid_thread {
+	pthread_t th;
+
+	int exit;
+	pthread_cond_t exit_wait;
+
+	struct list_head request_list;
+	pthread_mutex_t request_mutex;
+	pthread_cond_t request_cond;
+
+	struct list_head process_list;
+
+	int count;
+	struct list_head response_list;
+	pthread_mutex_t response_mutex;
+	pthread_cond_t response_cond;
+
+	int renew_count;
+	struct list_head renew_list;
+	pthread_mutex_t renew_mutex;
+	pthread_cond_t renew_cond;
 };
 
 /*
@@ -222,56 +251,154 @@ struct _raid_state_transition state_transition[] = {
 	},
 };
 
-static int _raid_send_request(struct _raid_request_data *data, int op)
+static int _raid_dispatch_request(struct _raid_request *req)
 {
-	struct ilm_lock *lock = data->lock;
-	struct ilm_drive *drive = data->drive;
+	struct ilm_lock *lock = req->lock;
+	struct ilm_drive *drive = req->drive;
 	int ret;
 
-	switch (op) {
+	/* Update inject fault */
+	ilm_inject_fault_update(lock->drive_num, drive->index);
+
+	switch (req->op) {
 	case ILM_OP_LOCK:
-		ret = idm_drive_lock(lock->id, data->mode,
-				     data->host_id, drive->path,
-				     lock->timeout);
+		ret = idm_drive_lock(lock->id, req->mode, req->host_id,
+				     drive->path, lock->timeout);
 		break;
 	case ILM_OP_UNLOCK:
-		ret = idm_drive_unlock(lock->id, data->host_id,
-				       data->lvb, data->lvb_size,
-				       drive->path);
+		ret = idm_drive_unlock(lock->id, req->host_id, req->lvb,
+				       req->lvb_size, drive->path);
 		break;
 	case ILM_OP_CONVERT:
-		ret = idm_drive_convert_lock(lock->id, data->mode,
-					     data->host_id, drive->path);
+		ret = idm_drive_convert_lock(lock->id, req->mode, req->host_id,
+					     drive->path);
 		break;
 	case ILM_OP_BREAK:
-		ret = idm_drive_break_lock(lock->id, data->mode, data->host_id,
+		ret = idm_drive_break_lock(lock->id, req->mode, req->host_id,
 					   drive->path, lock->timeout);
 		break;
 	case ILM_OP_RENEW:
-		ret = idm_drive_renew_lock(lock->id, data->mode, data->host_id,
+		ret = idm_drive_renew_lock(lock->id, req->mode, req->host_id,
 					   drive->path);
 		break;
 	case ILM_OP_READ_LVB:
-		ret = idm_drive_read_lvb(lock->id, data->host_id,
-					 data->lvb, data->lvb_size,
-					 drive->path);
+		ret = idm_drive_read_lvb(lock->id, req->host_id, req->lvb,
+					 req->lvb_size, drive->path);
 		break;
 	case ILM_OP_COUNT:
-		ret = idm_drive_lock_count(lock->id, &data->count, drive->path);
+		ret = idm_drive_lock_count(lock->id, &req->count, drive->path);
 		break;
 	case ILM_OP_MODE:
-		ret = idm_drive_lock_mode(lock->id, &data->mode, drive->path);
+		ret = idm_drive_lock_mode(lock->id, &req->mode, drive->path);
 		break;
 	default:
 		assert(1);
 		break;
 	}
 
+	req->result = ret;
+
+	ilm_log_dbg("%s: op=%d result=%d", __func__, req->op, req->result);
+	return ret;
+}
+
+static int _raid_dispatch_request_async(struct _raid_request *req)
+{
+	struct ilm_lock *lock = req->lock;
+	struct ilm_drive *drive = req->drive;
+	int ret, fd;
+
+	/* Update inject fault */
+	ilm_inject_fault_update(lock->drive_num, drive->index);
+
+	switch (req->op) {
+	case ILM_OP_LOCK:
+		ret = idm_drive_lock_async(lock->id, req->mode, req->host_id,
+					   drive->path, lock->timeout, &fd);
+		break;
+	case ILM_OP_UNLOCK:
+		ret = idm_drive_unlock_async(lock->id, req->host_id, req->lvb,
+					     req->lvb_size, drive->path, &fd);
+		break;
+	case ILM_OP_CONVERT:
+		ret = idm_drive_convert_lock_async(lock->id, req->mode,
+						   req->host_id, drive->path,
+						   &fd);
+		break;
+	case ILM_OP_BREAK:
+		ret = idm_drive_break_lock_async(lock->id, req->mode,
+						 req->host_id, drive->path,
+						 lock->timeout, &fd);
+		break;
+	case ILM_OP_RENEW:
+		ret = idm_drive_renew_lock_async(lock->id, req->mode,
+						 req->host_id, drive->path, &fd);
+		break;
+	case ILM_OP_READ_LVB:
+		ret = idm_drive_read_lvb_async(lock->id, req->host_id,
+					       drive->path, &fd);
+		break;
+	case ILM_OP_COUNT:
+		ret = idm_drive_lock_count_async(lock->id, drive->path, &fd);
+		break;
+	case ILM_OP_MODE:
+		ret = idm_drive_lock_mode_async(lock->id, drive->path, &fd);
+		break;
+	default:
+		assert(1);
+		break;
+	}
+
+	req->fd = fd;
+	req->result = ret;
+
+	ilm_log_dbg("%s: op=%d result=%d fd=%d", __func__,
+		    req->op, req->result, req->fd);
+	return ret;
+}
+
+static int _raid_read_result_async(struct _raid_request *req)
+{
+	struct ilm_lock *lock = req->lock;
+	struct ilm_drive *drive = req->drive;
+	int ret, fd;
+
+	switch (req->op) {
+	case ILM_OP_LOCK:
+	case ILM_OP_UNLOCK:
+	case ILM_OP_CONVERT:
+	case ILM_OP_BREAK:
+	case ILM_OP_RENEW:
+		ret = idm_drive_async_result(req->fd, &req->result);
+		break;
+	case ILM_OP_READ_LVB:
+		ret = idm_drive_read_lvb_async_result(req->fd, req->lvb,
+						      req->lvb_size,
+						      &req->result);
+		break;
+	case ILM_OP_COUNT:
+		ret = idm_drive_lock_count_async_result(req->fd,
+							&req->count,
+						        &req->result);
+		break;
+	case ILM_OP_MODE:
+		ret = idm_drive_lock_mode_async_result(req->fd,
+						       &req->mode,
+						       &req->result);
+		break;
+	default:
+		assert(1);
+		break;
+	}
+
+	ilm_log_dbg("%s: ret=%d", __func__, ret);
+	assert(ret == 0);
 	return ret;
 }
 
 static int _raid_state_machine_end(int state)
 {
+	ilm_log_dbg("%s: state=%d", __func__, state);
 	if (state == IDM_LOCK || state == IDM_INIT)
 		return 1;
 
@@ -289,8 +416,14 @@ static int _raid_state_find_op(int state, int func)
 	switch (state) {
 	case IDM_INIT:
 		assert(func == ILM_OP_LOCK || func == ILM_OP_COUNT ||
-		       func == ILM_OP_MODE);
-		op = func;
+		       func == ILM_OP_MODE || func == ILM_OP_RENEW ||
+		       func == ILM_OP_CONVERT);
+
+		/* Enlarge majority when renew or convert */
+		if (func == ILM_OP_RENEW || func == ILM_OP_CONVERT)
+			op = ILM_OP_LOCK;
+		else
+			op = func;
 		break;
 	case IDM_BUSY:
 		op = ILM_OP_BREAK;
@@ -312,6 +445,7 @@ static int _raid_state_find_op(int state, int func)
 		break;
 	}
 
+	ilm_log_dbg("%s: state=%d op=%d->%d", __func__, state, func, op);
 	return op;
 }
 
@@ -336,35 +470,310 @@ static int _raid_state_lockup(int state, int result)
 	return -1;
 }
 
-static int ilm_raid_handle_request(struct _raid_request_data *data)
+static int idm_raid_state_transition(struct _raid_request *req)
 {
-	struct ilm_drive *drive = data->drive;
-	int state, next_state = drive->state;
-	int op, ret;
+	struct ilm_drive *drive = req->drive;
+	int state = drive->state, next_state;
+	int result = req->result;
 
-	do {
-		state = drive->state;
+	/*
+	 * Three cases will force to set result to 1, so that can ensure
+	 * the state machine transition to work as expected.
+	 *
+	 * Case 1: when a mutex is in IDM_INIT state and inquire IDM's
+	 * count, always keep in the IDM_INIT state;
+	 *
+	 * Case 2: when a mutex is in IDM_INIT state and inquire IDM's
+	 * mode, always keep in the IDM_INIT state;
+	 *
+	 * Case 3: when unlock a mutex, don't handle any failure in
+	 * this case and always transit to IDM_UNLOCK state.
+	 */
+	if (state == IDM_INIT && req->op == ILM_OP_COUNT)
+		result = 1;
+	else if (state == IDM_INIT && req->op == ILM_OP_MODE)
+		result = 1;
+	else if (state == IDM_LOCK && req->op == ILM_OP_UNLOCK)
+		result = 1;
 
-		op = _raid_state_find_op(state, data->op);
+	next_state = _raid_state_lockup(state, result);
 
-		ret = _raid_send_request(data, op);
+	ilm_log_dbg("%s: drive=%s", __func__, drive->path);
+	ilm_log_dbg("%s: op=%d return=%d state=%d->%d",
+		    __func__, req->op, result, state, next_state);
 
-		if (next_state == IDM_INIT && op == ILM_OP_COUNT)
-			next_state = _raid_state_lockup(next_state, 1);
-		else if (next_state == IDM_INIT && op == ILM_OP_MODE)
-			next_state = _raid_state_lockup(next_state, 1);
-		else if (next_state == IDM_LOCK && op == ILM_OP_UNLOCK)
-			next_state = _raid_state_lockup(next_state, 1);
-		else
-			next_state = _raid_state_lockup(next_state, ret);
+	drive->state = next_state;
+	return 0;
+}
 
-		ilm_log_dbg("%s: prev_state=%d op=%d return=%d next_state=%d",
-			    __func__, state, op, ret, next_state);
+static int idm_raid_send_request(struct _raid_thread *raid_th,
+				 struct _raid_request *req,
+				 int renew)
+{
+	struct ilm_drive *drive = req->drive;
 
-		drive->state = next_state;
-	} while (!_raid_state_machine_end(next_state));
 
-	return ret;
+	req->op = _raid_state_find_op(drive->state, req->op);
+
+	pthread_mutex_lock(&raid_th->request_mutex);
+
+	if (raid_th->exit) {
+		pthread_mutex_unlock(&raid_th->request_mutex);
+		return -1;
+	}
+
+	list_add_tail(&req->list, &raid_th->request_list);
+
+	ilm_log_dbg("%s: request [drive=%s]", __func__, drive->path);
+
+	pthread_cond_signal(&raid_th->request_cond);
+	pthread_mutex_unlock(&raid_th->request_mutex);
+
+	if (renew) {
+		raid_th->renew_count++;
+		ilm_log_dbg("%s: renew_count=%d",
+			    __func__, raid_th->renew_count);
+	} else {
+		raid_th->count++;
+		ilm_log_dbg("%s: count=%d", __func__, raid_th->count);
+	}
+
+	return 0;
+}
+
+static struct _raid_request *
+idm_raid_wait_response(struct _raid_thread *raid_th)
+{
+	struct _raid_request *req;
+	int state, next_state;
+
+	if (!raid_th->count)
+		return NULL;
+
+	pthread_mutex_lock(&raid_th->response_mutex);
+
+	if (list_empty(&raid_th->response_list))
+		pthread_cond_wait(&raid_th->response_cond,
+				  &raid_th->response_mutex);
+
+	req = list_first_entry(&raid_th->response_list,
+				struct _raid_request, list);
+	list_del(&req->list);
+
+	ilm_log_dbg("%s: response [drive=%s]", __func__, req->drive->path);
+	pthread_mutex_unlock(&raid_th->response_mutex);
+
+	raid_th->count--;
+	return req;
+}
+
+static struct _raid_request *
+idm_raid_wait_renew(struct _raid_thread *raid_th)
+{
+	struct _raid_request *req;
+	int state, next_state;
+
+	if (!raid_th->renew_count)
+		return NULL;
+
+	pthread_mutex_lock(&raid_th->renew_mutex);
+
+	if (list_empty(&raid_th->renew_list))
+		pthread_cond_wait(&raid_th->renew_cond,
+				  &raid_th->renew_mutex);
+
+	req = list_first_entry(&raid_th->renew_list,
+				struct _raid_request, list);
+	list_del(&req->list);
+
+	ilm_log_dbg("%s: renew response [drive=%s]", __func__, req->drive->path);
+	pthread_mutex_unlock(&raid_th->renew_mutex);
+
+	raid_th->renew_count--;
+	return req;
+}
+
+static struct _raid_request *
+idm_raid_wait(struct _raid_thread *raid_th, int renew)
+{
+	if (!renew)
+		return idm_raid_wait_response(raid_th);
+	else
+		return idm_raid_wait_renew(raid_th);
+}
+
+static void *idm_raid_thread(void *data)
+{
+	struct _raid_thread *raid_th = data;
+	struct _raid_request *req;
+
+	pthread_mutex_lock(&raid_th->request_mutex);
+
+	while (1) {
+		while (!raid_th->exit && list_empty(&raid_th->request_list))
+			pthread_cond_wait(&raid_th->request_cond,
+					  &raid_th->request_mutex);
+
+		while (!list_empty(&raid_th->request_list)) {
+			req = list_first_entry(&raid_th->request_list,
+					       struct _raid_request, list);
+			list_del(&req->list);
+			list_add_tail(&req->list, &raid_th->process_list);
+
+			ilm_log_dbg("%s: move to process list [drive=%s]",
+				    __func__, req->drive->path);
+		}
+
+		pthread_mutex_unlock(&raid_th->request_mutex);
+
+		list_for_each_entry(req, &raid_th->process_list, list) {
+			_raid_dispatch_request_async(req);
+			//_raid_dispatch_request(req);
+		}
+
+		while (!list_empty(&raid_th->process_list)) {
+#ifndef IDM_PTHREAD_EMULATION
+			/* TODO: Create POLL list */
+#else
+			req = list_first_entry(&raid_th->process_list,
+					       struct _raid_request, list);
+
+			if (!req)
+				break;
+
+			_raid_read_result_async(req);
+#endif
+
+			list_del(&req->list);
+			pthread_mutex_lock(&raid_th->response_mutex);
+			list_add_tail(&req->list, &raid_th->response_list);
+
+			ilm_log_dbg("%s: add to response list [drive=%s]",
+				    __func__, req->drive->path);
+
+			pthread_cond_signal(&raid_th->response_cond);
+			pthread_mutex_unlock(&raid_th->response_mutex);
+		}
+
+		pthread_mutex_lock(&raid_th->request_mutex);
+
+		if (raid_th->exit)
+			break;
+	}
+
+	pthread_cond_signal(&raid_th->exit_wait);
+	pthread_mutex_unlock(&raid_th->request_mutex);
+	return NULL;
+}
+
+void idm_raid_thread_free(struct _raid_thread *raid_th)
+{
+	assert(raid_th);
+
+	pthread_mutex_lock(&raid_th->request_mutex);
+	raid_th->exit = 1;
+	pthread_cond_broadcast(&raid_th->request_cond);
+	pthread_cond_wait(&raid_th->exit_wait, &raid_th->request_mutex);
+	pthread_mutex_unlock(&raid_th->request_mutex);
+}
+
+int idm_raid_thread_create(struct _raid_thread **rth)
+{
+	struct _raid_thread *raid_th;
+	int ret;
+
+	raid_th = malloc(sizeof(struct _raid_thread));
+	if (!raid_th)
+		return -ENOMEM;
+
+	memset(raid_th, 0, sizeof(struct _raid_thread));
+
+	pthread_mutex_init(&raid_th->request_mutex, NULL);
+	pthread_cond_init(&raid_th->request_cond, NULL);
+	INIT_LIST_HEAD(&raid_th->request_list);
+
+	INIT_LIST_HEAD(&raid_th->response_list);
+	pthread_mutex_init(&raid_th->response_mutex, NULL);
+	pthread_cond_init(&raid_th->response_cond, NULL);
+
+	INIT_LIST_HEAD(&raid_th->renew_list);
+	pthread_mutex_init(&raid_th->renew_mutex, NULL);
+	pthread_cond_init(&raid_th->renew_cond, NULL);
+
+	INIT_LIST_HEAD(&raid_th->process_list);
+
+	pthread_cond_init(&raid_th->exit_wait, NULL);
+
+	ret = pthread_create(&raid_th->th, NULL, idm_raid_thread, raid_th);
+	if (ret < 0) {
+		ilm_log_err("Fail to create raid thread\n");
+		free(raid_th);
+		return ret;
+	}
+
+	*rth = raid_th;
+	return 0;
+}
+
+static void idm_raid_multi_issue(struct ilm_lock *lock, char *host_id,
+				 int op, int mode, int renew)
+{
+	struct ilm_drive *drive;
+	struct _raid_request *req;
+	int i;
+
+	ilm_log_dbg("%s: op=%d mode=%d", __func__, op, mode);
+
+	for (i = 0; i < lock->drive_num; i++) {
+
+		drive = &lock->drive[i];
+
+		if (drive->state == IDM_INIT && op == ILM_OP_UNLOCK) {
+			drive->result = 0;
+			continue;
+		}
+
+		req = malloc(sizeof(struct _raid_request));
+		memset(req, 0, sizeof(struct _raid_request));
+
+		req->op = op;
+		req->lock = lock;
+		req->host_id = host_id;
+		req->drive = drive;
+		req->mode = (mode != -1) ? mode : lock->mode;
+
+		/*
+		 * When unlock an IDM, it's the time to write LVB into drive,
+		 * so copy the cached LVB in lock data structure into
+		 * drive->vb, thus this will be passed to drive.
+		 */
+		if (op == ILM_OP_UNLOCK)
+			memcpy(drive->vb, lock->vb, IDM_VALUE_LEN);
+
+		req->lvb = drive->vb;
+		req->lvb_size = IDM_VALUE_LEN;
+
+		idm_raid_send_request(lock->raid_th, req, renew);
+	}
+
+	while (req = idm_raid_wait(lock->raid_th, renew)) {
+		idm_raid_state_transition(req);
+
+		drive = req->drive;
+		if (_raid_state_machine_end(drive->state)) {
+			drive->result = req->result;
+			drive->mode = req->mode;
+			drive->count = req->count;
+			ilm_log_dbg("%s: drive result=%d mode=%d count=%d", __func__,
+				    drive->result, drive->mode, drive->count);
+			free(req);
+			continue;
+		}
+
+		idm_raid_send_request(lock->raid_th, req, renew);
+	}
+
+	return;
 }
 
 static void ilm_raid_lock_dump(char *str, struct ilm_lock *lock)
@@ -384,7 +793,7 @@ int idm_raid_lock(struct ilm_lock *lock, char *host_id)
 	int rand_sleep;
 	int io_err;
 	int score, i, ret;
-	struct _raid_request_data data;
+	struct _raid_request *req;
 
 	/* Initialize all drives state to NO_ACCESS */
 	for (i = 0; i < lock->drive_num; i++)
@@ -393,37 +802,18 @@ int idm_raid_lock(struct ilm_lock *lock, char *host_id)
 	ilm_raid_lock_dump("Enter raid_lock", lock);
 
 	do {
+		idm_raid_multi_issue(lock, host_id, ILM_OP_LOCK, lock->mode, 0);
+
 		score = 0;
 		io_err = 0;
 		for (i = 0; i < lock->drive_num; i++) {
-			/* Update inject fault */
-			ilm_inject_fault_update(lock->drive_num, i);
-
 			drive = &lock->drive[i];
 
-			data.op = ILM_OP_LOCK;
-			data.lock = lock;
-			data.host_id = host_id;
-			data.drive = drive;
-			data.mode = lock->mode;
-			data.lvb = NULL;
-			data.lvb_size = 0;
-			data.count = 0;
-
-			ret = ilm_raid_handle_request(&data);
-
-			/* Make success in one drive */
-			if (!ret && drive->state == IDM_LOCK)
+			if (!drive->result && drive->state == IDM_LOCK)
 				score++;
 
-			if (ret == -EIO)
+			if (drive->result == -EIO)
 				io_err++;
-
-			/*
-			 * NOTE: don't change the drive state for any failure;
-			 * keep the drive state as NO_ACCESS and later can try
-			 * to acquire the lock.
-			 */
 		}
 
 		/* Acquired majoirty */
@@ -436,21 +826,7 @@ int idm_raid_lock(struct ilm_lock *lock, char *host_id)
                  * Fail to achieve majority, release IDMs has been
 		 * acquired; race for next round.
 		 */
-		for (i = 0; i < lock->drive_num; i++) {
-			drive = &lock->drive[i];
-			if (drive->state != IDM_LOCK)
-				continue;
-
-			data.op = ILM_OP_UNLOCK;
-			data.lock = lock;
-			data.host_id = host_id;
-			data.drive = drive;
-			data.mode = lock->mode;
-			data.lvb = NULL;
-			data.lvb_size = 0;
-
-			ilm_raid_handle_request(&data);
-		}
+		idm_raid_multi_issue(lock, host_id, ILM_OP_UNLOCK, lock->mode, 0);
 
 		/*
 		 * Sleep for random interval for sleep, the interval range
@@ -486,39 +862,25 @@ int idm_raid_lock(struct ilm_lock *lock, char *host_id)
 int idm_raid_unlock(struct ilm_lock *lock, char *host_id)
 {
 	struct ilm_drive *drive;
-	struct _raid_request_data data;
+	struct _raid_request *req;
 	int io_err = 0, timeout = 0;
 	int i, ret;
 
 	ilm_raid_lock_dump("Enter raid_unlock", lock);
 
-	io_err = 0;
+	idm_raid_multi_issue(lock, host_id, ILM_OP_UNLOCK, lock->mode, 0);
+
 	for (i = 0; i < lock->drive_num; i++) {
-		/* Update inject fault */
-		ilm_inject_fault_update(lock->drive_num, i);
-
 		drive = &lock->drive[i];
-		if (drive->state == IDM_INIT)
-			continue;
-
-		data.op = ILM_OP_UNLOCK;
-		data.lock = lock;
-		data.host_id = host_id;
-		data.drive = drive;
-		data.mode = lock->mode;
-		data.lvb = lock->vb;
-		data.lvb_size = IDM_VALUE_LEN;
-
-		ret = ilm_raid_handle_request(&data);
-
-		if (ret == -ETIME)
-			timeout++;
-
-		if (ret == -EIO)
-			io_err++;
 
 		/* Always make success to unlock */
 		assert(drive->state == IDM_INIT);
+
+		if (drive->result == -EIO)
+			io_err++;
+
+		if (drive->result == -ETIME)
+			timeout++;
 	}
 
 	/* All drives have been timeout */
@@ -535,7 +897,7 @@ int idm_raid_unlock(struct ilm_lock *lock, char *host_id)
 int idm_raid_convert_lock(struct ilm_lock *lock, char *host_id, int mode)
 {
 	struct ilm_drive *drive;
-	struct _raid_request_data data;
+	struct _raid_request *req;
 	int io_err = 0;
 	int i, score, ret, timeout = 0;
 
@@ -548,31 +910,20 @@ int idm_raid_convert_lock(struct ilm_lock *lock, char *host_id, int mode)
 	if (lock->convert_failed == 1)
 		return -1;
 
+	idm_raid_multi_issue(lock, host_id, ILM_OP_CONVERT, mode, 0);
+
 	score = 0;
 	for (i = 0; i < lock->drive_num; i++) {
-		/* Update inject fault */
-		ilm_inject_fault_update(lock->drive_num, i);
-
 		drive = &lock->drive[i];
 
-		data.op = ILM_OP_CONVERT;
-		data.lock = lock;
-		data.host_id = host_id;
-		data.drive = drive;
-		data.mode = mode;
-		data.lvb = NULL;
-		data.lvb_size = 0;
-
-		ret = ilm_raid_handle_request(&data);
-
-		if (!ret)
+		if (!drive->result && drive->state == IDM_LOCK)
 			score++;
 
-		if (ret == -ETIME)
-			timeout++;
-
-		if (ret == -EIO)
+		if (drive->result == -EIO)
 			io_err++;
+
+		if (drive->result == -ETIME)
+			timeout++;
 	}
 
 	ilm_raid_lock_dump("Finish raid_convert_lock", lock);
@@ -599,20 +950,13 @@ int idm_raid_convert_lock(struct ilm_lock *lock, char *host_id, int mode)
 		return 0;
 	}
 
+	idm_raid_multi_issue(lock, host_id, ILM_OP_CONVERT, lock->mode, 0);
+
 	score = 0;
 	for (i = 0; i < lock->drive_num; i++) {
 		drive = &lock->drive[i];
 
-		data.op = ILM_OP_CONVERT;
-		data.lock = lock;
-		data.host_id = host_id;
-		data.drive = drive;
-		data.mode = lock->mode;
-		data.lvb = NULL;
-		data.lvb_size = 0;
-
-		ret = ilm_raid_handle_request(&data);
-		if (!ret)
+		if (!drive->result && drive->state == IDM_LOCK)
 			score++;
 	}
 
@@ -631,30 +975,20 @@ int idm_raid_convert_lock(struct ilm_lock *lock, char *host_id, int mode)
 int idm_raid_renew_lock(struct ilm_lock *lock, char *host_id)
 {
 	struct ilm_drive *drive;
-	struct _raid_request_data data;
+	struct _raid_request req;
 	uint64_t timeout = ilm_curr_time() + ILM_MAJORITY_TIMEOUT;
 	int score, i, ret;
 
 	ilm_raid_lock_dump("Enter raid_renew_lock", lock);
 
 	do {
+		idm_raid_multi_issue(lock, host_id, ILM_OP_RENEW, lock->mode, 0);
+
 		score = 0;
 		for (i = 0; i < lock->drive_num; i++) {
-			/* Update inject fault */
-			ilm_inject_fault_update(lock->drive_num, i);
-
 			drive = &lock->drive[i];
 
-			data.op = ILM_OP_RENEW;
-			data.lock = lock;
-			data.host_id = host_id;
-			data.drive = drive;
-			data.mode = lock->mode;
-			data.lvb = NULL;
-			data.lvb_size = 0;
-
-			ret = ilm_raid_handle_request(&data);
-			if (!ret)
+			if (!drive->result && drive->state == IDM_LOCK)
 				score++;
 		}
 
@@ -684,7 +1018,7 @@ int idm_raid_read_lvb(struct ilm_lock *lock, char *host_id,
 		      char *lvb, int lvb_size)
 {
 	struct ilm_drive *drive;
-	struct _raid_request_data data;
+	struct _raid_request *req;
 	uint64_t timeout = ilm_curr_time() + ILM_MAJORITY_TIMEOUT;
 	int score, i, ret;
 	uint64_t max_vb = 0, vb;
@@ -694,33 +1028,25 @@ int idm_raid_read_lvb(struct ilm_lock *lock, char *host_id,
 	assert(lvb_size == sizeof(uint64_t));
 
 	do {
+		idm_raid_multi_issue(lock, host_id, ILM_OP_READ_LVB, lock->mode, 0);
+
 		score = 0;
 		for (i = 0; i < lock->drive_num; i++) {
-			/* Update inject fault */
-			ilm_inject_fault_update(lock->drive_num, i);
-
 			drive = &lock->drive[i];
-			data.op = ILM_OP_READ_LVB;
-			data.lock = lock;
-			data.host_id = host_id;
-			data.drive = drive;
-			data.mode = lock->mode;
-			data.lvb = (void *)&vb;
-			data.lvb_size = IDM_VALUE_LEN;
 
-			ret = ilm_raid_handle_request(&data);
-			if (!ret) {
+			if (!drive->result && drive->state == IDM_LOCK) {
 				score++;
-
 				/*
 				 * FIXME: so far VB only has 8 bytes, so simply
 				 * use uint64_t to compare the maximum value.
 				 * Need to fix this if VB is longer than 8 bytes.
 				 */
+				memcpy(&vb, drive->vb, IDM_VALUE_LEN);
+
 				if (vb > max_vb)
 					max_vb = vb;
 
-				ilm_log_err("%s: i %d vb=%lx max_vb=%lx\n",
+				ilm_log_dbg("%s: i %d vb=%lx max_vb=%lx\n",
 					    __func__, i, vb, max_vb);
 			}
 		}
@@ -754,34 +1080,25 @@ int idm_raid_count(struct ilm_lock *lock, int *count)
 	int cnt;
 	int stat[3] = { 0 }, stat_max = 0, no_ent = 0;
 	struct ilm_drive *drive;
-	struct _raid_request_data data;
+	struct _raid_request *req;
+
+	idm_raid_multi_issue(lock, NULL, ILM_OP_COUNT, lock->mode, 0);
 
 	for (i = 0; i < lock->drive_num; i++) {
-		/* Update inject fault */
-		ilm_inject_fault_update(lock->drive_num, i);
-
 		drive = &lock->drive[i];
 
-		data.op = ILM_OP_COUNT;
-		data.lock = lock;
-		data.host_id = NULL;
-		data.drive = drive;
-		data.mode = lock->mode;
-
-		ret = ilm_raid_handle_request(&data);
-
-		if (ret) {
-			no_ent++;
-			continue;
+		if (!drive->result) {
+			cnt = drive->count;
+			if (cnt >= 0 && cnt < 3)
+				stat[cnt]++;
+			else if (cnt >= 3)
+				stat[2]++;
+			else
+				ilm_log_warn("wrong idm count %d\n", cnt);
 		}
 
-		cnt = data.count;
-		if (cnt >= 0 && cnt < 3)
-			stat[cnt]++;
-		else if (cnt >= 3)
-			stat[2]++;
-		else
-			ilm_log_warn("wrong idm count %d\n", cnt);
+		if (drive->result)
+			no_ent++;
 	}
 
 	/* The IDM doesn't exist */
@@ -816,32 +1133,24 @@ int idm_raid_mode(struct ilm_lock *lock, int *mode)
 	int m, t;
 	int stat_mode[3] = { 0 }, mode_max = 0, no_ent = 0;
 	struct ilm_drive *drive;
-	struct _raid_request_data data;
+
+	idm_raid_multi_issue(lock, NULL, ILM_OP_MODE, lock->mode, 0);
 
 	for (i = 0; i < lock->drive_num; i++) {
-		/* Update inject fault */
-		ilm_inject_fault_update(lock->drive_num, i);
-
 		drive = &lock->drive[i];
 
-		data.op = ILM_OP_MODE;
-		data.lock = lock;
-		data.host_id = NULL;
-		data.drive = drive;
-
-		ret = ilm_raid_handle_request(&data);
-		if (ret) {
-			no_ent++;
-			continue;
+		if (!drive->result) {
+			m = drive->mode;
+			if (m < 3 && m >= 0)
+				stat_mode[m]++;
+			else if (m >= 3)
+				stat_mode[2]++;
+			else
+				ilm_log_warn("wrong idm mode %d\n", m);
 		}
 
-		m = data.mode;
-		if (m < 3 && m >= 0)
-			stat_mode[m]++;
-		else if (m >= 3)
-			stat_mode[2]++;
-		else
-			ilm_log_warn("wrong idm mode %d\n", m);
+		if (drive->result)
+			no_ent++;
 	}
 
 	/* The IDM doesn't exist */
@@ -861,8 +1170,3 @@ int idm_raid_mode(struct ilm_lock *lock, int *mode)
 
 	return -1;
 }
-
-/*
- * TODO: statistic for hosts state is not useful at current stage.
- * Let's implement later for function idm_raid_host_state().
- */

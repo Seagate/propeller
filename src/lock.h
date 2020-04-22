@@ -12,14 +12,22 @@
 #define IDM_VALUE_LEN			8
 
 struct ilm_drive {
+	int index;
 	int state;
 	char *path;
 	uuid_t uuid;
+
+	int result;		/* cache the result */
+	int mode;		/* cache the lock mode */
+	int count;		/* cache the lock count */
+	char vb[IDM_VALUE_LEN];
 };
 
 #define ILM_DRIVE_NO_ACCESS		0
 #define ILM_DRIVE_ACCESSED		1
 #define ILM_DRIVE_FAILED		2
+
+struct _raid_thread;
 
 struct ilm_lock {
 	struct list_head list;
@@ -35,6 +43,7 @@ struct ilm_lock {
 	char vb[IDM_VALUE_LEN];
 
 	int convert_failed;
+	struct _raid_thread *raid_th;
 };
 
 #define ILM_LOCK_MAGIC		0x4C4F434B
