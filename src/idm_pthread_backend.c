@@ -29,6 +29,15 @@
 #define IDM_STATE_RUN			1
 #define IDM_STATE_TIMEOUT		2
 
+struct idm_async_op {
+	int fd;
+	struct list_head list;
+	int result;
+	int mode;
+	int count;
+	char vb[IDM_VALUE_LEN];
+};
+
 /**
  * struct idm_host - the host information which has acquired idm
  * @list:		list is added to idm's host_list.
@@ -80,6 +89,10 @@ struct idm_emulation {
 
 static struct list_head idm_list = LIST_HEAD_INIT(idm_list);
 static pthread_mutex_t idm_list_mutex = PTHREAD_MUTEX_INITIALIZER;
+
+static int idm_async_index = 0;
+static struct list_head idm_async_list = LIST_HEAD_INIT(idm_async_list);
+static pthread_mutex_t idm_async_list_mutex = PTHREAD_MUTEX_INITIALIZER;
 
 static struct idm_emulation *_idm_get(char *lock_id, char *drive, int alloc)
 {
@@ -404,6 +417,25 @@ fail_idm:
 	return ret;
 }
 
+int idm_drive_lock_async(char *lock_id, int mode, char *host_id,
+			 char *drive, uint64_t timeout, int *fd)
+{
+	struct idm_async_op *async;
+
+	async = malloc(sizeof(struct idm_async_op));
+
+	async->result = idm_drive_lock(lock_id, mode, host_id, drive, timeout);
+
+	pthread_mutex_lock(&idm_async_list_mutex);
+	*fd = idm_async_index;
+	async->fd = idm_async_index;
+	idm_async_index++;
+	list_add(&async->list, &idm_async_list);
+	pthread_mutex_unlock(&idm_async_list_mutex);
+
+	return 0;
+}
+
 /**
  * idm_drive_unlock - release an IDM on a specified drive
  * @lock_id:		Lock ID (64 bytes).
@@ -465,6 +497,25 @@ int idm_drive_unlock(char *lock_id, char *host_id,
 	/* Decrease the user count */
 	idm_put(lock_id, drive);
 	return ret;
+}
+
+int idm_drive_unlock_async(char *lock_id, char *host_id,
+			   void *lvb, int lvb_size, char *drive, int *fd)
+{
+	struct idm_async_op *async;
+
+	async = malloc(sizeof(struct idm_async_op));
+
+	async->result = idm_drive_unlock(lock_id, host_id, lvb, lvb_size, drive);
+
+	pthread_mutex_lock(&idm_async_list_mutex);
+	*fd = idm_async_index;
+	async->fd = idm_async_index;
+	idm_async_index++;
+	list_add_tail(&async->list, &idm_async_list);
+	pthread_mutex_unlock(&idm_async_list_mutex);
+
+	return 0;
 }
 
 /**
@@ -554,6 +605,25 @@ out:
 	return ret;
 }
 
+int idm_drive_convert_lock_async(char *lock_id, int mode, char *host_id,
+				 char *drive, int *fd)
+{
+	struct idm_async_op *async;
+
+	async = malloc(sizeof(struct idm_async_op));
+
+	async->result = idm_drive_convert_lock(lock_id, mode, host_id, drive);
+
+	pthread_mutex_lock(&idm_async_list_mutex);
+	*fd = idm_async_index;
+	async->fd = idm_async_index;
+	idm_async_index++;
+	list_add_tail(&async->list, &idm_async_list);
+	pthread_mutex_unlock(&idm_async_list_mutex);
+
+	return 0;
+}
+
 /**
  * idm_drive_renew_lock - Renew host's membership for an IDM
  * @lock_id:		Lock ID (64 bytes).
@@ -606,6 +676,25 @@ out:
 	idm_host_put(idm, host_id);
 	idm_put(lock_id, drive);
 	return ret;
+}
+
+int idm_drive_renew_lock_async(char *lock_id, int mode,
+			       char *host_id, char *drive, int *fd)
+{
+	struct idm_async_op *async;
+
+	async = malloc(sizeof(struct idm_async_op));
+
+	async->result = idm_drive_renew_lock(lock_id, mode, host_id, drive);
+
+	pthread_mutex_lock(&idm_async_list_mutex);
+	*fd = idm_async_index;
+	async->fd = idm_async_index;
+	idm_async_index++;
+	list_add_tail(&async->list, &idm_async_list);
+	pthread_mutex_unlock(&idm_async_list_mutex);
+
+	return 0;
 }
 
 /**
@@ -718,6 +807,26 @@ fail_host:
 	return ret;
 }
 
+int idm_drive_break_lock_async(char *lock_id, int mode, char *host_id,
+			       char *drive, uint64_t timeout, int *fd)
+{
+	struct idm_async_op *async;
+
+	async = malloc(sizeof(struct idm_async_op));
+
+	async->result = idm_drive_break_lock(lock_id, mode, host_id,
+					     drive, timeout);
+
+	pthread_mutex_lock(&idm_async_list_mutex);
+	*fd = idm_async_index;
+	async->fd = idm_async_index;
+	idm_async_index++;
+	list_add_tail(&async->list, &idm_async_list);
+	pthread_mutex_unlock(&idm_async_list_mutex);
+
+	return 0;
+}
+
 /**
  * idm_drive_write_lvb - Write value block which is associated to an IDM.
  * @lock_id:		Lock ID (64 bytes).
@@ -775,6 +884,27 @@ out:
 	idm_put(lock_id, drive);
 	return ret;
 
+}
+
+int idm_drive_write_lvb_async(char *lock_id, char *host_id,
+			      void *lvb, int lvb_size,
+			      char *drive, int *fd)
+{
+	struct idm_async_op *async;
+
+	async = malloc(sizeof(struct idm_async_op));
+
+	async->result = idm_drive_write_lvb(lock_id, host_id,
+					    lvb, lvb_size,
+					    drive);
+
+	pthread_mutex_lock(&idm_async_list_mutex);
+	*fd = idm_async_index;
+	async->fd = idm_async_index;
+	idm_async_index++;
+	list_add_tail(&async->list, &idm_async_list);
+	pthread_mutex_unlock(&idm_async_list_mutex);
+	return 0;
 }
 
 /**
@@ -835,6 +965,75 @@ out:
 	return ret;
 }
 
+int idm_drive_read_lvb_async(char *lock_id, char *host_id,
+			     char *drive, int *fd)
+{
+	struct idm_async_op *async;
+
+	async = malloc(sizeof(struct idm_async_op));
+
+	async->result = idm_drive_read_lvb(lock_id, host_id,
+					   async->vb, IDM_VALUE_LEN,
+					   drive);
+
+	pthread_mutex_lock(&idm_async_list_mutex);
+	*fd = idm_async_index;
+	async->fd = idm_async_index;
+	idm_async_index++;
+	list_add_tail(&async->list, &idm_async_list);
+	pthread_mutex_unlock(&idm_async_list_mutex);
+	return 0;
+}
+
+int idm_drive_async_result(int fd, int *result)
+{
+	struct idm_async_op *async, *next;
+
+	ilm_log_dbg("%s: fd=%d", __func__, fd);
+
+	pthread_mutex_lock(&idm_async_list_mutex);
+
+	list_for_each_entry_safe(async, next, &idm_async_list, list) {
+
+		ilm_log_dbg("%s: list fd=%d", __func__, async->fd);
+
+		if (async->fd == fd) {
+			list_del(&async->list);
+			*result = async->result;
+			free(async);
+			pthread_mutex_unlock(&idm_async_list_mutex);
+			ilm_log_dbg("%s: foudn async result", __func__);
+			return 0;
+		}
+	}
+
+	pthread_mutex_unlock(&idm_async_list_mutex);
+	return -1;
+}
+
+int idm_drive_read_lvb_async_result(int fd, void *lvb, int lvb_size,
+				    int *result)
+{
+	struct idm_async_op *async, *next;
+
+	pthread_mutex_lock(&idm_async_list_mutex);
+
+	list_for_each_entry_safe(async, next, &idm_async_list, list) {
+
+		if (async->fd == fd) {
+			list_del(&async->list);
+			*result = async->result;
+			memcpy(lvb, async->vb, lvb_size);
+			free(async);
+			pthread_mutex_unlock(&idm_async_list_mutex);
+			return 0;
+		}
+	}
+
+	pthread_mutex_unlock(&idm_async_list_mutex);
+	return -1;
+}
+
 /**
  * idm_drive_lock_count - Read the user count for an IDM.
  * @lock_id:		Lock ID (64 bytes).
@@ -864,6 +1063,45 @@ int idm_drive_lock_count(char *lock_id, int *count, char *drive)
 	*count = idm_host_count(idm);
 	pthread_mutex_unlock(&idm->mutex);
 	idm_put(lock_id, drive);
+	return 0;
+}
+
+int idm_drive_lock_count_async(char *lock_id, char *drive, int *fd)
+{
+	struct idm_async_op *async;
+
+	async = malloc(sizeof(struct idm_async_op));
+
+	async->result = idm_drive_lock_count(lock_id, &async->count, drive);
+
+	pthread_mutex_lock(&idm_async_list_mutex);
+	*fd = idm_async_index;
+	async->fd = idm_async_index;
+	idm_async_index++;
+	list_add_tail(&async->list, &idm_async_list);
+	pthread_mutex_unlock(&idm_async_list_mutex);
+
+	return 0;
+}
+
+int idm_drive_lock_count_async_result(int fd, int *count, int *result)
+{
+	struct idm_async_op *async, *next;
+
+	pthread_mutex_lock(&idm_async_list_mutex);
+
+	list_for_each_entry_safe(async, next, &idm_async_list, list) {
+
+		if (async->fd == fd) {
+			list_del(&async->list);
+			*count = async->count;
+			*result = async->result;
+			free(async);
+			break;
+		}
+	}
+
+	pthread_mutex_unlock(&idm_async_list_mutex);
 	return 0;
 }
 
@@ -897,6 +1135,46 @@ int idm_drive_lock_mode(char *lock_id, int *mode, char *drive)
 	*mode = idm->mode;
 	pthread_mutex_unlock(&idm->mutex);
 	idm_put(lock_id, drive);
+	return 0;
+}
+
+int idm_drive_lock_mode_async(char *lock_id, char *drive, int *fd)
+{
+	struct idm_async_op *async;
+
+	async = malloc(sizeof(struct idm_async_op));
+
+	async->result = idm_drive_lock_mode(lock_id, &async->mode, drive);
+
+	pthread_mutex_lock(&idm_async_list_mutex);
+	*fd = idm_async_index;
+	async->fd = idm_async_index;
+	idm_async_index++;
+	list_add_tail(&async->list, &idm_async_list);
+	pthread_mutex_unlock(&idm_async_list_mutex);
+
+	return 0;
+}
+
+int idm_drive_lock_mode_async_result(int fd, int *mode, int *result)
+{
+	struct idm_async_op *async, *next;
+
+	pthread_mutex_lock(&idm_async_list_mutex);
+
+	list_for_each_entry_safe(async, next, &idm_async_list, list) {
+
+		if (async->fd == fd) {
+			list_del(&async->list);
+			*mode = async->mode;
+			*result = async->result;
+			free(async);
+			pthread_mutex_unlock(&idm_async_list_mutex);
+			return 0;
+		}
+	}
+
+	pthread_mutex_unlock(&idm_async_list_mutex);
 	return 0;
 }
 
