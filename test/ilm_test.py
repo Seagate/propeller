@@ -18,6 +18,18 @@ def test_lockspace(ilm_daemon):
     ret = ilm.ilm_disconnect(s)
     assert ret == 0
 
+def test_version(ilm_daemon):
+    ret, s = ilm.ilm_connect()
+    assert ret == 0
+    assert s > 0
+
+    ret, version = ilm.ilm_version(s, "/dev/sda1")
+    assert ret == 0
+    assert version == 0x100
+
+    ret = ilm.ilm_disconnect(s)
+    assert ret == 0
+
 def test_lock__shareable_smoke_test(ilm_daemon):
     ret, s = ilm.ilm_connect()
     assert ret == 0
