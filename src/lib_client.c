@@ -172,6 +172,42 @@ int ilm_disconnect(int sock)
 	return 0;
 }
 
+int ilm_version(int sock, char *drive, int *version)
+{
+	struct ilm_lock_payload payload;
+	char path[PATH_MAX];
+	int i, len, ret;
+
+	len = sizeof(struct ilm_lock_payload) + PATH_MAX;
+
+	ret = send_header(sock, ILM_CMD_VERSION, len);
+	if (ret < 0)
+		return ret;
+
+	memset(&payload, 0, sizeof(struct ilm_lock_payload));
+	payload.magic = ILM_LOCK_MAGIC;
+	payload.drive_num = 1;
+
+	ret = send_data(sock, &payload, sizeof(struct ilm_lock_payload), 0);
+	if (ret < 0)
+		return ret;
+
+	strncpy(path, drive, PATH_MAX);
+	ret = send_data(sock, path, PATH_MAX, 0);
+	if (ret < 0)
+		return ret;
+
+	ret = recv_result(sock);
+	if (ret < 0)
+		return ret;
+
+	ret = recv_data(sock, (char *)version, sizeof(int), 0);
+	if (ret < 0)
+		return ret;
+
+	return 0;
+}
+
 int ilm_lock(int sock, struct idm_lock_id *id, struct idm_lock_op *op)
 {
 	struct ilm_lock_payload payload;
