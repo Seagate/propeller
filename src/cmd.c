@@ -24,12 +24,19 @@
 #include "log.h"
 #include "util.h"
 
+#define ILM_MIN_WORKER_THREADS		2
+#define ILM_MAX_WORKER_THREADS		8
+
 struct ilm_cmd_queue {
 	int exit;
 	struct list_head list;
 	pthread_mutex_t mutex;
 	pthread_cond_t cond;
 	pthread_cond_t exit_wait;
+
+	int num_workers;
+	int max_workers;
+	int free_workers;
 };
 
 static struct ilm_cmd_queue cmd_queue;
@@ -238,8 +245,11 @@ static void *ilm_cmd_thread(void *data)
 	pthread_mutex_lock(&cmd_queue.mutex);
 
 	while (1) {
-		while (!cmd_queue.exit && list_empty(&cmd_queue.list))
+		while (!cmd_queue.exit && list_empty(&cmd_queue.list)) {
+			cmd_queue.free_workers++;
 			pthread_cond_wait(&cmd_queue.cond, &cmd_queue.mutex);
+			cmd_queue.free_workers--;
+		}
 
 		while (!list_empty(&cmd_queue.list)) {
 			cmd = list_first_entry(&cmd_queue.list,
@@ -257,7 +267,9 @@ static void *ilm_cmd_thread(void *data)
 			break;
 	}
 
-	pthread_cond_signal(&cmd_queue.exit_wait);
+	cmd_queue.num_workers--;
+	if (!cmd_queue.num_workers)
+		pthread_cond_signal(&cmd_queue.exit_wait);
 	pthread_mutex_unlock(&cmd_queue.mutex);
 
 	return NULL;
@@ -265,6 +277,9 @@ static void *ilm_cmd_thread(void *data)
 
 int ilm_cmd_queue_add_work(struct ilm_cmd *cmd)
 {
+	pthread_t th;
+	int ret;
+
 	pthread_mutex_lock(&cmd_queue.mutex);
 
 	if (cmd_queue.exit) {
@@ -273,6 +288,20 @@ int ilm_cmd_queue_add_work(struct ilm_cmd *cmd)
 	}
 
 	list_add_tail(&cmd->list, &cmd_queue.list);
+
+	if (!cmd_queue.free_workers &&
+	    cmd_queue.num_workers < ILM_MAX_WORKER_THREADS) {
+
+		ret = pthread_create(&th, NULL, ilm_cmd_thread,
+				     (void *)(long)cmd_queue.num_workers);
+		if (ret < 0) {
+			ilm_log_err("Fail to create thread for cmd queue\n");
+			list_del(&cmd->list);
+			pthread_mutex_unlock(&cmd_queue.mutex);
+			return ret;
+		}
+		cmd_queue.num_workers++;
+	}
 
 	pthread_cond_signal(&cmd_queue.cond);
 	pthread_mutex_unlock(&cmd_queue.mutex);
@@ -283,15 +312,17 @@ void ilm_cmd_queue_free(void)
 {
 	pthread_mutex_lock(&cmd_queue.mutex);
 	cmd_queue.exit = 1;
-	pthread_cond_broadcast(&cmd_queue.cond);
-	pthread_cond_wait(&cmd_queue.exit_wait, &cmd_queue.mutex);
+	if (cmd_queue.num_workers > 0) {
+		pthread_cond_broadcast(&cmd_queue.cond);
+		pthread_cond_wait(&cmd_queue.exit_wait, &cmd_queue.mutex);
+	}
 	pthread_mutex_unlock(&cmd_queue.mutex);
 }
 
 int ilm_cmd_queue_create(void)
 {
 	pthread_t th;
-	int ret;
+	int i, ret;
 
 	memset(&cmd_queue, 0, sizeof(cmd_queue));
 	INIT_LIST_HEAD(&cmd_queue.list);
@@ -299,9 +330,16 @@ int ilm_cmd_queue_create(void)
 	pthread_cond_init(&cmd_queue.cond, NULL);
 	pthread_cond_init(&cmd_queue.exit_wait, NULL);
 
-	ret = pthread_create(&th, NULL, ilm_cmd_thread, NULL);
+	for (i = 0; i < ILM_MIN_WORKER_THREADS; i++) {
+		ret = pthread_create(&th, NULL, ilm_cmd_thread,
+				     (void *)(long)cmd_queue.num_workers);
+		if (ret < 0)
+			ilm_log_err("Fail to create thread for cmd queue\n");
+		cmd_queue.num_workers++;
+	}
+
 	if (ret < 0)
-		ilm_log_err("Fail to create thread for cmd queue\n");
+		ilm_cmd_queue_free();
 
 	return ret;
 }
