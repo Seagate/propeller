@@ -326,6 +326,20 @@ static int idm_host_count(struct idm_emulation *idm)
 }
 
 /**
+ * idm_drive_version - Read out IDM version
+ * @version:		Lock mode (unlock, shareable, exclusive).
+ * @drive:		Drive path name.
+ *
+ * Returns zero or a negative error (ie. EINVAL, ENOMEM, EBUSY, etc).
+ */
+int idm_drive_version(int *version, char *drive)
+{
+	/* Current version 0.1.0 */
+	*version = ((0 << 16) | (1 << 8) | (0));
+	return 0;
+}
+
+/**
  * idm_drive_lock - acquire an IDM on a specified drive
  * @lock_id:		Lock ID (64 bytes).
  * @mode:		Lock mode (unlock, shareable, exclusive).

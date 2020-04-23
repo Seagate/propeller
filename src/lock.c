@@ -17,6 +17,7 @@
 
 #include "client.h"
 #include "cmd.h"
+#include "idm_wrapper.h"
 #include "list.h"
 #include "lockspace.h"
 #include "lock.h"
@@ -523,4 +524,43 @@ int ilm_lock_terminate(struct ilm_lockspace *ls, struct ilm_lock *lock)
 	free(lock);
 
 	return 0;
+}
+
+int ilm_lock_version(struct ilm_cmd *cmd, struct ilm_lockspace *ls)
+{
+	struct ilm_lock_payload payload;
+	char path[PATH_MAX];
+	int version, pos = 0, ret;
+
+	ret = ilm_lock_payload_read(cmd, &payload);
+	if (ret < 0)
+		goto out;
+	pos += ret;
+
+	if (payload.drive_num != 1) {
+	        ilm_log_err("%s: only can read version from single drive %d\n",
+			    __func__, payload.drive_num);
+		ret = -EINVAL;
+		goto out;
+	}
+
+	ret = recv(cmd->cl->fd, &path, sizeof(path), MSG_WAITALL);
+	if (ret <= 0) {
+		ilm_log_err("Fail to read out drive path\n");
+		goto out;
+	}
+	pos += ret;
+
+	ret = idm_drive_version(&version, path);
+	if (ret <= 0)
+		ilm_log_err("Fail to read out version\n");
+
+out:
+	ilm_client_recv_all(cmd->cl, cmd->sock_msg_len, pos);
+	if (!ret)
+		ilm_send_result(cmd->cl->fd, ret,
+				(char *)&version, sizeof(version));
+	else
+		ilm_send_result(cmd->cl->fd, ret, NULL, 0);
+	return ret;
 }

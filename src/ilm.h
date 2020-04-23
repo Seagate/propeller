@@ -32,6 +32,7 @@ struct idm_lock_op {
 uuid_t ilm_uuid;
 int ilm_connect(int *sock);
 int ilm_disconnect(int sock);
+int ilm_version(int sock, char *drive, int *version);
 int ilm_lock(int sock, struct idm_lock_id *id, struct idm_lock_op *op);
 int ilm_unlock(int sock, struct idm_lock_id *id);
 int ilm_convert(int sock, struct idm_lock_id *id, uint32_t mode);
