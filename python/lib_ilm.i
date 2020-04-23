@@ -9,6 +9,7 @@
 %apply int *OUTPUT { int *sock };
 %apply int *OUTPUT { int *count};
 %apply int *OUTPUT { int *mode };
+%apply int *OUTPUT { int *version };
 
 %{
 #define ILM_DRIVE_MAX_NUM       32
@@ -29,6 +30,7 @@ struct idm_lock_op {
 
 int ilm_connect(int *sock);
 int ilm_disconnect(int sock);
+int ilm_version(int sock, char *drive, int *version);
 int ilm_lock(int sock, struct idm_lock_id *id, struct idm_lock_op *op);
 int ilm_unlock(int sock, struct idm_lock_id *id);
 int ilm_convert(int sock, struct idm_lock_id *id, uint32_t mode);
@@ -66,6 +68,7 @@ struct idm_lock_op {
 
 int ilm_connect(int *sock);
 int ilm_disconnect(int sock);
+int ilm_version(int sock, char *drive, int *version);
 int ilm_lock(int sock, struct idm_lock_id *id, struct idm_lock_op *op);
 int ilm_unlock(int sock, struct idm_lock_id *id);
 int ilm_convert(int sock, struct idm_lock_id *id, uint32_t mode);

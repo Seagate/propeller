@@ -41,6 +41,15 @@ struct ilm_cmd_queue {
 
 static struct ilm_cmd_queue cmd_queue;
 
+static void ilm_cmd_version(struct ilm_cmd *cmd)
+{
+	int ret;
+
+	ret = ilm_lock_version(cmd, cmd->cl->ls);
+	if (ret < 0)
+		ilm_log_err("Fail to read version\n");
+}
+
 static void ilm_cmd_add_lockspace(struct ilm_cmd *cmd)
 {
 	int ret;
@@ -181,6 +190,9 @@ static void ilm_cmd_handle(struct ilm_cmd *cmd)
 	ilm_log_dbg("cmd=%d", cmd->cmd);
 
 	switch (cmd->cmd) {
+	case ILM_CMD_VERSION:
+		ilm_cmd_version(cmd);
+		break;
 	case ILM_CMD_ADD_LOCKSPACE:
 		ilm_cmd_add_lockspace(cmd);
 		break;

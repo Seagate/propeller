@@ -13,6 +13,7 @@ int idm_drive_init(char *lock_id, char *host_id, char *drive);
 int idm_drive_destroy(char *lock_id, char *host_id, char *drive);
 #endif
 
+int idm_drive_version(int *version, char *drive);
 int idm_drive_lock(char *lock_id, int mode, char *host_id,
                    char *drive, uint64_t timeout);
 int idm_drive_lock_async(char *lock_id, int mode, char *host_id,
