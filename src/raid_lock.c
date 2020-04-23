@@ -9,6 +9,7 @@
 
 #include <assert.h>
 #include <errno.h>
+#include <poll.h>
 #include <stdlib.h>
 #include <unistd.h>
 
@@ -21,10 +22,14 @@
 #include "string.h"
 #include "util.h"
 
+
 #define EALL				0xDEADBEAF
 
 /* Timeout 5s (5000ms) */
 #define ILM_MAJORITY_TIMEOUT		5000
+
+/* Poll timeout 1s (1000ms) */
+#define RAID_LOCK_POLL_INTERVAL		1000
 
 enum {
 	ILM_OP_LOCK = 0,
@@ -617,6 +622,9 @@ static void *idm_raid_thread(void *data)
 {
 	struct _raid_thread *raid_th = data;
 	struct _raid_request *req;
+	int process_num;
+	struct pollfd *poll_fd;
+	int i, ret;
 
 	pthread_mutex_lock(&raid_th->request_mutex);
 
@@ -625,12 +633,13 @@ static void *idm_raid_thread(void *data)
 			pthread_cond_wait(&raid_th->request_cond,
 					  &raid_th->request_mutex);
 
+		process_num = 0;
 		while (!list_empty(&raid_th->request_list)) {
 			req = list_first_entry(&raid_th->request_list,
 					       struct _raid_request, list);
 			list_del(&req->list);
 			list_add_tail(&req->list, &raid_th->process_list);
-
+			process_num++;
 			ilm_log_dbg("%s: move to process list [drive=%s]",
 				    __func__, req->drive->path);
 		}
@@ -642,29 +651,57 @@ static void *idm_raid_thread(void *data)
 			//_raid_dispatch_request(req);
 		}
 
+		poll_fd = malloc(sizeof(struct pollfd) * process_num);
+		if (!poll_fd) {
+			ilm_log_err("%s: cannot allcoate pollfd", __func__);
+			return NULL;
+		}
+
+		i = 0;
+		list_for_each_entry(req, &raid_th->process_list, list) {
+			poll_fd[i].fd = req->fd;
+			poll_fd[i].events = POLLIN;
+			i++;
+		}
+
 		while (!list_empty(&raid_th->process_list)) {
 #ifndef IDM_PTHREAD_EMULATION
-			/* TODO: Create POLL list */
+			ret = poll(poll_fd, process_num, RAID_LOCK_POLL_INTERVAL);
+			if (ret == -1 && errno == EINTR)
+				continue;
 #else
-			req = list_first_entry(&raid_th->process_list,
-					       struct _raid_request, list);
-
-			if (!req)
-				break;
-
-			_raid_read_result_async(req);
+			for (i = 0; i < process_num; i++)
+				poll_fd[i].revents = POLLIN;
 #endif
 
-			list_del(&req->list);
-			pthread_mutex_lock(&raid_th->response_mutex);
-			list_add_tail(&req->list, &raid_th->response_list);
+			for (i = 0; i < process_num; i++) {
 
-			ilm_log_dbg("%s: add to response list [drive=%s]",
-				    __func__, req->drive->path);
+				if (!poll_fd[i].revents & POLLIN)
+					continue;
 
-			pthread_cond_signal(&raid_th->response_cond);
-			pthread_mutex_unlock(&raid_th->response_mutex);
+				list_for_each_entry(req, &raid_th->process_list, list) {
+					if (req->fd == poll_fd[i].fd)
+						break;
+				}
+
+				_raid_read_result_async(req);
+
+				list_del(&req->list);
+
+				pthread_mutex_lock(&raid_th->response_mutex);
+				list_add_tail(&req->list, &raid_th->response_list);
+
+				ilm_log_dbg("%s: add to response list [drive=%s]",
+					    __func__, req->drive->path);
+
+				pthread_cond_signal(&raid_th->response_cond);
+				pthread_mutex_unlock(&raid_th->response_mutex);
+
+				poll_fd[i].revents = 0;
+			}
 		}
+
+		free(poll_fd);
 
 		pthread_mutex_lock(&raid_th->request_mutex);
 
