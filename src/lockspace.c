@@ -69,8 +69,10 @@ static void *ilm_lockspace_thread(void *data)
 
 		if (ls->failed == 1) {
 			if (!list_empty(&ls->lock_list))
-				ilm_log_warn("Failure has been handled ...");
-				ilm_log_warn("But lock still is not released");
+				ilm_log_warn("%s: renewal failure has been detected ...",
+					     __func__);
+				ilm_log_warn("%s: but lock still is not released",
+					     __func__);
 			ls->failed++;
 		}
 
@@ -87,24 +89,33 @@ static void *ilm_lockspace_thread(void *data)
 
 			now = ilm_curr_time();
 
+			pthread_mutex_lock(&lock->mutex);
+
 			/*
 			 * If an IDM has been added into lock list but has not
 			 * been acquired the raid lock yet, its renewal_success
 			 * is zero, so skip to renew it.
-			 *
+			 */
+			if (!lock->last_renewal_success) {
+				pthread_mutex_unlock(&lock->mutex);
+				break;
+			}
+
+			/*
 			 * If an IDM has been failed to renew for more than
 			 * IDM_QUIESCENT_PERIOD, the lock manager will stop
 			 * to try to renew it anymore.
 			 */
-			pthread_mutex_lock(&lock->mutex);
-			if (!lock->last_renewal_success ||
-			    now > lock->last_renewal_success +
+			if (now > lock->last_renewal_success +
 					IDM_QUIESCENT_PERIOD) {
 				pthread_mutex_unlock(&lock->mutex);
 				ilm_failure_handler(ls);
 				ls->failed = 1;
-				goto sleep_loop;
+				ilm_log_dbg("%s: has sent kill path or signal",
+					     __func__);
+				break;
 			}
+
 			pthread_mutex_unlock(&lock->mutex);
 
 			ret = idm_raid_renew_lock(lock, ls->host_id);
