@@ -20,8 +20,10 @@ def start_daemon():
            "-D", "1",
            # don't use mlockall
            "-l", "0",
-           # Log level is LOG_DEBUG
-           "-L", "7"]
+           # Log level is LOG_WARNING
+           "-L", "4",
+           # stderr level is LOG_WARNING
+           "-E", "4",]
     return subprocess.Popen(cmd)
 
 def wait_for_daemon(timeout):
