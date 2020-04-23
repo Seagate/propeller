@@ -506,12 +506,11 @@ static int idm_raid_state_transition(struct _raid_request *req)
 	return 0;
 }
 
-static int idm_raid_send_request(struct _raid_thread *raid_th,
+static int idm_raid_add_request(struct _raid_thread *raid_th,
 				 struct _raid_request *req,
 				 int renew)
 {
 	struct ilm_drive *drive = req->drive;
-
 
 	req->op = _raid_state_find_op(drive->state, req->op);
 
@@ -526,7 +525,6 @@ static int idm_raid_send_request(struct _raid_thread *raid_th,
 
 	ilm_log_dbg("%s: request [drive=%s]", __func__, drive->path);
 
-	pthread_cond_signal(&raid_th->request_cond);
 	pthread_mutex_unlock(&raid_th->request_mutex);
 
 	if (renew) {
@@ -539,6 +537,19 @@ static int idm_raid_send_request(struct _raid_thread *raid_th,
 	}
 
 	return 0;
+}
+
+static void idm_raid_signal_request(struct _raid_thread *raid_th, int renew)
+{
+	if (renew && !raid_th->renew_count)
+		return;
+
+	if (!renew && !raid_th->count)
+		return;
+
+	pthread_mutex_lock(&raid_th->request_mutex);
+	pthread_cond_signal(&raid_th->request_cond);
+	pthread_mutex_unlock(&raid_th->request_mutex);
 }
 
 static struct _raid_request *
@@ -753,8 +764,10 @@ static void idm_raid_multi_issue(struct ilm_lock *lock, char *host_id,
 		req->lvb = drive->vb;
 		req->lvb_size = IDM_VALUE_LEN;
 
-		idm_raid_send_request(lock->raid_th, req, renew);
+		idm_raid_add_request(lock->raid_th, req, renew);
 	}
+
+	idm_raid_signal_request(lock->raid_th, renew);
 
 	while (req = idm_raid_wait(lock->raid_th, renew)) {
 		idm_raid_state_transition(req);
@@ -770,7 +783,8 @@ static void idm_raid_multi_issue(struct ilm_lock *lock, char *host_id,
 			continue;
 		}
 
-		idm_raid_send_request(lock->raid_th, req, renew);
+		idm_raid_add_request(lock->raid_th, req, renew);
+		idm_raid_signal_request(lock->raid_th, renew);
 	}
 
 	return;
