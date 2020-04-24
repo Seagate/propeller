@@ -49,6 +49,7 @@ enum {
 	IDM_DUPLICATE,
 	IDM_LOCK,
 	IDM_TIMEOUT,
+	IDM_FAULT,
 };
 
 struct _raid_state_transition {
@@ -232,6 +233,16 @@ struct _raid_state_transition state_transition[] = {
 	},
 
 	/*
+	 * The membership is fault (e.g. the lock mode is not consistent),
+	 * transit to IDM_FAULT state.
+	 */
+	{
+		.curr	= IDM_LOCK,
+		.result	= -EFAULT,
+		.next	= IDM_FAULT,
+	},
+
+	/*
 	 * This is a special case which is used for the normal unlock flow.
 	 */
 	{
@@ -254,6 +265,15 @@ struct _raid_state_transition state_transition[] = {
 	 */
 	{
 		.curr	= IDM_TIMEOUT,
+		.result	= -EALL,
+		.next	= IDM_INIT,
+	},
+
+	/*
+	 * This is used for unlocking an IDM after fault.
+	 */
+	{
+		.curr	= IDM_FAULT,
 		.result	= -EALL,
 		.next	= IDM_INIT,
 	},
@@ -446,6 +466,9 @@ static int _raid_state_find_op(int state, int func)
 		op = func;
 		break;
 	case IDM_TIMEOUT:
+		op = ILM_OP_UNLOCK;
+		break;
+	case IDM_FAULT:
 		op = ILM_OP_UNLOCK;
 		break;
 	default:
