@@ -79,6 +79,8 @@ struct _raid_request {
 struct _raid_thread {
 	pthread_t th;
 
+	int init;
+
 	int exit;
 	pthread_cond_t exit_wait;
 
@@ -646,6 +648,8 @@ static void *idm_raid_thread(void *data)
 	struct pollfd *poll_fd;
 	int i, ret;
 
+	raid_th->init = 1;
+
 	pthread_mutex_lock(&raid_th->request_mutex);
 
 	while (1) {
@@ -770,6 +774,15 @@ int idm_raid_thread_create(struct _raid_thread **rth)
 		free(raid_th);
 		return ret;
 	}
+
+	/*
+	 * Wait for raid thread's launching, otherwise it has small
+	 * chance to send lock operations before the raid thread has
+	 * been ready.  Thus the raid thread cannot receive signal
+	 * and cause the stall issue.
+	 */
+	while (!raid_th->init)
+		usleep(10);
 
 	*rth = raid_th;
 	return 0;
