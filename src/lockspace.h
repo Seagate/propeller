@@ -39,6 +39,8 @@ int ilm_lockspace_set_host_id(struct ilm_cmd *cmd, struct ilm_lockspace *ilm_ls)
 int ilm_lockspace_add_lock(struct ilm_lockspace *ls,
 			   struct ilm_lock *lock);
 int ilm_lockspace_del_lock(struct ilm_lockspace *ls, struct ilm_lock *lock);
+int ilm_lockspace_start_lock(struct ilm_lockspace *ls, struct ilm_lock *lock);
+int ilm_lockspace_stop_lock(struct ilm_lockspace *ls, struct ilm_lock *lock);
 int ilm_lockspace_set_signal(struct ilm_cmd *cmd, struct ilm_lockspace *ls);
 int ilm_lockspace_set_killpath(struct ilm_cmd *cmd, struct ilm_lockspace *ls);
 int ilm_lockspace_find_lock(struct ilm_lockspace *ls, char *lock_uuid,
