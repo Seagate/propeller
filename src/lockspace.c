@@ -89,17 +89,13 @@ static void *ilm_lockspace_thread(void *data)
 
 			now = ilm_curr_time();
 
-			pthread_mutex_lock(&lock->mutex);
-
 			/*
 			 * If an IDM has been added into lock list but has not
 			 * been acquired the raid lock yet, its renewal_success
 			 * is zero, so skip to renew it.
 			 */
-			if (!lock->last_renewal_success) {
-				pthread_mutex_unlock(&lock->mutex);
-				break;
-			}
+			if (!lock->last_renewal_success)
+				continue;
 
 			/*
 			 * If an IDM has been failed to renew for more than
@@ -108,22 +104,16 @@ static void *ilm_lockspace_thread(void *data)
 			 */
 			if (now > lock->last_renewal_success +
 					IDM_QUIESCENT_PERIOD) {
-				pthread_mutex_unlock(&lock->mutex);
 				ilm_failure_handler(ls);
 				ls->failed = 1;
 				ilm_log_dbg("%s: has sent kill path or signal",
 					     __func__);
-				break;
+				continue;
 			}
-
-			pthread_mutex_unlock(&lock->mutex);
 
 			ret = idm_raid_renew_lock(lock, ls->host_id);
-			if (!ret) {
-				pthread_mutex_lock(&lock->mutex);
+			if (!ret)
 				lock->last_renewal_success = ilm_curr_time();
-				pthread_mutex_unlock(&lock->mutex);
-			}
 		}
 
 sleep_loop:
@@ -166,16 +156,28 @@ int ilm_lockspace_create(struct ilm_cmd *cmd, struct ilm_lockspace **ls_out)
 		goto fail;
 	}
 
+	ret = idm_raid_thread_create(&ilm_ls->raid_thd);
+	if (ret < 0) {
+		ilm_log_err("%s: create raid thread failed", __func__);
+		goto fail_raid_thd;
+	}
+
 	*ls_out = ilm_ls;
 	ilm_send_result(cmd->cl->fd, 0, NULL, 0);
 	return 0;
 
+fail_raid_thd:
+	pthread_mutex_lock(&ilm_ls->mutex);
+	ilm_ls->exit = 1;
+	pthread_mutex_unlock(&ilm_ls->mutex);
+	pthread_join(ilm_ls->thd, NULL);
 fail:
 	pthread_mutex_lock(&ls_mutex);
 	list_del(&ilm_ls->list);
 	pthread_mutex_unlock(&ls_mutex);
 
 	free(ilm_ls);
+	ilm_send_result(cmd->cl->fd, ret, NULL, 0);
 	return -1;
 }
 
@@ -197,6 +199,8 @@ int ilm_lockspace_delete(struct ilm_cmd *cmd, struct ilm_lockspace *ilm_ls)
 	pthread_mutex_lock(&ls_mutex);
 	list_del(&ilm_ls->list);
 	pthread_mutex_unlock(&ls_mutex);
+
+	idm_raid_thread_free(ilm_ls->raid_thd);
 
 	if (ilm_ls->kill_path)
 		free(ilm_ls->kill_path);
@@ -236,6 +240,40 @@ int ilm_lockspace_del_lock(struct ilm_lockspace *ls, struct ilm_lock *lock)
 
 	pthread_mutex_lock(&ls->mutex);
 	list_del(&lock->list);
+	pthread_mutex_unlock(&ls->mutex);
+
+	return 0;
+}
+
+int ilm_lockspace_start_lock(struct ilm_lockspace *ls,
+			     struct ilm_lock *lock)
+{
+	int ret;
+
+	if (!_ls_is_valid(ls)) {
+		ilm_log_err("%s: lockspace is invalid\n", __func__);
+		return -1;
+	}
+
+	pthread_mutex_lock(&ls->mutex);
+	lock->last_renewal_success = ilm_curr_time();
+	pthread_mutex_unlock(&ls->mutex);
+
+	return 0;
+}
+
+int ilm_lockspace_stop_lock(struct ilm_lockspace *ls,
+			    struct ilm_lock *lock)
+{
+	int ret;
+
+	if (!_ls_is_valid(ls)) {
+		ilm_log_err("%s: lockspace is invalid\n", __func__);
+		return -1;
+	}
+
+	pthread_mutex_lock(&ls->mutex);
+	lock->last_renewal_success = 0;
 	pthread_mutex_unlock(&ls->mutex);
 
 	return 0;
@@ -444,6 +482,8 @@ int ilm_lockspace_terminate(struct ilm_lockspace *ls)
 	pthread_mutex_lock(&ls_mutex);
 	list_del(&ls->list);
 	pthread_mutex_unlock(&ls_mutex);
+
+	idm_raid_thread_free(ls->raid_thd);
 
 	if (ls->kill_path)
 		free(ls->kill_path);

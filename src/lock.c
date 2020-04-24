@@ -152,14 +152,9 @@ static struct ilm_lock *ilm_alloc(struct ilm_cmd *cmd,
 	if (ret < 0)
 		goto drive_fail;
 
-	ret = idm_raid_thread_create(&lock->raid_th);
-	if (ret < 0)
-		goto raid_thread_fail;
-
+	lock->raid_th = ls->raid_thd;
 	return lock;
 
-raid_thread_fail:
-	ilm_lockspace_del_lock(ls, lock);
 drive_fail:
 	for (i = 0; i < copied; i++)
 		free(lock->drive[i].path);
@@ -170,8 +165,6 @@ drive_fail:
 static int ilm_free(struct ilm_lockspace *ls, struct ilm_lock *lock)
 {
 	int ret;
-
-	idm_raid_thread_free(lock->raid_th);
 
 	ret = ilm_lockspace_del_lock(ls, lock);
 	if (ret < 0)
@@ -244,12 +237,10 @@ int ilm_lock_acquire(struct ilm_cmd *cmd, struct ilm_lockspace *ls)
 	if (ret) {
 	        ilm_log_err("Fail to acquire raid lock %d\n", ret);
 		ilm_free(ls, lock);
-	} else {
-		pthread_mutex_lock(&lock->mutex);
-		lock->last_renewal_success = ilm_curr_time();
-		pthread_mutex_unlock(&lock->mutex);
+		goto out;
 	}
 
+	ilm_lockspace_start_lock(ls, lock);
 out:
 	ilm_client_recv_all(cmd->cl, cmd->sock_msg_len, pos);
 	ilm_send_result(cmd->cl->fd, ret, NULL, 0);
@@ -274,6 +265,8 @@ int ilm_lock_release(struct ilm_cmd *cmd, struct ilm_lockspace *ls)
 	}
 
 	ilm_lock_dump("lock_release", lock);
+
+	ilm_lockspace_stop_lock(ls, lock);
 
 	ret = idm_raid_unlock(lock, ls->host_id);
 

@@ -18,3 +18,8 @@ def test_killpath(ilm_daemon):
     process = subprocess.Popen("./killpath_test", shell=True, stdout=subprocess.PIPE)
     process.wait()
     assert process.returncode == 0
+
+def test_multi_threads(ilm_daemon):
+    process = subprocess.Popen("./stress_test", shell=True, stdout=subprocess.PIPE)
+    process.wait()
+    assert process.returncode == 0
