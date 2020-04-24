@@ -19,6 +19,8 @@ struct ilm_lockspace {
 	pthread_t thd;
 	pthread_mutex_t mutex;
 
+	struct _raid_thread *raid_thd;
+
 	char *kill_path;
 	char *kill_args;
 	int kill_pid;

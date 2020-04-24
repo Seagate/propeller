@@ -166,16 +166,28 @@ int ilm_lockspace_create(struct ilm_cmd *cmd, struct ilm_lockspace **ls_out)
 		goto fail;
 	}
 
+	ret = idm_raid_thread_create(&ilm_ls->raid_thd);
+	if (ret < 0) {
+		ilm_log_err("%s: create raid thread failed", __func__);
+		goto fail_raid_thd;
+	}
+
 	*ls_out = ilm_ls;
 	ilm_send_result(cmd->cl->fd, 0, NULL, 0);
 	return 0;
 
+fail_raid_thd:
+	pthread_mutex_lock(&ilm_ls->mutex);
+	ilm_ls->exit = 1;
+	pthread_mutex_unlock(&ilm_ls->mutex);
+	pthread_join(ilm_ls->thd, NULL);
 fail:
 	pthread_mutex_lock(&ls_mutex);
 	list_del(&ilm_ls->list);
 	pthread_mutex_unlock(&ls_mutex);
 
 	free(ilm_ls);
+	ilm_send_result(cmd->cl->fd, ret, NULL, 0);
 	return -1;
 }
 
@@ -197,6 +209,8 @@ int ilm_lockspace_delete(struct ilm_cmd *cmd, struct ilm_lockspace *ilm_ls)
 	pthread_mutex_lock(&ls_mutex);
 	list_del(&ilm_ls->list);
 	pthread_mutex_unlock(&ls_mutex);
+
+	idm_raid_thread_free(ilm_ls->raid_thd);
 
 	if (ilm_ls->kill_path)
 		free(ilm_ls->kill_path);
