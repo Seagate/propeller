@@ -240,7 +240,7 @@ int ilm_lock_acquire(struct ilm_cmd *cmd, struct ilm_lockspace *ls)
 		goto out;
 	}
 
-	ilm_lockspace_start_lock(ls, lock);
+	ilm_lockspace_start_lock(ls, lock, ilm_curr_time());
 out:
 	ilm_client_recv_all(cmd->cl, cmd->sock_msg_len, pos);
 	ilm_send_result(cmd->cl->fd, ret, NULL, 0);
@@ -266,7 +266,7 @@ int ilm_lock_release(struct ilm_cmd *cmd, struct ilm_lockspace *ls)
 
 	ilm_lock_dump("lock_release", lock);
 
-	ilm_lockspace_stop_lock(ls, lock);
+	ilm_lockspace_stop_lock(ls, lock, NULL);
 
 	ret = idm_raid_unlock(lock, ls->host_id);
 
@@ -280,6 +280,7 @@ int ilm_lock_convert_mode(struct ilm_cmd *cmd, struct ilm_lockspace *ls)
 {
 	struct ilm_lock_payload payload;
 	struct ilm_lock *lock;
+	uint64_t time;
 	int ret;
 
 	ret = ilm_lock_payload_read(cmd, &payload);
@@ -296,6 +297,15 @@ int ilm_lock_convert_mode(struct ilm_cmd *cmd, struct ilm_lockspace *ls)
 	ilm_lock_dump("lock_convert", lock);
 	ilm_log_dbg("new mode %d", payload.mode);
 
+	/*
+	 * IDM uses the same operation "refresh" for both converting lock mode
+	 * and renewal lock, for this reason is might cause the interleave
+	 * commands which is invoked by two threads (one thread is for
+	 * converting mode and another thread is for renewal), so disable the
+	 * lock renewal temporarily during converting the lock mode.
+	 */
+	ilm_lockspace_stop_lock(ls, lock, &time);
+
 	ret = idm_raid_convert_lock(lock, ls->host_id, payload.mode);
 	if (ret)
 	        ilm_log_err("Fail to convert raid lock %d mode %d vs %d\n",
@@ -307,6 +317,8 @@ int ilm_lock_convert_mode(struct ilm_cmd *cmd, struct ilm_lockspace *ls)
 		pthread_mutex_unlock(&lock->mutex);
 	}
 
+	/* Restart the lock renewal */
+	ilm_lockspace_start_lock(ls, lock, time);
 out:
 	ilm_send_result(cmd->cl->fd, ret, NULL, 0);
 	return ret;

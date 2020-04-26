@@ -246,7 +246,8 @@ int ilm_lockspace_del_lock(struct ilm_lockspace *ls, struct ilm_lock *lock)
 }
 
 int ilm_lockspace_start_lock(struct ilm_lockspace *ls,
-			     struct ilm_lock *lock)
+			     struct ilm_lock *lock,
+			     uint64_t time)
 {
 	int ret;
 
@@ -256,14 +257,15 @@ int ilm_lockspace_start_lock(struct ilm_lockspace *ls,
 	}
 
 	pthread_mutex_lock(&ls->mutex);
-	lock->last_renewal_success = ilm_curr_time();
+	lock->last_renewal_success = time;
 	pthread_mutex_unlock(&ls->mutex);
 
 	return 0;
 }
 
 int ilm_lockspace_stop_lock(struct ilm_lockspace *ls,
-			    struct ilm_lock *lock)
+			    struct ilm_lock *lock,
+			    uint64_t *time)
 {
 	int ret;
 
@@ -273,6 +275,8 @@ int ilm_lockspace_stop_lock(struct ilm_lockspace *ls,
 	}
 
 	pthread_mutex_lock(&ls->mutex);
+	if (time)
+		*time = lock->last_renewal_success;
 	lock->last_renewal_success = 0;
 	pthread_mutex_unlock(&ls->mutex);
 
