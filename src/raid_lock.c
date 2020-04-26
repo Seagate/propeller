@@ -290,6 +290,7 @@ static int _raid_dispatch_request(struct _raid_request *req)
 
 	switch (req->op) {
 	case ILM_OP_LOCK:
+		drive->is_brk = 0;
 		ret = idm_drive_lock(lock->id, req->mode, req->host_id,
 				     drive->path, lock->timeout);
 		break;
@@ -304,6 +305,8 @@ static int _raid_dispatch_request(struct _raid_request *req)
 	case ILM_OP_BREAK:
 		ret = idm_drive_break_lock(lock->id, req->mode, req->host_id,
 					   drive->path, lock->timeout);
+		if (!ret)
+			drive->is_brk = 1;
 		break;
 	case ILM_OP_RENEW:
 		ret = idm_drive_renew_lock(lock->id, req->mode, req->host_id,
@@ -341,6 +344,7 @@ static int _raid_dispatch_request_async(struct _raid_request *req)
 
 	switch (req->op) {
 	case ILM_OP_LOCK:
+		drive->is_brk = 0;
 		ret = idm_drive_lock_async(lock->id, req->mode, req->host_id,
 					   drive->path, lock->timeout, &fd);
 		break;
@@ -395,9 +399,13 @@ static int _raid_read_result_async(struct _raid_request *req)
 	case ILM_OP_LOCK:
 	case ILM_OP_UNLOCK:
 	case ILM_OP_CONVERT:
-	case ILM_OP_BREAK:
 	case ILM_OP_RENEW:
 		ret = idm_drive_async_result(req->fd, &req->result);
+		break;
+	case ILM_OP_BREAK:
+		ret = idm_drive_async_result(req->fd, &req->result);
+		if (!ret)
+			drive->is_brk = 1;
 		break;
 	case ILM_OP_READ_LVB:
 		ret = idm_drive_read_lvb_async_result(req->fd, req->lvb,
@@ -1126,6 +1134,27 @@ int idm_raid_read_lvb(struct ilm_lock *lock, char *host_id,
 	ilm_raid_lock_dump("Enter raid_read_lvb", lock);
 
 	assert(lvb_size == sizeof(uint64_t));
+
+	for (i = 0; i < lock->drive_num; i++) {
+		drive = &lock->drive[i];
+
+		if (drive->is_brk == 1) {
+			/*
+			 * If find any IDM is broken when acquire it, though the
+			 * mutex has been granted but its VB cannot be trusted,
+			 * the reason is if a prior host has acquired the same
+			 * mutex but this prior host has no chance to update VB
+			 * into drive due to drive failures.
+			 *
+			 * To safely reslove this issue, set a reserved value
+			 * -1ULL and pass it to lvmlockd; lvmlockd will handle
+			 * this special value to force invalidating metadata.
+			 */
+			max_vb = -1ULL;
+			memcpy(lvb, (char *)&max_vb, sizeof(uint64_t));
+			return 0;
+		}
+	}
 
 	do {
 		idm_raid_multi_issue(lock, host_id, ILM_OP_READ_LVB, lock->mode, 0);
