@@ -431,6 +431,17 @@ fail_idm:
 	return ret;
 }
 
+/**
+ * idm_drive_lock_async - acquire an IDM on a specified drive with async mode
+ * @lock_id:		Lock ID (64 bytes).
+ * @mode:		Lock mode (unlock, shareable, exclusive).
+ * @host_id:		Host ID (32 bytes).
+ * @drive:		Drive path name.
+ * @timeout:		Timeout for membership (unit: millisecond).
+ * @fd:			File descriptor (emulated with an index).
+ *
+ * Returns zero or a negative error (ie. EINVAL, ENOMEM, EBUSY, etc).
+ */
 int idm_drive_lock_async(char *lock_id, int mode, char *host_id,
 			 char *drive, uint64_t timeout, int *fd)
 {
@@ -454,6 +465,8 @@ int idm_drive_lock_async(char *lock_id, int mode, char *host_id,
  * idm_drive_unlock - release an IDM on a specified drive
  * @lock_id:		Lock ID (64 bytes).
  * @host_id:		Host ID (32 bytes).
+ * @lvb:		Lock value block pointer.
+ * @lvb_size:		Lock value block size.
  * @drive:		Drive path name.
  *
  * Returns zero or a negative error (ie. EINVAL, ETIME).
@@ -513,6 +526,17 @@ int idm_drive_unlock(char *lock_id, char *host_id,
 	return ret;
 }
 
+/**
+ * idm_drive_unlock_async - release an IDM on a specified drive with async mode
+ * @lock_id:		Lock ID (64 bytes).
+ * @host_id:		Host ID (32 bytes).
+ * @lvb:		Lock value block pointer.
+ * @lvb_size:		Lock value block size.
+ * @drive:		Drive path name.
+ * @fd:			File descriptor (emulated with index).
+ *
+ * Returns zero or a negative error (ie. EINVAL, ETIME).
+ */
 int idm_drive_unlock_async(char *lock_id, char *host_id,
 			   void *lvb, int lvb_size, char *drive, int *fd)
 {
@@ -541,8 +565,7 @@ int idm_drive_unlock_async(char *lock_id, char *host_id,
  *
  * Returns zero or a negative error (ie. EINVAL, ETIME).
  */
-int idm_drive_convert_lock(char *lock_id, int mode,
-                           char *host_id, char *drive)
+int idm_drive_convert_lock(char *lock_id, int mode, char *host_id, char *drive)
 {
 	struct idm_emulation *idm;
 	struct idm_host *host;
@@ -619,6 +642,16 @@ out:
 	return ret;
 }
 
+/**
+ * idm_drive_convert_lock_async - Convert the lock mode with async
+ * @lock_id:		Lock ID (64 bytes).
+ * @mode:		Lock mode (unlock, shareable, exclusive).
+ * @host_id:		Host ID (32 bytes).
+ * @drive:		Drive path name.
+ * @fd:			File descriptor (emulated with index).
+ *
+ * Returns zero or a negative error (ie. EINVAL, ETIME).
+ */
 int idm_drive_convert_lock_async(char *lock_id, int mode, char *host_id,
 				 char *drive, int *fd)
 {
@@ -647,8 +680,7 @@ int idm_drive_convert_lock_async(char *lock_id, int mode, char *host_id,
  *
  * Returns zero or a negative error (ie. EINVAL, ETIME).
  */
-int idm_drive_renew_lock(char *lock_id, int mode,
-                         char *host_id, char *drive)
+int idm_drive_renew_lock(char *lock_id, int mode, char *host_id, char *drive)
 {
 	struct idm_emulation *idm;
 	struct idm_host *host;
@@ -692,6 +724,17 @@ out:
 	return ret;
 }
 
+/**
+ * idm_drive_renew_lock_async - Renew host's membership for an IDM
+ * 				with async mode
+ * @lock_id:		Lock ID (64 bytes).
+ * @mode:		Lock mode (unlock, shareable, exclusive).
+ * @host_id:		Host ID (32 bytes).
+ * @drive:		Drive path name.
+ * @fd:			File descriptor (emulated with index).
+ *
+ * Returns zero or a negative error (ie. EINVAL, ETIME).
+ */
 int idm_drive_renew_lock_async(char *lock_id, int mode,
 			       char *host_id, char *drive, int *fd)
 {
@@ -821,6 +864,17 @@ fail_host:
 	return ret;
 }
 
+/**
+ * idm_drive_break_lock_async - Break an IDM with async mode.
+ * @lock_id:		Lock ID (64 bytes).
+ * @mode:		Lock mode (unlock, shareable, exclusive).
+ * @host_id:		Host ID (32 bytes).
+ * @drive:		Drive path name.
+ * @timeout:		Timeout for membership (unit: millisecond).
+ * @fd:			File descriptor (emulated in index).
+ *
+ * Returns zero or a negative error (ie. EINVAL).
+ */
 int idm_drive_break_lock_async(char *lock_id, int mode, char *host_id,
 			       char *drive, uint64_t timeout, int *fd)
 {
@@ -900,6 +954,16 @@ out:
 
 }
 
+/**
+ * idm_drive_write_lvb_async - Write value block with async mode.
+ * @lock_id:		Lock ID (64 bytes).
+ * @lvb:		Lock value block pointer.
+ * @lvb_size:		Lock value block size.
+ * @drive:		Drive path name.
+ * @fd:			File descriptor (emulated in index).
+ *
+ * Returns zero or a negative error (ie. EINVAL).
+ */
 int idm_drive_write_lvb_async(char *lock_id, char *host_id,
 			      void *lvb, int lvb_size,
 			      char *drive, int *fd)
@@ -979,8 +1043,17 @@ out:
 	return ret;
 }
 
-int idm_drive_read_lvb_async(char *lock_id, char *host_id,
-			     char *drive, int *fd)
+/**
+ * idm_drive_read_lvb_async - Read value block with async mode.
+ * @lock_id:		Lock ID (64 bytes).
+ * @lvb:		Lock value block pointer.
+ * @lvb_size:		Lock value block size.
+ * @drive:		Drive path name.
+ * @fd:			File descriptor (emulated with index).
+ *
+ * Returns zero or a negative error (ie. EINVAL).
+ */
+int idm_drive_read_lvb_async(char *lock_id, char *host_id, char *drive, int *fd)
 {
 	struct idm_async_op *async;
 
@@ -999,32 +1072,16 @@ int idm_drive_read_lvb_async(char *lock_id, char *host_id,
 	return 0;
 }
 
-int idm_drive_async_result(int fd, int *result)
-{
-	struct idm_async_op *async, *next;
-
-	ilm_log_dbg("%s: fd=%d", __func__, fd);
-
-	pthread_mutex_lock(&idm_async_list_mutex);
-
-	list_for_each_entry_safe(async, next, &idm_async_list, list) {
-
-		ilm_log_dbg("%s: list fd=%d", __func__, async->fd);
-
-		if (async->fd == fd) {
-			list_del(&async->list);
-			*result = async->result;
-			free(async);
-			pthread_mutex_unlock(&idm_async_list_mutex);
-			ilm_log_dbg("%s: foudn async result", __func__);
-			return 0;
-		}
-	}
-
-	pthread_mutex_unlock(&idm_async_list_mutex);
-	return -1;
-}
-
+/**
+ * idm_drive_read_lvb_async_result - Read the result for read_lvb operation with
+ * 				     async mode.
+ * @fd:			File descriptor (emulated with index).
+ * @lvb:		Lock value block pointer.
+ * @lvb_size:		Lock value block size.
+ * @result:		Returned result for the operation.
+ *
+ * Returns zero or a negative error (ie. EINVAL).
+ */
 int idm_drive_read_lvb_async_result(int fd, void *lvb, int lvb_size,
 				    int *result)
 {
@@ -1049,7 +1106,7 @@ int idm_drive_read_lvb_async_result(int fd, void *lvb, int lvb_size,
 }
 
 /**
- * idm_drive_lock_count - Read the user count for an IDM.
+ * idm_drive_lock_count - Read the host count for an IDM.
  * @lock_id:		Lock ID (64 bytes).
  * @count:		Returned count value's pointer.
  * @drive:		Drive path name.
@@ -1080,6 +1137,14 @@ int idm_drive_lock_count(char *lock_id, int *count, char *drive)
 	return 0;
 }
 
+/**
+ * idm_drive_lock_count_async - Read the host count for an IDM with async mode.
+ * @lock_id:		Lock ID (64 bytes).
+ * @drive:		Drive path name.
+ * @fd:			File descriptor (emulated with index).
+ *
+ * Returns zero or a negative error (ie. EINVAL).
+ */
 int idm_drive_lock_count_async(char *lock_id, char *drive, int *fd)
 {
 	struct idm_async_op *async;
@@ -1098,6 +1163,14 @@ int idm_drive_lock_count_async(char *lock_id, char *drive, int *fd)
 	return 0;
 }
 
+/**
+ * idm_drive_lock_count_async_result - Read the result for host count.
+ * @fd:			File descriptor (emulated with index).
+ * @count:		Returned count value's pointer.
+ * @result:		Returned result for the operation.
+ *
+ * Returns zero or a negative error (ie. EINVAL).
+ */
 int idm_drive_lock_count_async_result(int fd, int *count, int *result)
 {
 	struct idm_async_op *async, *next;
@@ -1152,6 +1225,14 @@ int idm_drive_lock_mode(char *lock_id, int *mode, char *drive)
 	return 0;
 }
 
+/**
+ * idm_drive_lock_mode_async - Read an IDM's mode with async mode.
+ * @lock_id:		Lock ID (64 bytes).
+ * @drive:		Drive path name.
+ * @fd:			File descriptor (emulated with index).
+ *
+ * Returns zero or a negative error (ie. EINVAL).
+ */
 int idm_drive_lock_mode_async(char *lock_id, char *drive, int *fd)
 {
 	struct idm_async_op *async;
@@ -1170,6 +1251,14 @@ int idm_drive_lock_mode_async(char *lock_id, char *drive, int *fd)
 	return 0;
 }
 
+/**
+ * idm_drive_lock_mode_async_result - Read the result for lock mode.
+ * @fd:			File descriptor (emulated with index).
+ * @mode:		Returned mode's pointer.
+ * @result:		Returned result for the operation.
+ *
+ * Returns zero or a negative error (ie. EINVAL).
+ */
 int idm_drive_lock_mode_async_result(int fd, int *mode, int *result)
 {
 	struct idm_async_op *async, *next;
@@ -1190,6 +1279,39 @@ int idm_drive_lock_mode_async_result(int fd, int *mode, int *result)
 
 	pthread_mutex_unlock(&idm_async_list_mutex);
 	return 0;
+}
+
+/**
+ * idm_drive_async_result - Read the result for normal operations.
+ * @fd:			File descriptor (emulated with index).
+ * @result:		Returned result for the operation.
+ *
+ * Returns zero or a negative error (ie. EINVAL).
+ */
+int idm_drive_async_result(int fd, int *result)
+{
+	struct idm_async_op *async, *next;
+
+	ilm_log_dbg("%s: fd=%d", __func__, fd);
+
+	pthread_mutex_lock(&idm_async_list_mutex);
+
+	list_for_each_entry_safe(async, next, &idm_async_list, list) {
+
+		ilm_log_dbg("%s: list fd=%d", __func__, async->fd);
+
+		if (async->fd == fd) {
+			list_del(&async->list);
+			*result = async->result;
+			free(async);
+			pthread_mutex_unlock(&idm_async_list_mutex);
+			ilm_log_dbg("%s: foudn async result", __func__);
+			return 0;
+		}
+	}
+
+	pthread_mutex_unlock(&idm_async_list_mutex);
+	return -1;
 }
 
 /**
