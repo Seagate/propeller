@@ -1532,3 +1532,64 @@ int idm_drive_read_group(char *drive, struct idm_info **info_ptr, int *info_num)
 	*info_num = i;
 	return 0;
 }
+
+/**
+ * idm_drive_destroy - Destroy an IDM and release all associated resource.
+ * @lock_id:		Lock ID (64 bytes).
+ * @drive:		Drive path name.
+ *
+ * Returns zero or a negative error (ie. EINVAL).
+ */
+int idm_drive_destroy(char *lock_id, char *drive)
+{
+	struct idm_emulation *idm;
+	struct idm_host *host, *next;
+	int ret = 0, can_break;
+
+	if (ilm_inject_fault_is_hit())
+		return -EIO;
+
+	if (!lock_id || !drive)
+		return -EINVAL;
+
+	idm = idm_get(lock_id, drive);
+	if (!idm)
+		return -EINVAL;
+
+	pthread_mutex_lock(&idm_list_mutex);
+	pthread_mutex_lock(&idm->mutex);
+
+	if (idm->user_count > 1) {
+		ret = -EBUSY;
+		goto fail;
+	}
+
+	list_for_each_entry_safe(host, next, &idm->host_list, list) {
+		/* If the host is timeout, remove it from the host list. */
+		if (host->state == IDM_STATE_TIMEOUT ||
+		    idm_host_is_expired(host)) {
+			list_del(&host->list);
+			free(host);
+			continue;
+		}
+	}
+
+	/* Still have alive hosts, cannot break it */
+	if (!list_empty(&idm->host_list)) {
+		ret = -EBUSY;
+		goto fail;
+	}
+
+	list_del(&idm->list);
+	free(idm);
+
+	pthread_mutex_unlock(&idm->mutex);
+	pthread_mutex_unlock(&idm_list_mutex);
+	return 0;
+
+fail:
+	pthread_mutex_unlock(&idm->mutex);
+	pthread_mutex_unlock(&idm_list_mutex);
+	idm_put(lock_id, drive);
+	return ret;
+}
