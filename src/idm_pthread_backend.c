@@ -21,10 +21,6 @@
 #include "log.h"
 #include "util.h"
 
-#define IDM_LOCK_ID_LEN			64
-#define IDM_HOST_ID_LEN			32
-#define IDM_VALUE_LEN			8
-
 #define IDM_STATE_INIT			0
 #define IDM_STATE_RUN			1
 #define IDM_STATE_TIMEOUT		2
@@ -1443,5 +1439,96 @@ int idm_drive_whitelist(char *drive, char **whitelist, int *whitelist_num)
 	}
 
 	*whitelist_num = max_idx;
+	return 0;
+}
+
+/**
+ * idm_drive_read_group - Read back mutex group for all IDM in the drives
+ * @drive:		Drive path name.
+ * @info_ptr:		Returned pointer for info list.
+ * @info_num:		Returned pointer for info num.
+ *
+ * Returns zero or a negative error (ie. ENOMEM).
+ */
+int idm_drive_read_group(char *drive, struct idm_info **info_ptr, int *info_num)
+{
+	struct idm_info *info_list, *info;
+	struct idm_emulation *idm;
+	struct idm_host *host;
+	int i = 0, j, max_idx, max_alloc = 8;
+	int ret;
+	int matched;
+
+	/* Let's firstly assume to allocet for 8 items */
+	info_list = malloc(sizeof(struct idm_info) * max_alloc);
+	if (!info_list)
+		return -ENOMEM;
+
+	pthread_mutex_lock(&idm_list_mutex);
+
+	/* Iterate the global idm list */
+	list_for_each_entry(idm, &idm_list, list) {
+		/* Skip if not the required drive */
+		if (strcmp(idm->drive_path, drive))
+			continue;
+
+		pthread_mutex_lock(&idm->mutex);
+
+		/* Generate an item if without host */
+		if (list_empty(&idm->host_list)) {
+			info = info_list + i;
+
+			/* Copy host ID */
+			memcpy(info->id, idm->id, IDM_LOCK_ID_LEN);
+			info->mode = idm->mode;
+
+			memset(info->host_id, 0, IDM_HOST_ID_LEN);
+			info->last_renew_time = 0;
+			info->timeout = 1;
+			i++;
+			continue;
+		}
+
+		/* Iterate every idm for its granted hosts */
+		list_for_each_entry(host, &idm->host_list, list) {
+			if (i >= max_alloc) {
+				max_alloc += 8;
+
+				info_list = realloc(info_list,
+						sizeof(struct idm_info) * max_alloc);
+				if (!info_list) {
+					ret = -ENOMEM;
+					break;
+				}
+			}
+
+			info = info_list + i;
+
+			/* Copy host ID */
+			memcpy(info->id, idm->id, IDM_LOCK_ID_LEN);
+			info->mode = idm->mode;
+
+			memcpy(info->host_id, host->id, IDM_HOST_ID_LEN);
+			info->last_renew_time = host->last_renew_time;
+			info->timeout = idm_host_is_expired(host);
+			i++;
+		}
+
+		pthread_mutex_unlock(&idm->mutex);
+
+		if (ret != 0)
+			break;
+	}
+
+	pthread_mutex_unlock(&idm_list_mutex);
+
+	/* Failed to alloc memory, directly bail out */
+	if (ret != 0) {
+		free(info_list);
+		return ret;
+	}
+
+	*info_ptr = info_list;
+	*info_num = i;
 	return 0;
 }
