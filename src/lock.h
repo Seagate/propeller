@@ -21,6 +21,7 @@ struct ilm_drive {
 	int mode;		/* cache the lock mode */
 	int count;		/* cache the lock count */
 	char vb[IDM_VALUE_LEN];
+	int is_brk;		/* indicate breaking lock */
 };
 
 #define ILM_DRIVE_NO_ACCESS		0

@@ -3,6 +3,23 @@
 
 #include <stdint.h>
 
+#define IDM_LOCK_ID_LEN			64
+#define IDM_HOST_ID_LEN			32
+#define IDM_VALUE_LEN			8
+
+struct idm_info {
+	/* Lock ID */
+	char id[IDM_LOCK_ID_LEN];
+	int mode;
+
+	/* Host ID */
+	char host_id[IDM_HOST_ID_LEN];
+
+	/* Membership */
+	uint64_t last_renew_time;
+	int timeout;
+};
+
 /*
  * NOTE: assumes the functions idm_drive_init() and idm_drive_destroy()
  * will be used internally in IDM wrapper layer; so this can be transparent
@@ -53,6 +70,8 @@ int idm_drive_lock_count_async_result(int fd, int *count, int *result);
 int idm_drive_lock_mode(char *lock_id, int *mode, char *drive);
 int idm_drive_lock_mode_async(char *lock_id, char *drive, int *fd);
 int idm_drive_lock_mode_async_result(int fd, int *mode, int *result);
+int idm_drive_read_group(char *drive, struct idm_info **info_ptr, int *info_num);
+int idm_drive_destroy(char *lock_id, char *drive);
 
 int idm_drive_async_result(int fd, int *result);
 

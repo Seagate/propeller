@@ -290,6 +290,7 @@ static int _raid_dispatch_request(struct _raid_request *req)
 
 	switch (req->op) {
 	case ILM_OP_LOCK:
+		drive->is_brk = 0;
 		ret = idm_drive_lock(lock->id, req->mode, req->host_id,
 				     drive->path, lock->timeout);
 		break;
@@ -304,6 +305,8 @@ static int _raid_dispatch_request(struct _raid_request *req)
 	case ILM_OP_BREAK:
 		ret = idm_drive_break_lock(lock->id, req->mode, req->host_id,
 					   drive->path, lock->timeout);
+		if (!ret)
+			drive->is_brk = 1;
 		break;
 	case ILM_OP_RENEW:
 		ret = idm_drive_renew_lock(lock->id, req->mode, req->host_id,
@@ -341,6 +344,7 @@ static int _raid_dispatch_request_async(struct _raid_request *req)
 
 	switch (req->op) {
 	case ILM_OP_LOCK:
+		drive->is_brk = 0;
 		ret = idm_drive_lock_async(lock->id, req->mode, req->host_id,
 					   drive->path, lock->timeout, &fd);
 		break;
@@ -395,9 +399,13 @@ static int _raid_read_result_async(struct _raid_request *req)
 	case ILM_OP_LOCK:
 	case ILM_OP_UNLOCK:
 	case ILM_OP_CONVERT:
-	case ILM_OP_BREAK:
 	case ILM_OP_RENEW:
 		ret = idm_drive_async_result(req->fd, &req->result);
+		break;
+	case ILM_OP_BREAK:
+		ret = idm_drive_async_result(req->fd, &req->result);
+		if (!ret)
+			drive->is_brk = 1;
 		break;
 	case ILM_OP_READ_LVB:
 		ret = idm_drive_read_lvb_async_result(req->fd, req->lvb,
@@ -811,6 +819,81 @@ int idm_raid_thread_create(struct _raid_thread **rth)
 	return 0;
 }
 
+static void idm_raid_destroy(struct ilm_drive *drive)
+{
+	struct idm_info *info_list, *info_i, *info_j, *least_renew = NULL;
+	int info_num;
+	int ret, i, j;
+	uint64_t least_renew_time = -1ULL;
+
+	ret = idm_drive_read_group(drive->path, &info_list, &info_num);
+	if (ret)
+		return;
+
+	/*
+	 * This is to implement the Least Recently Used (LRU) algorithm by
+	 * traversing all items
+	 */
+	for (i = 0; i < info_num; i++) {
+		info_i = info_list + i;
+
+		for (j = 0; j < info_num; j++) {
+			if (i == j)
+				continue;
+
+			info_j = info_list + j;
+
+
+			if (memcmp(info_i->id, info_j->id, IDM_LOCK_ID_LEN))
+				continue;
+
+			/*
+			 * If two items have the same lock ID, consolidate their
+			 * 'timeout' flags; if any item is not timeout, the
+			 * related IDM cannot be destroied.  Simply set all
+			 * items as not timeout as we don't consider it as a
+			 * destroying candidate.
+			 */
+			if (!info_i->timeout || !info_j->timeout) {
+				info_i->timeout = 0;
+				info_j->timeout = 0;
+				continue;
+			}
+
+			/*
+			 * Make consistent for the last renew time for all
+			 * items associated with the same IDM.
+			 */
+			if (info_i->last_renew_time > info_j->last_renew_time)
+				info_j->last_renew_time = info_i->last_renew_time;
+			else
+				info_i->last_renew_time = info_j->last_renew_time;
+		}
+	}
+
+	/* Find out the least renewal item */
+	for (i = 0; i < info_num; i++) {
+		info_i = info_list + i;
+
+		if (!info_i->timeout)
+			continue;
+
+		if (least_renew_time > info_i->last_renew_time) {
+			least_renew = info_i;
+			least_renew_time = info_i->last_renew_time;
+		}
+	}
+
+	if (least_renew) {
+		ilm_log_dbg("%s: least_renew mode=%d last_renew_time=%lu timeout=%d",
+			    __func__, least_renew->mode,
+			    least_renew->last_renew_time, least_renew->timeout);
+		ilm_log_array_dbg("Lock ID:", least_renew->id, IDM_LOCK_ID_LEN);
+		ilm_log_array_dbg("Host ID:", least_renew->host_id, IDM_HOST_ID_LEN);
+		idm_drive_destroy(least_renew->id, drive->path);
+	}
+}
+
 static void idm_raid_multi_issue(struct ilm_lock *lock, char *host_id,
 				 int op, int mode, int renew)
 {
@@ -859,6 +942,10 @@ static void idm_raid_multi_issue(struct ilm_lock *lock, char *host_id,
 		idm_raid_state_transition(req);
 
 		drive = req->drive;
+
+		if (drive->state == IDM_INIT && req->result == -ENOMEM)
+			idm_raid_destroy(drive);
+
 		if (_raid_state_machine_end(drive->state)) {
 			drive->result = req->result;
 			drive->mode = req->mode;
@@ -1126,6 +1213,27 @@ int idm_raid_read_lvb(struct ilm_lock *lock, char *host_id,
 	ilm_raid_lock_dump("Enter raid_read_lvb", lock);
 
 	assert(lvb_size == sizeof(uint64_t));
+
+	for (i = 0; i < lock->drive_num; i++) {
+		drive = &lock->drive[i];
+
+		if (drive->is_brk == 1) {
+			/*
+			 * If find any IDM is broken when acquire it, though the
+			 * mutex has been granted but its VB cannot be trusted,
+			 * the reason is if a prior host has acquired the same
+			 * mutex but this prior host has no chance to update VB
+			 * into drive due to drive failures.
+			 *
+			 * To safely reslove this issue, set a reserved value
+			 * -1ULL and pass it to lvmlockd; lvmlockd will handle
+			 * this special value to force invalidating metadata.
+			 */
+			max_vb = -1ULL;
+			memcpy(lvb, (char *)&max_vb, sizeof(uint64_t));
+			return 0;
+		}
+	}
 
 	do {
 		idm_raid_multi_issue(lock, host_id, ILM_OP_READ_LVB, lock->mode, 0);
