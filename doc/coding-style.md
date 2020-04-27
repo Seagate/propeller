@@ -1,10 +1,8 @@
-.. _codingstyle:
+Coding style    {#coding_style}
+============
 
 The propeller project mainly follows on Linux kernel's coding style,
 a good coding style can avoid C program's traps and pitfalls.
-
-Coding style
-============
 
 This is a short document describing the preferred coding style for the
 linux kernel.  Coding style is very personal, and I won't **force** my
