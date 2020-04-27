@@ -1,19 +1,10 @@
-Coding style    {#coding_style}
+Coding style
 ============
 
-The propeller project mainly follows on Linux kernel's coding style,
-a good coding style can avoid C program's traps and pitfalls.
-
-This is a short document describing the preferred coding style for the
-linux kernel.  Coding style is very personal, and I won't **force** my
-views on anybody, but this is what goes for anything that I have to be
-able to maintain, and I'd prefer it for most other things too.  Please
-at least consider the points made here.
-
-First off, I'd suggest printing out a copy of the GNU coding standards,
-and NOT read it.  Burn them, it's a great symbolic gesture.
-
-Anyway, here goes:
+A good coding style can avoid C program's traps and pitfalls.  The propeller
+project mainly follows on Linux kernel's coding style, this document is simply
+from Linux kernel's coding style with minor fixing up for user space lib
+development.
 
 
 1) Indentation
@@ -70,7 +61,7 @@ something to hide:
 	if (condition) do_this;
 	  do_something_everytime;
 
-Don't put multiple assignments on a single line either.  Kernel coding style
+Don't put multiple assignments on a single line either.  Software coding style
 is super simple.  Avoid tricky expressions.
 
 Outside of comments, documentation and except in Kconfig, spaces are never
@@ -479,7 +470,7 @@ The rationale for using gotos is:
 		int result = 0;
 		char *buffer;
 
-		buffer = kmalloc(SIZE, GFP_KERNEL);
+		buffer = malloc(SIZE);
 		if (!buffer)
 			return -ENOMEM;
 
@@ -492,7 +483,7 @@ The rationale for using gotos is:
 		}
 		...
 	out_free_buffer:
-		kfree(buffer);
+		free(buffer);
 		return result;
 	}
 
@@ -501,8 +492,8 @@ A common type of bug to be aware of is ``one err bugs`` which look like this:
 .. code-block:: c
 
 	err:
-		kfree(foo->bar);
-		kfree(foo);
+		free(foo->bar);
+		free(foo);
 		return ret;
 
 The bug in this code is that on some exit paths ``foo`` is NULL.  Normally the
@@ -512,9 +503,9 @@ fix for this is to split it up into two error labels ``err_free_bar:`` and
 .. code-block:: c
 
 	 err_free_bar:
-		kfree(foo->bar);
+		free(foo->bar);
 	 err_free_foo:
-		kfree(foo);
+		free(foo);
 		return ret;
 
 Ideally you should simulate errors to test all exit paths.
@@ -661,36 +652,7 @@ See the file :ref:`Documentation/process/clang-format.rst <clangformat>`
 for more details.
 
 
-10) Kconfig configuration files
--------------------------------
-
-For all of the Kconfig* configuration files throughout the source tree,
-the indentation is somewhat different.  Lines under a ``config`` definition
-are indented with one tab, while help text is indented an additional two
-spaces.  Example::
-
-  config AUDIT
-	bool "Auditing support"
-	depends on NET
-	help
-	  Enable auditing infrastructure that can be used with another
-	  kernel subsystem, such as SELinux (which requires this for
-	  logging of avc messages output).  Does not do system-call
-	  auditing without CONFIG_AUDITSYSCALL.
-
-Seriously dangerous features (such as write support for certain
-filesystems) should advertise this prominently in their prompt string::
-
-  config ADFS_FS_RW
-	bool "ADFS write support (DANGEROUS)"
-	depends on ADFS_FS
-	...
-
-For full documentation on the configuration files, see the file
-Documentation/kbuild/kconfig-language.rst.
-
-
-11) Data structures
+10) Data structures
 -------------------
 
 Data structures that have visibility outside the single-threaded
@@ -722,7 +684,7 @@ Remember: if another thread can find your data structure, and you don't
 have a reference count on it, you almost certainly have a bug.
 
 
-12) Macros, Enums and RTL
+11) Macros, Enums and RTL
 -------------------------
 
 Names of macros defining constants and labels in enums are capitalized.
@@ -803,15 +765,15 @@ The cpp manual deals with macros exhaustively. The gcc internals manual also
 covers RTL which is used frequently with assembly language in the kernel.
 
 
-13) Printing kernel messages
-----------------------------
+12) Printing messages
+---------------------
 
-Kernel developers like to be seen as literate. Do mind the spelling
+Software developers like to be seen as literate. Do mind the spelling
 of kernel messages to make a good impression. Do not use incorrect
 contractions like ``dont``; use ``do not`` or ``don't`` instead. Make the
 messages concise, clear, and unambiguous.
 
-Kernel messages do not have to be terminated with a period.
+Software messages do not have to be terminated with a period.
 
 Printing numbers in parentheses (%d) adds no value and should be avoided.
 
@@ -838,20 +800,14 @@ already inside a debug-related #ifdef section, printk(KERN_DEBUG ...) can be
 used.
 
 
-14) Allocating memory
+13) Allocating memory
 ---------------------
-
-The kernel provides the following general purpose memory allocators:
-kmalloc(), kzalloc(), kmalloc_array(), kcalloc(), vmalloc(), and
-vzalloc().  Please refer to the API documentation for further information
-about them.  :ref:`Documentation/core-api/memory-allocation.rst
-<memory_allocation>`
 
 The preferred form for passing a size of a struct is the following:
 
 .. code-block:: c
 
-	p = kmalloc(sizeof(*p), ...);
+	p = malloc(sizeof(*p), ...);
 
 The alternative form where struct name is spelled out hurts readability and
 introduces an opportunity for a bug when the pointer variable type is changed
@@ -861,26 +817,17 @@ Casting the return value which is a void pointer is redundant. The conversion
 from void pointer to any other pointer type is guaranteed by the C programming
 language.
 
-The preferred form for allocating an array is the following:
-
-.. code-block:: c
-
-	p = kmalloc_array(n, sizeof(...), ...);
-
 The preferred form for allocating a zeroed array is the following:
 
 .. code-block:: c
 
-	p = kcalloc(n, sizeof(...), ...);
+	p = calloc(n, sizeof(...), ...);
 
 Both forms check for overflow on the allocation size n * sizeof(...),
 and return NULL if that occurred.
 
-These generic allocation functions all emit a stack dump on failure when used
-without __GFP_NOWARN so there is no use in emitting an additional failure
-message when NULL is returned.
 
-15) The inline disease
+14) The inline disease
 ----------------------
 
 There appears to be a common misperception that gcc has a magic "make me
@@ -898,7 +845,7 @@ than 3 lines of code in them. An exception to this rule are the cases where
 a parameter is known to be a compiletime constant, and as a result of this
 constantness you *know* the compiler will be able to optimize most of your
 function away at compile time. For a good example of this later case, see
-the kmalloc() inline function.
+the malloc() inline function.
 
 Often people argue that adding inline to functions that are static and used
 only once is always a win since there is no space tradeoff. While this is
@@ -908,7 +855,7 @@ appears outweighs the potential value of the hint that tells gcc to do
 something it would have done anyway.
 
 
-16) Function return values and names
+15) Function return values and names
 ------------------------------------
 
 Functions can return values of many different kinds, and one of the
@@ -943,10 +890,10 @@ result.  Typical examples would be functions that return pointers; they use
 NULL or the ERR_PTR mechanism to report failure.
 
 
-17) Using bool
+16) Using bool
 --------------
 
-The Linux kernel bool type is an alias for the C99 _Bool type. bool values can
+The bool type is an alias for the C99 _Bool type. bool values can
 only evaluate to 0 or 1, and implicit or explicit conversion to bool
 automatically converts the value to true or false. When using bool types the
 !! construction is not needed, which eliminates a class of bugs.
@@ -973,30 +920,8 @@ readable alternative if the call-sites have naked true/false constants.
 Otherwise limited use of bool in structures and arguments can improve
 readability.
 
-18) Don't re-invent the kernel macros
--------------------------------------
 
-The header file include/linux/kernel.h contains a number of macros that
-you should use, rather than explicitly coding some variant of them yourself.
-For example, if you need to calculate the length of an array, take advantage
-of the macro
-
-.. code-block:: c
-
-	#define ARRAY_SIZE(x) (sizeof(x) / sizeof((x)[0]))
-
-Similarly, if you need to calculate the size of some structure member, use
-
-.. code-block:: c
-
-	#define sizeof_field(t, f) (sizeof(((t*)0)->f))
-
-There are also min() and max() macros that do strict type checking if you
-need them.  Feel free to peruse that header file to see what else is already
-defined that you shouldn't reproduce in your code.
-
-
-19) Editor modelines and other cruft
+17) Editor modelines and other cruft
 ------------------------------------
 
 Some editors can interpret configuration information embedded in source files,
@@ -1030,7 +955,7 @@ own custom mode, or may have some other magic method for making indentation
 work correctly.
 
 
-20) Inline assembly
+18) Inline assembly
 -------------------
 
 In architecture-specific code, you may need to use inline assembly to interface
@@ -1062,7 +987,7 @@ the next instruction in the assembly output:
 	     : /* outputs */ : /* inputs */ : /* clobbers */);
 
 
-21) Conditional Compilation
+19) Conditional Compilation
 ---------------------------
 
 Wherever possible, don't use preprocessor conditionals (#if, #ifdef) in .c
