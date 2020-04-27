@@ -15,9 +15,9 @@ Dependency
 
 It depends below libs and utilities:
 
-$ sudo apt-get install libblkid-dev
-$ sudo apt-get install uuid-dev
-$ sudo apt-get install python-pytest
+    $ sudo apt-get install libblkid-dev
+    $ sudo apt-get install uuid-dev
+    $ sudo apt-get install python-pytest
 
 Building
 --------
@@ -32,8 +32,8 @@ In this repository, there have three main parts to build:
 For simplify building steps, change to the root folder of Propeller and
 execute 'make' commands, it will build all up three parts.
 
-$ cd /path/to/propeller
-$ make
+    $ cd /path/to/propeller
+    $ make
 
 Installation
 ------------
@@ -50,7 +50,7 @@ usually '/run/' and its child directories only can be accessed with
 root, so other users have no permission to access it.  Thus, the normal
 user without root permission can set variable with below command:
 
-$ export ILM_RUN_DIR=/tmp/seagate_ilm/
+    $ export ILM_RUN_DIR=/tmp/seagate_ilm/
 
 Logging
 -------
@@ -94,8 +94,8 @@ allow to access log files even without root permission.  So either for
 manual mode or automatic mode, both suggest to configure the
 environment variables ahead before run any testing:
 
-$ cd /path/to/propeller/test
-$ . init_env.sh (or execute 'source init_env.sh')
+    $ cd /path/to/propeller/test
+    $ . init_env.sh (or execute 'source init_env.sh')
 
 Except to set run directory variable, the script 'init_env.sh' will
 configure shell variables for lib path, python path.
@@ -109,7 +109,7 @@ script can only take effect for its own shell.
 
 For manual testing mode, we can use below command to launch daemon:
 
-$ ./src/seagate_ilm -D 1 -l 0 -L 7 -E 7
+    $ ./src/seagate_ilm -D 1 -l 0 -L 7 -E 7
 
 In this command, the options have below meanings:
 
@@ -132,20 +132,20 @@ priority is 7, stderr log priority is 7'.
 With manual testing mode, it's useful for us to run some C program,
 e.g. for the smoke testing:
 
-$ cd test
-$ ./smoke_test
+    $ cd test
+    $ ./smoke_test
 
 For automatic testing mode, the command is straightforward:
 
-$ cd test
+    $ cd test
 
-$ py.test -v
-  run all cases, '-v' will output verbose logs
+Run all cases, '-v' will output verbose logs
+    $ py.test -v
 
-$ py.test -v -t test_lock'
-  The option '-t' specifies testing cases, in this example it only
-  executes cases with prefix 'test_lock'.
+The option '-t' specifies testing cases, in this example it only
+executes cases with prefix 'test_lock'.
+    $ py.test -v -t test_lock'
 
-$ py.test -v --run-destroy
-  The option '--run-destroy' will enable an extra case for testing
-  IDM destroy.
+The option '--run-destroy' will enable an extra case for testing
+IDM destroy.
+    $ py.test -v --run-destroy
