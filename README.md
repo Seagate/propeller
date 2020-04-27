@@ -140,12 +140,15 @@ For automatic testing mode, the command is straightforward:
     $ cd test
 
 Run all cases, '-v' will output verbose logs
+
     $ py.test -v
 
 The option '-t' specifies testing cases, in this example it only
 executes cases with prefix 'test_lock'.
+
     $ py.test -v -t test_lock'
 
 The option '--run-destroy' will enable an extra case for testing
 IDM destroy.
+
     $ py.test -v --run-destroy
