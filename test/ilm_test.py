@@ -1123,3 +1123,83 @@ def test_lock__three_hosts_get_host_count(ilm_daemon):
 
     ret = ilm.ilm_disconnect(s3)
     assert ret == 0
+
+@pytest.mark.destroy
+def test_lock__destroy(ilm_daemon):
+    ret, s1 = ilm.ilm_connect()
+    assert ret == 0
+    assert s1 > 0
+
+    host_id = "00000000000000000000000000000000"
+    ret = ilm.ilm_set_host_id(s1, host_id, 32)
+    assert ret == 0
+
+    ret, s2 = ilm.ilm_connect()
+    assert ret == 0
+    assert s2 > 0
+
+    host_id = "11111111111111111111111111111111"
+    ret = ilm.ilm_set_host_id(s2, host_id, 32)
+    assert ret == 0
+
+    ret, s3 = ilm.ilm_connect()
+    assert ret == 0
+    assert s3 > 0
+
+    host_id = "22222222222222222222222222222222"
+    ret = ilm.ilm_set_host_id(s3, host_id, 32)
+    assert ret == 0
+
+    lock_id = ilm.idm_lock_id()
+    lock_id.set_vg_uuid("0000000000000001")
+    lock_id.set_lv_uuid("0123456789abcdef")
+
+    lock_op = ilm.idm_lock_op()
+    lock_op.mode = ilm.IDM_MODE_SHAREABLE
+    lock_op.drive_num = 2
+    lock_op.set_drive_names(0, "/dev/sda1")
+    lock_op.set_drive_names(1, "/dev/sda2")
+    lock_op.timeout = 3000     # Timeout: 60s
+
+    ret = ilm.ilm_lock(s1, lock_id, lock_op)
+    assert ret == 0
+
+    ret = ilm.ilm_stop_renew(s1)
+    assert ret == 0
+
+    ret = ilm.ilm_lock(s2, lock_id, lock_op)
+    assert ret == 0
+
+    ret = ilm.ilm_stop_renew(s2)
+    assert ret == 0
+
+    time.sleep(5)
+
+    ret = ilm.ilm_lock(s3, lock_id, lock_op)
+    assert ret == 0
+
+    ret, count = ilm.ilm_get_host_count(s1, lock_id, lock_op)
+    assert ret == 0
+    assert count == 1
+
+    ret = ilm.ilm_unlock(s2, lock_id)
+    assert ret == -62
+
+    ret, count = ilm.ilm_get_host_count(s1, lock_id, lock_op)
+    assert ret == 0
+    assert count == 1
+
+    ret = ilm.ilm_unlock(s1, lock_id)
+    assert ret == -62
+
+    ret = ilm.ilm_unlock(s3, lock_id)
+    assert ret == 0
+
+    ret = ilm.ilm_disconnect(s1)
+    assert ret == 0
+
+    ret = ilm.ilm_disconnect(s2)
+    assert ret == 0
+
+    ret = ilm.ilm_disconnect(s3)
+    assert ret == 0

@@ -20,3 +20,11 @@ def ilm_daemon():
         # which takes about 3 seconds, slowing down the tests.
         p.kill()
         p.wait()
+
+def pytest_addoption(parser):
+    parser.addoption('--run-destroy', action='store_true', dest="destroy",
+                     default=False, help="enable destroy test")
+
+def pytest_configure(config):
+    if not config.option.destroy:
+        setattr(config.option, 'markexpr', 'not destroy')
