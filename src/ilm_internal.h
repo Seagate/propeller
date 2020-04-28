@@ -19,9 +19,9 @@
 struct ilm_env {
 	int debug;
 	int mlock;
-	char *run_dir;
+	const char *run_dir;
 };
 
-struct ilm_env env;
+extern struct ilm_env env;
 
 #endif /* __ILM_INTERNAL_H__ */

@@ -188,6 +188,8 @@ static int ilm_main_loop(void)
 		if (ilm_shutdown)
 			break;
 	}
+
+	return 0;
 }
 
 int main(int argc, char *argv[])

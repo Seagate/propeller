@@ -54,7 +54,6 @@ static void *ilm_lockspace_thread(void *data)
 {
 	struct ilm_lockspace *ls = data;
 	struct ilm_lock *lock;
-	int failure_handled = 0;
 	int exit, ret, now;
 
 	while (1) {
@@ -215,8 +214,6 @@ int ilm_lockspace_delete(struct ilm_cmd *cmd, struct ilm_lockspace *ilm_ls)
 int ilm_lockspace_add_lock(struct ilm_lockspace *ls,
 			   struct ilm_lock *lock)
 {
-	int ret;
-
 	if (!_ls_is_valid(ls)) {
 		ilm_log_err("%s: lockspace is invalid\n", __func__);
 		return -1;
@@ -231,8 +228,6 @@ int ilm_lockspace_add_lock(struct ilm_lockspace *ls,
 
 int ilm_lockspace_del_lock(struct ilm_lockspace *ls, struct ilm_lock *lock)
 {
-	int ret;
-
 	if (!_ls_is_valid(ls)) {
 		ilm_log_err("%s: lockspace is invalid\n", __func__);
 		return -1;
@@ -249,8 +244,6 @@ int ilm_lockspace_start_lock(struct ilm_lockspace *ls,
 			     struct ilm_lock *lock,
 			     uint64_t time)
 {
-	int ret;
-
 	if (!_ls_is_valid(ls)) {
 		ilm_log_err("%s: lockspace is invalid\n", __func__);
 		return -1;
@@ -267,8 +260,6 @@ int ilm_lockspace_stop_lock(struct ilm_lockspace *ls,
 			    struct ilm_lock *lock,
 			    uint64_t *time)
 {
-	int ret;
-
 	if (!_ls_is_valid(ls)) {
 		ilm_log_err("%s: lockspace is invalid\n", __func__);
 		return -1;

@@ -174,7 +174,7 @@ static int ilm_free(struct ilm_lockspace *ls, struct ilm_lock *lock)
 	return 0;
 }
 
-static void ilm_lock_dump(char *str, struct ilm_lock *lock)
+static void ilm_lock_dump(const char *str, struct ilm_lock *lock)
 {
 	int i;
 
