@@ -6,6 +6,7 @@
 # of the GNU General Public License v2 or (at your option) any later version.
 #
 include ../Makefile.config
+include ../Makefile.common
 
 TARGET = seagate_ilm
 LIB_TARGET = libseagate_ilm
@@ -29,7 +30,7 @@ SOURCE = main.c \
 
 LIB_SOURCE = lib_client.c
 
-CFLAGS = -fPIE -DPIE -D_GNU_SOURCE
+CFLAGS += -fPIE -DPIE -D_GNU_SOURCE
 
 ifdef IDM_PTHREAD_EMULATION
 CFLAGS += -DIDM_PTHREAD_EMULATION

@@ -12,10 +12,10 @@
 
 #include <syslog.h>
 
-int log_file_priority;
-int log_file_use_utc;
-int log_syslog_priority;
-int log_stderr_priority;
+extern int log_file_priority;
+extern int log_file_use_utc;
+extern int log_syslog_priority;
+extern int log_stderr_priority;
 
 /*
  * Log levels are used mainly to indicate where the message should be
@@ -45,6 +45,5 @@ extern void ilm_log_array(int level, const char *array_name,
 
 extern int ilm_log_init(void);
 extern void ilm_log_exit(void);
-extern void ilm_log(int level, const char *fmt, ...);
 
 #endif

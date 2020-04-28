@@ -239,10 +239,8 @@ int ilm_client_resume(struct client *cl)
 	return ret;
 }
 
-int ilm_client_del(struct client *cl)
+static int ilm_client_del(struct client *cl)
 {
-        struct client *pos, *tmp;
-
 	if (!_client_is_valid(cl)) {
 		ilm_log_err("Cannot delete client which is invalid\n");
 		return -1;
@@ -278,12 +276,11 @@ int ilm_client_del(struct client *cl)
 	return 0;
 }
 
-int ilm_client_add(int fd,
-		   int (*workfn)(struct client *),
-		   int (*deadfn)(struct client *))
+static int ilm_client_add(int fd,
+			  int (*workfn)(struct client *),
+			  int (*deadfn)(struct client *))
 {
         struct client *cl;
-        int i;
 
 	cl = malloc(sizeof(struct client));
 	if (!cl) {
@@ -321,7 +318,7 @@ void ilm_send_result(int fd, int result, char *data, int data_len)
 		send(fd, data, data_len, MSG_NOSIGNAL);
 }
 
-int ilm_client_request(struct client *cl)
+static int ilm_client_request(struct client *cl)
 {
 	struct ilm_msg_header hdr;
 	struct ilm_cmd *cmd;
@@ -379,7 +376,7 @@ void ilm_client_recv_all(struct client *cl, int msg_len, int pos)
 {
         char trash[64];
         int left = msg_len - sizeof(struct ilm_msg_header) - pos;
-        int ret, total = 0, retries = 0, trash_len;
+        int ret = 0, retries = 0, trash_len;
 
 	ilm_log_dbg("%s: msg_len %d pos %d left %d", __func__,
 		    msg_len, pos, left);
@@ -414,7 +411,7 @@ void ilm_client_recv_all(struct client *cl, int msg_len, int pos)
 		    __func__, cl->fd, cl->pid, pos, ret, errno, retries, left);
 }
 
-int ilm_client_connect(struct client *cl)
+static int ilm_client_connect(struct client *cl)
 {
 	int fd, on = 1;
 	int ret;

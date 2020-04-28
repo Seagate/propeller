@@ -15,6 +15,7 @@
 
 #include "client.h"
 #include "cmd.h"
+#include "inject_fault.h"
 #include "log.h"
 #include "util.h"
 

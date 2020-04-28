@@ -19,6 +19,7 @@
 #include "inject_fault.h"
 #include "lock.h"
 #include "log.h"
+#include "raid_lock.h"
 #include "string.h"
 #include "util.h"
 
@@ -279,6 +280,7 @@ struct _raid_state_transition state_transition[] = {
 	},
 };
 
+#if 0
 static int _raid_dispatch_request(struct _raid_request *req)
 {
 	struct ilm_lock *lock = req->lock;
@@ -332,6 +334,7 @@ static int _raid_dispatch_request(struct _raid_request *req)
 	ilm_log_dbg("%s: op=%d result=%d", __func__, req->op, req->result);
 	return ret;
 }
+#endif
 
 static int _raid_dispatch_request_async(struct _raid_request *req)
 {
@@ -377,6 +380,7 @@ static int _raid_dispatch_request_async(struct _raid_request *req)
 		ret = idm_drive_lock_mode_async(lock->id, drive->path, &fd);
 		break;
 	default:
+		ret = -EINVAL;
 		assert(1);
 		break;
 	}
@@ -391,9 +395,8 @@ static int _raid_dispatch_request_async(struct _raid_request *req)
 
 static int _raid_read_result_async(struct _raid_request *req)
 {
-	struct ilm_lock *lock = req->lock;
 	struct ilm_drive *drive = req->drive;
-	int ret, fd;
+	int ret;
 
 	switch (req->op) {
 	case ILM_OP_LOCK:
@@ -481,6 +484,7 @@ static int _raid_state_find_op(int state, int func)
 		break;
 	default:
 		ilm_log_err("%s: unsupported state %d", __func__, state);
+		op = -1;
 		break;
 	}
 
@@ -588,7 +592,6 @@ static struct _raid_request *
 idm_raid_wait_response(struct _raid_thread *raid_th)
 {
 	struct _raid_request *req;
-	int state, next_state;
 
 	if (!raid_th->count)
 		return NULL;
@@ -614,7 +617,6 @@ static struct _raid_request *
 idm_raid_wait_renew(struct _raid_thread *raid_th)
 {
 	struct _raid_request *req;
-	int state, next_state;
 
 	if (!raid_th->renew_count)
 		return NULL;
@@ -677,7 +679,10 @@ static void *idm_raid_thread(void *data)
 	struct _raid_request *req;
 	int process_num;
 	struct pollfd *poll_fd;
-	int i, ret;
+#ifndef IDM_PTHREAD_EMULATION
+	int ret;
+#endif
+	int i;
 
 	raid_th->init = 1;
 
@@ -938,7 +943,7 @@ static void idm_raid_multi_issue(struct ilm_lock *lock, char *host_id,
 
 	idm_raid_signal_request(lock->raid_th);
 
-	while (req = idm_raid_wait(lock->raid_th, renew)) {
+	while ((req = idm_raid_wait(lock->raid_th, renew))) {
 		idm_raid_state_transition(req);
 
 		drive = req->drive;
@@ -963,7 +968,7 @@ static void idm_raid_multi_issue(struct ilm_lock *lock, char *host_id,
 	return;
 }
 
-static void ilm_raid_lock_dump(char *str, struct ilm_lock *lock)
+static void ilm_raid_lock_dump(const char *str, struct ilm_lock *lock)
 {
 	int i;
 
@@ -979,8 +984,7 @@ int idm_raid_lock(struct ilm_lock *lock, char *host_id)
 	struct ilm_drive *drive;
 	int rand_sleep;
 	int io_err;
-	int score, i, ret;
-	struct _raid_request *req;
+	int score, i;
 
 	/* Initialize all drives state to NO_ACCESS */
 	for (i = 0; i < lock->drive_num; i++)
@@ -1049,9 +1053,8 @@ int idm_raid_lock(struct ilm_lock *lock, char *host_id)
 int idm_raid_unlock(struct ilm_lock *lock, char *host_id)
 {
 	struct ilm_drive *drive;
-	struct _raid_request *req;
 	int io_err = 0, timeout = 0;
-	int i, ret;
+	int i;
 
 	ilm_raid_lock_dump("Enter raid_unlock", lock);
 
@@ -1078,15 +1081,14 @@ int idm_raid_unlock(struct ilm_lock *lock, char *host_id)
 		return -EIO;
 
 	ilm_raid_lock_dump("Exit raid_unlock", lock);
-	return ret;
+	return 0;
 }
 
 int idm_raid_convert_lock(struct ilm_lock *lock, char *host_id, int mode)
 {
 	struct ilm_drive *drive;
-	struct _raid_request *req;
 	int io_err = 0;
-	int i, score, ret, timeout = 0;
+	int i, score, timeout = 0;
 
 	ilm_raid_lock_dump("Enter raid_convert_lock", lock);
 
@@ -1162,9 +1164,8 @@ int idm_raid_convert_lock(struct ilm_lock *lock, char *host_id, int mode)
 int idm_raid_renew_lock(struct ilm_lock *lock, char *host_id)
 {
 	struct ilm_drive *drive;
-	struct _raid_request req;
 	uint64_t timeout = ilm_curr_time() + ILM_MAJORITY_TIMEOUT;
-	int score, i, ret;
+	int score, i;
 
 	ilm_raid_lock_dump("Enter raid_renew_lock", lock);
 
@@ -1205,9 +1206,8 @@ int idm_raid_read_lvb(struct ilm_lock *lock, char *host_id,
 		      char *lvb, int lvb_size)
 {
 	struct ilm_drive *drive;
-	struct _raid_request *req;
 	uint64_t timeout = ilm_curr_time() + ILM_MAJORITY_TIMEOUT;
-	int score, i, ret;
+	int score, i;
 	uint64_t max_vb = 0, vb;
 
 	ilm_raid_lock_dump("Enter raid_read_lvb", lock);
@@ -1284,11 +1284,10 @@ int idm_raid_read_lvb(struct ilm_lock *lock, char *host_id,
  */
 int idm_raid_count(struct ilm_lock *lock, int *count)
 {
-	int ret, i;
+	int i;
 	int cnt;
 	int stat[3] = { 0 }, stat_max = 0, no_ent = 0;
 	struct ilm_drive *drive;
-	struct _raid_request *req;
 
 	idm_raid_multi_issue(lock, NULL, ILM_OP_COUNT, lock->mode, 0);
 
@@ -1337,8 +1336,7 @@ int idm_raid_count(struct ilm_lock *lock, int *count)
  */
 int idm_raid_mode(struct ilm_lock *lock, int *mode)
 {
-	int ret, i;
-	int m, t;
+	int i, m;
 	int stat_mode[3] = { 0 }, mode_max = 0, no_ent = 0;
 	struct ilm_drive *drive;
 

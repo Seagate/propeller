@@ -15,6 +15,6 @@ int idm_raid_count(struct ilm_lock *lock, int *count);
 int idm_raid_mode(struct ilm_lock *lock, int *mode);
 
 int idm_raid_thread_create(struct _raid_thread **rth);
-void idm_raid_thread_free(void *rth);
+void idm_raid_thread_free(struct _raid_thread *raid_th);
 
 #endif

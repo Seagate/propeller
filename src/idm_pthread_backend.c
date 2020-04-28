@@ -242,7 +242,6 @@ out:
 static int _idm_host_put(struct idm_emulation *idm, char *host_id, int is_free)
 {
         struct idm_host *pos, *host = NULL;
-	int ret;
 
 	pthread_mutex_lock(&idm->mutex);
 
@@ -257,7 +256,6 @@ static int _idm_host_put(struct idm_emulation *idm, char *host_id, int is_free)
 		free(host);
 	}
 
-out:
 	pthread_mutex_unlock(&idm->mutex);
 	return 0;
 }
@@ -350,7 +348,7 @@ int idm_drive_lock(char *lock_id, int mode, char *host_id,
 {
 	struct idm_emulation *idm;
 	struct idm_host *host;
-	int ret = 0, user_count, cur_mode;
+	int ret = 0;
 	int alloc_idm = 0;
 
 	if (ilm_inject_fault_is_hit())
@@ -1199,7 +1197,6 @@ int idm_drive_lock_count_async_result(int fd, int *count, int *result)
 int idm_drive_lock_mode(char *lock_id, int *mode, char *drive)
 {
 	struct idm_emulation *idm;
-	int ret = 0;
 
 	if (ilm_inject_fault_is_hit())
 		return -EIO;
@@ -1326,7 +1323,6 @@ int idm_drive_host_state(char *lock_id,
 {
 	struct idm_emulation *idm;
 	struct idm_host *host;
-	int ret = 0;
 
 	if (!lock_id || !host_id || !drive)
 		return -EINVAL;
@@ -1455,9 +1451,8 @@ int idm_drive_read_group(char *drive, struct idm_info **info_ptr, int *info_num)
 	struct idm_info *info_list, *info;
 	struct idm_emulation *idm;
 	struct idm_host *host;
-	int i = 0, j, max_idx, max_alloc = 8;
+	int i = 0, max_alloc = 8;
 	int ret;
-	int matched;
 
 	/* Let's firstly assume to allocet for 8 items */
 	info_list = malloc(sizeof(struct idm_info) * max_alloc);
@@ -1544,7 +1539,7 @@ int idm_drive_destroy(char *lock_id, char *drive)
 {
 	struct idm_emulation *idm;
 	struct idm_host *host, *next;
-	int ret = 0, can_break;
+	int ret = 0;
 
 	if (ilm_inject_fault_is_hit())
 		return -EIO;
