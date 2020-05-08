@@ -72,6 +72,7 @@ struct _raid_request {
 	char *lvb;
 	int lvb_size;
 	int count;
+	int self;
 	int mode;
 
 	int fd;
@@ -319,7 +320,8 @@ static int _raid_dispatch_request(struct _raid_request *req)
 					 req->lvb_size, drive->path);
 		break;
 	case ILM_OP_COUNT:
-		ret = idm_drive_lock_count(lock->id, &req->count, drive->path);
+		ret = idm_drive_lock_count(lock->id, &req->count,
+					   &req->self, drive->path);
 		break;
 	case ILM_OP_MODE:
 		ret = idm_drive_lock_mode(lock->id, &req->mode, drive->path);
@@ -374,7 +376,8 @@ static int _raid_dispatch_request_async(struct _raid_request *req)
 					       drive->path, &fd);
 		break;
 	case ILM_OP_COUNT:
-		ret = idm_drive_lock_count_async(lock->id, drive->path, &fd);
+		ret = idm_drive_lock_count_async(lock->id, req->host_id,
+						 drive->path, &fd);
 		break;
 	case ILM_OP_MODE:
 		ret = idm_drive_lock_mode_async(lock->id, drive->path, &fd);
@@ -418,6 +421,7 @@ static int _raid_read_result_async(struct _raid_request *req)
 	case ILM_OP_COUNT:
 		ret = idm_drive_lock_count_async_result(req->fd,
 							&req->count,
+							&req->self,
 						        &req->result);
 		break;
 	case ILM_OP_MODE:
@@ -955,6 +959,7 @@ static void idm_raid_multi_issue(struct ilm_lock *lock, char *host_id,
 			drive->result = req->result;
 			drive->mode = req->mode;
 			drive->count = req->count;
+			drive->self = req->self;
 			ilm_log_dbg("%s: drive result=%d mode=%d count=%d", __func__,
 				    drive->result, drive->mode, drive->count);
 			free(req);
@@ -1282,26 +1287,23 @@ int idm_raid_read_lvb(struct ilm_lock *lock, char *host_id,
  * - stat[1]: the number of drives which its idm has one user count;
  * - stat[2]: the number of drives which its idm has user count >= 2.
  */
-int idm_raid_count(struct ilm_lock *lock, int *count)
+int idm_raid_count(struct ilm_lock *lock, char *host_id, int *count, int *self)
 {
 	int i;
-	int cnt;
-	int stat[3] = { 0 }, stat_max = 0, no_ent = 0;
+	int cnt = 0, slf = 0, no_ent = 0;
 	struct ilm_drive *drive;
 
-	idm_raid_multi_issue(lock, NULL, ILM_OP_COUNT, lock->mode, 0);
+	idm_raid_multi_issue(lock, host_id, ILM_OP_COUNT, lock->mode, 0);
 
 	for (i = 0; i < lock->drive_num; i++) {
 		drive = &lock->drive[i];
 
 		if (!drive->result) {
-			cnt = drive->count;
-			if (cnt >= 0 && cnt < 3)
-				stat[cnt]++;
-			else if (cnt >= 3)
-				stat[2]++;
-			else
-				ilm_log_warn("wrong idm count %d\n", cnt);
+			if (drive->count > cnt)
+				cnt = drive->count;
+
+			if (drive->self > slf)
+				slf = drive->self;
 		}
 
 		if (drive->result)
@@ -1312,19 +1314,9 @@ int idm_raid_count(struct ilm_lock *lock, int *count)
 	if (no_ent == lock->drive_num)
 		return -ENOENT;
 
-	/* Figure out which index is maximum */
-	for (i = 0; i < 3; i++) {
-		if (stat[i] > stat[stat_max])
-			stat_max = i;
-	}
-
-	if (stat[stat_max] >= ((lock->drive_num >> 1) + 1)) {
-		*count = stat_max;
-		return 0;
-	}
-
-	/* Otherwise, cannot achieve majority and return failure */
-	return -1;
+	*count = cnt;
+	*self = slf;
+	return 0;
 }
 
 /*
