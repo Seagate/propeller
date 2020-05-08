@@ -16,6 +16,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <sys/mman.h>
+#include <sys/stat.h>
 #include <sys/types.h>
 #include <uuid/uuid.h>
 #include <unistd.h>
@@ -36,7 +37,8 @@ static int ilm_read_args(int argc, char *argv[])
 {
 	char opt;
 	char *arg, *p;
-	int i;
+	mode_t old_umask;
+	int i, ret;
 
 	/* Skip the command name, start from argument 1 */
 	for (i = 1; i < argc;) {
@@ -85,6 +87,16 @@ static int ilm_read_args(int argc, char *argv[])
 	env.run_dir = getenv("ILM_RUN_DIR");
 	if (!env.run_dir)
 		env.run_dir = ILM_DEFAULT_RUN_DIR;
+
+	old_umask = umask(0002);
+
+	/* Create run directory */
+	ret = mkdir(env.run_dir, 0775);
+	if (ret < 0 && errno != EEXIST) {
+		umask(old_umask);
+		return ret;
+	}
+	umask(old_umask);
 
 	return 0;
 }
