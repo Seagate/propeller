@@ -7,7 +7,8 @@
 %array_class(char, charArray);
 
 %apply int *OUTPUT { int *sock };
-%apply int *OUTPUT { int *count};
+%apply int *OUTPUT { int *count };
+%apply int *OUTPUT { int *self };
 %apply int *OUTPUT { int *mode };
 %apply int *OUTPUT { int *version };
 
@@ -37,7 +38,7 @@ int ilm_convert(int sock, struct idm_lock_id *id, uint32_t mode);
 int ilm_write_lvb(int sock, struct idm_lock_id *id, char *lvb, int lvb_len);
 int ilm_read_lvb(int sock, struct idm_lock_id *id, char *lvb, int lvb_len);
 int ilm_get_host_count(int sock, struct idm_lock_id *id,
-                       struct idm_lock_op *op, int *count);
+                       struct idm_lock_op *op, int *count, int *self);
 int ilm_get_mode(int sock, struct idm_lock_id *id,
                  struct idm_lock_op *op, int *mode);
 int ilm_set_host_id(int sock, char *id, int id_len);
@@ -75,7 +76,7 @@ int ilm_convert(int sock, struct idm_lock_id *id, uint32_t mode);
 int ilm_write_lvb(int sock, struct idm_lock_id *id, char *lvb, int lvb_len);
 int ilm_read_lvb(int sock, struct idm_lock_id *id, char *lvb, int lvb_len);
 int ilm_get_host_count(int sock, struct idm_lock_id *id,
-                       struct idm_lock_op *op, int *count);
+                       struct idm_lock_op *op, int *count, int *self);
 int ilm_get_mode(int sock, struct idm_lock_id *id,
                  struct idm_lock_op *op, int *mode);
 int ilm_set_host_id(int sock, char *id, int id_len);

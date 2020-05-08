@@ -434,18 +434,7 @@ static int ilm_lock_file(void)
 	char path[PATH_MAX];
 	char buf[16];
 	struct flock lock;
-	mode_t old_umask;
 	int fd, ret;
-
-	old_umask = umask(0002);
-
-	/* Create run directory */
-	ret = mkdir(env.run_dir, 0775);
-	if (ret < 0 && errno != EEXIST) {
-		umask(old_umask);
-		return ret;
-	}
-	umask(old_umask);
 
 	snprintf(path, PATH_MAX, "%s/%s", env.run_dir, ILM_LOCKFILE_NAME);
 

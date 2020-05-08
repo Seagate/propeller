@@ -15,6 +15,8 @@
 #define IDM_FAILURE_PATH_LEN		128
 #define IDM_FAILURE_ARGS_LEN		128
 
+#define IDM_VALUE_LEN			8
+
 struct idm_lock_id {
 	uuid_t vg_uuid;
 	uuid_t lv_uuid;
@@ -24,7 +26,7 @@ struct idm_lock_op {
 	uint32_t mode;
 
 	uint32_t drive_num;
-	char *drives[ILM_DRIVE_MAX_NUM];
+	const char *drives[ILM_DRIVE_MAX_NUM];
 
 	int timeout; /* -1 means unlimited timeout */
 };
@@ -41,7 +43,7 @@ int ilm_read_lvb(int sock, struct idm_lock_id *id, char *lvb, int lvb_len);
 int ilm_set_signal(int sock, int signo);
 int ilm_set_killpath(int sock, char *killpath, char *killargs);
 int ilm_get_host_count(int sock, struct idm_lock_id *id,
-		       struct idm_lock_op *op, int *count);
+		       struct idm_lock_op *op, int *count, int *self);
 int ilm_get_mode(int sock, struct idm_lock_id *id,
 		 struct idm_lock_op *op, int *mode);
 int ilm_set_host_id(int sock, char *id, int id_len);

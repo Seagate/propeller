@@ -7,6 +7,7 @@
  * warranty of any kind, whether express or implied.
  */
 
+#include <assert.h>
 #include <errno.h>
 #include <limits.h>
 #include <pthread.h>
@@ -31,6 +32,7 @@ struct idm_async_op {
 	int result;
 	int mode;
 	int count;
+	int self;
 	char vb[IDM_VALUE_LEN];
 };
 
@@ -317,6 +319,24 @@ static int idm_host_count(struct idm_emulation *idm)
 	}
 
 	return count;
+}
+
+static int idm_self_count(struct idm_emulation *idm, char *host_id)
+{
+	struct idm_host *host;
+
+	assert(host_id);
+
+	list_for_each_entry(host, &idm->host_list, list) {
+		if (host->state == IDM_STATE_TIMEOUT ||
+		    idm_host_is_expired(host))
+			continue;
+
+		if (!memcmp(host->id, host_id, IDM_HOST_ID_LEN))
+			return 1;
+	}
+
+	return 0;
 }
 
 /**
@@ -1102,12 +1122,15 @@ int idm_drive_read_lvb_async_result(int fd, void *lvb, int lvb_size,
 /**
  * idm_drive_lock_count - Read the host count for an IDM.
  * @lock_id:		Lock ID (64 bytes).
+ * @host_id:		Host ID (32 bytes).
  * @count:		Returned count value's pointer.
+ * @self:		Returned self count value's pointer.
  * @drive:		Drive path name.
  *
  * Returns zero or a negative error (ie. EINVAL).
  */
-int idm_drive_lock_count(char *lock_id, int *count, char *drive)
+int idm_drive_lock_count(char *lock_id, char *host_id,
+			 int *count, int *self, char *drive)
 {
 	struct idm_emulation *idm;
 
@@ -1126,6 +1149,8 @@ int idm_drive_lock_count(char *lock_id, int *count, char *drive)
 
 	pthread_mutex_lock(&idm->mutex);
 	*count = idm_host_count(idm);
+	*self = idm_self_count(idm, host_id);
+	*count -= *self;
 	pthread_mutex_unlock(&idm->mutex);
 	idm_put(lock_id, drive);
 	return 0;
@@ -1134,18 +1159,21 @@ int idm_drive_lock_count(char *lock_id, int *count, char *drive)
 /**
  * idm_drive_lock_count_async - Read the host count for an IDM with async mode.
  * @lock_id:		Lock ID (64 bytes).
+ * @host_id:		Host ID (32 bytes).
  * @drive:		Drive path name.
  * @fd:			File descriptor (emulated with index).
  *
  * Returns zero or a negative error (ie. EINVAL).
  */
-int idm_drive_lock_count_async(char *lock_id, char *drive, int *fd)
+int idm_drive_lock_count_async(char *lock_id, char *host_id,
+			       char *drive, int *fd)
 {
 	struct idm_async_op *async;
 
 	async = malloc(sizeof(struct idm_async_op));
 
-	async->result = idm_drive_lock_count(lock_id, &async->count, drive);
+	async->result = idm_drive_lock_count(lock_id, host_id, &async->count,
+					     &async->self, drive);
 
 	pthread_mutex_lock(&idm_async_list_mutex);
 	*fd = idm_async_index;
@@ -1161,11 +1189,13 @@ int idm_drive_lock_count_async(char *lock_id, char *drive, int *fd)
  * idm_drive_lock_count_async_result - Read the result for host count.
  * @fd:			File descriptor (emulated with index).
  * @count:		Returned count value's pointer.
+ * @self:		Returned self count value's pointer.
  * @result:		Returned result for the operation.
  *
  * Returns zero or a negative error (ie. EINVAL).
  */
-int idm_drive_lock_count_async_result(int fd, int *count, int *result)
+int idm_drive_lock_count_async_result(int fd, int *count, int *self,
+				      int *result)
 {
 	struct idm_async_op *async, *next;
 
@@ -1176,6 +1206,7 @@ int idm_drive_lock_count_async_result(int fd, int *count, int *result)
 		if (async->fd == fd) {
 			list_del(&async->list);
 			*count = async->count;
+			*self = async->self;
 			*result = async->result;
 			free(async);
 			break;

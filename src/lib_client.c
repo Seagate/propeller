@@ -421,11 +421,15 @@ int ilm_set_killpath(int sock, char *killpath, char *killargs)
 }
 
 int ilm_get_host_count(int sock, struct idm_lock_id *id,
-		       struct idm_lock_op *op, int *count)
+		       struct idm_lock_op *op, int *count, int *self)
 {
 	struct ilm_lock_payload payload;
 	int i, len, ret;
 	char path[PATH_MAX];
+	struct _host_account {
+		int count;
+		int self;
+	} account;
 
 	len = sizeof(struct ilm_lock_payload) + op->drive_num * PATH_MAX;
 
@@ -459,10 +463,12 @@ int ilm_get_host_count(int sock, struct idm_lock_id *id,
 	if (ret < 0)
 		return ret;
 
-	ret = recv_data(sock, (char *)count, sizeof(int), 0);
+	ret = recv_data(sock, (char *)&account, sizeof(account), 0);
 	if (ret < 0)
 		return ret;
 
+	*count = account.count;
+	*self = account.self;
 	return 0;
 }
 

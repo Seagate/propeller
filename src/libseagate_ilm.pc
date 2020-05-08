@@ -1,0 +1,11 @@
+prefix=/usr
+exec_prefix=${prefix}
+includedir=${prefix}/include
+libdir=${exec_prefix}/lib
+
+Name: libseagate_ilm
+Description: The sanlock client library
+Version: 0.1.0
+Cflags: -I${includedir}
+Libs: -L${libdir} -llibseagate_ilm
+

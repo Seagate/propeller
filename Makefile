@@ -7,11 +7,14 @@ all:
 		$(MAKE) -C $$dir; \
 	done
 
-clean install:
+clean:
 	for dir in $(SUBDIRS); do \
 		$(MAKE) -C $$dir $@; \
 	done
 	rm -rf cscope.*
+
+install:
+	$(MAKE) -C src $@
 
 cscope:
 	@echo "  CSCOPE"

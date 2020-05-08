@@ -424,7 +424,11 @@ int ilm_lock_host_count(struct ilm_cmd *cmd, struct ilm_lockspace *ls)
 {
 	struct ilm_lock_payload payload;
 	struct ilm_lock *lock = NULL;
-	int count, allocated = 0, pos = 0, ret;
+	int allocated = 0, pos = 0, ret;
+	struct _account {
+		int count;
+		int self;
+	} account;
 
 	ret = ilm_lock_payload_read(cmd, &payload);
 	if (ret < 0)
@@ -453,12 +457,12 @@ int ilm_lock_host_count(struct ilm_cmd *cmd, struct ilm_lockspace *ls)
 
 	ilm_lock_dump("lock_host_count", lock);
 
-	ret = idm_raid_count(lock, &count);
+	ret = idm_raid_count(lock, ls->host_id, &account.count, &account.self);
 	if (ret) {
 		ilm_log_err("Fail to read count %d\n", ret);
 		goto out;
 	}
-	ilm_log_dbg("Lock host count %d\n", count);
+	ilm_log_dbg("Lock host count %d self %d\n", account.count, account.self);
 
 out:
 	if (allocated)
@@ -466,7 +470,8 @@ out:
 
 	ilm_client_recv_all(cmd->cl, cmd->sock_msg_len, pos);
 	if (!ret)
-		ilm_send_result(cmd->cl->fd, ret, (char *)&count, sizeof(count));
+		ilm_send_result(cmd->cl->fd, ret,
+				(char *)&account, sizeof(account));
 	else
 		ilm_send_result(cmd->cl->fd, ret, NULL, 0);
 	return ret;

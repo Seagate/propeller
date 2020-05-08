@@ -19,7 +19,8 @@ struct ilm_drive {
 
 	int result;		/* cache the result */
 	int mode;		/* cache the lock mode */
-	int count;		/* cache the lock count */
+	int count;		/* cache the lock count (not include self) */
+	int self;		/* cache the self count */
 	char vb[IDM_VALUE_LEN];
 	int is_brk;		/* indicate breaking lock */
 };
