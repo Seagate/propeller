@@ -15,6 +15,8 @@
 #define IDM_FAILURE_PATH_LEN		128
 #define IDM_FAILURE_ARGS_LEN		128
 
+#define IDM_VALUE_LEN			8
+
 struct idm_lock_id {
 	uuid_t vg_uuid;
 	uuid_t lv_uuid;
