@@ -9,6 +9,7 @@ include ../Makefile.config
 include ../Makefile.common
 
 TARGET = seagate_ilm
+HEADER_TARGET = ilm.h
 LIB_TARGET = libseagate_ilm
 
 SOMAJOR=0
@@ -54,3 +55,21 @@ $(LIBSO_TARGET): $(LIB_SOURCE)
 
 clean:
 	rm -f *.o *.so *.so.* $(TARGET)
+
+INSTALL=$(shell which install)
+
+DESTDIR=
+BINDIR=/usr/sbin
+LIBDIR=/usr/lib
+HEADIR=/usr/include
+
+.PHONY: install
+install: all
+	$(INSTALL) -d $(DESTDIR)/$(BINDIR)
+	$(INSTALL) -d $(DESTDIR)/$(LIBDIR)
+	$(INSTALL) -d $(DESTDIR)/$(HEADIR)
+	$(INSTALL) -c -m 755 $(TARGET) $(DESTDIR)/$(BINDIR)
+	$(INSTALL) -c -m 755 $(LIBSO_TARGET) $(DESTDIR)/$(LIBDIR)
+	cp -a $(LIB_TARGET).so $(DESTDIR)/$(LIBDIR)
+	cp -a $(LIB_TARGET).so.$(SOMAJOR) $(DESTDIR)/$(LIBDIR)
+	$(INSTALL) -c -m 644 $(HEADER_TARGET) $(DESTDIR)/$(HEADIR)
