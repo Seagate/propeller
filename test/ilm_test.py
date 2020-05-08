@@ -965,16 +965,18 @@ def test_lock__get_host_count(ilm_daemon):
     ret = ilm.ilm_lock(s, lock_id, lock_op)
     assert ret == 0
 
-    ret, count = ilm.ilm_get_host_count(s, lock_id, lock_op)
+    ret, count, self = ilm.ilm_get_host_count(s, lock_id, lock_op)
     assert ret == 0
-    assert count == 1
+    assert count == 0
+    assert self == 1
 
     ret = ilm.ilm_unlock(s, lock_id)
     assert ret == 0
 
-    ret, count = ilm.ilm_get_host_count(s, lock_id, lock_op)
+    ret, count, self = ilm.ilm_get_host_count(s, lock_id, lock_op)
     assert ret == 0
     assert count == 0
+    assert self == 0
 
     ret = ilm.ilm_disconnect(s)
     assert ret == 0
@@ -1011,23 +1013,26 @@ def test_lock__two_hosts_get_host_count(ilm_daemon):
     ret = ilm.ilm_lock(s2, lock_id, lock_op)
     assert ret == 0
 
-    ret, count = ilm.ilm_get_host_count(s1, lock_id, lock_op)
+    ret, count, self = ilm.ilm_get_host_count(s1, lock_id, lock_op)
     assert ret == 0
-    assert count == 2
+    assert count == 1
+    assert self == 1
 
     ret = ilm.ilm_unlock(s1, lock_id)
     assert ret == 0
 
-    ret, count = ilm.ilm_get_host_count(s1, lock_id, lock_op)
+    ret, count, self = ilm.ilm_get_host_count(s1, lock_id, lock_op)
     assert ret == 0
     assert count == 1
+    assert self == 0
 
     ret = ilm.ilm_unlock(s2, lock_id)
     assert ret == 0
 
-    ret, count = ilm.ilm_get_host_count(s1, lock_id, lock_op)
+    ret, count, self = ilm.ilm_get_host_count(s1, lock_id, lock_op)
     assert ret == 0
     assert count == 0
+    assert self == 0
 
     ret = ilm.ilm_disconnect(s1)
     assert ret == 0
@@ -1080,40 +1085,45 @@ def test_lock__three_hosts_get_host_count(ilm_daemon):
     ret = ilm.ilm_lock(s3, lock_id, lock_op)
     assert ret == 0
 
-    ret, count = ilm.ilm_get_host_count(s1, lock_id, lock_op)
+    ret, count, self = ilm.ilm_get_host_count(s1, lock_id, lock_op)
     assert ret == 0
     assert count == 2
+    assert self == 1
 
     ret = ilm.ilm_unlock(s2, lock_id)
     assert ret == 0
 
-    ret, count = ilm.ilm_get_host_count(s1, lock_id, lock_op)
+    ret, count, self = ilm.ilm_get_host_count(s1, lock_id, lock_op)
     assert ret == 0
-    assert count == 2
+    assert count == 1
+    assert self == 1
 
     # Duplicate unlocking, so received error
     ret = ilm.ilm_unlock(s2, lock_id)
     assert ret == -1
 
     # Check if the host count is 2 (s0 and s2 are granted)
-    ret, count = ilm.ilm_get_host_count(s1, lock_id, lock_op)
+    ret, count, self = ilm.ilm_get_host_count(s1, lock_id, lock_op)
     assert ret == 0
-    assert count == 2
+    assert count == 1
+    assert self == 1
 
     ret = ilm.ilm_unlock(s3, lock_id)
     assert ret == 0
 
-    ret, count = ilm.ilm_get_host_count(s1, lock_id, lock_op)
+    ret, count, self = ilm.ilm_get_host_count(s1, lock_id, lock_op)
     assert ret == 0
-    assert count == 1
+    assert count == 0
+    assert self == 1
 
     ret = ilm.ilm_unlock(s1, lock_id)
     assert ret == 0
 
     # All hosts have released the IDM, so return -ENOENT
-    ret, count = ilm.ilm_get_host_count(s1, lock_id, lock_op)
+    ret, count, self = ilm.ilm_get_host_count(s1, lock_id, lock_op)
     assert ret == 0
     assert count == 0
+    assert self == 0
 
     ret = ilm.ilm_disconnect(s1)
     assert ret == 0
@@ -1178,16 +1188,18 @@ def test_lock__destroy(ilm_daemon):
     ret = ilm.ilm_lock(s3, lock_id, lock_op)
     assert ret == 0
 
-    ret, count = ilm.ilm_get_host_count(s1, lock_id, lock_op)
+    ret, count, self = ilm.ilm_get_host_count(s1, lock_id, lock_op)
     assert ret == 0
     assert count == 1
+    assert self == 0
 
     ret = ilm.ilm_unlock(s2, lock_id)
     assert ret == -62
 
-    ret, count = ilm.ilm_get_host_count(s1, lock_id, lock_op)
+    ret, count, self = ilm.ilm_get_host_count(s1, lock_id, lock_op)
     assert ret == 0
     assert count == 1
+    assert self == 0
 
     ret = ilm.ilm_unlock(s1, lock_id)
     assert ret == -62
