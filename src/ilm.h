@@ -26,7 +26,7 @@ struct idm_lock_op {
 	uint32_t mode;
 
 	uint32_t drive_num;
-	char *drives[ILM_DRIVE_MAX_NUM];
+	const char *drives[ILM_DRIVE_MAX_NUM];
 
 	int timeout; /* -1 means unlimited timeout */
 };
