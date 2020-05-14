@@ -197,7 +197,7 @@ int ilm_lock_acquire(struct ilm_cmd *cmd, struct ilm_lockspace *ls)
 		goto out;
 	pos += ret;
 
-	if (payload.drive_num > ILM_DRIVE_MAX_NUM) {
+	if (!payload.drive_num || payload.drive_num > ILM_DRIVE_MAX_NUM) {
 	        ilm_log_err("Drive list is out of scope: drive_num %d\n",
 			    payload.drive_num);
 		ret = -EINVAL;

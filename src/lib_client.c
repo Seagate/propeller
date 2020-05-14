@@ -214,6 +214,16 @@ int ilm_lock(int sock, struct idm_lock_id *id, struct idm_lock_op *op)
 	int i, len, ret;
 	char path[PATH_MAX];
 
+	/* Return error when drive number is zero */
+	if (!op || !op->drive_num)
+		return -EINVAL;
+
+	/* Return error when detect drive path is NULL */
+	for (i = 0; i < op->drive_num; i++) {
+		if (!op->drives[i])
+			return -EINVAL;
+	}
+
 	len = sizeof(struct ilm_lock_payload) + op->drive_num * PATH_MAX;
 
 	ret = send_header(sock, ILM_CMD_ACQUIRE, len);

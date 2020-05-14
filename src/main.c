@@ -110,7 +110,7 @@ static int ilm_daemon_setup(void)
 	int ret;
 
 	if (!env.debug && daemon(0, 0) < 0) {
-		ilm_log_err("Cannot set process as daemon\n");
+		fprintf(stderr, "Cannot set process as daemon\n");
 		return -1;
 	}
 
@@ -118,8 +118,7 @@ static int ilm_daemon_setup(void)
 	if (env.mlock) {
 		ret = mlockall(MCL_CURRENT | MCL_FUTURE);
 		if (ret < 0) {
-			ilm_log_err("mlockall failed: %s",
-				    strerror(errno));
+			fprintf(stderr, "mlockall failed: %s", strerror(errno));
 			return -1;
 		}
 	}
@@ -212,9 +211,11 @@ int main(int argc, char *argv[])
 	if (ret < 0)
 		return EXIT_FAILURE;
 
-	ilm_log_init();
-
 	ret = ilm_daemon_setup();
+	if (ret < 0)
+		goto failed_daemon;
+
+	ret = ilm_log_init();
 	if (ret < 0)
 		goto failed_daemon;
 
