@@ -10,10 +10,23 @@
 #include <blkid/blkid.h>
 #include <stdlib.h>
 #include <string.h>
+#include <sys/time.h>
 #include <time.h>
 
 #include "log.h"
 #include "util.h"
+
+uint64_t ilm_read_utc_time(void)
+{
+	struct timeval cur_time;
+	uint64_t utc_ms;
+
+	gettimeofday(&cur_time, NULL);
+
+	utc_ms = (uint64_t)(cur_time.tv_sec) * 1000 +
+		 (uint64_t)(cur_time.tv_usec) / 1000;
+	return utc_ms;
+}
 
 /* Get current time in millisecond */
 uint64_t ilm_curr_time(void)
