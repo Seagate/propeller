@@ -50,6 +50,9 @@
 #define IDM_CLASS_PROTECTED_WRITE		0x1
 #define IDM_CLASS_SHARED_PROTECTED_READ		0x2
 
+#define IDM_SCSI_WRITE				0x89  /* Or change to use 0x8E */
+#define IDM_SCSI_READ				0x88  /* Or change to use 0x8E */
+
 struct idm_data {
 	char state[8];  /* ignored when write */
 	uint64_t time_now;
@@ -83,16 +86,23 @@ static tDevice *_alloc_device_handle(void)
 	return dev_handle;
 }
 
-static int _scsi_write_command(tDevice *dev_handle, int op,
-			       char *resource_id, int mode,
-			       char *host_id, uint64_t timeout,
-			       int res_ver_type, char *lvb, int lvb_size)
-{
-	uint8_t cdb[CDB_LEN_16] = { 0 };
-	uint8_t sense[256] = { 0 };
-	struct idm_data data;
+static char sense_invalid_opcode[32] = {
+	0x72, 0x05, 0x20, 0x00, 0x00, 0x00, 0x00, 0x1c,
+	0x02, 0x06, 0x00, 0x00, 0xcf, 0x00, 0x00, 0x00,
+	0x03, 0x02, 0x00, 0x01, 0x80, 0x0e, 0x00, 0x00,
+	0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+};
 
-	cdb[OPERATION_CODE] = 0x89;	/* Command=0x89, or should use 0x8E?? */
+static char sense_lba_oor[28] = {
+	0x72, 0x05, 0x21, 0x00, 0x00, 0x00, 0x00, 0x14,
+	0x03, 0x02, 0x00, 0x01, 0x80, 0x0e, 0x00, 0x00,
+	0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+	0x00, 0x00, 0x00, 0x00,
+};
+
+static void _scsi_generate_write_cdb(uint8_t *cdb, int mutex_op)
+{
+	cdb[0] = IDM_SCSI_WRITE;
 	cdb[1] = 0x0;			/* WRPROTECT=000b DPO=0b, FUA=0b */
 	cdb[2] = 0x0;			/* MUTEX GROUP=0 as default value */
 	cdb[3] = 0x0;			/* cdb[3..9] are ignored */
@@ -110,6 +120,40 @@ static int _scsi_write_command(tDevice *dev_handle, int op,
 	cdb[14] &= 0xc0;
 	cdb[14] |= op;
 	cdb[15] = 0;			/* Control = 0 */
+}
+
+static void _scsi_generate_read_cdb(uint8_t *cdb)
+{
+	cdb[0] = IDM_SCSI_READ;
+	cdb[1] = 0x0;			/* WRPROTECT=000b DPO=0b FUA=0b */
+	cdb[2] = 0x0;			/* MUTEX GROUP=0 as default value */
+	cdb[3] = 0x0;			/* cdb[3..9] are ignored */
+	cdb[4] = 0x0;
+	cdb[5] = 0x0;
+	cdb[6] = 0x0;
+	cdb[7] = 0x0;
+	cdb[8] = 0x0;
+	cdb[9] = 0x0;
+	cdb[10] = M_Byte3(IDM_DATA_BLOCK_NUM);
+	cdb[11] = M_Byte2(IDM_DATA_BLOCK_NUM);
+	cdb[12] = M_Byte1(IDM_DATA_BLOCK_NUM);
+	cdb[13] = M_Byte0(IDM_DATA_BLOCK_NUM);
+	cdb[14] = 0;			/* DLD1=0 DLD0=0 Group number=0 */
+	cdb[15] = 0;			/* Control = 0 */
+}
+
+static int _scsi_write_command(char *drive, int op,
+			       char *resource_id, int mode,
+			       char *host_id, uint64_t timeout,
+			       int res_ver_type, char *lvb, int lvb_size)
+{
+	uint8_t cdb[CDB_LEN_16] = { 0 };
+	uint8_t sense[256] = { 0 };
+	struct idm_data data;
+	sg_io_hdr_t io_hdr;
+	int status;
+
+	_scsi_generate_write_cdb(cdb, op);
 
 	data.time_now = ilm_read_utc_time();
 	data.countdown = timeout;
@@ -119,18 +163,79 @@ static int _scsi_write_command(tDevice *dev_handle, int op,
 	if (resource_id)
 		memcpy(data.resource_id, resource_id, IDM_LOCK_ID_LEN);
 
-	ret = scsi_Send_Cdb(dev_handle, cdb, sizeof(cdb),
-			    &data, sizeof(struct idm_data),
-			    XFER_DATA_IN, sense, 256, 15 /* timeout */);
+	memset(&io_hdr, 0, sizeof(sg_io_hdr_t));
+	io_hdr.interface_id = 'S';
+	io_hdr.cmd_len = sizeof(cdb);
+	io_hdr.cmdp = cdb;
+	/* io_hdr.iovec_count = 0; */  /* memset takes care of this */
+	io_hdr.mx_sb_len = sizeof(sense);
+	io_hdr.sbp = sense;
+	io_hdr.dxfer_direction = SG_DXFER_TO_DEV;
+	io_hdr.dxfer_len = sizeof(struct idm_data);
+	io_hdr.dxferp = &data;
+	io_hdr.timeout = 15000;     /* 15000 millisecs == 15 seconds */
+	/* io_hdr.flags = 0; */     /* take defaults: indirect IO, etc */
+	/* io_hdr.pack_id = 0; */
+	/* io_hdr.usr_ptr = NULL; */
+
+	ret = ioctl(sg_fd, SG_IO, &io_hdr);
 	if (ret) {
 		ilm_log_err("%s: fail to send cdb %d", __func__, ret);
 		goto out;
 	}
 
+	/* Make success */
+	if ((io_hdr.info & SG_INFO_OK_MASK) == SG_INFO_OK)
+       		return 0;
+
+	status = io_hdr.masked_status;
+	switch (status) {
+	case SAM_STAT_CHECK_CONDITION:
+		if (!memcmp(sense, sense_invalid_opcode,
+			    sizeof(sense_invalid_opcode))) {
+			ilm_log_err("%s: unsupported opcode=%d",
+				    __func__, op);
+			ret = -EINVAL;
+			break;
+		}
+
+		/* check if LBA is out of range */
+		if (!memcmp(sense, sense_lba_oor, sizeof(sense_lba_oor))) {
+			ilm_log_err("%s: LBA is out of range=%d",
+				    __func__, op);
+			ret = -EINVAL;
+			break;
+		}
+
+		/* Otherwise, also reports error */
+		ilm_log_array_err("sense:", sense, sizeof(sense));
+		ret = -EINVAL;
+		break;
+
+	case SAM_STAT_RESERVATION_CONFLICT:
+		if (op == IDM_MUTEX_OP_REFRESH)
+			ret = -ETIME;
+		else
+			ret = -EAGAIN;
+		break;
+
+	case SAM_STAT_BUSY:
+		ret = -EBUSY;
+		break;
+
 	/*
-	 * TODO: parse sense data to check if acquire the same
-	 * idm twice, or acquired by other host.
+	 * Take this case as success since the IDM has achieved
+	 * the required state.
 	 */
+	case SAM_STAT_COMMAND_TERMINATED:
+		ret = 0;
+		break;
+
+	default:
+		ilm_log_err("%s: unknown status %d", __func__, status);
+		ret = -EINVAL;
+		break;
+	}
 
 	return ret;
 }
@@ -148,22 +253,7 @@ static int _scsi_read_command(tDevice *dev_handle,
 
 	*data_len = IDM_DATA_SIZE;
 
-	cdb[OPERATION_CODE] = 0x88;	/* Command=0x88 */
-	cdb[1] = 0x0;			/* WRPROTECT=000b DPO=0b FUA=0b */
-	cdb[2] = 0x0;			/* MUTEX GROUP=0 as default value */
-	cdb[3] = 0x0;			/* cdb[3..9] are ignored */
-	cdb[4] = 0x0;
-	cdb[5] = 0x0;
-	cdb[6] = 0x0;
-	cdb[7] = 0x0;
-	cdb[8] = 0x0;
-	cdb[9] = 0x0;
-	cdb[10] = M_Byte3(IDM_DATA_BLOCK_NUM);
-	cdb[11] = M_Byte2(IDM_DATA_BLOCK_NUM);
-	cdb[12] = M_Byte1(IDM_DATA_BLOCK_NUM);
-	cdb[13] = M_Byte0(IDM_DATA_BLOCK_NUM);
-	cdb[14] = 0;			/* DLD1=0 DLD0=0 Group number=0 */
-	cdb[15] = 0;			/* Control = 0 */
+	_scsi_generate_read_cdb(cdb);
 
 	ret = scsi_Send_Cdb(dev_handle, cdb, sizeof(cdb),
 			    *data, *data_len,
