@@ -22,23 +22,23 @@
 #include "log.h"
 #include "util.h"
 
-#define IDM_MUTEX_OP_INIT	0x1
-#define IDM_MUTEX_OP_TRYLOCK	0x2
-#define IDM_MUTEX_OP_LOCK	0x3
-#define IDM_MUTEX_OP_UNLOCK	0x4
-#define IDM_MUTEX_OP_REFRESH	0x5
-#define IDM_MUTEX_OP_BREAK	0x6
-#define IDM_MUTEX_OP_DESTROY	0x7
+#define IDM_MUTEX_OP_INIT		0x1
+#define IDM_MUTEX_OP_TRYLOCK		0x2
+#define IDM_MUTEX_OP_LOCK		0x3
+#define IDM_MUTEX_OP_UNLOCK		0x4
+#define IDM_MUTEX_OP_REFRESH		0x5
+#define IDM_MUTEX_OP_BREAK		0x6
+#define IDM_MUTEX_OP_DESTROY		0x7
 
-#define IDM_RES_VER_NO_UPDATE_NO_VALID		0x0
-#define IDM_RES_VER_UPDATE_NO_VALID		0x1
-#define IDM_RES_VER_UPDATE_VALID		0x2
-#define IDM_RES_VER_INVALID			0x3
+#define IDM_RES_VER_NO_UPDATE_NO_VALID	0x0
+#define IDM_RES_VER_UPDATE_NO_VALID	0x1
+#define IDM_RES_VER_UPDATE_VALID	0x2
+#define IDM_RES_VER_INVALID		0x3
 
 /* Now simply read out data with predefined size: 512B * 1000 = 500KB */
-#define IDM_DATA_BLOCK_SIZE	512
-#define IDM_DATA_BLOCK_NUM	1000
-#define IDM_DATA_SIZE		(IDM_DATA_BLOCK_SIZE * IDM_DATA_BLOCK_NUM)
+#define IDM_DATA_BLOCK_SIZE		512
+#define IDM_DATA_BLOCK_NUM		1000
+#define IDM_DATA_SIZE			(IDM_DATA_BLOCK_SIZE * IDM_DATA_BLOCK_NUM)
 
 #define IDM_STATE_UNINIT		0
 #define IDM_STATE_LOCKED		0x101
@@ -46,12 +46,12 @@
 #define IDM_STATE_MULTIPLE_LOCKED	0x103
 #define IDM_STATE_TIMEOUT		0x104
 
-#define IDM_CLASS_EXCLUSIVE			0x0
-#define IDM_CLASS_PROTECTED_WRITE		0x1
-#define IDM_CLASS_SHARED_PROTECTED_READ		0x2
+#define IDM_CLASS_EXCLUSIVE		0x0
+#define IDM_CLASS_PROTECTED_WRITE	0x1
+#define IDM_CLASS_SHARED_PROTECTED_READ	0x2
 
-#define IDM_SCSI_WRITE				0x89  /* Or change to use 0x8E */
-#define IDM_SCSI_READ				0x88  /* Or change to use 0x8E */
+#define IDM_SCSI_WRITE			0x89  /* Or change to use 0x8E */
+#define IDM_SCSI_READ			0x88  /* Or change to use 0x8E */
 
 struct idm_data {
 	char state[8];  /* ignored when write */
@@ -67,24 +67,29 @@ struct idm_data {
 	char ignore1[256];
 };
 
-static tDevice *_alloc_device_handle(void)
-{
-	tDevice *dev_handle;
+#define SCSI_CDB_LEN			16
+#define SCSI_SENSE_LEN			256
 
-	dev_handle = malloc(sizeof(tDevice));
-	if (!dev_handle)
-		return NULL;
+struct idm_scsi_request {
+	int op;
+	int mode;
+	uint64_t timeout;
 
-	memset(dev_handle, 0x0, sizeof(tDevice));
+	/* Lock ID */
+	char lock_id[IDM_LOCK_ID_LEN];
 
-	dev_handle->dFlags = OPEN_HANDLE_ONLY;
+	/* Host ID */
+	char host_id[IDM_HOST_ID_LEN];
 
-	/* Later can change to VERBOSITY_COMMAND_NAMES */
-	dev_handle->deviceVerbosity = VERBOSITY_COMMAND_VERBOSE;
-	dev_handle->sanity.size = sizeof(tDevice);
-	dev_handle->sanity.version = DEVICE_BLOCK_VERSION;
-	return dev_handle;
-}
+	int res_ver_type;
+	char lvb[IDM_VALUE_LEN];
+
+	char drive[PATH_MAX];
+	int fd;
+	uint8_t cdb[SCSI_CDB_LEN];
+	uint8_t sense[SCSI_SENSE_LEN];
+	struct idm_data *data;
+};
 
 static char sense_invalid_opcode[32] = {
 	0x72, 0x05, 0x20, 0x00, 0x00, 0x00, 0x00, 0x1c,
@@ -142,37 +147,30 @@ static void _scsi_generate_read_cdb(uint8_t *cdb)
 	cdb[15] = 0;			/* Control = 0 */
 }
 
-static int _scsi_write_command(char *drive, int op,
-			       char *resource_id, int mode,
-			       char *host_id, uint64_t timeout,
-			       int res_ver_type, char *lvb, int lvb_size)
+static int _scsi_sg_io(char *drive, uint8_t *cdb, int cdb_len,
+		       uint8_t *sense, int sense_len,
+		       uint8_t *data, uint8_t data_len, int direction)
 {
-	uint8_t cdb[CDB_LEN_16] = { 0 };
-	uint8_t sense[256] = { 0 };
-	struct idm_data data;
 	sg_io_hdr_t io_hdr;
-	int status;
+	int sg_fd;
+	int ret, status;
 
-	_scsi_generate_write_cdb(cdb, op);
-
-	data.time_now = ilm_read_utc_time();
-	data.countdown = timeout;
-	data.class = mode;		/* TODO: Fixup mode in up layer */
-	data.resource_ver[7] = res_ver_type;
-	memcpy(data.host_id, host_id, IDM_HOST_ID_LEN);
-	if (resource_id)
-		memcpy(data.resource_id, resource_id, IDM_LOCK_ID_LEN);
+	if ((sg_fd = open(drive, O_RDWR | O_NONBLOCK)) < 0) {
+		ilm_log_err("%s: error opening drive %s",
+			    __func__, drive, sg_fd);
+		return sg_fd;
+	}
 
 	memset(&io_hdr, 0, sizeof(sg_io_hdr_t));
 	io_hdr.interface_id = 'S';
-	io_hdr.cmd_len = sizeof(cdb);
+	io_hdr.cmd_len = cdb_len;
 	io_hdr.cmdp = cdb;
 	/* io_hdr.iovec_count = 0; */  /* memset takes care of this */
-	io_hdr.mx_sb_len = sizeof(sense);
+	io_hdr.mx_sb_len = sense_len;
 	io_hdr.sbp = sense;
-	io_hdr.dxfer_direction = SG_DXFER_TO_DEV;
-	io_hdr.dxfer_len = sizeof(struct idm_data);
-	io_hdr.dxferp = &data;
+	io_hdr.dxfer_direction = direction;
+	io_hdr.dxfer_len = data_len;
+	io_hdr.dxferp = data;
 	io_hdr.timeout = 15000;     /* 15000 millisecs == 15 seconds */
 	/* io_hdr.flags = 0; */     /* take defaults: indirect IO, etc */
 	/* io_hdr.pack_id = 0; */
@@ -240,30 +238,217 @@ static int _scsi_write_command(char *drive, int op,
 	return ret;
 }
 
-static int _scsi_read_command(tDevice *dev_handle,
-			      struct idm_data **data,
-			      int *data_len)
+static int _scsi_write(, int direction)
+{
+	sg_io_hdr_t io_hdr;
+	int sg_fd;
+	int ret, status;
+
+	if ((sg_fd = open(drive, O_RDWR | O_NONBLOCK)) < 0) {
+		ilm_log_err("%s: error opening drive %s",
+			    __func__, drive, sg_fd);
+		return sg_fd;
+	}
+
+	memset(&io_hdr, 0, sizeof(sg_io_hdr_t));
+	io_hdr.interface_id = 'S';
+	io_hdr.cmd_len = cdb_len;
+	io_hdr.cmdp = cdb;
+	/* io_hdr.iovec_count = 0; */  /* memset takes care of this */
+	io_hdr.mx_sb_len = sense_len;
+	io_hdr.sbp = sense;
+	io_hdr.dxfer_direction = direction;
+	io_hdr.dxfer_len = data_len;
+	io_hdr.dxferp = data;
+	io_hdr.timeout = 15000;     /* 15000 millisecs == 15 seconds */
+	/* io_hdr.flags = 0; */     /* take defaults: indirect IO, etc */
+	/* io_hdr.pack_id = 0; */
+	/* io_hdr.usr_ptr = NULL; */
+
+	ret = write(sg_fd, &io_hdr, sizeof(io_hdr));
+	if (ret < 0) {
+		ilm_log_err("%s: fail to write %d", __func__, ret);
+		return ret;
+	}
+
+	return sg_fd;
+}
+
+static int _scsi_read(int fd, int direction)
+{
+	sg_io_hdr_t io_hdr;
+	int ret, status;
+
+	memset(&io_hdr, 0, sizeof(io_hdr));
+	io_hdr.interface_id = 'S';
+	io_hdr.dxfer_direction = direction;
+
+	ret = read(fd, &io_hdr, sizeof(io_hdr));
+	if (ret < 0) {
+		ilm_log_err("%s: fail to read scsi %d", __func__, ret);
+		return ret;
+	}
+
+	status = io_hdr.masked_status;
+	switch (status) {
+	case SAM_STAT_CHECK_CONDITION:
+		if (!memcmp(sense, sense_invalid_opcode,
+			    sizeof(sense_invalid_opcode))) {
+			ilm_log_err("%s: unsupported opcode=%d",
+				    __func__, op);
+			ret = -EINVAL;
+			break;
+		}
+
+		/* check if LBA is out of range */
+		if (!memcmp(sense, sense_lba_oor, sizeof(sense_lba_oor))) {
+			ilm_log_err("%s: LBA is out of range=%d",
+				    __func__, op);
+			ret = -EINVAL;
+			break;
+		}
+
+		/* Otherwise, also reports error */
+		ilm_log_array_err("sense:", sense, sizeof(sense));
+		ret = -EINVAL;
+		break;
+
+	case SAM_STAT_RESERVATION_CONFLICT:
+		if (op == IDM_MUTEX_OP_REFRESH)
+			ret = -ETIME;
+		else
+			ret = -EAGAIN;
+		break;
+
+	case SAM_STAT_BUSY:
+		ret = -EBUSY;
+		break;
+
+	/*
+	 * Take this case as success since the IDM has achieved
+	 * the required state.
+	 */
+	case SAM_STAT_COMMAND_TERMINATED:
+		ret = 0;
+		break;
+
+	default:
+		ilm_log_err("%s: unknown status %d", __func__, status);
+		ret = -EINVAL;
+		break;
+	}
+
+	return ret;
+}
+
+static int _scsi_xfer_sync(struct idm_scsi_request *request)
+{
+	uint8_t *cdb = request->cdb;
+	uint8_t *sense = request->sense;
+	struct idm_data *data = request->data;
+	sg_io_hdr_t io_hdr;
+	int status;
+
+	_scsi_generate_write_cdb(cdb, request->op);
+
+	data->time_now = ilm_read_utc_time();
+	data->countdown = request->timeout;
+	data->class = request->mode;		/* TODO: Fixup mode in up layer */
+	data->resource_ver[7] = request->res_ver_type;
+	memcpy(data->host_id, request->host_id, IDM_HOST_ID_LEN);
+	if (request->resource_id)
+		memcpy(data->resource_id, request->resource_id,
+		       IDM_LOCK_ID_LEN);
+	if (request->lvb)
+		memcpy(data->resource_ver, request->lvb, IDM_VALUE_LEN);
+
+	return _scsi_sg_io(request->drive, cdb, SCSI_CDB_LEN,
+			   sense, SCSI_SENSE_LEN,
+			   data, sizeof(struct idm_data), SG_DXFER_TO_DEV);
+}
+
+static int _scsi_xfer_async(struct idm_scsi_request *request)
+{
+	struct idm_data *data;
+	sg_io_hdr_t io_hdr;
+	int ret;
+
+	_scsi_generate_write_cdb(request->cdb, op);
+
+	data = request->data;
+	data->time_now = ilm_read_utc_time();
+	data->countdown = request->timeout;
+	data->class = request->mode;		/* TODO: Fixup mode in up layer */
+	data->resource_ver[7] = request->res_ver_type;
+	memcpy(data->host_id, request->host_id, IDM_HOST_ID_LEN);
+	if (request->resource_id)
+		memcpy(data->resource_id, request->resource_id,
+		       IDM_LOCK_ID_LEN);
+	if (request->lvb)
+		memcpy(data->resource_ver, request->lvb, IDM_VALUE_LEN);
+
+	ret = _scsi_write(request, SG_DXFER_TO_DEV);
+	if (ret < 0) {
+		ilm_log_err("%s: fail to write scsi %d", __func__, ret);
+		return ret;
+	}
+
+	return 0;
+}
+
+static int _scsi_recv_sync(char *drive, struct idm_data **data,
+			   int *data_len)
 {
 	uint8_t cdb[CDB_LEN_16] = { 0 };
 	uint8_t sense[256] = { 0 };
+	int ret;
 
 	*data = malloc(IDM_DATA_SIZE);
 	if (!*data)
 		return -ENOMEM;
 
 	*data_len = IDM_DATA_SIZE;
-
 	_scsi_generate_read_cdb(cdb);
 
-	ret = scsi_Send_Cdb(dev_handle, cdb, sizeof(cdb),
-			    *data, *data_len,
-			    XFER_DATA_IN, sense, 256, 15 /* timeout */);
+	ret = _scsi_sg_io(drive, cdb, sizeof(cdb), sense, sizeof(sense),
+			  *data, *data_len, SG_DXFER_FROM_DEV);
 	if (ret) {
-		ilm_log_err("%s: fail to send cdb %d", __func__, ret);
-		goto out;
+		free(*data);
+		*data_len = 0;
 	}
 
+	return ret;
+}
+
+static int _scsi_recv_async(struct idm_scsi_request *request)
+{
+	struct idm_scsi_request *request;
+	struct idm_data *data;
+	sg_io_hdr_t io_hdr;
+	int ret;
+
+	_scsi_generate_read_cdb(request->cdb);
+
+	ret = _scsi_write(request, SG_DXFER_FROM_DEV);
+	if (ret < 0) {
+		ilm_log_err("%s: fail to write scsi %d", __func__, ret);
+		free(request);
+		return ret;
+	}
+
+	request->fd = ret;
+	*handle = (void *)request;
 	return 0;
+}
+
+static int _scsi_get_async_result(void *handle, int direction)
+{
+	struct idm_scsi_request *request = handle;
+
+	ret = _scsi_read(request->fd, direction);
+	free(request->data);
+	free(request);
+	return ret;
 }
 
 /**
@@ -293,7 +478,7 @@ int idm_drive_version(int *version, char *drive)
 int idm_drive_lock(char *lock_id, int mode, char *host_id,
                    char *drive, uint64_t timeout)
 {
-	tDevice *dev_handle = NULL;
+	struct idm_scsi_request *request;
 	int ret;
 
 	if (ilm_inject_fault_is_hit())
@@ -302,33 +487,33 @@ int idm_drive_lock(char *lock_id, int mode, char *host_id,
 	if (!lock_id || !host_id || !drive)
 		return -EINVAL;
 
-	dev_handle = _alloc_device_handle();
-	if (!dev_handle) {
-		ilm_log_err("%s: fail to alloc device", __func__);
+	request = malloc(struct idm_scsi_request);
+	if (!request) {
+		ilm_log_err("%s: fail to allocat scsi request", __func__);
 		return -ENOMEM;
 	}
 
-	ret = get_Device(drive, dev_handle);
-	if (ret) {
-		ilm_log_err("%s: fail to get device %d", __func__, ret);
-		ret = -EIO;
-		goto out;
+	request->data = malloc(struct idm_data);
+	if (!request) {
+		free(request);
+		ilm_log_err("%s: fail to allocat scsi data", __func__);
+		return -ENOMEM;
 	}
 
-	ret = _scsi_write_command(dev_handle, IDM_MUTEX_OP_TRYLOCK,
-				  lock_id, mode, host_id, timeout,
-				  IDM_RES_VER_NO_UPDATE_NO_VALID,
-				  NULL, 0);
-	if (ret)
+	strncpy(request->drive, drive, PATH_MAX);
+	request->op = IDM_MUTEX_OP_TRYLOCK;
+	request->mode = mode;
+	request->timeout = timeout;
+	request->res_ver_type IDM_RES_VER_NO_UPDATE_NO_VALID;
+	memcpy(request->lock_id, lock_id, IDM_LOCK_ID_LEN);
+	memcpy(request->host_id, host_id, IDM_HOST_ID_LEN);
+
+	ret = _scsi_xfer_sync(request);
+	if (ret < 0)
 		ilm_log_err("%s: command fail %d", __func__, ret);
 
-out:
-	if (dev_handle && dev_handle->os_info.fd >= 0)
-		close_Device(dev_handle);
-
-	if (dev_handle)
-		free(dev_handle);
-
+	free(reqeust->data);
+	free(reqeust);
 	return ret;
 }
 
@@ -344,11 +529,41 @@ out:
  * Returns zero or a negative error (ie. EINVAL, ENOMEM, EBUSY, etc).
  */
 int idm_drive_lock_async(char *lock_id, int mode, char *host_id,
-			 char *drive, uint64_t timeout, int *fd)
+			 char *drive, uint64_t timeout, void **handle)
 {
+	struct idm_scsi_request *request;
+	int ret;
 
-	/* TODO */
-	return 0;
+	if (!lock_id || !host_id || !drive)
+		return -EINVAL;
+
+	request = malloc(struct idm_scsi_request);
+	if (!request) {
+		ilm_log_err("%s: fail to allocat scsi request", __func__);
+		return -ENOMEM;
+	}
+
+	request->data = malloc(struct idm_data);
+	if (!request) {
+		free(request);
+		ilm_log_err("%s: fail to allocat scsi data", __func__);
+		return -ENOMEM;
+	}
+
+	strncpy(request->drive, drive, PATH_MAX);
+	request->op = IDM_MUTEX_OP_TRYLOCK;
+	request->mode = mode;
+	request->timeout = timeout;
+	request->res_ver_type IDM_RES_VER_NO_UPDATE_NO_VALID;
+	memcpy(request->lock_id, lock_id, IDM_LOCK_ID_LEN);
+	memcpy(request->host_id, host_id, IDM_HOST_ID_LEN);
+
+	ret = _scsi_xfer_async(request);
+	if (ret < 0)
+		ilm_log_err("%s: command fail %d", __func__, ret);
+
+	*handle = request;
+	return ret;
 }
 
 /**
@@ -364,7 +579,7 @@ int idm_drive_lock_async(char *lock_id, int mode, char *host_id,
 int idm_drive_unlock(char *lock_id, char *host_id,
 		     void *lvb, int lvb_size, char *drive)
 {
-	tDevice *dev_handle = NULL;
+	struct idm_scsi_request *request;
 	int ret;
 
 	if (ilm_inject_fault_is_hit())
@@ -376,33 +591,34 @@ int idm_drive_unlock(char *lock_id, char *host_id,
 	if (lvb_size > IDM_VALUE_LEN)
 		return -EINVAL;
 
-	dev_handle = _alloc_device_handle();
-	if (!dev_handle) {
-		ilm_log_err("%s: fail to alloc device", __func__);
+	request = malloc(struct idm_scsi_request);
+	if (!request) {
+		ilm_log_err("%s: fail to allocat scsi request", __func__);
 		return -ENOMEM;
 	}
 
-	ret = get_Device(drive, dev_handle);
-	if (ret) {
-		ilm_log_err("%s: fail to get device %d", __func__, ret);
-		ret = -EIO;
-		goto out;
+	request->data = malloc(struct idm_data);
+	if (!request) {
+		free(request);
+		ilm_log_err("%s: fail to allocat scsi data", __func__);
+		return -ENOMEM;
 	}
 
-	ret = _scsi_write_command(dev_handle, IDM_MUTEX_OP_UNLOCK,
-				  lock_id, 0, host_id, 0,
-				  IDM_RES_VER_UPDATE_NO_VALID,
-				  lvb, lvb_size);
-	if (ret)
+	strncpy(request->drive, drive, PATH_MAX);
+	request->op = IDM_MUTEX_OP_TRYLOCK;
+	request->mode = 0;
+	request->timeout = 0;
+	request->res_ver_type = IDM_RES_VER_UPDATE_NO_VALID;
+	memcpy(request->lock_id, lock_id, IDM_LOCK_ID_LEN);
+	memcpy(request->host_id, host_id, IDM_HOST_ID_LEN);
+	memcpy(request->lvb, lvb, lvb_size);
+
+	ret = _scsi_xfer_sync(request);
+	if (ret < 0)
 		ilm_log_err("%s: command fail %d", __func__, ret);
 
-out:
-	if (dev_handle && dev_handle->os_info.fd >= 0)
-		close_Device(dev_handle);
-
-	if (dev_handle)
-		free(dev_handle);
-
+	free(request->data);
+	free(request);
 	return ret;
 }
 
@@ -418,15 +634,51 @@ out:
  * Returns zero or a negative error (ie. EINVAL, ETIME).
  */
 int idm_drive_unlock_async(char *lock_id, char *host_id,
-			   void *lvb, int lvb_size, char *drive, int *fd)
+			   void *lvb, int lvb_size,
+			   char *drive, void *handle)
 {
-	/* TODO */
-	return 0;
+	struct idm_scsi_request *request;
+	int ret;
+
+	if (!lock_id || !host_id || !drive)
+		return -EINVAL;
+
+	if (lvb_size > IDM_VALUE_LEN)
+		return -EINVAL;
+
+	request = malloc(struct idm_scsi_request);
+	if (!request) {
+		ilm_log_err("%s: fail to allocat scsi request", __func__);
+		return -ENOMEM;
+	}
+
+	request->data = malloc(struct idm_data);
+	if (!request) {
+		free(request);
+		ilm_log_err("%s: fail to allocat scsi data", __func__);
+		return -ENOMEM;
+	}
+
+	strncpy(request->drive, drive, PATH_MAX);
+	request->op = IDM_MUTEX_OP_UNLOCK;
+	request->mode = 0;
+	request->timeout = 0;
+	request->res_ver_type = IDM_RES_VER_UPDATE_NO_VALID;
+	memcpy(request->lock_id, lock_id, IDM_LOCK_ID_LEN);
+	memcpy(request->host_id, host_id, IDM_HOST_ID_LEN);
+	memcpy(request->lvb, lvb, lvb_size);
+
+	ret = _scsi_xfer_async(request);
+	if (ret < 0)
+		ilm_log_err("%s: command fail %d", __func__, ret);
+
+	return ret;
 }
 
-int idm_drive_refresh_lock(char *lock_id, int mode, char *host_id, char *drive)
+static int idm_drive_refresh_lock(char *lock_id, int mode, char *host_id,
+				  char *drive)
 {
-	tDevice *dev_handle = NULL;
+	struct idm_scsi_request *request;
 	int ret;
 
 	if (ilm_inject_fault_is_hit())
@@ -435,32 +687,70 @@ int idm_drive_refresh_lock(char *lock_id, int mode, char *host_id, char *drive)
 	if (!lock_id || !host_id || !drive)
 		return -EINVAL;
 
-	dev_handle = _alloc_device_handle();
-	if (!dev_handle) {
-		ilm_log_err("%s: fail to alloc device", __func__);
+	request = malloc(struct idm_scsi_request);
+	if (!request) {
+		ilm_log_err("%s: fail to allocat scsi request", __func__);
 		return -ENOMEM;
 	}
 
-	ret = get_Device(drive, dev_handle);
-	if (ret) {
-		ilm_log_err("%s: fail to get device %d", __func__, ret);
-		ret = -EIO;
-		goto out;
+	request->data = malloc(struct idm_data);
+	if (!request) {
+		free(request);
+		ilm_log_err("%s: fail to allocat scsi data", __func__);
+		return -ENOMEM;
 	}
 
-	ret = _scsi_write_command(dev_handle, IDM_MUTEX_OP_REFRESH,
-				  lock_id, mode, host_id, 0,
-				  IDM_RES_VER_NO_UPDATE_NO_VALID,
-				  NULL, 0);
-	if (ret)
+	strncpy(request->drive, drive, PATH_MAX);
+	request->op = IDM_MUTEX_OP_REFRESH;
+	request->mode = mode;
+	request->timeout = 0;
+	request->res_ver_type = IDM_RES_VER_NO_UPDATE_NO_VALID;
+	memcpy(request->lock_id, lock_id, IDM_LOCK_ID_LEN);
+	memcpy(request->host_id, host_id, IDM_HOST_ID_LEN);
+
+	ret = _scsi_xfer_sync(request);
+	if (ret < 0)
 		ilm_log_err("%s: command fail %d", __func__, ret);
 
-out:
-	if (dev_handle && dev_handle->os_info.fd >= 0)
-		close_Device(dev_handle);
+	free(request->data);
+	free(request);
+	return ret;
+}
 
-	if (dev_handle)
-		free(dev_handle);
+static int idm_drive_refresh_lock_async(char *lock_id, int mode,
+					char *host_id, char *drive,
+					void *handle)
+{
+	struct idm_scsi_request *request;
+	int ret;
+
+	if (!lock_id || !host_id || !drive || !handle)
+		return -EINVAL;
+
+	request = malloc(struct idm_scsi_request);
+	if (!request) {
+		ilm_log_err("%s: fail to allocat scsi request", __func__);
+		return -ENOMEM;
+	}
+
+	request->data = malloc(struct idm_data);
+	if (!request) {
+		free(request);
+		ilm_log_err("%s: fail to allocat scsi data", __func__);
+		return -ENOMEM;
+	}
+
+	strncpy(request->drive, drive, PATH_MAX);
+	request->op = IDM_MUTEX_OP_REFRESH;
+	request->mode = mode;
+	request->timeout = 0;
+	request->res_ver_type = IDM_RES_VER_NO_UPDATE_NO_VALID;
+	memcpy(request->lock_id, lock_id, IDM_LOCK_ID_LEN);
+	memcpy(request->host_id, host_id, IDM_HOST_ID_LEN);
+
+	ret = _scsi_xfer_async(request);
+	if (ret < 0)
+		ilm_log_err("%s: command fail %d", __func__, ret);
 
 	return ret;
 }
@@ -490,10 +780,10 @@ int idm_drive_convert_lock(char *lock_id, int mode, char *host_id, char *drive)
  * Returns zero or a negative error (ie. EINVAL, ETIME).
  */
 int idm_drive_convert_lock_async(char *lock_id, int mode, char *host_id,
-				 char *drive, int *fd)
+				 char *drive, void *handle)
 {
-	/* TODO */
-	return 0;
+	return idm_drive_refresh_lock_async(lock_id, mode, host_id,
+					    drive, handle);
 }
 
 /**
@@ -522,10 +812,11 @@ int idm_drive_renew_lock(char *lock_id, int mode, char *host_id, char *drive)
  * Returns zero or a negative error (ie. EINVAL, ETIME).
  */
 int idm_drive_renew_lock_async(char *lock_id, int mode,
-			       char *host_id, char *drive, int *fd)
+			       char *host_id, char *drive,
+			       void *handle)
 {
-	/* TODO */
-	return 0;
+	return idm_drive_refresh_lock_async(lock_id, mode, host_id,
+					    drive, &handle);
 }
 
 /**
@@ -544,7 +835,7 @@ int idm_drive_renew_lock_async(char *lock_id, int mode,
 int idm_drive_break_lock(char *lock_id, int mode, char *host_id,
 			 char *drive, uint64_t timeout)
 {
-	tDevice *dev_handle = NULL;
+	struct idm_scsi_request *request;
 	int ret;
 
 	if (ilm_inject_fault_is_hit())
@@ -553,33 +844,33 @@ int idm_drive_break_lock(char *lock_id, int mode, char *host_id,
 	if (!lock_id || !host_id || !drive)
 		return -EINVAL;
 
-	dev_handle = _alloc_device_handle();
-	if (!dev_handle) {
-		ilm_log_err("%s: fail to alloc device", __func__);
+	request = malloc(struct idm_scsi_request);
+	if (!request) {
+		ilm_log_err("%s: fail to allocat scsi request", __func__);
 		return -ENOMEM;
 	}
 
-	ret = get_Device(drive, dev_handle);
-	if (ret) {
-		ilm_log_err("%s: fail to get device %d", __func__, ret);
-		ret = -EIO;
-		goto out;
+	request->data = malloc(struct idm_data);
+	if (!request) {
+		free(request);
+		ilm_log_err("%s: fail to allocat scsi data", __func__);
+		return -ENOMEM;
 	}
 
-	ret = _scsi_write_command(dev_handle, IDM_MUTEX_OP_BREAK,
-				  lock_id, mode, host_id, timeout,
-				  IDM_RES_VER_NO_UPDATE_NO_VALID,
-				  NULL, 0);
-	if (ret)
+	strncpy(request->drive, drive, PATH_MAX);
+	request->op = IDM_MUTEX_OP_TRYLOCK;
+	request->mode = mode;
+	request->timeout = timeout;
+	request->res_ver_type = IDM_RES_VER_NO_UPDATE_NO_VALID;
+	memcpy(request->lock_id, lock_id, IDM_LOCK_ID_LEN);
+	memcpy(request->host_id, host_id, IDM_HOST_ID_LEN);
+
+	ret = _scsi_xfer_sync(request);
+	if (ret < 0)
 		ilm_log_err("%s: command fail %d", __func__, ret);
 
-out:
-	if (dev_handle && dev_handle->os_info.fd >= 0)
-		close_Device(dev_handle);
-
-	if (dev_handle)
-		free(dev_handle);
-
+	free(request->data);
+	free(request);
 	return ret;
 }
 
@@ -595,10 +886,38 @@ out:
  * Returns zero or a negative error (ie. EINVAL).
  */
 int idm_drive_break_lock_async(char *lock_id, int mode, char *host_id,
-			       char *drive, uint64_t timeout, int *fd)
+			       char *drive, uint64_t timeout, void *handle)
 {
-	/* TODO */
-	return 0;
+	if (!lock_id || !host_id || !drive || !handle)
+		return -EINVAL;
+
+	request = malloc(struct idm_scsi_request);
+	if (!request) {
+		ilm_log_err("%s: fail to allocat scsi request", __func__);
+		return -ENOMEM;
+	}
+
+	request->data = malloc(struct idm_data);
+	if (!request) {
+		free(request);
+		ilm_log_err("%s: fail to allocat scsi data", __func__);
+		return -ENOMEM;
+	}
+
+	strncpy(request->drive, drive, PATH_MAX);
+	request->op = IDM_MUTEX_OP_BREAK;
+	request->mode = mode;
+	request->timeout = timeout;
+	request->res_ver_type = IDM_RES_VER_NO_UPDATE_NO_VALID;
+	memcpy(request->lock_id, lock_id, IDM_LOCK_ID_LEN);
+	memcpy(request->host_id, host_id, IDM_HOST_ID_LEN);
+
+	ret = _scsi_xfer_async(request);
+	if (ret < 0)
+		ilm_log_err("%s: command fail %d", __func__, ret);
+
+	*handle = request;
+	return ret;
 }
 
 /**
@@ -614,7 +933,6 @@ int idm_drive_break_lock_async(char *lock_id, int mode, char *host_id,
 int idm_drive_lock_count(char *lock_id, char *host_id,
 			 int *count, int *self, char *drive)
 {
-	tDevice *dev_handle;
 	struct idm_data *data = NULL;
 	int data_len;
 	int ret, i;
@@ -622,19 +940,13 @@ int idm_drive_lock_count(char *lock_id, char *host_id,
 	if (ilm_inject_fault_is_hit())
 		return -EIO;
 
-	if (!count)
+	if (!count || !self)
 		return -EINVAL;
 
-	if (!lock_id || !drive)
+	if (!lock_id || !host_id || !drive)
 		return -EINVAL;
 
-	dev_handle = _alloc_device_handle();
-	if (!dev_handle) {
-		ilm_log_err("%s: fail to alloc device", __func__);
-		return -ENOMEM;
-	}
-
-	ret = _scsi_read_command(dev_handle, &data, &data_len);
+	ret = _scsi_recv_sync(drive, &data, &data_len);
 	if (ret < 0) {
 		ilm_log_err("%s: fail to read data %d", __func__, ret);
 		goto out;
@@ -665,12 +977,6 @@ out:
 	if (data)
 		free(data);
 
-	if (dev_handle && dev_handle->os_info.fd >= 0)
-		close_Device(dev_handle);
-
-	if (dev_handle)
-		free(dev_handle);
-
 	return ret;
 }
 
@@ -684,9 +990,40 @@ out:
  * Returns zero or a negative error (ie. EINVAL).
  */
 int idm_drive_lock_count_async(char *lock_id, char *host_id,
-			       char *drive, int *fd)
+			       char *drive, void *handle)
 {
-	/* TODO */
+	struct idm_scsi_request *request;
+	int ret, i;
+
+	if (ilm_inject_fault_is_hit())
+		return -EIO;
+
+	if (!lock_id || !host_id || !drive)
+		return -EINVAL;
+
+	request = malloc(struct idm_scsi_request);
+	if (!request) {
+		ilm_log_err("%s: fail to allocat scsi request", __func__);
+		return -ENOMEM;
+	}
+
+	request->data = malloc(IDM_DATA_SIZE);
+	if (!request) {
+		free(request);
+		ilm_log_err("%s: fail to allocat scsi data", __func__);
+		return -ENOMEM;
+	}
+
+	strncpy(request->drive, drive, PATH_MAX);
+	memcpy(request->lock_id, lock_id, IDM_LOCK_ID_LEN);
+	memcpy(request->host_id, host_id, IDM_HOST_ID_LEN);
+
+	ret = _scsi_recv_async(request);
+	if (ret < 0) {
+		ilm_log_err("%s: fail to read data %d", __func__, ret);
+		goto out;
+	}
+
 	return 0;
 }
 
@@ -699,11 +1036,45 @@ int idm_drive_lock_count_async(char *lock_id, char *host_id,
  *
  * Returns zero or a negative error (ie. EINVAL).
  */
-int idm_drive_lock_count_async_result(int fd, int *count, int *self,
+int idm_drive_lock_count_async_result(void *handle, int *count, int *self,
 				      int *result)
 {
-	/* TODO */
-	return 0;
+	struct idm_scsi_request *request;
+	struct idm_data *data = request->data;
+	int ret, i;
+
+	ret = _scsi_get_async_result(handle, SG_DXFER_FROM_DEV);
+
+	*count = 0;
+	*self = 0;
+	for (i = 0; i < IDM_DATA_BLOCK_NUM; i++) {
+		/* Skip for other locks */
+		if (memcpy(data[i].resource_id, request->lock_id,
+			   IDM_LOCK_ID_LEN))
+			continue;
+
+		if (!memcmp(data[i].host_id, request->host_id,
+			    IDM_HOST_ID_LEN)) {
+			/* Must be wrong if self has been accounted */
+			if (*self) {
+				ilm_log_err("%s: account self %d > 1",
+					    __func__, *self);
+				goto out;
+			}
+
+			*self = 1;
+		} else {
+			*count++;
+		}
+	}
+
+	*result = ret;
+
+out:
+	if (data)
+		free(data);
+
+	return ret;
 }
 
 /**
@@ -716,9 +1087,7 @@ int idm_drive_lock_count_async_result(int fd, int *count, int *self,
  */
 int idm_drive_lock_mode(char *lock_id, int *mode, char *drive)
 {
-	tDevice *dev_handle;
-	struct idm_data *data = NULL;
-	int data_len;
+	struct idm_scsi_request *request;
 	int ret, i;
 
 	if (ilm_inject_fault_is_hit())
@@ -730,13 +1099,7 @@ int idm_drive_lock_mode(char *lock_id, int *mode, char *drive)
 	if (!lock_id || !drive)
 		return -EINVAL;
 
-	dev_handle = _alloc_device_handle();
-	if (!dev_handle) {
-		ilm_log_err("%s: fail to alloc device", __func__);
-		return -ENOMEM;
-	}
-
-	ret = _scsi_read_command(dev_handle, &data, &data_len);
+	ret = _scsi_recv_sync(drive, &data, &data_len);
 	if (ret < 0) {
 		ilm_log_err("%s: fail to read data %d", __func__, ret);
 		goto out;
@@ -773,12 +1136,6 @@ out:
 	if (data)
 		free(data);
 
-	if (dev_handle && dev_handle->os_info.fd >= 0)
-		close_Device(dev_handle);
-
-	if (dev_handle)
-		free(dev_handle);
-
 	return ret;
 }
 
@@ -792,7 +1149,31 @@ out:
  */
 int idm_drive_lock_mode_async(char *lock_id, char *drive, int *fd)
 {
-	/* TODO */
+	struct idm_scsi_request *request;
+	int ret, i;
+
+	request = malloc(struct idm_scsi_request);
+	if (!request) {
+		ilm_log_err("%s: fail to allocat scsi request", __func__);
+		return -ENOMEM;
+	}
+
+	request->data = malloc(IDM_DATA_SIZE);
+	if (!request) {
+		free(request);
+		ilm_log_err("%s: fail to allocat scsi data", __func__);
+		return -ENOMEM;
+	}
+
+	strncpy(request->drive, drive, PATH_MAX);
+	memcpy(request->lock_id, lock_id, IDM_LOCK_ID_LEN);
+
+	ret = _scsi_recv_async(request);
+	if (ret < 0) {
+		ilm_log_err("%s: fail to read data %d", __func__, ret);
+		goto out;
+	}
+
 	return 0;
 }
 
@@ -806,8 +1187,46 @@ int idm_drive_lock_mode_async(char *lock_id, char *drive, int *fd)
  */
 int idm_drive_lock_mode_async_result(int fd, int *mode, int *result)
 {
-	/* TODO */
-	return 0;
+	struct idm_scsi_request *request;
+	struct idm_data *data = request->data;
+	int ret, i;
+
+	ret = _scsi_get_async_result(handle, SG_DXFER_FROM_DEV);
+
+	*mode = -1;
+	for (i = 0; i < IDM_DATA_BLOCK_NUM; i++) {
+		/* Skip for other locks */
+		if (memcpy(data[i].resource_id, request->lock_id,
+			   IDM_LOCK_ID_LEN))
+			continue;
+
+		if (data[i].state == IDM_STATE_UNINIT ||
+		    data[i].state == IDM_STATE_UNLOCKED ||
+		    data[i].state == IDM_STATE_TIMEOUT) {
+			*mode = IDM_MODE_UNLOCK;
+		} else if (data[i].class == IDM_CLASS_EXCLUSIVE) {
+			*mode = IDM_MODE_EXCLUSIVE;
+		} else if (data[i].class == IDM_CLASS_SHARED_PROTECTED_READ) {
+			*mode = IDM_MODE_SHAREABLE;
+		} else if (data[i].class == IDM_CLASS_PROTECTED_WRITE) {
+			ilm_log_err("%s: PROTECTED_WRITE is not unsupported",
+				    __func__);
+			ret = -EFAULT;
+			goto out;
+		}
+
+		break;
+	}
+
+	if (*mode == -1)
+		*mode = IDM_MODE_UNLOCK;
+
+	*result = ret;
+out:
+	if (data)
+		free(data);
+
+	return ret;
 }
 
 /**
@@ -817,10 +1236,12 @@ int idm_drive_lock_mode_async_result(int fd, int *mode, int *result)
  *
  * Returns zero or a negative error (ie. EINVAL).
  */
-int idm_drive_async_result(int fd, int *result)
+int idm_drive_async_result(void *handle, int *result)
 {
-	/* TODO */
-	return -1;
+	struct idm_scsi_request *request = handle;
+
+	*result = _scsi_get_async_result(request, SG_DXFER_TO_DEV);
+	return 0;
 }
 
 /**
@@ -832,12 +1253,9 @@ int idm_drive_async_result(int fd, int *result)
  *
  * Returns zero or a negative error (ie. EINVAL).
  */
-int idm_drive_host_state(char *lock_id,
-			 char *host_id,
-			 int *host_state,
-			 char *drive)
+int idm_drive_host_state(char *lock_id, char *host_id,
+			 int *host_state, char *drive)
 {
-	tDevice *dev_handle;
 	struct idm_data *data = NULL;
 	int data_len;
 	int ret, i;
@@ -845,13 +1263,7 @@ int idm_drive_host_state(char *lock_id,
 	if (!lock_id || !host_id || !drive)
 		return -EINVAL;
 
-	dev_handle = _alloc_device_handle();
-	if (!dev_handle) {
-		ilm_log_err("%s: fail to alloc device", __func__);
-		return -ENOMEM;
-	}
-
-	ret = _scsi_read_command(dev_handle, &data, &data_len);
+	ret = _scsi_recv_sync(drive, &data, &data_len);
 	if (ret < 0) {
 		ilm_log_err("%s: fail to read data %d", __func__, ret);
 		goto out;
@@ -871,12 +1283,6 @@ int idm_drive_host_state(char *lock_id,
 out:
 	if (data)
 		free(data);
-
-	if (dev_handle && dev_handle->os_info.fd >= 0)
-		close_Device(dev_handle);
-
-	if (dev_handle)
-		free(dev_handle);
 
 	return ret;
 }
@@ -905,7 +1311,6 @@ int idm_drive_whitelist(char *drive, char **whitelist, int *whitelist_num)
  */
 int idm_drive_read_group(char *drive, struct idm_info **info_ptr, int *info_num)
 {
-	tDevice *dev_handle;
 	struct idm_data *data = NULL;
 	int data_len;
 	int ret, i;
@@ -917,14 +1322,7 @@ int idm_drive_read_group(char *drive, struct idm_info **info_ptr, int *info_num)
 	if (!info_list)
 		return -ENOMEM;
 
-	dev_handle = _alloc_device_handle();
-	if (!dev_handle) {
-		ilm_log_err("%s: fail to alloc device", __func__);
-		free(info_list);
-		return -ENOMEM;
-	}
-
-	ret = _scsi_read_command(dev_handle, &data, &data_len);
+	ret = _scsi_recv_sync(drive, &data, &data_len);
 	if (ret < 0) {
 		ilm_log_err("%s: fail to read data %d", __func__, ret);
 		goto out;
@@ -979,12 +1377,6 @@ out:
 	if (data)
 		free(data);
 
-	if (dev_handle && dev_handle->os_info.fd >= 0)
-		close_Device(dev_handle);
-
-	if (dev_handle)
-		free(dev_handle);
-
 	return ret;
 }
 
@@ -997,7 +1389,7 @@ out:
  */
 int idm_drive_destroy(char *lock_id, char *drive)
 {
-	tDevice *dev_handle = NULL;
+	struct idm_scsi_request *request;
 	int ret;
 
 	if (ilm_inject_fault_is_hit())
@@ -1006,32 +1398,31 @@ int idm_drive_destroy(char *lock_id, char *drive)
 	if (!lock_id || !drive)
 		return -EINVAL;
 
-	dev_handle = _alloc_device_handle();
-	if (!dev_handle) {
-		ilm_log_err("%s: fail to alloc device", __func__);
+	request = malloc(struct idm_scsi_request);
+	if (!request) {
+		ilm_log_err("%s: fail to allocat scsi request", __func__);
 		return -ENOMEM;
 	}
 
-	ret = get_Device(drive, dev_handle);
-	if (ret) {
-		ilm_log_err("%s: fail to get device %d", __func__, ret);
-		ret = -EIO;
-		goto out;
+	request->data = malloc(struct idm_data);
+	if (!request->data) {
+		free(request);
+		ilm_log_err("%s: fail to allocat scsi data", __func__);
+		return -ENOMEM;
 	}
 
-	ret = _scsi_write_command(dev_handle, IDM_MUTEX_OP_DESTROY,
-				  lock_id, 0, NULL, 0,
-				  IDM_RES_VER_NO_UPDATE_NO_VALID,
-				  NULL, 0);
-	if (ret)
+	strncpy(request->drive, drive, PATH_MAX);
+	request->op = IDM_MUTEX_OP_DESTROY;
+	request->mode = 0;
+	request->timeout = 0;
+	request->res_ver_type = IDM_RES_VER_NO_UPDATE_NO_VALID;
+	memcpy(request->lock_id, lock_id, IDM_LOCK_ID_LEN);
+
+	ret = _scsi_xfer_sync(request);
+	if (ret < 0)
 		ilm_log_err("%s: command fail %d", __func__, ret);
 
-out:
-	if (dev_handle && dev_handle->os_info.fd >= 0)
-		close_Device(dev_handle);
-
-	if (dev_handle)
-		free(dev_handle);
-
+	free(request->data);
+	free(request);
 	return ret;
 }
