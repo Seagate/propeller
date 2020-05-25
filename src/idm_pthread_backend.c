@@ -457,7 +457,7 @@ fail_idm:
  * Returns zero or a negative error (ie. EINVAL, ENOMEM, EBUSY, etc).
  */
 int idm_drive_lock_async(char *lock_id, int mode, char *host_id,
-			 char *drive, uint64_t timeout, int *fd)
+			 char *drive, uint64_t timeout, uint64_t *handle)
 {
 	struct idm_async_op *async;
 
@@ -466,7 +466,7 @@ int idm_drive_lock_async(char *lock_id, int mode, char *host_id,
 	async->result = idm_drive_lock(lock_id, mode, host_id, drive, timeout);
 
 	pthread_mutex_lock(&idm_async_list_mutex);
-	*fd = idm_async_index;
+	*handle = idm_async_index;
 	async->fd = idm_async_index;
 	idm_async_index++;
 	list_add(&async->list, &idm_async_list);
@@ -552,7 +552,7 @@ int idm_drive_unlock(char *lock_id, char *host_id,
  * Returns zero or a negative error (ie. EINVAL, ETIME).
  */
 int idm_drive_unlock_async(char *lock_id, char *host_id,
-			   void *lvb, int lvb_size, char *drive, int *fd)
+			   void *lvb, int lvb_size, char *drive, uint64_t *handle)
 {
 	struct idm_async_op *async;
 
@@ -561,7 +561,7 @@ int idm_drive_unlock_async(char *lock_id, char *host_id,
 	async->result = idm_drive_unlock(lock_id, host_id, lvb, lvb_size, drive);
 
 	pthread_mutex_lock(&idm_async_list_mutex);
-	*fd = idm_async_index;
+	*handle = idm_async_index;
 	async->fd = idm_async_index;
 	idm_async_index++;
 	list_add_tail(&async->list, &idm_async_list);
@@ -667,7 +667,7 @@ out:
  * Returns zero or a negative error (ie. EINVAL, ETIME).
  */
 int idm_drive_convert_lock_async(char *lock_id, int mode, char *host_id,
-				 char *drive, int *fd)
+				 char *drive, uint64_t *handle)
 {
 	struct idm_async_op *async;
 
@@ -676,7 +676,7 @@ int idm_drive_convert_lock_async(char *lock_id, int mode, char *host_id,
 	async->result = idm_drive_convert_lock(lock_id, mode, host_id, drive);
 
 	pthread_mutex_lock(&idm_async_list_mutex);
-	*fd = idm_async_index;
+	*handle = idm_async_index;
 	async->fd = idm_async_index;
 	idm_async_index++;
 	list_add_tail(&async->list, &idm_async_list);
@@ -750,7 +750,7 @@ out:
  * Returns zero or a negative error (ie. EINVAL, ETIME).
  */
 int idm_drive_renew_lock_async(char *lock_id, int mode,
-			       char *host_id, char *drive, int *fd)
+			       char *host_id, char *drive, uint64_t *handle)
 {
 	struct idm_async_op *async;
 
@@ -759,7 +759,7 @@ int idm_drive_renew_lock_async(char *lock_id, int mode,
 	async->result = idm_drive_renew_lock(lock_id, mode, host_id, drive);
 
 	pthread_mutex_lock(&idm_async_list_mutex);
-	*fd = idm_async_index;
+	*handle = idm_async_index;
 	async->fd = idm_async_index;
 	idm_async_index++;
 	list_add_tail(&async->list, &idm_async_list);
@@ -890,7 +890,7 @@ fail_host:
  * Returns zero or a negative error (ie. EINVAL).
  */
 int idm_drive_break_lock_async(char *lock_id, int mode, char *host_id,
-			       char *drive, uint64_t timeout, int *fd)
+			       char *drive, uint64_t timeout, uint64_t *handle)
 {
 	struct idm_async_op *async;
 
@@ -900,7 +900,7 @@ int idm_drive_break_lock_async(char *lock_id, int mode, char *host_id,
 					     drive, timeout);
 
 	pthread_mutex_lock(&idm_async_list_mutex);
-	*fd = idm_async_index;
+	*handle = idm_async_index;
 	async->fd = idm_async_index;
 	idm_async_index++;
 	list_add_tail(&async->list, &idm_async_list);
@@ -980,7 +980,7 @@ out:
  */
 int idm_drive_write_lvb_async(char *lock_id, char *host_id,
 			      void *lvb, int lvb_size,
-			      char *drive, int *fd)
+			      char *drive, uint64_t *handle)
 {
 	struct idm_async_op *async;
 
@@ -991,7 +991,7 @@ int idm_drive_write_lvb_async(char *lock_id, char *host_id,
 					    drive);
 
 	pthread_mutex_lock(&idm_async_list_mutex);
-	*fd = idm_async_index;
+	*handle = idm_async_index;
 	async->fd = idm_async_index;
 	idm_async_index++;
 	list_add_tail(&async->list, &idm_async_list);
@@ -1067,7 +1067,7 @@ out:
  *
  * Returns zero or a negative error (ie. EINVAL).
  */
-int idm_drive_read_lvb_async(char *lock_id, char *host_id, char *drive, int *fd)
+int idm_drive_read_lvb_async(char *lock_id, char *host_id, char *drive, uint64_t *handle)
 {
 	struct idm_async_op *async;
 
@@ -1078,7 +1078,7 @@ int idm_drive_read_lvb_async(char *lock_id, char *host_id, char *drive, int *fd)
 					   drive);
 
 	pthread_mutex_lock(&idm_async_list_mutex);
-	*fd = idm_async_index;
+	*handle = idm_async_index;
 	async->fd = idm_async_index;
 	idm_async_index++;
 	list_add_tail(&async->list, &idm_async_list);
@@ -1096,7 +1096,7 @@ int idm_drive_read_lvb_async(char *lock_id, char *host_id, char *drive, int *fd)
  *
  * Returns zero or a negative error (ie. EINVAL).
  */
-int idm_drive_read_lvb_async_result(int fd, void *lvb, int lvb_size,
+int idm_drive_read_lvb_async_result(uint64_t handle, void *lvb, int lvb_size,
 				    int *result)
 {
 	struct idm_async_op *async, *next;
@@ -1105,7 +1105,7 @@ int idm_drive_read_lvb_async_result(int fd, void *lvb, int lvb_size,
 
 	list_for_each_entry_safe(async, next, &idm_async_list, list) {
 
-		if (async->fd == fd) {
+		if (async->fd == (int)handle) {
 			list_del(&async->list);
 			*result = async->result;
 			memcpy(lvb, async->vb, lvb_size);
@@ -1166,7 +1166,7 @@ int idm_drive_lock_count(char *lock_id, char *host_id,
  * Returns zero or a negative error (ie. EINVAL).
  */
 int idm_drive_lock_count_async(char *lock_id, char *host_id,
-			       char *drive, int *fd)
+			       char *drive, uint64_t *handle)
 {
 	struct idm_async_op *async;
 
@@ -1176,7 +1176,7 @@ int idm_drive_lock_count_async(char *lock_id, char *host_id,
 					     &async->self, drive);
 
 	pthread_mutex_lock(&idm_async_list_mutex);
-	*fd = idm_async_index;
+	*handle = idm_async_index;
 	async->fd = idm_async_index;
 	idm_async_index++;
 	list_add_tail(&async->list, &idm_async_list);
@@ -1194,7 +1194,7 @@ int idm_drive_lock_count_async(char *lock_id, char *host_id,
  *
  * Returns zero or a negative error (ie. EINVAL).
  */
-int idm_drive_lock_count_async_result(int fd, int *count, int *self,
+int idm_drive_lock_count_async_result(uint64_t handle, int *count, int *self,
 				      int *result)
 {
 	struct idm_async_op *async, *next;
@@ -1203,7 +1203,7 @@ int idm_drive_lock_count_async_result(int fd, int *count, int *self,
 
 	list_for_each_entry_safe(async, next, &idm_async_list, list) {
 
-		if (async->fd == fd) {
+		if (async->fd == (int)(handle)) {
 			list_del(&async->list);
 			*count = async->count;
 			*self = async->self;
@@ -1257,7 +1257,7 @@ int idm_drive_lock_mode(char *lock_id, int *mode, char *drive)
  *
  * Returns zero or a negative error (ie. EINVAL).
  */
-int idm_drive_lock_mode_async(char *lock_id, char *drive, int *fd)
+int idm_drive_lock_mode_async(char *lock_id, char *drive, uint64_t *handle)
 {
 	struct idm_async_op *async;
 
@@ -1266,7 +1266,7 @@ int idm_drive_lock_mode_async(char *lock_id, char *drive, int *fd)
 	async->result = idm_drive_lock_mode(lock_id, &async->mode, drive);
 
 	pthread_mutex_lock(&idm_async_list_mutex);
-	*fd = idm_async_index;
+	*handle = idm_async_index;
 	async->fd = idm_async_index;
 	idm_async_index++;
 	list_add_tail(&async->list, &idm_async_list);
@@ -1283,7 +1283,7 @@ int idm_drive_lock_mode_async(char *lock_id, char *drive, int *fd)
  *
  * Returns zero or a negative error (ie. EINVAL).
  */
-int idm_drive_lock_mode_async_result(int fd, int *mode, int *result)
+int idm_drive_lock_mode_async_result(uint64_t handle, int *mode, int *result)
 {
 	struct idm_async_op *async, *next;
 
@@ -1291,7 +1291,7 @@ int idm_drive_lock_mode_async_result(int fd, int *mode, int *result)
 
 	list_for_each_entry_safe(async, next, &idm_async_list, list) {
 
-		if (async->fd == fd) {
+		if (async->fd == (int)handle) {
 			list_del(&async->list);
 			*mode = async->mode;
 			*result = async->result;
@@ -1312,11 +1312,11 @@ int idm_drive_lock_mode_async_result(int fd, int *mode, int *result)
  *
  * Returns zero or a negative error (ie. EINVAL).
  */
-int idm_drive_async_result(int fd, int *result)
+int idm_drive_async_result(uint64_t handle, int *result)
 {
 	struct idm_async_op *async, *next;
 
-	ilm_log_dbg("%s: fd=%d", __func__, fd);
+	ilm_log_dbg("%s: fd=%d", __func__, (int)(handle));
 
 	pthread_mutex_lock(&idm_async_list_mutex);
 
@@ -1324,7 +1324,7 @@ int idm_drive_async_result(int fd, int *result)
 
 		ilm_log_dbg("%s: list fd=%d", __func__, async->fd);
 
-		if (async->fd == fd) {
+		if (async->fd == (int)(handle)) {
 			list_del(&async->list);
 			*result = async->result;
 			free(async);
@@ -1618,4 +1618,9 @@ fail:
 	pthread_mutex_unlock(&idm_list_mutex);
 	idm_put(lock_id, drive);
 	return ret;
+}
+
+int idm_drive_get_fd(uint64_t handle)
+{
+	return (int)handle;
 }

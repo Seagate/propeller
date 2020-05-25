@@ -4,6 +4,9 @@
 #include <stdint.h>
 #include <uuid/uuid.h>
 
+#include "ilm_internal.h"
+
+uint64_t ilm_read_utc_time(void) __maybe_unused;
 uint64_t ilm_curr_time(void);
 int ilm_rand(int min, int max);
 int ilm_read_blk_uuid(char *dev, uuid_t *uuid);

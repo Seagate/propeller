@@ -75,7 +75,7 @@ struct _raid_request {
 	int self;
 	int mode;
 
-	int fd;
+	uint64_t handle;
 	int result;
 };
 
@@ -342,7 +342,8 @@ static int _raid_dispatch_request_async(struct _raid_request *req)
 {
 	struct ilm_lock *lock = req->lock;
 	struct ilm_drive *drive = req->drive;
-	int ret, fd;
+	uint64_t handle;
+	int ret;
 
 	/* Update inject fault */
 	ilm_inject_fault_update(lock->drive_num, drive->index);
@@ -351,36 +352,37 @@ static int _raid_dispatch_request_async(struct _raid_request *req)
 	case ILM_OP_LOCK:
 		drive->is_brk = 0;
 		ret = idm_drive_lock_async(lock->id, req->mode, req->host_id,
-					   drive->path, lock->timeout, &fd);
+					   drive->path, lock->timeout, &handle);
 		break;
 	case ILM_OP_UNLOCK:
 		ret = idm_drive_unlock_async(lock->id, req->host_id, req->lvb,
-					     req->lvb_size, drive->path, &fd);
+					     req->lvb_size, drive->path, &handle);
 		break;
 	case ILM_OP_CONVERT:
 		ret = idm_drive_convert_lock_async(lock->id, req->mode,
 						   req->host_id, drive->path,
-						   &fd);
+						   &handle);
 		break;
 	case ILM_OP_BREAK:
 		ret = idm_drive_break_lock_async(lock->id, req->mode,
 						 req->host_id, drive->path,
-						 lock->timeout, &fd);
+						 lock->timeout, &handle);
 		break;
 	case ILM_OP_RENEW:
 		ret = idm_drive_renew_lock_async(lock->id, req->mode,
-						 req->host_id, drive->path, &fd);
+						 req->host_id, drive->path,
+						 &handle);
 		break;
 	case ILM_OP_READ_LVB:
 		ret = idm_drive_read_lvb_async(lock->id, req->host_id,
-					       drive->path, &fd);
+					       drive->path, &handle);
 		break;
 	case ILM_OP_COUNT:
 		ret = idm_drive_lock_count_async(lock->id, req->host_id,
-						 drive->path, &fd);
+						 drive->path, &handle);
 		break;
 	case ILM_OP_MODE:
-		ret = idm_drive_lock_mode_async(lock->id, drive->path, &fd);
+		ret = idm_drive_lock_mode_async(lock->id, drive->path, &handle);
 		break;
 	default:
 		ret = -EINVAL;
@@ -388,11 +390,11 @@ static int _raid_dispatch_request_async(struct _raid_request *req)
 		break;
 	}
 
-	req->fd = fd;
+	req->handle = handle;
 	req->result = ret;
 
-	ilm_log_dbg("%s: op=%d result=%d fd=%d", __func__,
-		    req->op, req->result, req->fd);
+	ilm_log_dbg("%s: op=%d result=%d handle=%lu", __func__,
+		    req->op, req->result, req->handle);
 	return ret;
 }
 
@@ -406,26 +408,26 @@ static int _raid_read_result_async(struct _raid_request *req)
 	case ILM_OP_UNLOCK:
 	case ILM_OP_CONVERT:
 	case ILM_OP_RENEW:
-		ret = idm_drive_async_result(req->fd, &req->result);
+		ret = idm_drive_async_result(req->handle, &req->result);
 		break;
 	case ILM_OP_BREAK:
-		ret = idm_drive_async_result(req->fd, &req->result);
+		ret = idm_drive_async_result(req->handle, &req->result);
 		if (!ret)
 			drive->is_brk = 1;
 		break;
 	case ILM_OP_READ_LVB:
-		ret = idm_drive_read_lvb_async_result(req->fd, req->lvb,
+		ret = idm_drive_read_lvb_async_result(req->handle, req->lvb,
 						      req->lvb_size,
 						      &req->result);
 		break;
 	case ILM_OP_COUNT:
-		ret = idm_drive_lock_count_async_result(req->fd,
+		ret = idm_drive_lock_count_async_result(req->handle,
 							&req->count,
 							&req->self,
 						        &req->result);
 		break;
 	case ILM_OP_MODE:
-		ret = idm_drive_lock_mode_async_result(req->fd,
+		ret = idm_drive_lock_mode_async_result(req->handle,
 						       &req->mode,
 						       &req->result);
 		break;
@@ -723,7 +725,7 @@ static void *idm_raid_thread(void *data)
 
 		i = 0;
 		list_for_each_entry(req, &raid_th->process_list, list) {
-			poll_fd[i].fd = req->fd;
+			poll_fd[i].fd = idm_drive_get_fd(req->handle);
 			poll_fd[i].events = POLLIN;
 			i++;
 		}
@@ -744,7 +746,8 @@ static void *idm_raid_thread(void *data)
 					continue;
 
 				list_for_each_entry(req, &raid_th->process_list, list) {
-					if (req->fd == poll_fd[i].fd)
+					if (idm_drive_get_fd(req->handle) ==
+							poll_fd[i].fd)
 						break;
 				}
 
