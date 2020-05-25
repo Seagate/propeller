@@ -1,13 +1,17 @@
-PYTHON_MOD=_ilm.so
+PYTHON_ILM_MOD=_ilm.so
+PYTHON_IDM_SCSI_MOD=_idm_scsi.so
 
 SWIG = swig
 SWIGFLAGS = -python
-CFLAGS = -c -fpic -I/usr/include/python2.7 -I../src
+CFLAGS = -DTEST -c -fpic -I/usr/include/python2.7 -I../src
 LDFLAGS = -shared
 
-all: $(PYTHON_MOD)
+all: $(PYTHON_ILM_MOD) $(PYTHON_IDM_SCSI_MOD)
 
-$(PYTHON_MOD): ../src/lib_client.o lib_ilm_wrap.o
+$(PYTHON_ILM_MOD): ../src/lib_client.o lib_ilm_wrap.o
+	$(LD) $(LDFLAGS) $^ -o $@
+
+$(PYTHON_IDM_SCSI_MOD): ../src/idm_scsi.o idm_scsi_wrap.o
 	$(LD) $(LDFLAGS) $^ -o $@
 
 %.o: %.c
@@ -16,5 +20,8 @@ $(PYTHON_MOD): ../src/lib_client.o lib_ilm_wrap.o
 lib_ilm_wrap.c: lib_ilm.i
 	$(SWIG) $(SWIGFLAGS) $<
 
+idm_scsi_wrap.c: idm_scsi.i
+	$(SWIG) $(SWIGFLAGS) $<
+
 clean:
-	rm -f *.o  *.py *.pyc *_wrap.c $(PYTHON_MOD)
+	rm -f *.o  *.py *.pyc *_wrap.c $(PYTHON_MOD) $(PYTHON_IDM_SCSI_MOD)
