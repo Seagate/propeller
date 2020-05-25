@@ -25,7 +25,6 @@ SOURCE = main.c \
 	 lockspace.c \
 	 lock.c \
 	 util.c \
-	 idm_pthread_backend.c \
 	 raid_lock.c \
 	 inject_fault.c \
 	 failure.c
@@ -36,6 +35,9 @@ CFLAGS += -fPIE -DPIE -D_GNU_SOURCE
 
 ifdef IDM_PTHREAD_EMULATION
 CFLAGS += -DIDM_PTHREAD_EMULATION
+SOURCE += idm_pthread_backend.c
+else
+SOURCE += idm_scsi.c
 endif
 
 LIB_CFLAGS = -fPIC
