@@ -17,6 +17,8 @@ extern int log_file_use_utc;
 extern int log_syslog_priority;
 extern int log_stderr_priority;
 
+#ifndef TEST
+
 /*
  * Log levels are used mainly to indicate where the message should be
  * recorded:
@@ -31,6 +33,14 @@ extern void ilm_log(int level, const char *fmt, ...)
 
 extern void ilm_log_array(int level, const char *array_name,
 			  char *buf, int buf_len);
+
+#else
+
+static inline void ilm_log(int level, const char *fmt, ...) { return; };
+static inline void ilm_log_array(int level, const char *array_name,
+	char *buf, int buf_len) { return; };
+
+#endif
 
 #define ilm_log_dbg(fmt, args...)	ilm_log(LOG_DEBUG, fmt, ##args)
 #define ilm_log_warn(fmt, args...)	ilm_log(LOG_WARNING, fmt, ##args)
