@@ -14,6 +14,10 @@
 #define IDM_HOST_ID_LEN         32
 #define IDM_VALUE_LEN           8
 
+#define IDM_MODE_UNLOCK		0
+#define IDM_MODE_EXCLUSIVE	1
+#define IDM_MODE_SHAREABLE	2
+
 struct idm_info {
         /* Lock ID */
         char id[IDM_LOCK_ID_LEN];
@@ -82,6 +86,10 @@ int idm_drive_get_fd(uint64_t handle);
 #define IDM_LOCK_ID_LEN         64
 #define IDM_HOST_ID_LEN         32
 #define IDM_VALUE_LEN           8
+
+#define IDM_MODE_UNLOCK		0
+#define IDM_MODE_EXCLUSIVE	1
+#define IDM_MODE_SHAREABLE	2
 
 struct idm_info {
         /* Lock ID */

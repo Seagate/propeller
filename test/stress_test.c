@@ -103,7 +103,7 @@ int main(void)
 
 	need_exit = 1;
 
-	for (int i = 0; i < 4; i++)
+	for (i = 0; i < 4; i++)
 		pthread_join(tid[i], NULL);
 
 	return 0;
