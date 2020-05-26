@@ -189,6 +189,9 @@ static int _scsi_sg_io(char *drive, uint8_t *cdb, int cdb_len,
 	/* io_hdr.pack_id = 0; */
 	/* io_hdr.usr_ptr = NULL; */
 
+	ilm_log_array_dbg("cdb", cdb, cdb_len);
+	ilm_log_array_dbg("data", data, data_len);
+
 	ret = ioctl(sg_fd, SG_IO, &io_hdr);
 	if (ret) {
 		ilm_log_err("%s: fail to send cdb %d", __func__, ret);
@@ -202,6 +205,9 @@ static int _scsi_sg_io(char *drive, uint8_t *cdb, int cdb_len,
 	}
 
 	status = io_hdr.masked_status;
+
+	ilm_log_dbg("%s: status %d", __func__, status);
+
 	switch (status) {
 	case CHECK_CONDITION:
 		if (!memcmp(sense, sense_invalid_opcode,
@@ -226,6 +232,8 @@ static int _scsi_sg_io(char *drive, uint8_t *cdb, int cdb_len,
 	case RESERVATION_CONFLICT:
 		if (op == IDM_MUTEX_OP_REFRESH)
 			ret = -ETIME;
+		else if (op == IDM_MUTEX_OP_UNLOCK)
+			ret = -ENOENT;
 		else
 			ret = -EAGAIN;
 		break;
@@ -335,6 +343,8 @@ static int _scsi_read(struct idm_scsi_request *request, int direction)
 	case RESERVATION_CONFLICT:
 		if (request->op == IDM_MUTEX_OP_REFRESH)
 			ret = -ETIME;
+		else if (request->op == IDM_MUTEX_OP_UNLOCK)
+			ret = -ENOENT;
 		else
 			ret = -EAGAIN;
 		break;
@@ -494,11 +504,15 @@ int idm_drive_lock(char *lock_id, int mode, char *host_id,
 	if (!lock_id || !host_id || !drive)
 		return -EINVAL;
 
+	if (mode != IDM_MODE_EXCLUSIVE && mode != IDM_MODE_SHAREABLE)
+		return -EINVAL;
+
 	request = malloc(sizeof(struct idm_scsi_request));
 	if (!request) {
 		ilm_log_err("%s: fail to allocat scsi request", __func__);
 		return -ENOMEM;
 	}
+	memset(request, 0x0, sizeof(struct idm_scsi_request));
 
 	request->data = malloc(sizeof(struct idm_data));
 	if (!request) {
@@ -506,12 +520,19 @@ int idm_drive_lock(char *lock_id, int mode, char *host_id,
 		ilm_log_err("%s: fail to allocat scsi data", __func__);
 		return -ENOMEM;
 	}
+	memset(request->data, 0x0, sizeof(struct idm_data));
+
+	if (mode == IDM_MODE_EXCLUSIVE)
+		mode = IDM_CLASS_EXCLUSIVE;
+	else if (mode == IDM_MODE_SHAREABLE)
+		mode = IDM_CLASS_SHARED_PROTECTED_READ;
 
 	strncpy(request->drive, drive, PATH_MAX);
 	request->op = IDM_MUTEX_OP_TRYLOCK;
 	request->mode = mode;
 	request->timeout = timeout;
 	request->res_ver_type = IDM_RES_VER_NO_UPDATE_NO_VALID;
+	request->data_len = sizeof(struct idm_data);
 	memcpy(request->lock_id, lock_id, IDM_LOCK_ID_LEN);
 	memcpy(request->host_id, host_id, IDM_HOST_ID_LEN);
 
@@ -549,6 +570,7 @@ int idm_drive_lock_async(char *lock_id, int mode, char *host_id,
 		ilm_log_err("%s: fail to allocat scsi request", __func__);
 		return -ENOMEM;
 	}
+	memset(request, 0x0, sizeof(struct idm_scsi_request));
 
 	request->data = malloc(sizeof(struct idm_data));
 	if (!request->data) {
@@ -556,12 +578,13 @@ int idm_drive_lock_async(char *lock_id, int mode, char *host_id,
 		ilm_log_err("%s: fail to allocat scsi data", __func__);
 		return -ENOMEM;
 	}
-	request->data_len = sizeof(struct idm_data);
+	memset(request->data, 0x0, sizeof(struct idm_data));
 
 	strncpy(request->drive, drive, PATH_MAX);
 	request->op = IDM_MUTEX_OP_TRYLOCK;
 	request->mode = mode;
 	request->timeout = timeout;
+	request->data_len = sizeof(struct idm_data);
 	request->res_ver_type = IDM_RES_VER_NO_UPDATE_NO_VALID;
 	memcpy(request->lock_id, lock_id, IDM_LOCK_ID_LEN);
 	memcpy(request->host_id, host_id, IDM_HOST_ID_LEN);
@@ -604,6 +627,7 @@ int idm_drive_unlock(char *lock_id, char *host_id,
 		ilm_log_err("%s: fail to allocat scsi request", __func__);
 		return -ENOMEM;
 	}
+	memset(request, 0x0, sizeof(struct idm_scsi_request));
 
 	request->data = malloc(sizeof(struct idm_data));
 	if (!request->data) {
@@ -611,11 +635,13 @@ int idm_drive_unlock(char *lock_id, char *host_id,
 		ilm_log_err("%s: fail to allocat scsi data", __func__);
 		return -ENOMEM;
 	}
+	memset(request->data, 0x0, sizeof(struct idm_data));
 
 	strncpy(request->drive, drive, PATH_MAX);
-	request->op = IDM_MUTEX_OP_TRYLOCK;
+	request->op = IDM_MUTEX_OP_UNLOCK;
 	request->mode = 0;
 	request->timeout = 0;
+	request->data_len = sizeof(struct idm_data);
 	request->res_ver_type = IDM_RES_VER_UPDATE_NO_VALID;
 	memcpy(request->lock_id, lock_id, IDM_LOCK_ID_LEN);
 	memcpy(request->host_id, host_id, IDM_HOST_ID_LEN);

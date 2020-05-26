@@ -43,7 +43,7 @@ def wait_for_two_drive_scsi_response(handle1, handle2):
             break
 
         for fd, event in fd_event_list:
-            assert (sg_fd1 == fd) || (sg_fd2 == fd)
+            assert (sg_fd1 == fd) or (sg_fd2 == fd)
 
     poll.unregister(sg_fd1)
     poll.unregister(sg_fd2)
