@@ -260,7 +260,7 @@ def test_idm_convert_3():
                                   host_id1, DRIVE1, 10000);
     assert ret == 0
 
-    ret = idm_scsi.idm_drive_break_lock(lock_id0, idm_scsi.IDM_MODE_EXCLUSIVE,
+    ret = idm_scsi.idm_drive_convert_lock(lock_id0, idm_scsi.IDM_MODE_EXCLUSIVE,
                                         host_id1, DRIVE1, 10000);
     assert ret == -1        # -EPERM
 
