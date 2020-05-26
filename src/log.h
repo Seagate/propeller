@@ -10,6 +10,7 @@
 #ifndef __LOG_H__
 #define __LOG_H__
 
+#include <stdarg.h>
 #include <syslog.h>
 
 extern int log_file_priority;
@@ -36,9 +37,68 @@ extern void ilm_log_array(int level, const char *array_name,
 
 #else
 
-static inline void ilm_log(int level, const char *fmt, ...) { return; };
+static inline void ilm_log(int level, const char *fmt, ...)
+{
+	va_list ap;
+	char log_str[512];
+
+	va_start(ap, fmt);
+	vsnprintf(log_str, 511, fmt, ap);
+	va_end(ap);
+
+	fprintf(stderr, "%s\n", log_str);
+        return;
+}
+
 static inline void ilm_log_array(int level, const char *array_name,
-	char *buf, int buf_len) { return; };
+				 char *buf, int buf_len)
+{
+	int i, tail, tail_len;
+
+	fprintf(stderr, "array: %s\n", array_name);
+
+	tail_len = buf_len % 4;
+
+	tail = 0;
+	for (i = 0; i < tail_len; i++)
+		tail |= (buf[buf_len - tail_len + i] << (i * 8));
+
+	i = 0;
+	while (buf_len >= 16) {
+		fprintf(stderr, "%08x %08x %08x %08x\n",
+			*(int *)(buf + i), *(int *)(buf + i + 4),
+			*(int *)(buf + i + 8), *(int *)(buf + i + 12));
+		i += 16;
+		buf_len -= 16;
+	}
+
+	if (buf_len > 12) {
+		fprintf(stderr, "%08x %08x %08x %08x\n",
+			*(int *)(buf + i), *(int *)(buf + i + 4),
+			*(int *)(buf + i + 8), tail);
+	} else if (buf_len > 8) {
+		if (buf_len == 12)
+			fprintf(stderr, "%08x %08x %08x\n",
+				*(int *)(buf + i), *(int *)(buf + i + 4),
+				*(int *)(buf + i + 8));
+		else
+			fprintf(stderr, "%08x %08x %08x\n",
+				*(int *)(buf + i), *(int *)(buf + i + 4), tail);
+	} else if (buf_len > 4) {
+		if (buf_len == 8)
+			fprintf(stderr, "%08x %08x\n",
+				*(int *)(buf + i), *(int *)(buf + i + 4));
+		else
+			fprintf(stderr, "%08x %08x\n", *(int *)(buf + i), tail);
+	} else if (buf_len > 0) {
+		if (buf_len == 4)
+			fprintf(stderr, "%08x\n", *(int *)(buf + i));
+		else
+			fprintf(stderr, "%08x\n", tail);
+	}
+
+	return;
+}
 
 #endif
 
