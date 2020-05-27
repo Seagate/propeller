@@ -486,7 +486,7 @@ int idm_drive_lock_async(char *lock_id, int mode, char *host_id,
  * Returns zero or a negative error (ie. EINVAL, ETIME).
  */
 int idm_drive_unlock(char *lock_id, char *host_id,
-		     void *lvb, int lvb_size, char *drive)
+		     char *lvb, int lvb_size, char *drive)
 {
 	struct idm_emulation *idm;
 	struct idm_host *host, *pos;
@@ -552,7 +552,7 @@ int idm_drive_unlock(char *lock_id, char *host_id,
  * Returns zero or a negative error (ie. EINVAL, ETIME).
  */
 int idm_drive_unlock_async(char *lock_id, char *host_id,
-			   void *lvb, int lvb_size, char *drive, uint64_t *handle)
+			   char *lvb, int lvb_size, char *drive, uint64_t *handle)
 {
 	struct idm_async_op *async;
 
@@ -919,7 +919,7 @@ int idm_drive_break_lock_async(char *lock_id, int mode, char *host_id,
  * Returns zero or a negative error (ie. EINVAL).
  */
 int idm_drive_write_lvb(char *lock_id, char *host_id,
-			void *lvb, int lvb_size, char *drive)
+			char *lvb, int lvb_size, char *drive)
 {
 	struct idm_emulation *idm;
 	struct idm_host *host;
@@ -979,7 +979,7 @@ out:
  * Returns zero or a negative error (ie. EINVAL).
  */
 int idm_drive_write_lvb_async(char *lock_id, char *host_id,
-			      void *lvb, int lvb_size,
+			      char *lvb, int lvb_size,
 			      char *drive, uint64_t *handle)
 {
 	struct idm_async_op *async;
@@ -1009,7 +1009,7 @@ int idm_drive_write_lvb_async(char *lock_id, char *host_id,
  * Returns zero or a negative error (ie. EINVAL).
  */
 int idm_drive_read_lvb(char *lock_id, char *host_id,
-		       void *lvb, int lvb_size, char *drive)
+		       char *lvb, int lvb_size, char *drive)
 {
 	struct idm_emulation *idm;
 	struct idm_host *host;
@@ -1096,7 +1096,7 @@ int idm_drive_read_lvb_async(char *lock_id, char *host_id, char *drive, uint64_t
  *
  * Returns zero or a negative error (ie. EINVAL).
  */
-int idm_drive_read_lvb_async_result(uint64_t handle, void *lvb, int lvb_size,
+int idm_drive_read_lvb_async_result(uint64_t handle, char *lvb, int lvb_size,
 				    int *result)
 {
 	struct idm_async_op *async, *next;
