@@ -53,49 +53,23 @@ static inline void ilm_log(int level, const char *fmt, ...)
 static inline void ilm_log_array(int level, const char *array_name,
 				 char *buf, int buf_len)
 {
-	int i, tail, tail_len;
+	int i;
 
 	fprintf(stderr, "array: %s\n", array_name);
 
-	tail_len = buf_len % 4;
-
-	tail = 0;
-	for (i = 0; i < tail_len; i++)
-		tail |= (buf[buf_len - tail_len + i] << (i * 8));
-
 	i = 0;
-	while (buf_len >= 16) {
-		fprintf(stderr, "%08x %08x %08x %08x\n",
-			*(int *)(buf + i), *(int *)(buf + i + 4),
-			*(int *)(buf + i + 8), *(int *)(buf + i + 12));
-		i += 16;
-		buf_len -= 16;
+	while (buf_len > 0) {
+		fprintf(stderr, "%02x ", buf[i] & 0xff);
+		i += 1;
+
+		if (!(i % 16))
+			fprintf(stderr, "\n");
+
+		buf_len -= 1;
 	}
 
-	if (buf_len > 12) {
-		fprintf(stderr, "%08x %08x %08x %08x\n",
-			*(int *)(buf + i), *(int *)(buf + i + 4),
-			*(int *)(buf + i + 8), tail);
-	} else if (buf_len > 8) {
-		if (buf_len == 12)
-			fprintf(stderr, "%08x %08x %08x\n",
-				*(int *)(buf + i), *(int *)(buf + i + 4),
-				*(int *)(buf + i + 8));
-		else
-			fprintf(stderr, "%08x %08x %08x\n",
-				*(int *)(buf + i), *(int *)(buf + i + 4), tail);
-	} else if (buf_len > 4) {
-		if (buf_len == 8)
-			fprintf(stderr, "%08x %08x\n",
-				*(int *)(buf + i), *(int *)(buf + i + 4));
-		else
-			fprintf(stderr, "%08x %08x\n", *(int *)(buf + i), tail);
-	} else if (buf_len > 0) {
-		if (buf_len == 4)
-			fprintf(stderr, "%08x\n", *(int *)(buf + i));
-		else
-			fprintf(stderr, "%08x\n", tail);
-	}
+	if (i % 16)
+		fprintf(stderr, "\n");
 
 	return;
 }

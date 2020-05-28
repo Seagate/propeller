@@ -19,6 +19,7 @@
 #include <scsi/scsi.h>
 #include <sys/ioctl.h>
 #include <unistd.h>
+#include <byteswap.h>
 
 #include "ilm.h"
 
@@ -94,7 +95,7 @@ struct idm_scsi_request {
 	/* Host ID */
 	char host_id[IDM_HOST_ID_LEN];
 
-	int res_ver_type;
+	char res_ver_type;
 	char lvb[IDM_VALUE_LEN];
 
 	char drive[PATH_MAX];
@@ -236,7 +237,7 @@ static int _scsi_sg_io(char *drive, uint8_t *cdb, int cdb_len,
 		else if (op == IDM_MUTEX_OP_UNLOCK)
 			ret = -ENOENT;
 		else
-			ret = -EAGAIN;
+			ret = -EBUSY;
 		break;
 
 	case BUSY:
@@ -371,6 +372,14 @@ static int _scsi_read(struct idm_scsi_request *request, int direction)
 	return ret;
 }
 
+static void _scsi_data_swap(char *dst, char *src, int len)
+{
+	int i;
+
+	for (i = 0; i < len; i++)
+		dst[i] = src[len - i - 1];
+}
+
 static int _scsi_xfer_sync(struct idm_scsi_request *request)
 {
 	uint8_t *cdb = request->cdb;
@@ -379,13 +388,13 @@ static int _scsi_xfer_sync(struct idm_scsi_request *request)
 
 	_scsi_generate_write_cdb(cdb, request->op);
 
-	data->time_now = ilm_read_utc_time();
-	data->countdown = request->timeout;
-	data->class = request->mode;		/* TODO: Fixup mode in up layer */
-	memcpy(data->host_id, request->host_id, IDM_HOST_ID_LEN);
-	memcpy(data->resource_id, request->lock_id, IDM_LOCK_ID_LEN);
-	memcpy(data->resource_ver, request->lvb, IDM_VALUE_LEN);
-	data->resource_ver[7] = request->res_ver_type;
+	data->time_now = __bswap_64(ilm_read_utc_time());
+	data->countdown = __bswap_64(request->timeout);
+	data->class = __bswap_64(request->mode);	/* TODO: Fixup mode in up layer */
+	_scsi_data_swap(data->host_id, request->host_id, IDM_HOST_ID_LEN);
+	_scsi_data_swap(data->resource_id, request->lock_id, IDM_LOCK_ID_LEN);
+	_scsi_data_swap(data->resource_ver, request->lvb, IDM_VALUE_LEN);
+	data->resource_ver[0] = request->res_ver_type;
 
 	ilm_log_array_dbg("resrouce_ver", data->resource_ver, IDM_VALUE_LEN);
 
@@ -402,14 +411,13 @@ static int _scsi_xfer_async(struct idm_scsi_request *request)
 
 	_scsi_generate_write_cdb(request->cdb, request->op);
 
-	data = request->data;
-	data->time_now = ilm_read_utc_time();
-	data->countdown = request->timeout;
-	data->class = request->mode;		/* TODO: Fixup mode in up layer */
-	memcpy(data->host_id, request->host_id, IDM_HOST_ID_LEN);
-	memcpy(data->resource_id, request->lock_id, IDM_LOCK_ID_LEN);
-	memcpy(data->resource_ver, request->lvb, IDM_VALUE_LEN);
-	data->resource_ver[7] = request->res_ver_type;
+	data->time_now = __bswap_64(ilm_read_utc_time());
+	data->countdown = __bswap_64(request->timeout);
+	data->class = __bswap_64(request->mode);	/* TODO: Fixup mode in up layer */
+	_scsi_data_swap(data->host_id, request->host_id, IDM_HOST_ID_LEN);
+	_scsi_data_swap(data->resource_id, request->lock_id, IDM_LOCK_ID_LEN);
+	_scsi_data_swap(data->resource_ver, request->lvb, IDM_VALUE_LEN);
+	data->resource_ver[0] = request->res_ver_type;
 
 	ret = _scsi_write(request, SG_DXFER_TO_DEV);
 	if (ret < 0) {
@@ -558,6 +566,9 @@ int idm_drive_lock_async(char *lock_id, int mode, char *host_id,
 	if (!lock_id || !host_id || !drive)
 		return -EINVAL;
 
+	if (mode != IDM_MODE_EXCLUSIVE && mode != IDM_MODE_SHAREABLE)
+		return -EINVAL;
+
 	request = malloc(sizeof(struct idm_scsi_request));
 	if (!request) {
 		ilm_log_err("%s: fail to allocat scsi request", __func__);
@@ -572,6 +583,11 @@ int idm_drive_lock_async(char *lock_id, int mode, char *host_id,
 		return -ENOMEM;
 	}
 	memset(request->data, 0x0, sizeof(struct idm_data));
+
+	if (mode == IDM_MODE_EXCLUSIVE)
+		mode = IDM_CLASS_EXCLUSIVE;
+	else if (mode == IDM_MODE_SHAREABLE)
+		mode = IDM_CLASS_SHARED_PROTECTED_READ;
 
 	strncpy(request->drive, drive, PATH_MAX);
 	request->op = IDM_MUTEX_OP_TRYLOCK;
@@ -716,6 +732,9 @@ static int idm_drive_refresh_lock(char *lock_id, int mode, char *host_id,
 	if (!lock_id || !host_id || !drive)
 		return -EINVAL;
 
+	if (mode != IDM_MODE_EXCLUSIVE && mode != IDM_MODE_SHAREABLE)
+		return -EINVAL;
+
 	request = malloc(sizeof(struct idm_scsi_request));
 	if (!request) {
 		ilm_log_err("%s: fail to allocat scsi request", __func__);
@@ -728,6 +747,11 @@ static int idm_drive_refresh_lock(char *lock_id, int mode, char *host_id,
 		ilm_log_err("%s: fail to allocat scsi data", __func__);
 		return -ENOMEM;
 	}
+
+	if (mode == IDM_MODE_EXCLUSIVE)
+		mode = IDM_CLASS_EXCLUSIVE;
+	else if (mode == IDM_MODE_SHAREABLE)
+		mode = IDM_CLASS_SHARED_PROTECTED_READ;
 
 	strncpy(request->drive, drive, PATH_MAX);
 	request->op = IDM_MUTEX_OP_REFRESH;
@@ -1004,18 +1028,25 @@ int idm_drive_read_lvb(char *lock_id, char *host_id,
 		goto out;
 	}
 
+	_scsi_data_swap(request->lock_id, lock_id, IDM_LOCK_ID_LEN);
+	_scsi_data_swap(request->host_id, host_id, IDM_HOST_ID_LEN);
+
 	ret = -ENOENT;
 	data = request->data;
 	for (i = 0; i < IDM_DATA_BLOCK_NUM; i++) {
 		/* Skip for other locks */
-		if (memcmp(data[i].resource_id, lock_id, IDM_LOCK_ID_LEN))
+		if (memcmp(data[i].resource_id, request->lock_id,
+			   IDM_LOCK_ID_LEN))
 			continue;
 
-		if (memcmp(data[i].host_id, host_id, IDM_HOST_ID_LEN))
+		if (memcmp(data[i].host_id, request->host_id,
+			   IDM_HOST_ID_LEN))
 			continue;
 
-		memcpy(lvb, data[i].resource_ver, lvb_size);
+		_scsi_data_swap(lvb, data[i].resource_ver, lvb_size);
 		ret = 0;
+		ilm_log_array_dbg("lvb", lvb, lvb_size);
+		break;
 	}
 
 out:
@@ -1060,8 +1091,8 @@ int idm_drive_read_lvb_async(char *lock_id, char *host_id, char *drive, uint64_t
 	request->data_len = IDM_DATA_SIZE;
 
 	strncpy(request->drive, drive, PATH_MAX);
-	memcpy(request->lock_id, lock_id, IDM_LOCK_ID_LEN);
-	memcpy(request->host_id, host_id, IDM_HOST_ID_LEN);
+	_scsi_data_swap(request->lock_id, lock_id, IDM_LOCK_ID_LEN);
+	_scsi_data_swap(request->host_id, host_id, IDM_HOST_ID_LEN);
 
 	ret = _scsi_recv_async(request);
 	if (ret < 0) {
@@ -1102,7 +1133,9 @@ int idm_drive_read_lvb_async_result(uint64_t handle, char *lvb, int lvb_size,
 			   IDM_HOST_ID_LEN))
 			continue;
 
-		memcpy(lvb, data[i].resource_ver, lvb_size);
+		_scsi_data_swap(lvb, data[i].resource_ver, lvb_size);
+		ret = 0;
+		ilm_log_array_dbg("lvb", lvb, lvb_size);
 		break;
 	}
 
@@ -1166,28 +1199,33 @@ int idm_drive_lock_count(char *lock_id, char *host_id,
 		goto out;
 	}
 
+	_scsi_data_swap(request->lock_id, lock_id, IDM_LOCK_ID_LEN);
+	_scsi_data_swap(request->host_id, host_id, IDM_HOST_ID_LEN);
+
 	*count = 0;
 	*self = 0;
 	data = request->data;
 	for (i = 0; i < IDM_DATA_BLOCK_NUM; i++) {
 
-		state = data[i].state;
+		state = __bswap_64(data[i].state);
 		locked = (state == 0x101) || (state == 0x103);
 
 		if (!locked)
 			continue;
 
 		ilm_log_array_dbg("resource_id", data[i].resource_id, IDM_LOCK_ID_LEN);
-		ilm_log_array_dbg("lock_id", lock_id, IDM_LOCK_ID_LEN);
-
-		/* Skip for other locks */
-		if (memcmp(data[i].resource_id, lock_id, IDM_LOCK_ID_LEN))
-			continue;
+		ilm_log_array_dbg("lock_id", request->lock_id, IDM_LOCK_ID_LEN);
 
 		ilm_log_array_dbg("data host_id", data[i].host_id, IDM_HOST_ID_LEN);
-		ilm_log_array_dbg("host_id", host_id, IDM_HOST_ID_LEN);
+		ilm_log_array_dbg("host_id", request->host_id, IDM_HOST_ID_LEN);
 
-		if (!memcmp(data[i].host_id, host_id, IDM_HOST_ID_LEN)) {
+		/* Skip for other locks */
+		if (memcmp(data[i].resource_id, request->lock_id,
+			   IDM_LOCK_ID_LEN))
+			continue;
+
+		if (!memcmp(data[i].host_id, request->host_id,
+			    IDM_HOST_ID_LEN)) {
 			/* Must be wrong if self has been accounted */
 			if (*self) {
 				ilm_log_err("%s: account self %d > 1",
@@ -1243,8 +1281,8 @@ int idm_drive_lock_count_async(char *lock_id, char *host_id,
 	request->data_len = IDM_DATA_SIZE;
 
 	strncpy(request->drive, drive, PATH_MAX);
-	memcpy(request->lock_id, lock_id, IDM_LOCK_ID_LEN);
-	memcpy(request->host_id, host_id, IDM_HOST_ID_LEN);
+	_scsi_data_swap(request->lock_id, lock_id, IDM_LOCK_ID_LEN);
+	_scsi_data_swap(request->host_id, host_id, IDM_HOST_ID_LEN);
 
 	ret = _scsi_recv_async(request);
 	if (ret < 0) {
@@ -1278,7 +1316,7 @@ int idm_drive_lock_count_async_result(uint64_t handle, int *count, int *self,
 	*self = 0;
 	for (i = 0; i < IDM_DATA_BLOCK_NUM; i++) {
 		/* Skip for other locks */
-		if (memcpy(data[i].resource_id, request->lock_id,
+		if (memcmp(data[i].resource_id, request->lock_id,
 			   IDM_LOCK_ID_LEN))
 			continue;
 
@@ -1318,6 +1356,7 @@ int idm_drive_lock_mode(char *lock_id, int *mode, char *drive)
 {
 	struct idm_scsi_request *request;
 	struct idm_data *data;
+	uint64_t state, class;
 	int ret, i;
 
 	if (ilm_inject_fault_is_hit())
@@ -1353,27 +1392,35 @@ int idm_drive_lock_mode(char *lock_id, int *mode, char *drive)
 		goto out;
 	}
 
+	_scsi_data_swap(request->lock_id, lock_id, IDM_LOCK_ID_LEN);
+
 	*mode = -1;
 	data = request->data;
 	for (i = 0; i < IDM_DATA_BLOCK_NUM; i++) {
 		/* Skip for other locks */
-		if (memcmp(data[i].resource_id, lock_id, IDM_LOCK_ID_LEN))
+		if (memcmp(data[i].resource_id, request->lock_id, IDM_LOCK_ID_LEN))
 			continue;
 
-		if (data[i].state == IDM_STATE_UNINIT ||
-		    data[i].state == IDM_STATE_UNLOCKED ||
-		    data[i].state == IDM_STATE_TIMEOUT) {
+		state = __bswap_64(data[i].state);
+		class = __bswap_64(data[i].class);
+
+		ilm_log_dbg("%s: state=%lx class=%lx", __func__, state, class);
+
+		if (state == IDM_STATE_UNINIT ||
+		    state == IDM_STATE_UNLOCKED ||
+		    state == IDM_STATE_TIMEOUT) {
 			*mode = IDM_MODE_UNLOCK;
-		} else if (data[i].class == IDM_CLASS_EXCLUSIVE) {
+		} else if (class == IDM_CLASS_EXCLUSIVE) {
 			*mode = IDM_MODE_EXCLUSIVE;
-		} else if (data[i].class == IDM_CLASS_SHARED_PROTECTED_READ) {
+		} else if (class == IDM_CLASS_SHARED_PROTECTED_READ) {
 			*mode = IDM_MODE_SHAREABLE;
-		} else if (data[i].class == IDM_CLASS_PROTECTED_WRITE) {
+		} else if (class == IDM_CLASS_PROTECTED_WRITE) {
 			ilm_log_err("%s: PROTECTED_WRITE is not unsupported",
 				    __func__);
 			ret = -EFAULT;
 		}
 
+		ilm_log_dbg("%s: mode=%d", __func__, *mode);
 		break;
 	}
 
@@ -1414,7 +1461,7 @@ int idm_drive_lock_mode_async(char *lock_id, char *drive, uint64_t *handle)
 	request->data_len = IDM_DATA_SIZE;
 
 	strncpy(request->drive, drive, PATH_MAX);
-	memcpy(request->lock_id, lock_id, IDM_LOCK_ID_LEN);
+	_scsi_data_swap(request->lock_id, lock_id, IDM_LOCK_ID_LEN);
 
 	ret = _scsi_recv_async(request);
 	if (ret < 0) {
@@ -1447,7 +1494,7 @@ int idm_drive_lock_mode_async_result(uint64_t handle, int *mode, int *result)
 	*mode = -1;
 	for (i = 0; i < IDM_DATA_BLOCK_NUM; i++) {
 		/* Skip for other locks */
-		if (memcpy(data[i].resource_id, request->lock_id,
+		if (memcmp(data[i].resource_id, request->lock_id,
 			   IDM_LOCK_ID_LEN))
 			continue;
 
@@ -1538,12 +1585,19 @@ int idm_drive_host_state(char *lock_id, char *host_id,
 		goto out;
 	}
 
+	_scsi_data_swap(request->lock_id, lock_id, IDM_LOCK_ID_LEN);
+	_scsi_data_swap(request->host_id, host_id, IDM_HOST_ID_LEN);
+
 	*host_state = -1;
 	data = request->data;
 	for (i = 0; i < IDM_DATA_BLOCK_NUM; i++) {
 		/* Skip for other locks */
-		if (memcmp(data[i].resource_id, lock_id, IDM_LOCK_ID_LEN) ||
-		    memcmp(data[i].host_id, host_id, IDM_HOST_ID_LEN))
+		if (memcmp(data[i].resource_id, request->lock_id,
+			   IDM_LOCK_ID_LEN))
+			continue;
+
+		if (memcmp(data[i].host_id, request->host_id,
+			   IDM_HOST_ID_LEN))
 			continue;
 
 		*host_state = data[i].state;
@@ -1633,8 +1687,13 @@ int idm_drive_read_group(char *drive, struct idm_info **info_ptr, int *info_num)
 		info = info_list + i;
 
 		/* Copy host ID */
-		memcpy(info->id, data[i].resource_id, IDM_LOCK_ID_LEN);
-		memcpy(info->host_id, data[i].host_id, IDM_HOST_ID_LEN);
+		_scsi_data_swap(info->id, data[i].resource_id, IDM_LOCK_ID_LEN);
+		_scsi_data_swap(info->host_id, data[i].host_id, IDM_HOST_ID_LEN);
+
+		data[i].state = __bswap_64(data[i].state);
+		data[i].class = __bswap_64(data[i].class);
+		data[i].time_now = __bswap_64(data[i].time_now);
+		data[i].countdown = __bswap_64(data[i].countdown);
 
 		if (data[i].state == IDM_STATE_UNINIT ||
 		    data[i].state == IDM_STATE_UNLOCKED ||

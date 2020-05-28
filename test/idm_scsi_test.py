@@ -13,19 +13,19 @@ import idm_scsi
 DRIVE1 = "/dev/sg7"
 DRIVE2 = "/dev/sdg"
 
-def test_idm_version():
+def test_idm_version(idm_cleanup):
     ret, version = idm_scsi.idm_drive_version(DRIVE1)
     assert ret == 0
     assert version == 0x100
 
-def test_idm_lock_exclusive_sync():
+def test_idm__sync_lock_exclusive(idm_cleanup):
 
     lock_id0 = "0000000000000000000000000000000000000000000000000000000000000000"
     host_id0 = "00000000000000000000000000000000"
 
-    #ret = idm_scsi.idm_drive_lock(lock_id0, idm_scsi.IDM_MODE_EXCLUSIVE,
-    #                              host_id0, DRIVE1, 10000);
-    #assert ret == 0
+    ret = idm_scsi.idm_drive_lock(lock_id0, idm_scsi.IDM_MODE_EXCLUSIVE,
+                                  host_id0, DRIVE1, 10000);
+    assert ret == 0
 
     a = idm_scsi.charArray(8)
     a[0] = 0
@@ -40,7 +40,7 @@ def test_idm_lock_exclusive_sync():
     ret = idm_scsi.idm_drive_unlock(lock_id0, host_id0, a, 8, DRIVE1)
     assert ret == 0
 
-def test_idm_lock_shareable_sync():
+def test_idm__sync_lock_shareable(idm_cleanup):
 
     lock_id0 = "0000000000000000000000000000000000000000000000000000000000000000"
     host_id0 = "00000000000000000000000000000000"
@@ -62,7 +62,7 @@ def test_idm_lock_shareable_sync():
     ret = idm_scsi.idm_drive_unlock(lock_id0, host_id0, a, 8, DRIVE1)
     assert ret == 0
 
-def test_idm_lock_exclusive_twice():
+def test_idm__sync_lock_exclusive_twice(idm_cleanup):
 
     lock_id0 = "0000000000000000000000000000000000000000000000000000000000000000"
     host_id0 = "00000000000000000000000000000000"
@@ -91,7 +91,7 @@ def test_idm_lock_exclusive_twice():
     ret = idm_scsi.idm_drive_unlock(lock_id0, host_id0, a, 8, DRIVE1)
     assert ret == -2        # -ENOENT
 
-def test_idm_lock_shareable_twice():
+def test_idm__sync_lock_shareable_twice(idm_cleanup):
 
     lock_id0 = "0000000000000000000000000000000000000000000000000000000000000000"
     host_id0 = "00000000000000000000000000000000"
@@ -120,7 +120,7 @@ def test_idm_lock_shareable_twice():
     ret = idm_scsi.idm_drive_unlock(lock_id0, host_id0, a, 8, DRIVE1)
     assert ret == -2        # -ENOENT
 
-def test_idm_lock_exclusive_two_hosts():
+def test_idm__sync_lock_exclusive_two_hosts(idm_cleanup):
 
     lock_id0 = "0000000000000000000000000000000000000000000000000000000000000000"
     host_id0 = "00000000000000000000000000000000"
@@ -150,7 +150,7 @@ def test_idm_lock_exclusive_two_hosts():
     ret = idm_scsi.idm_drive_unlock(lock_id0, host_id1, a, 8, DRIVE1)
     assert ret == -2        # -ENOENT
 
-def test_idm_lock_shareable_two_hosts():
+def test_idm__sync_lock_shareable_two_hosts(idm_cleanup):
 
     lock_id0 = "0000000000000000000000000000000000000000000000000000000000000000"
     host_id0 = "00000000000000000000000000000000"
@@ -180,7 +180,7 @@ def test_idm_lock_shareable_two_hosts():
     ret = idm_scsi.idm_drive_unlock(lock_id0, host_id1, a, 8, DRIVE1)
     assert ret == 0
 
-def test_idm__sync_break_lock_1():
+def test_idm__sync_break_lock_1(idm_cleanup):
 
     lock_id0 = "0000000000000000000000000000000000000000000000000000000000000000"
     host_id0 = "00000000000000000000000000000000"
@@ -214,7 +214,7 @@ def test_idm__sync_break_lock_1():
     ret = idm_scsi.idm_drive_unlock(lock_id0, host_id1, a, 8, DRIVE1)
     assert ret == 0
 
-def test_idm__sync_break_lock_2():
+def test_idm__sync_break_lock_2(idm_cleanup):
 
     lock_id0 = "0000000000000000000000000000000000000000000000000000000000000000"
     host_id0 = "00000000000000000000000000000000"
@@ -248,7 +248,7 @@ def test_idm__sync_break_lock_2():
     ret = idm_scsi.idm_drive_unlock(lock_id0, host_id1, a, 8, DRIVE1)
     assert ret == 0
 
-def test_idm__sync_break_lock_3():
+def test_idm__sync_break_lock_3(idm_cleanup):
 
     lock_id0 = "0000000000000000000000000000000000000000000000000000000000000000"
     host_id0 = "00000000000000000000000000000000"
@@ -282,7 +282,7 @@ def test_idm__sync_break_lock_3():
     ret = idm_scsi.idm_drive_unlock(lock_id0, host_id1, a, 8, DRIVE1)
     assert ret == 0
 
-def test_idm__sync_convert_1():
+def test_idm__sync_convert_1(idm_cleanup):
 
     lock_id0 = "0000000000000000000000000000000000000000000000000000000000000000"
     host_id0 = "00000000000000000000000000000000"
@@ -308,7 +308,7 @@ def test_idm__sync_convert_1():
     ret = idm_scsi.idm_drive_unlock(lock_id0, host_id0, a, 8, DRIVE1)
     assert ret == 0
 
-def test_idm__sync_convert_2():
+def test_idm__sync_convert_2(idm_cleanup):
 
     lock_id0 = "0000000000000000000000000000000000000000000000000000000000000000"
     host_id0 = "00000000000000000000000000000000"
@@ -334,7 +334,7 @@ def test_idm__sync_convert_2():
     ret = idm_scsi.idm_drive_unlock(lock_id0, host_id0, a, 8, DRIVE1)
     assert ret == 0
 
-def test_idm__sync_convert_3():
+def test_idm__sync_convert_3(idm_cleanup):
 
     lock_id0 = "0000000000000000000000000000000000000000000000000000000000000000"
     host_id0 = "00000000000000000000000000000000"
@@ -349,7 +349,7 @@ def test_idm__sync_convert_3():
     assert ret == 0
 
     ret = idm_scsi.idm_drive_convert_lock(lock_id0, idm_scsi.IDM_MODE_EXCLUSIVE,
-                                        host_id1, DRIVE1, 10000);
+                                          host_id1, DRIVE1);
     assert ret == -1        # -EPERM
 
     a = idm_scsi.charArray(8)
@@ -368,7 +368,7 @@ def test_idm__sync_convert_3():
     ret = idm_scsi.idm_drive_unlock(lock_id0, host_id1, a, 8, DRIVE1)
     assert ret == 0
 
-def test_idm__sync_renew_1():
+def test_idm__sync_renew_1(idm_cleanup):
 
     lock_id0 = "0000000000000000000000000000000000000000000000000000000000000000"
     host_id0 = "00000000000000000000000000000000"
@@ -408,7 +408,7 @@ def test_idm__sync_renew_1():
     ret = idm_scsi.idm_drive_unlock(lock_id0, host_id0, a, 8, DRIVE1)
     assert ret == 0
 
-def test_idm__sync_renew_2():
+def test_idm__sync_renew_2(idm_cleanup):
 
     lock_id0 = "0000000000000000000000000000000000000000000000000000000000000000"
     host_id0 = "00000000000000000000000000000000"
@@ -448,7 +448,7 @@ def test_idm__sync_renew_2():
     ret = idm_scsi.idm_drive_unlock(lock_id0, host_id0, a, 8, DRIVE1)
     assert ret == 0
 
-def test_idm__sync_renew_fail_1():
+def test_idm__sync_renew_timeout_1(idm_cleanup):
 
     lock_id0 = "0000000000000000000000000000000000000000000000000000000000000000"
     host_id0 = "00000000000000000000000000000000"
@@ -461,7 +461,7 @@ def test_idm__sync_renew_fail_1():
 
     ret = idm_scsi.idm_drive_renew_lock(lock_id0, idm_scsi.IDM_MODE_SHAREABLE,
                                         host_id0, DRIVE1);
-    assert ret == -62       # -ETIME or 0
+    assert ret == 0
 
     a = idm_scsi.charArray(8)
     a[0] = 0
@@ -476,7 +476,7 @@ def test_idm__sync_renew_fail_1():
     ret = idm_scsi.idm_drive_unlock(lock_id0, host_id0, a, 8, DRIVE1)
     assert ret == 0         # -ETIME or 0
 
-def test_idm_renew_fail_2():
+def test_idm__sync_renew_timeout_2(idm_cleanup):
 
     lock_id0 = "0000000000000000000000000000000000000000000000000000000000000000"
     host_id0 = "00000000000000000000000000000000"
@@ -489,7 +489,7 @@ def test_idm_renew_fail_2():
 
     ret = idm_scsi.idm_drive_renew_lock(lock_id0, idm_scsi.IDM_MODE_EXCLUSIVE,
                                         host_id0, DRIVE1);
-    assert ret == -62       # -ETIME or 0
+    assert ret == 0
 
     a = idm_scsi.charArray(8)
     a[0] = 0
@@ -504,7 +504,63 @@ def test_idm_renew_fail_2():
     ret = idm_scsi.idm_drive_unlock(lock_id0, host_id0, a, 8, DRIVE1)
     assert ret == 0         # -ETIME or 0
 
-def test_idm__sync_read_lvb_1():
+def test_idm__sync_renew_timeout_3(idm_cleanup):
+
+    lock_id0 = "0000000000000000000000000000000000000000000000000000000000000000"
+    host_id0 = "00000000000000000000000000000000"
+
+    ret = idm_scsi.idm_drive_lock(lock_id0, idm_scsi.IDM_MODE_EXCLUSIVE,
+                                  host_id0, DRIVE1, 5000);
+    assert ret == 0
+
+    time.sleep(7)
+
+    ret = idm_scsi.idm_drive_renew_lock(lock_id0, idm_scsi.IDM_MODE_SHAREABLE,
+                                        host_id0, DRIVE1);
+    assert ret == 0
+
+    a = idm_scsi.charArray(8)
+    a[0] = 0
+    a[1] = 0
+    a[2] = 0
+    a[3] = 0
+    a[4] = 0
+    a[5] = 0
+    a[6] = 0
+    a[7] = 0
+
+    ret = idm_scsi.idm_drive_unlock(lock_id0, host_id0, a, 8, DRIVE1)
+    assert ret == 0         # -ETIME or 0
+
+def test_idm__sync_renew_timeout_4(idm_cleanup):
+
+    lock_id0 = "0000000000000000000000000000000000000000000000000000000000000000"
+    host_id0 = "00000000000000000000000000000000"
+
+    ret = idm_scsi.idm_drive_lock(lock_id0, idm_scsi.IDM_MODE_SHAREABLE,
+                                  host_id0, DRIVE1, 5000);
+    assert ret == 0
+
+    time.sleep(7)
+
+    ret = idm_scsi.idm_drive_renew_lock(lock_id0, idm_scsi.IDM_MODE_EXCLUSIVE,
+                                        host_id0, DRIVE1);
+    assert ret == 0
+
+    a = idm_scsi.charArray(8)
+    a[0] = 0
+    a[1] = 0
+    a[2] = 0
+    a[3] = 0
+    a[4] = 0
+    a[5] = 0
+    a[6] = 0
+    a[7] = 0
+
+    ret = idm_scsi.idm_drive_unlock(lock_id0, host_id0, a, 8, DRIVE1)
+    assert ret == 0         # -ETIME or 0
+
+def test_idm__sync_read_lvb_1(idm_cleanup):
 
     lock_id0 = "0000000000000000000000000000000000000000000000000000000000000000"
     host_id0 = "00000000000000000000000000000000"
@@ -537,7 +593,7 @@ def test_idm__sync_read_lvb_1():
     ret = idm_scsi.idm_drive_unlock(lock_id0, host_id0, a, 8, DRIVE1)
     assert ret == 0         # -ETIME or 0
 
-def test_idm__sync_read_lvb_2():
+def test_idm__sync_read_lvb_2(idm_cleanup):
 
     lock_id0 = "0000000000000000000000000000000000000000000000000000000000000000"
     host_id0 = "00000000000000000000000000000000"
@@ -547,25 +603,6 @@ def test_idm__sync_read_lvb_2():
     assert ret == 0
 
     a = idm_scsi.charArray(8)
-    a[0] = 0
-    a[1] = 0
-    a[2] = 0
-    a[3] = 0
-    a[4] = 0
-    a[5] = 0
-    a[6] = 0
-    a[7] = 0
-
-    ret = idm_scsi.idm_drive_read_lvb(lock_id0, host_id0, a, 8, DRIVE1);
-    assert ret == 0
-    #assert ord(a[0]) == 0
-    #assert ord(a[1]) == 0
-    #assert ord(a[2]) == 0
-    #assert ord(a[3]) == 0
-    #assert ord(a[4]) == 0
-    #assert ord(a[5]) == 0
-    #assert ord(a[6]) == 0
-    #assert ord(a[7]) == 0
 
     a[0] = 'a'
     a[1] = 'b'
@@ -576,14 +613,45 @@ def test_idm__sync_read_lvb_2():
     a[6] = 'g'
     a[7] = 0
 
-    #a[0] = 1
-    #a[1] = 1
-    #a[2] = 1
-    #a[3] = 1
-    #a[4] = 1
-    #a[5] = 1
-    #a[6] = 1
-    #a[7] = 0
+    ret = idm_scsi.idm_drive_unlock(lock_id0, host_id0, a, 8, DRIVE1)
+    assert ret == 0
+
+    ret = idm_scsi.idm_drive_lock(lock_id0, idm_scsi.IDM_MODE_EXCLUSIVE,
+                                  host_id0, DRIVE1, 5000);
+    assert ret == 0
+
+    ret = idm_scsi.idm_drive_read_lvb(lock_id0, host_id0, a, 8, DRIVE1);
+    assert ret == 0
+    assert a[0] == 'a'
+    assert a[1] == 'b'
+    assert a[2] == 'c'
+    assert a[3] == 'd'
+    assert a[4] == 'e'
+    assert a[5] == 'f'
+    assert a[6] == 'g'
+    assert ord(a[7]) == 0
+
+    ret = idm_scsi.idm_drive_unlock(lock_id0, host_id0, a, 8, DRIVE1)
+    assert ret == 0
+
+def test_idm__sync_read_lvb_3(idm_cleanup):
+
+    lock_id0 = "0000000000000000000000000000000000000000000000000000000000000000"
+    host_id0 = "00000000000000000000000000000000"
+
+    ret = idm_scsi.idm_drive_lock(lock_id0, idm_scsi.IDM_MODE_EXCLUSIVE,
+                                  host_id0, DRIVE1, 5000);
+    assert ret == 0
+
+    a = idm_scsi.charArray(8)
+    a[0] = 1
+    a[1] = 2
+    a[2] = 3
+    a[3] = 4
+    a[4] = 1
+    a[5] = 1
+    a[6] = 1
+    a[7] = 0
 
     ret = idm_scsi.idm_drive_unlock(lock_id0, host_id0, a, 8, DRIVE1)
     assert ret == 0
@@ -594,19 +662,19 @@ def test_idm__sync_read_lvb_2():
 
     ret = idm_scsi.idm_drive_read_lvb(lock_id0, host_id0, a, 8, DRIVE1);
     assert ret == 0
-    assert a[0] == 1
-    assert a[1] == 1
-    assert a[2] == 1
-    assert a[3] == 1
-    assert a[4] == 1
-    assert a[5] == 1
-    assert a[6] == 1
-    assert a[7] == 0
+    assert ord(a[0]) == 1
+    assert ord(a[1]) == 2
+    assert ord(a[2]) == 3
+    assert ord(a[3]) == 4
+    assert ord(a[4]) == 1
+    assert ord(a[5]) == 1
+    assert ord(a[6]) == 1
+    assert ord(a[7]) == 0
 
     ret = idm_scsi.idm_drive_unlock(lock_id0, host_id0, a, 8, DRIVE1)
     assert ret == 0
 
-def test_idm__sync_get_host_count():
+def test_idm__sync_get_host_count(idm_cleanup):
 
     lock_id0 = "0000000000000000000000000000000000000000000000000000000000000000"
     host_id0 = "00000000000000000000000000000000"
@@ -638,7 +706,7 @@ def test_idm__sync_get_host_count():
     assert count == 0
     assert self == 0
 
-def test_idm_two_hosts_get_host_count():
+def test_idm__sync_two_hosts_get_host_count(idm_cleanup):
 
     lock_id0 = "0000000000000000000000000000000000000000000000000000000000000000"
     host_id0 = "00000000000000000000000000000000"
@@ -689,7 +757,7 @@ def test_idm_two_hosts_get_host_count():
     assert count == 0
     assert self == 0
 
-def test_idm_three_hosts_get_host_count():
+def test_idm__sync_three_hosts_get_host_count(idm_cleanup):
 
     lock_id0 = "0000000000000000000000000000000000000000000000000000000000000000"
     host_id0 = "00000000000000000000000000000000"
@@ -747,7 +815,7 @@ def test_idm_three_hosts_get_host_count():
     assert count == 0
     assert self == 0
 
-def test_idm__sync_get_lock_mode():
+def test_idm__sync_get_lock_mode(idm_cleanup):
 
     lock_id0 = "0000000000000000000000000000000000000000000000000000000000000000"
     host_id0 = "00000000000000000000000000000000"
@@ -756,7 +824,7 @@ def test_idm__sync_get_lock_mode():
     assert ret == 0
     assert mode == idm_scsi.IDM_MODE_UNLOCK
 
-def test_idm_get_lock_exclusive_mode():
+def test_idm__sync_get_lock_exclusive_mode(idm_cleanup):
 
     lock_id0 = "0000000000000000000000000000000000000000000000000000000000000000"
     host_id0 = "00000000000000000000000000000000"
@@ -779,10 +847,10 @@ def test_idm_get_lock_exclusive_mode():
     a[6] = 0
     a[7] = 0
 
-    ret = idm_scsi.idm_drive_unlock(lock_id0, host_id0, a, 8)
+    ret = idm_scsi.idm_drive_unlock(lock_id0, host_id0, a, 8, DRIVE1)
     assert ret == 0
 
-def test_idm_get_lock_shareable_mode():
+def test_idm__sync_get_lock_shareable_mode(idm_cleanup):
 
     lock_id0 = "0000000000000000000000000000000000000000000000000000000000000000"
     host_id0 = "00000000000000000000000000000000"
@@ -805,5 +873,5 @@ def test_idm_get_lock_shareable_mode():
     a[6] = 0
     a[7] = 0
 
-    ret = idm_scsi.idm_drive_unlock(lock_id0, host_id0, a, 8)
+    ret = idm_scsi.idm_drive_unlock(lock_id0, host_id0, a, 8, DRIVE1)
     assert ret == 0
