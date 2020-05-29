@@ -56,6 +56,7 @@ def idm_cleanup():
     idm_scsi.idm_drive_unlock(lock_id1, host_id0, a, 8, DRIVE2)
     idm_scsi.idm_drive_unlock(lock_id1, host_id1, a, 8, DRIVE2)
     idm_scsi.idm_drive_unlock(lock_id1, host_id2, a, 8, DRIVE2)
+    idm_scsi.idm_drive_lock_mode(lock_id0, DRIVE1);
 
 def pytest_addoption(parser):
     parser.addoption('--run-destroy', action='store_true', dest="destroy",
