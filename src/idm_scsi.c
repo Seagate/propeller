@@ -919,6 +919,9 @@ int idm_drive_break_lock(char *lock_id, int mode, char *host_id,
 	if (!lock_id || !host_id || !drive)
 		return -EINVAL;
 
+	if (mode != IDM_MODE_EXCLUSIVE && mode != IDM_MODE_SHAREABLE)
+		return -EINVAL;
+
 	request = malloc(sizeof(struct idm_scsi_request));
 	if (!request) {
 		ilm_log_err("%s: fail to allocat scsi request", __func__);
@@ -933,6 +936,11 @@ int idm_drive_break_lock(char *lock_id, int mode, char *host_id,
 		return -ENOMEM;
 	}
 	memset(request->data, 0x0, sizeof(struct idm_data));
+
+	if (mode == IDM_MODE_EXCLUSIVE)
+		mode = IDM_CLASS_EXCLUSIVE;
+	else if (mode == IDM_MODE_SHAREABLE)
+		mode = IDM_CLASS_SHARED_PROTECTED_READ;
 
 	strncpy(request->drive, drive, PATH_MAX);
 	request->op = IDM_MUTEX_OP_BREAK;
@@ -972,11 +980,15 @@ int idm_drive_break_lock_async(char *lock_id, int mode, char *host_id,
 	if (!lock_id || !host_id || !drive || !handle)
 		return -EINVAL;
 
+	if (mode != IDM_MODE_EXCLUSIVE && mode != IDM_MODE_SHAREABLE)
+		return -EINVAL;
+
 	request = malloc(sizeof(struct idm_scsi_request));
 	if (!request) {
 		ilm_log_err("%s: fail to allocat scsi request", __func__);
 		return -ENOMEM;
 	}
+	memset(request, 0x0, sizeof(struct idm_scsi_request));
 
 	request->data = malloc(sizeof(struct idm_data));
 	if (!request) {
@@ -984,12 +996,18 @@ int idm_drive_break_lock_async(char *lock_id, int mode, char *host_id,
 		ilm_log_err("%s: fail to allocat scsi data", __func__);
 		return -ENOMEM;
 	}
-	request->data_len = sizeof(struct idm_data);
+	memset(request->data, 0x0, sizeof(struct idm_data));
+
+	if (mode == IDM_MODE_EXCLUSIVE)
+		mode = IDM_CLASS_EXCLUSIVE;
+	else if (mode == IDM_MODE_SHAREABLE)
+		mode = IDM_CLASS_SHARED_PROTECTED_READ;
 
 	strncpy(request->drive, drive, PATH_MAX);
 	request->op = IDM_MUTEX_OP_BREAK;
 	request->mode = mode;
 	request->timeout = timeout;
+	request->data_len = sizeof(struct idm_data);
 	request->res_ver_type = IDM_RES_VER_NO_UPDATE_NO_VALID;
 	memcpy(request->lock_id, lock_id, IDM_LOCK_ID_LEN);
 	memcpy(request->host_id, host_id, IDM_HOST_ID_LEN);
