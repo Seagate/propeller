@@ -8,7 +8,8 @@ from . import ilm_util
 
 import idm_scsi
 
-DRIVE1 = "/dev/sg7"
+DRIVE1 = "/dev/sg5"
+DRIVE2 = "/dev/sg7"
 
 @pytest.fixture
 def ilm_daemon():
@@ -28,6 +29,7 @@ def ilm_daemon():
 @pytest.fixture
 def idm_cleanup():
     lock_id0 = "0000000000000000000000000000000000000000000000000000000000000000"
+    lock_id1 = "0000000000000000000000000000000000000000000000000000000000000001"
     host_id0 = "00000000000000000000000000000000"
     host_id1 = "00000000000000000000000000000001"
     host_id2 = "00000000000000000000000000000002"
@@ -45,6 +47,15 @@ def idm_cleanup():
     idm_scsi.idm_drive_unlock(lock_id0, host_id0, a, 8, DRIVE1)
     idm_scsi.idm_drive_unlock(lock_id0, host_id1, a, 8, DRIVE1)
     idm_scsi.idm_drive_unlock(lock_id0, host_id2, a, 8, DRIVE1)
+    idm_scsi.idm_drive_unlock(lock_id0, host_id0, a, 8, DRIVE2)
+    idm_scsi.idm_drive_unlock(lock_id0, host_id1, a, 8, DRIVE2)
+    idm_scsi.idm_drive_unlock(lock_id0, host_id2, a, 8, DRIVE2)
+    idm_scsi.idm_drive_unlock(lock_id1, host_id0, a, 8, DRIVE1)
+    idm_scsi.idm_drive_unlock(lock_id1, host_id1, a, 8, DRIVE1)
+    idm_scsi.idm_drive_unlock(lock_id1, host_id2, a, 8, DRIVE1)
+    idm_scsi.idm_drive_unlock(lock_id1, host_id0, a, 8, DRIVE2)
+    idm_scsi.idm_drive_unlock(lock_id1, host_id1, a, 8, DRIVE2)
+    idm_scsi.idm_drive_unlock(lock_id1, host_id2, a, 8, DRIVE2)
 
 def pytest_addoption(parser):
     parser.addoption('--run-destroy', action='store_true', dest="destroy",

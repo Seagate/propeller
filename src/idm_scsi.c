@@ -190,7 +190,10 @@ static int _scsi_sg_io(char *drive, uint8_t *cdb, int cdb_len,
 	/* io_hdr.pack_id = 0; */
 	/* io_hdr.usr_ptr = NULL; */
 
-	ilm_log_array_dbg("cdb", cdb, cdb_len);
+	ilm_log_array_dbg("cdb", (char *)cdb, cdb_len);
+
+	if (direction == SG_DXFER_TO_DEV)
+		ilm_log_array_dbg("data", (char *)data, data_len);
 
 	ret = ioctl(sg_fd, SG_IO, &io_hdr);
 	if (ret) {
@@ -198,7 +201,8 @@ static int _scsi_sg_io(char *drive, uint8_t *cdb, int cdb_len,
 		goto out;
 	}
 
-	ilm_log_array_dbg("data", data, data_len);
+	if (direction == SG_DXFER_FROM_DEV)
+		ilm_log_array_dbg("data", (char *)data, data_len);
 
 	/* Make success */
 	if ((io_hdr.info & SG_INFO_OK_MASK) == SG_INFO_OK) {
@@ -208,7 +212,10 @@ static int _scsi_sg_io(char *drive, uint8_t *cdb, int cdb_len,
 
 	status = io_hdr.masked_status;
 
-	ilm_log_dbg("%s: status %d", __func__, status);
+	ilm_log_dbg("%s: status 0x%x", __func__, io_hdr.status);
+	ilm_log_dbg("%s: masked status 0x%x", __func__, io_hdr.masked_status);
+	ilm_log_dbg("%s: host status 0x%x", __func__, io_hdr.host_status);
+	ilm_log_dbg("%s: driver status 0x%x", __func__, io_hdr.driver_status);
 
 	switch (status) {
 	case CHECK_CONDITION:
@@ -290,6 +297,11 @@ static int _scsi_write(struct idm_scsi_request *request, int direction)
 	/* io_hdr.pack_id = 0; */
 	/* io_hdr.usr_ptr = NULL; */
 
+	ilm_log_array_dbg("_scsi_write cdb",
+                          (char *)request->cdb, SCSI_CDB_LEN);
+	ilm_log_array_dbg("_scsi_write data",
+                          (char *)request->data, request->data_len);
+
 	ret = write(sg_fd, &io_hdr, sizeof(io_hdr));
 	if (ret < 0) {
 		close(sg_fd);
@@ -298,6 +310,7 @@ static int _scsi_write(struct idm_scsi_request *request, int direction)
 	}
 
 	request->fd = sg_fd;
+	ilm_log_dbg("%s: fd %d", __func__, request->fd);
 	return ret;
 }
 
@@ -310,11 +323,17 @@ static int _scsi_read(struct idm_scsi_request *request, int direction)
 	io_hdr.interface_id = 'S';
 	io_hdr.dxfer_direction = direction;
 
+	ilm_log_dbg("%s: fd %d", __func__, request->fd);
+
 	ret = read(request->fd, &io_hdr, sizeof(io_hdr));
 	if (ret < 0) {
 		ilm_log_err("%s: fail to read scsi %d", __func__, ret);
 		return ret;
 	}
+
+	/* Make success */
+	if ((io_hdr.info & SG_INFO_OK_MASK) == SG_INFO_OK)
+		return 0;
 
 	status = io_hdr.masked_status;
 	switch (status) {
@@ -348,7 +367,7 @@ static int _scsi_read(struct idm_scsi_request *request, int direction)
 		else if (request->op == IDM_MUTEX_OP_UNLOCK)
 			ret = -ENOENT;
 		else
-			ret = -EAGAIN;
+			ret = -EBUSY;
 		break;
 
 	case BUSY:
@@ -406,7 +425,7 @@ static int _scsi_xfer_sync(struct idm_scsi_request *request)
 
 static int _scsi_xfer_async(struct idm_scsi_request *request)
 {
-	struct idm_data *data;
+	struct idm_data *data = request->data;
 	int ret;
 
 	_scsi_generate_write_cdb(request->cdb, request->op);
@@ -464,6 +483,7 @@ static int _scsi_get_async_result(struct idm_scsi_request *request,
 	int ret;
 
 	ret = _scsi_read(request, direction);
+        close(request->fd);
 	free(request->data);
 	free(request);
 	return ret;
@@ -904,6 +924,7 @@ int idm_drive_break_lock(char *lock_id, int mode, char *host_id,
 		ilm_log_err("%s: fail to allocat scsi request", __func__);
 		return -ENOMEM;
 	}
+	memset(request, 0x0, sizeof(struct idm_scsi_request));
 
 	request->data = malloc(sizeof(struct idm_data));
 	if (!request->data) {
@@ -911,11 +932,13 @@ int idm_drive_break_lock(char *lock_id, int mode, char *host_id,
 		ilm_log_err("%s: fail to allocat scsi data", __func__);
 		return -ENOMEM;
 	}
+	memset(request->data, 0x0, sizeof(struct idm_data));
 
 	strncpy(request->drive, drive, PATH_MAX);
-	request->op = IDM_MUTEX_OP_TRYLOCK;
+	request->op = IDM_MUTEX_OP_BREAK;
 	request->mode = mode;
 	request->timeout = timeout;
+	request->data_len = sizeof(struct idm_data);
 	request->res_ver_type = IDM_RES_VER_NO_UPDATE_NO_VALID;
 	memcpy(request->lock_id, lock_id, IDM_LOCK_ID_LEN);
 	memcpy(request->host_id, host_id, IDM_HOST_ID_LEN);
@@ -1235,7 +1258,7 @@ int idm_drive_lock_count(char *lock_id, char *host_id,
 
 			*self = 1;
 		} else {
-			*count++;
+			*count += 1;
 		}
 	}
 
@@ -1331,7 +1354,7 @@ int idm_drive_lock_count_async_result(uint64_t handle, int *count, int *self,
 
 			*self = 1;
 		} else {
-			*count++;
+			*count += 1;
 		}
 	}
 
