@@ -10,8 +10,8 @@ import pytest
 
 import idm_scsi
 
-DRIVE1 = "/dev/sg7"
-DRIVE2 = "/dev/sdg"
+DRIVE1 = "/dev/sg5"
+DRIVE2 = "/dev/sd7"
 
 def test_idm_version(idm_cleanup):
     ret, version = idm_scsi.idm_drive_version(DRIVE1)
@@ -187,15 +187,17 @@ def test_idm__sync_break_lock_1(idm_cleanup):
     host_id1 = "00000000000000000000000000000001"
 
     ret = idm_scsi.idm_drive_lock(lock_id0, idm_scsi.IDM_MODE_EXCLUSIVE,
-                                  host_id0, DRIVE1, 10000);
+                                  host_id0, DRIVE1, 5000);
     assert ret == 0
 
     ret = idm_scsi.idm_drive_lock(lock_id0, idm_scsi.IDM_MODE_EXCLUSIVE,
-                                  host_id1, DRIVE1, 10000);
+                                  host_id1, DRIVE1, 5000);
     assert ret == -16       # -EBUSY
 
+    time.sleep(10)
+
     ret = idm_scsi.idm_drive_break_lock(lock_id0, idm_scsi.IDM_MODE_EXCLUSIVE,
-                                        host_id1, DRIVE1, 10000);
+                                        host_id1, DRIVE1, 5000);
     assert ret == 0         # Break successfully
 
     a = idm_scsi.charArray(8)
@@ -221,15 +223,17 @@ def test_idm__sync_break_lock_2(idm_cleanup):
     host_id1 = "00000000000000000000000000000001"
 
     ret = idm_scsi.idm_drive_lock(lock_id0, idm_scsi.IDM_MODE_EXCLUSIVE,
-                                  host_id0, DRIVE1, 10000);
+                                  host_id0, DRIVE1, 5000);
     assert ret == 0
 
     ret = idm_scsi.idm_drive_lock(lock_id0, idm_scsi.IDM_MODE_SHAREABLE,
-                                  host_id1, DRIVE1, 10000);
+                                  host_id1, DRIVE1, 5000);
     assert ret == -16       # -EBUSY
 
+    time.sleep(7)
+
     ret = idm_scsi.idm_drive_break_lock(lock_id0, idm_scsi.IDM_MODE_SHAREABLE,
-                                        host_id1, DRIVE1, 10000);
+                                        host_id1, DRIVE1, 5000);
     assert ret == 0         # Break successfully
 
     a = idm_scsi.charArray(8)
@@ -255,12 +259,14 @@ def test_idm__sync_break_lock_3(idm_cleanup):
     host_id1 = "00000000000000000000000000000001"
 
     ret = idm_scsi.idm_drive_lock(lock_id0, idm_scsi.IDM_MODE_SHAREABLE,
-                                  host_id0, DRIVE1, 10000);
+                                  host_id0, DRIVE1, 5000);
     assert ret == 0
 
     ret = idm_scsi.idm_drive_lock(lock_id0, idm_scsi.IDM_MODE_EXCLUSIVE,
-                                  host_id1, DRIVE1, 10000);
+                                  host_id1, DRIVE1, 5000);
     assert ret == -16       # -EBUSY
+
+    time.sleep(7)
 
     ret = idm_scsi.idm_drive_break_lock(lock_id0, idm_scsi.IDM_MODE_EXCLUSIVE,
                                         host_id1, DRIVE1, 10000);
