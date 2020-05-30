@@ -484,8 +484,6 @@ static int _scsi_get_async_result(struct idm_scsi_request *request,
 
 	ret = _scsi_read(request, direction);
         close(request->fd);
-	free(request->data);
-	free(request);
 	return ret;
 }
 
@@ -760,6 +758,7 @@ static int idm_drive_refresh_lock(char *lock_id, int mode, char *host_id,
 		ilm_log_err("%s: fail to allocat scsi request", __func__);
 		return -ENOMEM;
 	}
+	memset(request, 0x0, sizeof(struct idm_scsi_request));
 
 	request->data = malloc(sizeof(struct idm_data));
 	if (!request->data) {
@@ -767,6 +766,7 @@ static int idm_drive_refresh_lock(char *lock_id, int mode, char *host_id,
 		ilm_log_err("%s: fail to allocat scsi data", __func__);
 		return -ENOMEM;
 	}
+	memset(request->data, 0x0, sizeof(struct idm_data));
 
 	if (mode == IDM_MODE_EXCLUSIVE)
 		mode = IDM_CLASS_EXCLUSIVE;
@@ -800,11 +800,15 @@ static int idm_drive_refresh_lock_async(char *lock_id, int mode,
 	if (!lock_id || !host_id || !drive || !handle)
 		return -EINVAL;
 
+	if (mode != IDM_MODE_EXCLUSIVE && mode != IDM_MODE_SHAREABLE)
+		return -EINVAL;
+
 	request = malloc(sizeof(struct idm_scsi_request));
 	if (!request) {
 		ilm_log_err("%s: fail to allocat scsi request", __func__);
 		return -ENOMEM;
 	}
+	memset(request, 0x0, sizeof(struct idm_scsi_request));
 
 	request->data = malloc(sizeof(struct idm_data));
 	if (!request) {
@@ -812,13 +816,19 @@ static int idm_drive_refresh_lock_async(char *lock_id, int mode,
 		ilm_log_err("%s: fail to allocat scsi data", __func__);
 		return -ENOMEM;
 	}
-	request->data_len = sizeof(struct idm_data);
+	memset(request->data, 0x0, sizeof(struct idm_data));
+
+	if (mode == IDM_MODE_EXCLUSIVE)
+		mode = IDM_CLASS_EXCLUSIVE;
+	else if (mode == IDM_MODE_SHAREABLE)
+		mode = IDM_CLASS_SHARED_PROTECTED_READ;
 
 	strncpy(request->drive, drive, PATH_MAX);
 	request->op = IDM_MUTEX_OP_REFRESH;
 	request->mode = mode;
 	request->timeout = 0;
 	request->res_ver_type = IDM_RES_VER_NO_UPDATE_NO_VALID;
+	request->data_len = sizeof(struct idm_data);
 	memcpy(request->lock_id, lock_id, IDM_LOCK_ID_LEN);
 	memcpy(request->host_id, host_id, IDM_HOST_ID_LEN);
 
@@ -1182,10 +1192,8 @@ int idm_drive_read_lvb_async_result(uint64_t handle, char *lvb, int lvb_size,
 
 	*result = ret;
 
-	if (data)
-		free(data);
+	free(request->data);
 	free(request);
-
 	return ret;
 }
 
@@ -1379,9 +1387,8 @@ int idm_drive_lock_count_async_result(uint64_t handle, int *count, int *self,
 	*result = ret;
 
 out:
-	if (data)
-		free(data);
-
+	free(request->data);
+	free(request);
 	return ret;
 }
 
@@ -1562,9 +1569,8 @@ int idm_drive_lock_mode_async_result(uint64_t handle, int *mode, int *result)
 
 	*result = ret;
 out:
-	if (data)
-		free(data);
-
+	free(request->data);
+	free(request);
 	return ret;
 }
 
@@ -1580,6 +1586,8 @@ int idm_drive_async_result(uint64_t handle, int *result)
 	struct idm_scsi_request *request = (struct idm_scsi_request *)handle;
 
 	*result = _scsi_get_async_result(request, SG_DXFER_TO_DEV);
+	free(request->data);
+	free(request);
 	return 0;
 }
 
