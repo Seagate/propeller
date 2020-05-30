@@ -484,8 +484,6 @@ static int _scsi_get_async_result(struct idm_scsi_request *request,
 
 	ret = _scsi_read(request, direction);
         close(request->fd);
-	free(request->data);
-	free(request);
 	return ret;
 }
 
@@ -1194,10 +1192,8 @@ int idm_drive_read_lvb_async_result(uint64_t handle, char *lvb, int lvb_size,
 
 	*result = ret;
 
-	if (data)
-		free(data);
+	free(request->data);
 	free(request);
-
 	return ret;
 }
 
@@ -1391,9 +1387,8 @@ int idm_drive_lock_count_async_result(uint64_t handle, int *count, int *self,
 	*result = ret;
 
 out:
-	if (data)
-		free(data);
-
+	free(request->data);
+	free(request);
 	return ret;
 }
 
@@ -1574,9 +1569,8 @@ int idm_drive_lock_mode_async_result(uint64_t handle, int *mode, int *result)
 
 	*result = ret;
 out:
-	if (data)
-		free(data);
-
+	free(request->data);
+	free(request);
 	return ret;
 }
 
@@ -1592,6 +1586,8 @@ int idm_drive_async_result(uint64_t handle, int *result)
 	struct idm_scsi_request *request = (struct idm_scsi_request *)handle;
 
 	*result = _scsi_get_async_result(request, SG_DXFER_TO_DEV);
+	free(request->data);
+	free(request);
 	return 0;
 }
 
