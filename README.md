@@ -15,7 +15,7 @@ Dependency
 
 It depends below libs and utilities:
 
-    $ sudo apt-get install libblkid-dev
+    $ sudo apt-get install libblkid-dev libblkid1
     $ sudo apt-get install uuid-dev
     $ sudo apt-get install python-pytest
 
@@ -152,3 +152,15 @@ The option '--run-destroy' will enable an extra case for testing
 IDM destroy.
 
     $ py.test -v --run-destroy
+
+For test IDM SCSI wrapper APIs, it can use the command:
+
+    $ py.test -v -k test_idm
+
+For test IDM SCSI wrapper APIs with sync mode, use the command:
+
+    $ py.test -v -k test_idm__sync
+
+For test IDM SCSI wrapper APIs with async mode, use the command:
+
+    $ py.test -v -k test_idm__async
