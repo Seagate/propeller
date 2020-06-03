@@ -15,9 +15,19 @@ Dependency
 
 It depends below libs and utilities:
 
+Install dependencies on Debian 18.04:
+
+    $ sudo apt-get install build-essential
     $ sudo apt-get install libblkid-dev libblkid1
     $ sudo apt-get install uuid-dev
     $ sudo apt-get install python-pytest
+
+Install dependencies on Centos 7:
+
+    $ sudo yum groupinstall 'Development Tools'
+    $ sudo yum install libuuid-devel
+    $ sudo yum install libblkid libblkid-devel
+    $ sudo yum install python-pytest
 
 Building
 --------
