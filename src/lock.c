@@ -47,6 +47,56 @@ static int ilm_lock_payload_read(struct ilm_cmd *cmd,
 	return ret;
 }
 
+static int ilm_convert_partition_to_sg(struct ilm_lock *lock)
+{
+	int drive_num = lock->drive_num;
+	char *tmp;
+	int i, j;
+	int matched;
+
+	for (i = 0; i < drive_num; i++) {
+		tmp = ilm_convert_sg(lock->drive[i].path);
+		ilm_log_dbg("Convert partition %s to sg %s",
+			    lock->drive[i].path, tmp);
+		free(lock->drive[i].path);
+		lock->drive[i].path = tmp;
+	}
+
+	for (i = 1; i < drive_num; i++) {
+
+		matched = 0;
+		for (j = 0; j < i; j++) {
+			if (!strcmp(lock->drive[i].path,
+				    lock->drive[j].path))
+				matched = 1;
+		}
+
+		if (!matched)
+			continue;
+
+		/* Find the duplicate item with prior items, free it */
+		free(lock->drive[i].path);
+		drive_num--;
+
+		for (j = i; j < drive_num; j++) {
+			/* Move ahead sequential items */
+			lock->drive[j].path = lock->drive[j+1].path;
+			memcpy(&lock->drive[j].uuid,
+			       &lock->drive[j+1].uuid, sizeof(uuid_t));
+
+			/* Cleanup the moved item */
+			lock->drive[j+1].path = NULL;
+			memset(&lock->drive[j+1].uuid, 0x0, sizeof(uuid_t));
+		}
+	}
+
+	for (i = 0; i < drive_num; i++)
+		ilm_log_dbg("Index %d SG path=%s", i, lock->drive[i].path);
+
+	lock->drive_num = drive_num;
+	return 0;
+}
+
 static int ilm_sort_drives(struct ilm_lock *lock)
 {
 	int drive_num = lock->drive_num;
@@ -145,6 +195,10 @@ static struct ilm_lock *ilm_alloc(struct ilm_cmd *cmd,
 	lock->drive_num = drive_num;
 
 	ret = ilm_sort_drives(lock);
+	if (ret < 0)
+		goto drive_fail;
+
+	ret = ilm_convert_partition_to_sg(lock);
 	if (ret < 0)
 		goto drive_fail;
 
