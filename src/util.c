@@ -85,14 +85,13 @@ int ilm_read_blk_uuid(char *dev, uuid_t *uuid)
 	ret = blkid_probe_lookup_value(probe, "UUID",
 				       &uuid_str, &uuid_str_size);
 	if (ret) {
-		ilm_log_err("fail to lookup blkid value %s", dev);
-		goto out;
+		ilm_log_warn("fail to lookup blkid value %s", dev);
+		memset(uuid, 0x0, sizeof(uuid_t));
+	} else {
+		uuid_parse(uuid_str, id);
+		memcpy(uuid, &id, sizeof(uuid_t));
 	}
 
-	uuid_parse(uuid_str, id);
-
-	memcpy(uuid, &id, sizeof(uuid_t));
-out:
 	blkid_free_probe(probe);
 	return ret;
 #endif
@@ -255,8 +254,6 @@ static char *ilm_find_sg(char *blk_dev)
 			goto out;
 		}
 
-		ilm_log_err("blk_path=%s", blk_path);
-
 		/* The folder doesn't exist */
 		if ((stat(blk_path, &a_stat) < 0))
 			continue;
@@ -314,8 +311,6 @@ char *ilm_convert_sg(char *blk_dev)
 		i--;
 
 	tmp[i] = '\0';
-
-	ilm_log_err("blk_dev=%s", tmp);
 
 	sg = ilm_find_sg(basename(tmp));
 

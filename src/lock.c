@@ -11,6 +11,7 @@
 #include <limits.h>
 #include <stdlib.h>
 #include <string.h>
+#include <sys/stat.h>
 #include <sys/socket.h>
 #include <uuid/uuid.h>
 #include <unistd.h>
@@ -122,7 +123,7 @@ static int ilm_sort_drives(struct ilm_lock *lock)
 				ilm_log_array_err("drive UUID",
 						  (char *)&lock->drive[j - 1].uuid,
 						  sizeof(uuid_t));
-				return -1;
+				continue;
 			}
 
 			if (ret > 0)
@@ -156,6 +157,7 @@ static struct ilm_lock *ilm_alloc(struct ilm_cmd *cmd,
 	char path[PATH_MAX];
 	struct ilm_lock *lock;
 	int ret, i, copied;
+        struct stat stats;
 
 	lock = malloc(sizeof(struct ilm_lock));
 	if (!lock) {
@@ -176,6 +178,11 @@ static struct ilm_lock *ilm_alloc(struct ilm_cmd *cmd,
 
 		*pos += ret;
 
+		if (lstat(path, &stats)) {
+			ilm_log_err("Fail to find drive path\n");
+			goto drive_fail;
+		}
+
 		lock->drive[i].path = strdup(path);
 		if (!lock->drive[i].path) {
 			ilm_log_err("Fail to copy drive path\n");
@@ -184,10 +191,8 @@ static struct ilm_lock *ilm_alloc(struct ilm_cmd *cmd,
 
 		ret = ilm_read_blk_uuid(lock->drive[i].path,
 					&lock->drive[i].uuid);
-		if (ret) {
-			ilm_log_err("Fail to read drive uuid\n");
-			goto drive_fail;
-		}
+		if (ret)
+			ilm_log_warn("Fail to read drive uuid\n");
 
 		lock->drive[i].index = i;
 	}

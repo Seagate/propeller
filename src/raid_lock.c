@@ -393,8 +393,8 @@ static int _raid_dispatch_request_async(struct _raid_request *req)
 	req->handle = handle;
 	req->result = ret;
 
-	ilm_log_dbg("%s: op=%d result=%d handle=%lu", __func__,
-		    req->op, req->result, req->handle);
+	ilm_log_dbg("%s: req=%p op=%d result=%d handle=%lx", __func__,
+		    req, req->op, req->result, req->handle);
 	return ret;
 }
 
@@ -682,8 +682,8 @@ static void idm_raid_notify(struct _raid_thread *raid_th,
 static void *idm_raid_thread(void *data)
 {
 	struct _raid_thread *raid_th = data;
-	struct _raid_request *req;
-	int process_num;
+	struct _raid_request *req, *tmp;
+	int process_num, num;
 	struct pollfd *poll_fd;
 #ifndef IDM_PTHREAD_EMULATION
 	int ret;
@@ -723,40 +723,57 @@ static void *idm_raid_thread(void *data)
 			return NULL;
 		}
 
-		i = 0;
-		list_for_each_entry(req, &raid_th->process_list, list) {
-			poll_fd[i].fd = idm_drive_get_fd(req->handle);
-			poll_fd[i].events = POLLIN;
-			i++;
-		}
-
 		while (!list_empty(&raid_th->process_list)) {
+
+			memset(poll_fd, 0x0, sizeof(struct pollfd) * process_num);
+
+			/* Prepare for polling file descriptor array */
+			num = 0;
+			list_for_each_entry(tmp, &raid_th->process_list, list) {
+				poll_fd[num].fd = idm_drive_get_fd(tmp->handle);
+				poll_fd[num].events = POLLIN;
+				num++;
+			}
+
 #ifndef IDM_PTHREAD_EMULATION
-			ret = poll(poll_fd, process_num, RAID_LOCK_POLL_INTERVAL);
+			/* Wait for drive's response */
+			ret = poll(poll_fd, num, RAID_LOCK_POLL_INTERVAL);
 			if (ret == -1 && errno == EINTR)
 				continue;
 #else
-			for (i = 0; i < process_num; i++)
+			/*
+			 * Emulate asnyc operation, simply set response for
+			 * all FDs
+			*/
+			for (i = 0; i < num; i++)
 				poll_fd[i].revents = POLLIN;
 #endif
 
-			for (i = 0; i < process_num; i++) {
-
+			/* Handle for all response */
+			for (i = 0; i < num; i++) {
 				if (!poll_fd[i].revents & POLLIN)
 					continue;
 
-				list_for_each_entry(req, &raid_th->process_list, list) {
-					if (idm_drive_get_fd(req->handle) ==
-							poll_fd[i].fd)
+				req = NULL;
+				list_for_each_entry(tmp, &raid_th->process_list, list) {
+					if (idm_drive_get_fd(tmp->handle) ==
+							poll_fd[i].fd) {
+						req = tmp;
 						break;
+					}
+				}
+
+				/* Should never happen? */
+				if (!req) {
+					ilm_log_err("%s: fail to find request for polling fd %d",
+						    __func__, poll_fd[i].fd);
+					continue;
 				}
 
 				_raid_read_result_async(req);
 
 				list_del(&req->list);
 				idm_raid_notify(raid_th, req);
-
-				poll_fd[i].revents = 0;
 			}
 		}
 

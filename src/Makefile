@@ -63,7 +63,7 @@ INSTALL=$(shell which install)
 
 DESTDIR=
 BINDIR=/usr/sbin
-LIBDIR=/usr/lib
+LIBDIR=/usr/lib64
 HEADIR=/usr/include
 
 .PHONY: install
