@@ -11,6 +11,7 @@
 #include <limits.h>
 #include <stdlib.h>
 #include <string.h>
+#include <sys/stat.h>
 #include <sys/socket.h>
 #include <uuid/uuid.h>
 #include <unistd.h>
@@ -156,6 +157,7 @@ static struct ilm_lock *ilm_alloc(struct ilm_cmd *cmd,
 	char path[PATH_MAX];
 	struct ilm_lock *lock;
 	int ret, i, copied;
+        struct stat stats;
 
 	lock = malloc(sizeof(struct ilm_lock));
 	if (!lock) {
@@ -175,6 +177,11 @@ static struct ilm_lock *ilm_alloc(struct ilm_cmd *cmd,
 		}
 
 		*pos += ret;
+
+		if (lstat(path, &stats)) {
+			ilm_log_err("Fail to find drive path\n");
+			goto drive_fail;
+		}
 
 		lock->drive[i].path = strdup(path);
 		if (!lock->drive[i].path) {
