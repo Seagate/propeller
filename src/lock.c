@@ -59,6 +59,12 @@ static int ilm_convert_partition_to_sg(struct ilm_lock *lock)
 		tmp = ilm_convert_sg(lock->drive[i].path);
 		ilm_log_dbg("Convert partition %s to sg %s",
 			    lock->drive[i].path, tmp);
+		if (!tmp) {
+			ilm_log_err("Fail to find sg for %s",
+				    lock->drive[i].path);
+			return -1;
+		}
+
 		free(lock->drive[i].path);
 		lock->drive[i].path = tmp;
 	}
