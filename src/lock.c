@@ -242,13 +242,24 @@ static int ilm_free(struct ilm_lockspace *ls, struct ilm_lock *lock)
 static void ilm_lock_dump(const char *str, struct ilm_lock *lock)
 {
 	int i;
+	uuid_t uuid;
+	char uuid_str[37];	/* uuid string is 36 chars + '\0' */
 
 	ilm_log_dbg("Lock context in %s", str);
 	ilm_log_dbg("drive_num=%d", lock->drive_num);
 	for (i = 0; i < lock->drive_num; i++)
 		ilm_log_dbg("drive_path[%d]=%s", i, lock->drive[i].path);
 	ilm_log_dbg("mode=%d", lock->mode);
-	ilm_log_array_dbg("lock ID:", lock->id, IDM_LOCK_ID_LEN);
+
+	memcpy(&uuid, lock->id, sizeof(uuid_t));
+	uuid_unparse(uuid, uuid_str);
+	uuid_str[36] = '\0';
+	ilm_log_dbg("lock ID (LV): %s", uuid_str);
+
+	memcpy(&uuid, lock->id + sizeof(uuid_t), sizeof(uuid_t));
+	uuid_unparse(uuid, uuid_str);
+	uuid_str[36] = '\0';
+	ilm_log_dbg("lock ID (VG): %s", uuid_str);
 }
 
 int ilm_lock_acquire(struct ilm_cmd *cmd, struct ilm_lockspace *ls)
