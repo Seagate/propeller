@@ -149,49 +149,71 @@ void ilm_log(int level, const char *fmt, ...)
 
 void ilm_log_array(int level, const char *array_name, char *buf, int buf_len)
 {
-	int i, tail, tail_len;
+	int len = ILM_LOG_STR_LEN - 2; /* leave room for \n\0 */
+	int ret, pos = 0;
+	int i;
 
-	ilm_log(level, "array: %s", array_name);
+	pthread_mutex_lock(&log_mutex);
 
-	tail_len = buf_len % 4;
+	ret = snprintf(log_str + pos, len - pos, "array: %s\n", array_name);
+	pos += ret;
 
-	tail = 0;
-	for (i = 0; i < tail_len; i++)
-		tail |= (buf[buf_len - tail_len + i] << (i * 8));
+	log_str[pos++] = '\0';
+
+	/*
+	 * Save messages in circular array "log_records" that a thread
+	 * writes to logfile/syslog
+	 */
+	if (level <= log_file_priority || level <= log_syslog_priority)
+		log_save_record(level, log_str, pos);
+
+	if (level <= log_stderr_priority)
+		fprintf(stderr, "%s", log_str);
 
 	i = 0;
-	while (buf_len >= 16) {
-		ilm_log(level, "%08x %08x %08x %08x",
-			*(int *)(buf + i), *(int *)(buf + i + 4),
-			*(int *)(buf + i + 8), *(int *)(buf + i + 12));
-		i += 16;
-		buf_len -= 16;
+	while (buf_len > 0) {
+		if (!(i % 16)) {
+			pos = 0;
+			ret = snprintf(log_str + pos, len - pos,
+				       "%04x: ", i);
+			pos += ret;
+		}
+
+		ret = snprintf(log_str + pos, len - pos,
+			       "%02x ", buf[i] & 0xff);
+		pos += ret;
+
+		i += 1;
+		if (!(i % 16)) {
+			log_str[pos++] = '\n';
+			log_str[pos++] = '\0';
+
+			if (level <= log_file_priority ||
+			    level <= log_syslog_priority)
+				log_save_record(level, log_str, pos);
+
+			if (level <= log_stderr_priority)
+				fprintf(stderr, "%s", log_str);
+		}
+
+		buf_len -= 1;
 	}
 
-	if (buf_len > 12) {
-		ilm_log(level, "%08x %08x %08x %08x",
-			*(int *)(buf + i), *(int *)(buf + i + 4),
-			*(int *)(buf + i + 8), tail);
-	} else if (buf_len > 8) {
-		if (buf_len == 12)
-			ilm_log(level, "%08x %08x %08x",
-				*(int *)(buf + i), *(int *)(buf + i + 4),
-				*(int *)(buf + i + 8));
-		else
-			ilm_log(level, "%08x %08x %08x",
-				*(int *)(buf + i), *(int *)(buf + i + 4), tail);
-	} else if (buf_len > 4) {
-		if (buf_len == 8)
-			ilm_log(level, "%08x %08x",
-				*(int *)(buf + i), *(int *)(buf + i + 4));
-		else
-			ilm_log(level, "%08x %08x", *(int *)(buf + i), tail);
-	} else if (buf_len > 0) {
-		if (buf_len == 4)
-			ilm_log(level, "%08x", *(int *)(buf + i));
-		else
-			ilm_log(level, "%08x", tail);
+	if (i % 16) {
+		log_str[0] = '\n';
+		log_str[1] = '\0';
+
+		if (level <= log_file_priority ||
+		    level <= log_syslog_priority)
+			log_save_record(level, log_str, 2);
+
+		if (level <= log_stderr_priority)
+			fprintf(stderr, "%s", log_str);
 	}
+
+	pthread_cond_signal(&log_cond);
+	pthread_mutex_unlock(&log_mutex);
+	return;
 }
 
 static void log_write_record(int level, char *str)
