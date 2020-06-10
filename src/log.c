@@ -200,12 +200,12 @@ void ilm_log_array(int level, const char *array_name, char *buf, int buf_len)
 	}
 
 	if (i % 16) {
-		log_str[0] = '\n';
-		log_str[1] = '\0';
+		log_str[pos++] = '\n';
+		log_str[pos++] = '\0';
 
 		if (level <= log_file_priority ||
 		    level <= log_syslog_priority)
-			log_save_record(level, log_str, 2);
+			log_save_record(level, log_str, pos);
 
 		if (level <= log_stderr_priority)
 			fprintf(stderr, "%s", log_str);
