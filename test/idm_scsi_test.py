@@ -11,7 +11,7 @@ import pytest
 import idm_scsi
 
 DRIVE1 = "/dev/sg5"
-DRIVE2 = "/dev/sd7"
+DRIVE2 = "/dev/sg7"
 
 def test_idm_version(idm_cleanup):
     ret, version = idm_scsi.idm_drive_version(DRIVE1)

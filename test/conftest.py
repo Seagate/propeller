@@ -11,7 +11,7 @@ import idm_scsi
 DRIVE1 = "/dev/sg5"
 DRIVE2 = "/dev/sg7"
 
-@pytest.fixture
+@pytest.yield_fixture
 def ilm_daemon():
     """
     Run ILM daemon during a test.

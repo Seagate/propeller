@@ -217,6 +217,9 @@ static int _scsi_sg_io(char *drive, uint8_t *cdb, int cdb_len,
 	ilm_log_dbg("%s: host status 0x%x", __func__, io_hdr.host_status);
 	ilm_log_dbg("%s: driver status 0x%x", __func__, io_hdr.driver_status);
 
+	if (status != GOOD)
+		ilm_log_array_err("sense:", (char *)sense, sense_len);
+
 	switch (status) {
 	case CHECK_CONDITION:
 		if (!memcmp(sense, sense_invalid_opcode,
@@ -234,7 +237,6 @@ static int _scsi_sg_io(char *drive, uint8_t *cdb, int cdb_len,
 		}
 
 		/* Otherwise, also reports error */
-		ilm_log_array_err("sense:", (char *)sense, sense_len);
 		ret = -EINVAL;
 		break;
 
