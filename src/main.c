@@ -213,23 +213,23 @@ int main(int argc, char *argv[])
 
 	ret = ilm_daemon_setup();
 	if (ret < 0)
-		goto failed_daemon;
+		return EXIT_FAILURE;
 
 	ret = ilm_log_init();
 	if (ret < 0)
-		goto failed_daemon;
+		return EXIT_FAILURE;
 
 	ret = ilm_signal_setup();
 	if (ret < 0)
-		goto failed_daemon;
+		goto signal_setup_fail;
 
 	ret = ilm_client_listener_init();
 	if (ret < 0)
-		goto failed_daemon;
+		goto signal_setup_fail;
 
 	ret = ilm_cmd_queue_create();
 	if (ret < 0)
-		goto failed_daemon;
+		goto queue_fail;
 
 	uuid_generate(ilm_uuid);
 
@@ -237,9 +237,9 @@ int main(int argc, char *argv[])
 
 	ilm_cmd_queue_free();
 
+queue_fail:
 	ilm_client_listener_exit();
-
-failed_daemon:
+signal_setup_fail:
 	ilm_log_exit();
 	return 0;
 }
