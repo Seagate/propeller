@@ -373,21 +373,27 @@ out:
 char *ilm_scsi_convert_blk_name(char *blk_dev)
 {
 	FILE *fp;
-	char *tmp = strdup(blk_dev);
+	char tmp[128];
 	char cmd[128];
 	char buf[128];
+	char *base_name;
+	char *blk_name;
 	unsigned int num;
 	int i;
+
+	ilm_log_dbg("blk_dev %s", blk_dev);
+
+	strncpy(tmp, blk_dev, sizeof(tmp));
 
 	if (strstr(tmp, "/dev/mapper")) {
 		snprintf(cmd, sizeof(cmd),
 			 "dmsetup deps -o devname %s", tmp);
 
 		if ((fp = popen(cmd, "r")) == NULL)
-			goto failed;
+			return NULL;
 
 		if (fgets(buf, sizeof(buf), fp) == NULL)
-			goto failed;
+			return NULL;
 
 		sscanf(buf, "%u dependencies  : (%[a-z])", &num, tmp);
 		pclose(fp);
@@ -395,20 +401,21 @@ char *ilm_scsi_convert_blk_name(char *blk_dev)
 	}
 
 	i = strlen(tmp);
-	if (!i || !tmp)
-		goto failed;
+	if (!i)
+		return NULL;
 
 	/* Iterate all digital */
 	while ((i > 0) && isdigit(tmp[i-1]))
 		i--;
 
 	tmp[i] = '\0';
-	return basename(tmp);
 
-failed:
-	if (tmp)
-		free(tmp);
-	return NULL;
+	base_name = basename(tmp);
+	blk_name = malloc(strlen(base_name) + 1);
+	strncpy(blk_name, base_name, strlen(base_name) + 1);
+
+	ilm_log_dbg("blk_name %s", blk_dev);
+	return blk_name;
 }
 
 char *ilm_convert_sg(char *blk_dev)
@@ -464,6 +471,55 @@ failed:
 #endif
 }
 
+char *ilm_scsi_get_first_sg(char *dev)
+{
+	struct ilm_hw_drive_node *pos, *found = NULL;
+	char *tmp;
+	int i;
+
+	list_for_each_entry(pos, &drive_list, list) {
+		for (i = 0; i < pos->drive.path_num; i++) {
+			if (!strcmp(dev, basename(pos->drive.path[i].blk_path))) {
+				found = pos;
+				break;
+			}
+		}
+	}
+
+	if (!found)
+		return NULL;
+
+	tmp = strdup(found->drive.path[0].sg_path);
+	return tmp;
+}
+
+int ilm_scsi_get_part_table_uuid(char *dev, uuid_t *id)
+{
+	struct ilm_hw_drive_node *pos, *found = NULL;
+	int i;
+
+	list_for_each_entry(pos, &drive_list, list) {
+		for (i = 0; i < pos->drive.path_num; i++) {
+			if (!strcmp(basename(dev),
+				    basename(pos->drive.path[i].blk_path))) {
+				found = pos;
+				break;
+			}
+
+			if (!strcmp(basename(dev),
+				    basename(pos->drive.path[i].sg_path))) {
+				found = pos;
+				break;
+			}
+		}
+	}
+
+	if (!found)
+		return -1;
+
+	memcpy(id, &found->drive.id, sizeof(uuid_t));
+	return 0;
+}
 
 static void ilm_scsi_dump_nodes(void)
 {
