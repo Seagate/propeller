@@ -638,7 +638,7 @@ int ilm_lock_version(struct ilm_cmd *cmd, struct ilm_lockspace *ls)
 	pos += ret;
 
 	ret = idm_drive_version(&version, path);
-	if (ret <= 0)
+	if (ret < 0)
 		ilm_log_err("Fail to read out version\n");
 
 out:
