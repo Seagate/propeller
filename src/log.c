@@ -288,20 +288,27 @@ int ilm_log_init(void)
 	fcntl(fd, F_SETFD, fcntl(fd, F_GETFD, 0) | FD_CLOEXEC);
 
 	log_records = malloc(ILM_LOG_ENTRIES * sizeof(struct log_entry));
-	if (!log_records) {
-		fclose(log_file_fp);
-		log_file_fp = NULL;
-		return -1;
-	}
+	if (!log_records)
+		goto alloc_fail;
+
 	memset(log_records, 0, ILM_LOG_ENTRIES * sizeof(struct log_entry));
 
 	openlog(ILM_DAEMON_NAME, LOG_CONS | LOG_PID, LOG_DAEMON);
 
 	rv = pthread_create(&log_thd, NULL, log_thd_fn, NULL);
 	if (rv)
-		return -1;
+		goto thread_fail;
 
 	return 0;
+
+thread_fail:
+	closelog();
+	free(log_records);
+	log_records = NULL;
+alloc_fail:
+	fclose(log_file_fp);
+	log_file_fp = NULL;
+	return -1;
 }
 
 void ilm_log_exit(void)
@@ -324,6 +331,12 @@ void ilm_log_exit(void)
 	if (log_file_fp) {
 		fclose(log_file_fp);
 		log_file_fp = NULL;
+	}
+
+	/* Cleanup records */
+	if (log_records) {
+		free(log_records);
+		log_records = NULL;
 	}
 
 	pthread_mutex_unlock(&log_mutex);

@@ -18,6 +18,7 @@
 
 #include "client.h"
 #include "cmd.h"
+#include "drive.h"
 #include "idm_wrapper.h"
 #include "list.h"
 #include "lockspace.h"
@@ -48,25 +49,49 @@ static int ilm_lock_payload_read(struct ilm_cmd *cmd,
 	return ret;
 }
 
-static int ilm_convert_partition_to_sg(struct ilm_lock *lock)
+static int ilm_sort_drives(struct ilm_lock *lock)
 {
 	int drive_num = lock->drive_num;
+	int i, j, ret;
 	char *tmp;
-	int i, j;
+	uuid_t uuid;
 	int matched;
+	char uuid_str[37];	/* uuid string is 36 chars + '\0' */
 
-	for (i = 0; i < drive_num; i++) {
-		tmp = ilm_convert_sg(lock->drive[i].path);
-		ilm_log_dbg("Convert partition %s to sg %s",
-			    lock->drive[i].path, tmp);
-		if (!tmp) {
-			ilm_log_err("Fail to find sg for %s",
-				    lock->drive[i].path);
-			return -1;
+	for (i = 1; i < drive_num; i++) {
+		for (j = i; j > 0; j--) {
+			ret = memcmp(&lock->drive[j].uuid,
+				     &lock->drive[j - 1].uuid,
+				     sizeof(uuid_t));
+
+			if (ret == 0) {
+				ilm_log_err("Two drives have same UUID?");
+
+				ilm_log_err("drive path=%s", lock->drive[j].path);
+				uuid_unparse(lock->drive[j].uuid, uuid_str);
+				uuid_str[36] = '\0';
+				ilm_log_err("drive UUID: %s", uuid_str);
+
+				ilm_log_err("drive path=%s", lock->drive[j - 1].path);
+				uuid_unparse(lock->drive[j - 1].uuid, uuid_str);
+				uuid_str[36] = '\0';
+				ilm_log_err("drive UUID: %s", uuid_str);
+				continue;
+			}
+
+			if (ret > 0)
+				continue;
+
+			/* Swap two drives */
+			tmp = lock->drive[j].path;
+			lock->drive[j].path = lock->drive[j - 1].path;
+			lock->drive[j - 1].path = tmp;
+
+			memcpy(&uuid, &lock->drive[j].uuid, sizeof(uuid_t));
+			memcpy(&lock->drive[j].uuid, &lock->drive[j - 1].uuid,
+			       sizeof(uuid_t));
+			memcpy(&lock->drive[j - 1].uuid, &uuid, sizeof(uuid_t));
 		}
-
-		free(lock->drive[i].path);
-		lock->drive[i].path = tmp;
 	}
 
 	for (i = 1; i < drive_num; i++) {
@@ -97,60 +122,14 @@ static int ilm_convert_partition_to_sg(struct ilm_lock *lock)
 		}
 	}
 
-	for (i = 0; i < drive_num; i++)
-		ilm_log_dbg("Index %d SG path=%s", i, lock->drive[i].path);
-
 	lock->drive_num = drive_num;
-	return 0;
-}
 
-static int ilm_sort_drives(struct ilm_lock *lock)
-{
-	int drive_num = lock->drive_num;
-	int i, j, ret;
-	char *tmp;
-	uuid_t uuid;
-
-	for (i = 1; i < drive_num; i++) {
-		for (j = i; j > 0; j--) {
-			ret = memcmp(&lock->drive[j].uuid,
-				     &lock->drive[j - 1].uuid,
-				     sizeof(uuid_t));
-
-			if (ret == 0) {
-				ilm_log_err("Two drives have same UUID?");
-				ilm_log_err("drive path=%s",
-					    lock->drive[j].path);
-				ilm_log_array_err("drive UUID",
-						  (char *)&lock->drive[j].uuid,
-						  sizeof(uuid_t));
-				ilm_log_err("drive path=%s",
-					    lock->drive[j - 1].path);
-				ilm_log_array_err("drive UUID",
-						  (char *)&lock->drive[j - 1].uuid,
-						  sizeof(uuid_t));
-				continue;
-			}
-
-			if (ret > 0)
-				continue;
-
-			/* Swap two drives */
-			tmp = lock->drive[j].path;
-			lock->drive[j].path = lock->drive[j - 1].path;
-			lock->drive[j - 1].path = tmp;
-
-			memcpy(&uuid, &lock->drive[j].uuid, sizeof(uuid_t));
-			memcpy(&lock->drive[j].uuid, &lock->drive[j - 1].uuid,
-			       sizeof(uuid_t));
-			memcpy(&lock->drive[j - 1].uuid, &uuid, sizeof(uuid_t));
-		}
-	}
-
+	ilm_log_dbg("Sorted drives:");
 	for (i = 0; i < drive_num; i++) {
-		ilm_log_dbg("Index %d drive path=%s", i, lock->drive[i].path);
-		ilm_log_array_dbg("drive UUID",
-				  (char *)&lock->drive[i].uuid, sizeof(uuid_t));
+		ilm_log_dbg("Drive[%d] is %s", i, lock->drive[i].path);
+		uuid_unparse(lock->drive[i].uuid, uuid_str);
+		uuid_str[36] = '\0';
+		ilm_log_dbg("Drive UUID: %s", uuid_str);
 	}
 
 	return 0;
@@ -164,6 +143,7 @@ static struct ilm_lock *ilm_alloc(struct ilm_cmd *cmd,
 	struct ilm_lock *lock;
 	int ret, i, copied;
         struct stat stats;
+	char *tmp;
 
 	lock = malloc(sizeof(struct ilm_lock));
 	if (!lock) {
@@ -189,16 +169,26 @@ static struct ilm_lock *ilm_alloc(struct ilm_cmd *cmd,
 			goto drive_fail;
 		}
 
-		lock->drive[i].path = strdup(path);
-		if (!lock->drive[i].path) {
-			ilm_log_err("Fail to copy drive path\n");
+		tmp = ilm_scsi_convert_blk_name(path);
+		if (!tmp) {
+			ilm_log_err("Fail to convert block name %s", path);
 			goto drive_fail;
 		}
 
-		ret = ilm_read_blk_uuid(lock->drive[i].path,
-					&lock->drive[i].uuid);
-		if (ret)
+		lock->drive[i].path = ilm_scsi_get_first_sg(tmp);
+		if (!lock->drive[i].path) {
+			ilm_log_err("Fail to get sg\n");
+			goto drive_fail;
+		}
+
+		ret = ilm_scsi_get_part_table_uuid(lock->drive[i].path,
+						   &lock->drive[i].uuid);
+		if (ret) {
 			ilm_log_warn("Fail to read drive uuid\n");
+			goto drive_fail;
+		}
+
+		free(tmp);
 
 		lock->drive[i].index = i;
 	}
@@ -206,10 +196,6 @@ static struct ilm_lock *ilm_alloc(struct ilm_cmd *cmd,
 	lock->drive_num = drive_num;
 
 	ret = ilm_sort_drives(lock);
-	if (ret < 0)
-		goto drive_fail;
-
-	ret = ilm_convert_partition_to_sg(lock);
 	if (ret < 0)
 		goto drive_fail;
 
