@@ -23,6 +23,7 @@
 
 #include "cmd.h"
 #include "client.h"
+#include "drive.h"
 #include "ilm_internal.h"
 #include "log.h"
 
@@ -223,9 +224,13 @@ int main(int argc, char *argv[])
 	if (ret < 0)
 		goto signal_setup_fail;
 
-	ret = ilm_client_listener_init();
+	ret = ilm_scsi_list_init();
 	if (ret < 0)
 		goto signal_setup_fail;
+
+	ret = ilm_client_listener_init();
+	if (ret < 0)
+		goto client_fail;
 
 	ret = ilm_cmd_queue_create();
 	if (ret < 0)
@@ -239,6 +244,8 @@ int main(int argc, char *argv[])
 
 queue_fail:
 	ilm_client_listener_exit();
+client_fail:
+	ilm_scsi_list_exit();
 signal_setup_fail:
 	ilm_log_exit();
 	return 0;
