@@ -18,6 +18,7 @@
 
 #include "client.h"
 #include "cmd.h"
+#include "drive.h"
 #include "idm_wrapper.h"
 #include "list.h"
 #include "lockspace.h"

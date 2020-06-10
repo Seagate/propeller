@@ -27,7 +27,8 @@ SOURCE = main.c \
 	 util.c \
 	 raid_lock.c \
 	 inject_fault.c \
-	 failure.c
+	 failure.c \
+	 drive.c
 
 LIB_SOURCE = lib_client.c
 
