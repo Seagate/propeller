@@ -478,6 +478,7 @@ int idm_drive_lock_async(char *lock_id, int mode, char *host_id,
 /**
  * idm_drive_unlock - release an IDM on a specified drive
  * @lock_id:		Lock ID (64 bytes).
+ * @mode:		Lock mode (unlock, shareable, exclusive).
  * @host_id:		Host ID (32 bytes).
  * @lvb:		Lock value block pointer.
  * @lvb_size:		Lock value block size.
@@ -485,7 +486,7 @@ int idm_drive_lock_async(char *lock_id, int mode, char *host_id,
  *
  * Returns zero or a negative error (ie. EINVAL, ETIME).
  */
-int idm_drive_unlock(char *lock_id, char *host_id,
+int idm_drive_unlock(char *lock_id, int mode, char *host_id,
 		     char *lvb, int lvb_size, char *drive)
 {
 	struct idm_emulation *idm;
@@ -499,11 +500,17 @@ int idm_drive_unlock(char *lock_id, char *host_id,
 	if (!lock_id || !host_id || !drive)
 		return -EINVAL;
 
+	if (mode != IDM_MODE_EXCLUSIVE && mode != IDM_MODE_SHAREABLE)
+		return -EINVAL;
+
 	if (lvb_size > IDM_VALUE_LEN)
 		return -EINVAL;
 
 	idm = idm_get(lock_id, drive);
 	if (!idm)
+		return -EINVAL;
+
+	if (idm->mode != mode)
 		return -EINVAL;
 
 	host = idm_host_get(idm, host_id);
@@ -543,6 +550,7 @@ int idm_drive_unlock(char *lock_id, char *host_id,
 /**
  * idm_drive_unlock_async - release an IDM on a specified drive with async mode
  * @lock_id:		Lock ID (64 bytes).
+ * @mode:		Lock mode (unlock, shareable, exclusive).
  * @host_id:		Host ID (32 bytes).
  * @lvb:		Lock value block pointer.
  * @lvb_size:		Lock value block size.
@@ -551,14 +559,15 @@ int idm_drive_unlock(char *lock_id, char *host_id,
  *
  * Returns zero or a negative error (ie. EINVAL, ETIME).
  */
-int idm_drive_unlock_async(char *lock_id, char *host_id,
+int idm_drive_unlock_async(char *lock_id, int mode, char *host_id,
 			   char *lvb, int lvb_size, char *drive, uint64_t *handle)
 {
 	struct idm_async_op *async;
 
 	async = malloc(sizeof(struct idm_async_op));
 
-	async->result = idm_drive_unlock(lock_id, host_id, lvb, lvb_size, drive);
+	async->result = idm_drive_unlock(lock_id, mode, host_id,
+					 lvb, lvb_size, drive);
 
 	pthread_mutex_lock(&idm_async_list_mutex);
 	*handle = idm_async_index;

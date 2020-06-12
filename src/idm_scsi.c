@@ -232,7 +232,7 @@ static int _scsi_sg_io(char *drive, uint8_t *cdb, int cdb_len,
 		/* check if LBA is out of range */
 		if (!memcmp(sense, sense_lba_oor, sizeof(sense_lba_oor))) {
 			ilm_log_err("%s: LBA is out of range", __func__);
-			ret = -EINVAL;
+			ret = -ENOENT;
 			break;
 		}
 
@@ -253,12 +253,13 @@ static int _scsi_sg_io(char *drive, uint8_t *cdb, int cdb_len,
 		ret = -EBUSY;
 		break;
 
-	/*
-	 * Take this case as success since the IDM has achieved
-	 * the required state.
-	 */
 	case COMMAND_TERMINATED:
-		ret = 0;
+		if (op == IDM_MUTEX_OP_REFRESH)
+			ret = -EPERM;
+		else if (op == IDM_MUTEX_OP_UNLOCK)
+			ret = -EINVAL;
+		else
+			ret = -EAGAIN;
 		break;
 
 	default:
@@ -353,7 +354,7 @@ static int _scsi_read(struct idm_scsi_request *request, int direction)
 			    sizeof(sense_lba_oor))) {
 			ilm_log_err("%s: LBA is out of range=%d",
 				    __func__, request->op);
-			ret = -EINVAL;
+			ret = -ENOENT;
 			break;
 		}
 
@@ -376,12 +377,13 @@ static int _scsi_read(struct idm_scsi_request *request, int direction)
 		ret = -EBUSY;
 		break;
 
-	/*
-	 * Take this case as success since the IDM has achieved
-	 * the required state.
-	 */
 	case COMMAND_TERMINATED:
-		ret = 0;
+		if (op == IDM_MUTEX_OP_REFRESH)
+			ret = -EPERM;
+		else if (op == IDM_MUTEX_OP_UNLOCK)
+			ret = -EINVAL;
+		else
+			ret = -EAGAIN;
 		break;
 
 	default:
@@ -629,6 +631,7 @@ int idm_drive_lock_async(char *lock_id, int mode, char *host_id,
 /**
  * idm_drive_unlock - release an IDM on a specified drive
  * @lock_id:		Lock ID (64 bytes).
+ * @mode:		Lock mode (unlock, shareable, exclusive).
  * @host_id:		Host ID (32 bytes).
  * @lvb:		Lock value block pointer.
  * @lvb_size:		Lock value block size.
@@ -636,7 +639,7 @@ int idm_drive_lock_async(char *lock_id, int mode, char *host_id,
  *
  * Returns zero or a negative error (ie. EINVAL, ETIME).
  */
-int idm_drive_unlock(char *lock_id, char *host_id,
+int idm_drive_unlock(char *lock_id, int mode, char *host_id,
 		     char *lvb, int lvb_size, char *drive)
 {
 	struct idm_scsi_request *request;
@@ -646,6 +649,9 @@ int idm_drive_unlock(char *lock_id, char *host_id,
 		return -EIO;
 
 	if (!lock_id || !host_id || !drive)
+		return -EINVAL;
+
+	if (mode != IDM_MODE_EXCLUSIVE && mode != IDM_MODE_SHAREABLE)
 		return -EINVAL;
 
 	if (lvb_size > IDM_VALUE_LEN)
@@ -666,9 +672,14 @@ int idm_drive_unlock(char *lock_id, char *host_id,
 	}
 	memset(request->data, 0x0, sizeof(struct idm_data));
 
+	if (mode == IDM_MODE_EXCLUSIVE)
+		mode = IDM_CLASS_EXCLUSIVE;
+	else if (mode == IDM_MODE_SHAREABLE)
+		mode = IDM_CLASS_SHARED_PROTECTED_READ;
+
 	strncpy(request->drive, drive, PATH_MAX);
 	request->op = IDM_MUTEX_OP_UNLOCK;
-	request->mode = 0;
+	request->mode = mode;
 	request->timeout = 0;
 	request->data_len = sizeof(struct idm_data);
 	request->res_ver_type = IDM_RES_VER_UPDATE_NO_VALID;
@@ -688,6 +699,7 @@ int idm_drive_unlock(char *lock_id, char *host_id,
 /**
  * idm_drive_unlock_async - release an IDM on a specified drive with async mode
  * @lock_id:		Lock ID (64 bytes).
+ * @mode:		Lock mode (unlock, shareable, exclusive).
  * @host_id:		Host ID (32 bytes).
  * @lvb:		Lock value block pointer.
  * @lvb_size:		Lock value block size.
@@ -696,7 +708,7 @@ int idm_drive_unlock(char *lock_id, char *host_id,
  *
  * Returns zero or a negative error (ie. EINVAL, ETIME).
  */
-int idm_drive_unlock_async(char *lock_id, char *host_id,
+int idm_drive_unlock_async(char *lock_id, int mode, char *host_id,
 			   char *lvb, int lvb_size,
 			   char *drive, uint64_t *handle)
 {
@@ -704,6 +716,9 @@ int idm_drive_unlock_async(char *lock_id, char *host_id,
 	int ret;
 
 	if (!lock_id || !host_id || !drive)
+		return -EINVAL;
+
+	if (mode != IDM_MODE_EXCLUSIVE && mode != IDM_MODE_SHAREABLE)
 		return -EINVAL;
 
 	if (lvb_size > IDM_VALUE_LEN)
@@ -723,9 +738,14 @@ int idm_drive_unlock_async(char *lock_id, char *host_id,
 	}
 	request->data_len = sizeof(struct idm_data);
 
+	if (mode == IDM_MODE_EXCLUSIVE)
+		mode = IDM_CLASS_EXCLUSIVE;
+	else if (mode == IDM_MODE_SHAREABLE)
+		mode = IDM_CLASS_SHARED_PROTECTED_READ;
+
 	strncpy(request->drive, drive, PATH_MAX);
 	request->op = IDM_MUTEX_OP_UNLOCK;
-	request->mode = 0;
+	request->mode = mode;
 	request->timeout = 0;
 	request->res_ver_type = IDM_RES_VER_UPDATE_NO_VALID;
 	memcpy(request->lock_id, lock_id, IDM_LOCK_ID_LEN);
@@ -780,6 +800,7 @@ static int idm_drive_refresh_lock(char *lock_id, int mode, char *host_id,
 	request->mode = mode;
 	request->timeout = 0;
 	request->res_ver_type = IDM_RES_VER_NO_UPDATE_NO_VALID;
+	request->data_len = sizeof(struct idm_data);
 	memcpy(request->lock_id, lock_id, IDM_LOCK_ID_LEN);
 	memcpy(request->host_id, host_id, IDM_HOST_ID_LEN);
 
@@ -1474,8 +1495,12 @@ int idm_drive_lock_mode(char *lock_id, int *mode, char *drive)
 		break;
 	}
 
+	/*
+	 * If the mutex is not found in drive fimware,
+	 * simply return success and mode is unlocked.
+	 */
 	if (*mode == -1)
-		ret = -ENOENT;
+		*mode = IDM_MODE_UNLOCK;
 
 out:
 	free(request->data);
