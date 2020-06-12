@@ -253,12 +253,8 @@ static int _scsi_sg_io(char *drive, uint8_t *cdb, int cdb_len,
 		ret = -EBUSY;
 		break;
 
-	/*
-	 * Take this case as success since the IDM has achieved
-	 * the required state.
-	 */
 	case COMMAND_TERMINATED:
-		ret = 0;
+		ret = -EAGAIN;
 		break;
 
 	default:
@@ -376,12 +372,8 @@ static int _scsi_read(struct idm_scsi_request *request, int direction)
 		ret = -EBUSY;
 		break;
 
-	/*
-	 * Take this case as success since the IDM has achieved
-	 * the required state.
-	 */
 	case COMMAND_TERMINATED:
-		ret = 0;
+		ret = -EAGAIN;
 		break;
 
 	default:
@@ -780,6 +772,7 @@ static int idm_drive_refresh_lock(char *lock_id, int mode, char *host_id,
 	request->mode = mode;
 	request->timeout = 0;
 	request->res_ver_type = IDM_RES_VER_NO_UPDATE_NO_VALID;
+	request->data_len = sizeof(struct idm_data);
 	memcpy(request->lock_id, lock_id, IDM_LOCK_ID_LEN);
 	memcpy(request->host_id, host_id, IDM_HOST_ID_LEN);
 
@@ -1474,8 +1467,12 @@ int idm_drive_lock_mode(char *lock_id, int *mode, char *drive)
 		break;
 	}
 
+	/*
+	 * If the mutex is not found in drive fimware,
+	 * simply return success and mode is unlocked.
+	 */
 	if (*mode == -1)
-		ret = -ENOENT;
+		*mode = IDM_MODE_UNLOCK;
 
 out:
 	free(request->data);
