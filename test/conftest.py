@@ -29,34 +29,18 @@ def ilm_daemon():
 @pytest.fixture
 def idm_cleanup():
     lock_id0 = "0000000000000000000000000000000000000000000000000000000000000000"
-    lock_id1 = "0000000000000000000000000000000000000000000000000000000000000001"
-    host_id0 = "00000000000000000000000000000000"
-    host_id1 = "00000000000000000000000000000001"
-    host_id2 = "00000000000000000000000000000002"
 
-    a = idm_scsi.charArray(8)
-    a[0] = 0
-    a[1] = 0
-    a[2] = 0
-    a[3] = 0
-    a[4] = 0
-    a[5] = 0
-    a[6] = 0
-    a[7] = 0
+    cmd = 'sg_raw -v -r 512 -o test_data.bin ' + DRIVE1 + ' 88 00 01 00 00 00 00 20 FF 01 00 00 00 01 00 00'
+    os.system(cmd)
 
-    idm_scsi.idm_drive_unlock(lock_id0, host_id0, a, 8, DRIVE1)
-    idm_scsi.idm_drive_unlock(lock_id0, host_id1, a, 8, DRIVE1)
-    idm_scsi.idm_drive_unlock(lock_id0, host_id2, a, 8, DRIVE1)
-    idm_scsi.idm_drive_unlock(lock_id0, host_id0, a, 8, DRIVE2)
-    idm_scsi.idm_drive_unlock(lock_id0, host_id1, a, 8, DRIVE2)
-    idm_scsi.idm_drive_unlock(lock_id0, host_id2, a, 8, DRIVE2)
-    idm_scsi.idm_drive_unlock(lock_id1, host_id0, a, 8, DRIVE1)
-    idm_scsi.idm_drive_unlock(lock_id1, host_id1, a, 8, DRIVE1)
-    idm_scsi.idm_drive_unlock(lock_id1, host_id2, a, 8, DRIVE1)
-    idm_scsi.idm_drive_unlock(lock_id1, host_id0, a, 8, DRIVE2)
-    idm_scsi.idm_drive_unlock(lock_id1, host_id1, a, 8, DRIVE2)
-    idm_scsi.idm_drive_unlock(lock_id1, host_id2, a, 8, DRIVE2)
+    cmd = 'sg_raw -v -s 512 -i test_data.bin ' + DRIVE1 + ' 8E 00 FF 00 00 00 00 00 00 00 00 00 00 01 00 00'
+    os.system(cmd)
+
+    cmd = 'sg_raw -v -s 512 -i test_data.bin ' + DRIVE2 + ' 8E 00 FF 00 00 00 00 00 00 00 00 00 00 01 00 00'
+    os.system(cmd)
+
     idm_scsi.idm_drive_lock_mode(lock_id0, DRIVE1);
+    idm_scsi.idm_drive_lock_mode(lock_id0, DRIVE2);
 
 def pytest_addoption(parser):
     parser.addoption('--run-destroy', action='store_true', dest="destroy",
