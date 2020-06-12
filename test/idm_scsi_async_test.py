@@ -55,7 +55,8 @@ def test_idm__async_lock_exclusive(idm_cleanup):
     a[6] = 0
     a[7] = 0
 
-    ret, handle = idm_scsi.idm_drive_unlock_async(lock_id0, host_id0, a, 8, DRIVE1)
+    ret, handle = idm_scsi.idm_drive_unlock_async(lock_id0, idm_scsi.IDM_MODE_EXCLUSIVE,
+                                                  host_id0, a, 8, DRIVE1)
     assert ret == 0
 
     wait_for_scsi_response(handle)
@@ -90,7 +91,8 @@ def test_idm__async_lock_shareable(idm_cleanup):
     a[6] = 0
     a[7] = 0
 
-    ret, handle = idm_scsi.idm_drive_unlock_async(lock_id0, host_id0, a, 8, DRIVE1)
+    ret, handle = idm_scsi.idm_drive_unlock_async(lock_id0, idm_scsi.IDM_MODE_SHAREABLE,
+                                                  host_id0, a, 8, DRIVE1)
     assert ret == 0
 
     wait_for_scsi_response(handle)
@@ -133,10 +135,12 @@ def test_idm__async_lock_exclusive_two_drives(idm_cleanup):
     a[6] = 0
     a[7] = 0
 
-    ret, handle1 = idm_scsi.idm_drive_unlock_async(lock_id0, host_id0, a, 8, DRIVE1)
+    ret, handle1 = idm_scsi.idm_drive_unlock_async(lock_id0, idm_scsi.IDM_MODE_EXCLUSIVE,
+                                                   host_id0, a, 8, DRIVE1)
     assert ret == 0
 
-    ret, handle2 = idm_scsi.idm_drive_unlock_async(lock_id0, host_id0, a, 8, DRIVE2)
+    ret, handle2 = idm_scsi.idm_drive_unlock_async(lock_id0, idm_scsi.IDM_MODE_EXCLUSIVE,
+                                                   host_id0, a, 8, DRIVE2)
     assert ret == 0
 
     wait_for_scsi_response(handle1)
@@ -184,10 +188,12 @@ def test_idm__async_lock_shareable_two_drives(idm_cleanup):
     a[6] = 0
     a[7] = 0
 
-    ret, handle1 = idm_scsi.idm_drive_unlock_async(lock_id0, host_id0, a, 8, DRIVE1)
+    ret, handle1 = idm_scsi.idm_drive_unlock_async(lock_id0, idm_scsi.IDM_MODE_SHAREABLE,
+                                                   host_id0, a, 8, DRIVE1)
     assert ret == 0
 
-    ret, handle2 = idm_scsi.idm_drive_unlock_async(lock_id0, host_id0, a, 8, DRIVE2)
+    ret, handle2 = idm_scsi.idm_drive_unlock_async(lock_id0, idm_scsi.IDM_MODE_SHAREABLE,
+                                                   host_id0, a, 8, DRIVE2)
     assert ret == 0
 
     wait_for_scsi_response(handle1)
@@ -236,10 +242,12 @@ def test_idm__async_lock_shareable_two_locks(idm_cleanup):
     a[6] = 0
     a[7] = 0
 
-    ret, handle1 = idm_scsi.idm_drive_unlock_async(lock_id0, host_id0, a, 8, DRIVE1)
+    ret, handle1 = idm_scsi.idm_drive_unlock_async(lock_id0, idm_scsi.IDM_MODE_SHAREABLE,
+                                                   host_id0, a, 8, DRIVE1)
     assert ret == 0
 
-    ret, handle2 = idm_scsi.idm_drive_unlock_async(lock_id1, host_id0, a, 8, DRIVE1)
+    ret, handle2 = idm_scsi.idm_drive_unlock_async(lock_id1, idm_scsi.IDM_MODE_SHAREABLE,
+                                                   host_id0, a, 8, DRIVE1)
     assert ret == 0
 
     wait_for_scsi_response(handle1)
@@ -260,11 +268,11 @@ def test_idm__async_break_lock_1(idm_cleanup):
     host_id1 = "00000000000000000000000000000001"
 
     ret, handle1 = idm_scsi.idm_drive_lock_async(lock_id0, idm_scsi.IDM_MODE_EXCLUSIVE,
-                                                 host_id0, DRIVE1, 10000);
+                                                 host_id0, DRIVE1, 5000);
     assert ret == 0
 
     ret, handle2 = idm_scsi.idm_drive_lock_async(lock_id0, idm_scsi.IDM_MODE_EXCLUSIVE,
-                                                 host_id1, DRIVE1, 10000);
+                                                 host_id1, DRIVE1, 5000);
     assert ret == 0
 
     wait_for_scsi_response(handle1)
@@ -278,8 +286,10 @@ def test_idm__async_break_lock_1(idm_cleanup):
     assert ret == 0
     assert result == -16    # -EBUSY
 
+    time.sleep(7)
+
     ret, handle = idm_scsi.idm_drive_break_lock_async(lock_id0, idm_scsi.IDM_MODE_EXCLUSIVE,
-                                                      host_id1, DRIVE1, 10000);
+                                                      host_id1, DRIVE1, 5000);
     assert ret == 0         # Break successfully
 
     wait_for_scsi_response(handle)
@@ -298,10 +308,12 @@ def test_idm__async_break_lock_1(idm_cleanup):
     a[6] = 0
     a[7] = 0
 
-    ret, handle1 = idm_scsi.idm_drive_unlock_async(lock_id0, host_id0, a, 8, DRIVE1)
+    ret, handle1 = idm_scsi.idm_drive_unlock_async(lock_id0, idm_scsi.IDM_MODE_EXCLUSIVE,
+                                                   host_id0, a, 8, DRIVE1)
     assert ret == 0
 
-    ret, handle2 = idm_scsi.idm_drive_unlock_async(lock_id0, host_id1, a, 8, DRIVE1)
+    ret, handle2 = idm_scsi.idm_drive_unlock_async(lock_id0, idm_scsi.IDM_MODE_EXCLUSIVE,
+                                                   host_id1, a, 8, DRIVE1)
     assert ret == 0
 
     wait_for_scsi_response(handle1)
@@ -309,7 +321,7 @@ def test_idm__async_break_lock_1(idm_cleanup):
 
     ret, result = idm_scsi.idm_drive_async_result(handle1)
     assert ret == 0
-    assert ret == -2        # -ENOENT
+    assert result == -2	     # -ENOENT
 
     ret, result = idm_scsi.idm_drive_async_result(handle2)
     assert ret == 0
@@ -322,11 +334,11 @@ def test_idm__async_break_lock_2(idm_cleanup):
     host_id1 = "00000000000000000000000000000001"
 
     ret, handle1 = idm_scsi.idm_drive_lock_async(lock_id0, idm_scsi.IDM_MODE_EXCLUSIVE,
-                                                 host_id0, DRIVE1, 10000);
+                                                 host_id0, DRIVE1, 5000);
     assert ret == 0
 
     ret, handle2 = idm_scsi.idm_drive_lock_async(lock_id0, idm_scsi.IDM_MODE_SHAREABLE,
-                                                 host_id1, DRIVE1, 10000);
+                                                 host_id1, DRIVE1, 5000);
     assert ret == 0
 
     wait_for_scsi_response(handle1)
@@ -340,8 +352,10 @@ def test_idm__async_break_lock_2(idm_cleanup):
     assert ret == 0
     assert result == -16    # -EBUSY
 
+    time.sleep(7)
+
     ret, handle = idm_scsi.idm_drive_break_lock_async(lock_id0, idm_scsi.IDM_MODE_SHAREABLE,
-                                                      host_id1, DRIVE1, 10000);
+                                                      host_id1, DRIVE1, 5000);
     assert ret == 0         # Break successfully
 
     wait_for_scsi_response(handle)
@@ -360,10 +374,12 @@ def test_idm__async_break_lock_2(idm_cleanup):
     a[6] = 0
     a[7] = 0
 
-    ret, handle1 = idm_scsi.idm_drive_unlock_async(lock_id0, host_id0, a, 8, DRIVE1)
+    ret, handle1 = idm_scsi.idm_drive_unlock_async(lock_id0, idm_scsi.IDM_MODE_SHAREABLE,
+                                                   host_id0, a, 8, DRIVE1)
     assert ret == 0
 
-    ret, handle2 = idm_scsi.idm_drive_unlock_async(lock_id0, host_id1, a, 8, DRIVE1)
+    ret, handle2 = idm_scsi.idm_drive_unlock_async(lock_id0, idm_scsi.IDM_MODE_SHAREABLE,
+                                                   host_id1, a, 8, DRIVE1)
     assert ret == 0
 
     wait_for_scsi_response(handle1)
@@ -371,7 +387,7 @@ def test_idm__async_break_lock_2(idm_cleanup):
 
     ret, result = idm_scsi.idm_drive_async_result(handle1)
     assert ret == 0
-    assert ret == -2        # -ENOENT
+    assert result == -2
 
     ret, result = idm_scsi.idm_drive_async_result(handle2)
     assert ret == 0
@@ -384,11 +400,11 @@ def test_idm__async_break_lock_3(idm_cleanup):
     host_id1 = "00000000000000000000000000000001"
 
     ret, handle1 = idm_scsi.idm_drive_lock_async(lock_id0, idm_scsi.IDM_MODE_SHAREABLE,
-                                                 host_id0, DRIVE1, 10000);
+                                                 host_id0, DRIVE1, 5000);
     assert ret == 0
 
     ret, handle2 = idm_scsi.idm_drive_lock_async(lock_id0, idm_scsi.IDM_MODE_EXCLUSIVE,
-                                                 host_id1, DRIVE1, 10000);
+                                                 host_id1, DRIVE1, 5000);
     assert ret == 0
 
     wait_for_scsi_response(handle1)
@@ -402,8 +418,10 @@ def test_idm__async_break_lock_3(idm_cleanup):
     assert ret == 0
     assert result == -16    # -EBUSY
 
+    time.sleep(7)
+
     ret, handle = idm_scsi.idm_drive_break_lock_async(lock_id0, idm_scsi.IDM_MODE_SHAREABLE,
-                                                      host_id1, DRIVE1, 10000);
+                                                      host_id1, DRIVE1, 5000);
     assert ret == 0         # Break successfully
 
     wait_for_scsi_response(handle)
@@ -422,10 +440,12 @@ def test_idm__async_break_lock_3(idm_cleanup):
     a[6] = 0
     a[7] = 0
 
-    ret, handle1 = idm_scsi.idm_drive_unlock_async(lock_id0, host_id0, a, 8, DRIVE1)
+    ret, handle1 = idm_scsi.idm_drive_unlock_async(lock_id0, idm_scsi.IDM_MODE_SHAREABLE,
+                                                   host_id0, a, 8, DRIVE1)
     assert ret == 0
 
-    ret, handle2 = idm_scsi.idm_drive_unlock_async(lock_id0, host_id1, a, 8, DRIVE1)
+    ret, handle2 = idm_scsi.idm_drive_unlock_async(lock_id0, idm_scsi.IDM_MODE_SHAREABLE,
+                                                   host_id1, a, 8, DRIVE1)
     assert ret == 0
 
     wait_for_scsi_response(handle1)
@@ -433,7 +453,7 @@ def test_idm__async_break_lock_3(idm_cleanup):
 
     ret, result = idm_scsi.idm_drive_async_result(handle1)
     assert ret == 0
-    assert ret == -2        # -ENOENT
+    assert result == -2        # -ENOENT
 
     ret, result = idm_scsi.idm_drive_async_result(handle2)
     assert ret == 0
@@ -474,7 +494,8 @@ def test_idm__async_convert_1(idm_cleanup):
     a[6] = 0
     a[7] = 0
 
-    ret, handle = idm_scsi.idm_drive_unlock_async(lock_id0, host_id0, a, 8, DRIVE1)
+    ret, handle = idm_scsi.idm_drive_unlock_async(lock_id0, idm_scsi.IDM_MODE_EXCLUSIVE,
+                                                  host_id0, a, 8, DRIVE1)
     assert ret == 0
 
     wait_for_scsi_response(handle)
@@ -518,7 +539,8 @@ def test_idm__async_convert_2(idm_cleanup):
     a[6] = 0
     a[7] = 0
 
-    ret, handle = idm_scsi.idm_drive_unlock_async(lock_id0, host_id0, a, 8, DRIVE1)
+    ret, handle = idm_scsi.idm_drive_unlock_async(lock_id0, idm_scsi.IDM_MODE_SHAREABLE,
+                                                  host_id0, a, 8, DRIVE1)
     assert ret == 0
 
     wait_for_scsi_response(handle)
@@ -553,7 +575,7 @@ def test_idm__async_convert_3(idm_cleanup):
     assert result == 0
 
     ret, handle = idm_scsi.idm_drive_convert_lock_async(lock_id0,
-		    idm_scsi.IDM_MODE_EXCLUSIVE, host_id1, DRIVE1, 10000);
+		    idm_scsi.IDM_MODE_EXCLUSIVE, host_id1, DRIVE1);
     assert ret == 0
 
     wait_for_scsi_response(handle)
@@ -572,10 +594,12 @@ def test_idm__async_convert_3(idm_cleanup):
     a[6] = 0
     a[7] = 0
 
-    ret, handle1 = idm_scsi.idm_drive_unlock_async(lock_id0, host_id0, a, 8, DRIVE1)
+    ret, handle1 = idm_scsi.idm_drive_unlock_async(lock_id0, idm_scsi.IDM_MODE_SHAREABLE,
+                                                   host_id0, a, 8, DRIVE1)
     assert ret == 0
 
-    ret, handle2 = idm_scsi.idm_drive_unlock_async(lock_id0, host_id1, a, 8, DRIVE1)
+    ret, handle2 = idm_scsi.idm_drive_unlock_async(lock_id0, idm_scsi.IDM_MODE_SHAREABLE,
+                                                   host_id1, a, 8, DRIVE1)
     assert ret == 0
 
     wait_for_scsi_response(handle1)
@@ -650,7 +674,8 @@ def test_idm__async_renew_1(idm_cleanup):
     a[6] = 0
     a[7] = 0
 
-    ret, handle = idm_scsi.idm_drive_unlock_async(lock_id0, host_id0, a, 8, DRIVE1)
+    ret, handle = idm_scsi.idm_drive_unlock_async(lock_id0, idm_scsi.IDM_MODE_SHAREABLE,
+                                                  host_id0, a, 8, DRIVE1)
     assert ret == 0
 
     wait_for_scsi_response(handle)
@@ -720,7 +745,8 @@ def test_idm__async_renew_2(idm_cleanup):
     a[6] = 0
     a[7] = 0
 
-    ret, handle = idm_scsi.idm_drive_unlock_async(lock_id0, host_id0, a, 8, DRIVE1)
+    ret, handle = idm_scsi.idm_drive_unlock_async(lock_id0, idm_scsi.IDM_MODE_EXCLUSIVE,
+                                                  host_id0, a, 8, DRIVE1)
     assert ret == 0
 
     wait_for_scsi_response(handle)
@@ -729,7 +755,7 @@ def test_idm__async_renew_2(idm_cleanup):
     assert ret == 0
     assert result == 0
 
-def test_idm__async_renew_fail_1(idm_cleanup):
+def test_idm__async_renew_timout_1(idm_cleanup):
 
     lock_id0 = "0000000000000000000000000000000000000000000000000000000000000000"
     host_id0 = "00000000000000000000000000000000"
@@ -754,7 +780,7 @@ def test_idm__async_renew_fail_1(idm_cleanup):
 
     ret, result = idm_scsi.idm_drive_async_result(handle)
     assert ret == 0
-    assert result == -62        # -ETIME or 0
+    assert result == 0        # -ETIME or 0
 
     a = idm_scsi.charArray(8)
     a[0] = 0
@@ -766,7 +792,8 @@ def test_idm__async_renew_fail_1(idm_cleanup):
     a[6] = 0
     a[7] = 0
 
-    ret, handle = idm_scsi.idm_drive_unlock_async(lock_id0, host_id0, a, 8, DRIVE1)
+    ret, handle = idm_scsi.idm_drive_unlock_async(lock_id0, idm_scsi.IDM_MODE_SHAREABLE,
+                                                  host_id0, a, 8, DRIVE1)
     assert ret == 0
 
     wait_for_scsi_response(handle)
@@ -775,7 +802,7 @@ def test_idm__async_renew_fail_1(idm_cleanup):
     assert ret == 0
     assert result == 0          # -ETIME or 0
 
-def test_idm__async_renew_fail_2(idm_cleanup):
+def test_idm__async_renew_timeout_2(idm_cleanup):
 
     lock_id0 = "0000000000000000000000000000000000000000000000000000000000000000"
     host_id0 = "00000000000000000000000000000000"
@@ -800,7 +827,7 @@ def test_idm__async_renew_fail_2(idm_cleanup):
 
     ret, result = idm_scsi.idm_drive_async_result(handle)
     assert ret == 0
-    assert result == -62        # -ETIME or 0
+    assert result == 0
 
     a = idm_scsi.charArray(8)
     a[0] = 0
@@ -812,7 +839,8 @@ def test_idm__async_renew_fail_2(idm_cleanup):
     a[6] = 0
     a[7] = 0
 
-    ret, handle = idm_scsi.idm_drive_unlock_async(lock_id0, host_id0, a, 8, DRIVE1)
+    ret, handle = idm_scsi.idm_drive_unlock_async(lock_id0, idm_scsi.IDM_MODE_EXCLUSIVE,
+                                                  host_id0, a, 8, DRIVE1)
     assert ret == 0
 
     wait_for_scsi_response(handle)
@@ -838,7 +866,7 @@ def test_idm__async_read_lvb_1(idm_cleanup):
 
     a = idm_scsi.charArray(8)
 
-    ret, handle = idm_scsi.idm_read_lvb_async(lock_id0, host_id0, DRIVE1, a, 8);
+    ret, handle = idm_scsi.idm_drive_read_lvb_async(lock_id0, host_id0, DRIVE1);
     assert ret == 0
 
     wait_for_scsi_response(handle)
@@ -856,7 +884,8 @@ def test_idm__async_read_lvb_1(idm_cleanup):
     assert ord(a[6]) == 0
     assert ord(a[7]) == 0
 
-    ret, handle = idm_scsi.idm_drive_unlock_async(lock_id0, host_id0, a, 8, DRIVE1)
+    ret, handle = idm_scsi.idm_drive_unlock_async(lock_id0, idm_scsi.IDM_MODE_EXCLUSIVE,
+                                                  host_id0, a, 8, DRIVE1)
     assert ret == 0
 
     wait_for_scsi_response(handle)
@@ -882,7 +911,7 @@ def test_idm__async_read_lvb_2(idm_cleanup):
 
     a = idm_scsi.charArray(8)
 
-    ret, handle = idm_scsi.idm_read_lvb_async(lock_id0, host_id0, DRIVE1, a, 8);
+    ret, handle = idm_scsi.idm_drive_read_lvb_async(lock_id0, host_id0, DRIVE1);
     assert ret == 0
 
     wait_for_scsi_response(handle)
@@ -909,7 +938,8 @@ def test_idm__async_read_lvb_2(idm_cleanup):
     a[6] = 'g'
     a[7] = 'h'
 
-    ret, handle = idm_scsi.idm_drive_unlock_async(lock_id0, host_id0, a, 8, DRIVE1)
+    ret, handle = idm_scsi.idm_drive_unlock_async(lock_id0, idm_scsi.IDM_MODE_EXCLUSIVE,
+                                                  host_id0, a, 8, DRIVE1)
     assert ret == 0
 
     wait_for_scsi_response(handle)
@@ -928,7 +958,7 @@ def test_idm__async_read_lvb_2(idm_cleanup):
     assert ret == 0
     assert result == 0
 
-    ret, handle = idm_scsi.idm_read_lvb_async(lock_id0, host_id0, DRIVE1, a, 8);
+    ret, handle = idm_scsi.idm_drive_read_lvb_async(lock_id0, host_id0, DRIVE1);
     assert ret == 0
 
     wait_for_scsi_response(handle)
@@ -937,16 +967,17 @@ def test_idm__async_read_lvb_2(idm_cleanup):
     assert ret == 0
     assert result == 0
 
-    assert b[0] == 'a'
-    assert b[1] == 'b'
-    assert b[2] == 'c'
-    assert b[3] == 'd'
-    assert b[4] == 'e'
-    assert b[5] == 'f'
-    assert b[6] == 'g'
-    assert b[7] == 'h'
+    assert a[0] == 'a'
+    assert a[1] == 'b'
+    assert a[2] == 'c'
+    assert a[3] == 'd'
+    assert a[4] == 'e'
+    assert a[5] == 'f'
+    assert a[6] == 'g'
+    assert ord(a[7]) == 0
 
-    ret, handle = idm_scsi.idm_drive_unlock_async(lock_id0, host_id0, a, 8, DRIVE1)
+    ret, handle = idm_scsi.idm_drive_unlock_async(lock_id0, idm_scsi.IDM_MODE_EXCLUSIVE,
+                                                  host_id0, a, 8, DRIVE1)
     assert ret == 0
 
     wait_for_scsi_response(handle)
@@ -991,7 +1022,8 @@ def test_idm__async_get_host_count(idm_cleanup):
     a[6] = 0
     a[7] = 0
 
-    ret, handle = idm_scsi.idm_drive_unlock_async(lock_id0, host_id0, a, 8, DRIVE1)
+    ret, handle = idm_scsi.idm_drive_unlock_async(lock_id0, idm_scsi.IDM_MODE_EXCLUSIVE,
+                                                  host_id0, a, 8, DRIVE1)
     assert ret == 0
 
     wait_for_scsi_response(handle)
@@ -1081,7 +1113,8 @@ def test_idm__async_two_hosts_get_host_count(idm_cleanup):
     a[6] = 0
     a[7] = 0
 
-    ret, handle = idm_scsi.idm_drive_unlock_async(lock_id0, host_id0, a, 8, DRIVE1)
+    ret, handle = idm_scsi.idm_drive_unlock_async(lock_id0, idm_scsi.IDM_MODE_SHAREABLE,
+                                                  host_id0, a, 8, DRIVE1)
     assert ret == 0
 
     wait_for_scsi_response(handle)
@@ -1090,7 +1123,8 @@ def test_idm__async_two_hosts_get_host_count(idm_cleanup):
     assert ret == 0
     assert result == 0
 
-    ret, handle = idm_scsi.idm_drive_unlock_async(lock_id0, host_id1, a, 8, DRIVE1)
+    ret, handle = idm_scsi.idm_drive_unlock_async(lock_id0, idm_scsi.IDM_MODE_SHAREABLE,
+                                                  host_id1, a, 8, DRIVE1)
     assert ret == 0
 
     wait_for_scsi_response(handle)
@@ -1190,7 +1224,8 @@ def test_idm__async_three_hosts_get_host_count(idm_cleanup):
     a[6] = 0
     a[7] = 0
 
-    ret, handle = idm_scsi.idm_drive_unlock_async(lock_id0, host_id0, a, 8, DRIVE1)
+    ret, handle = idm_scsi.idm_drive_unlock_async(lock_id0, idm_scsi.IDM_MODE_SHAREABLE,
+                                                  host_id0, a, 8, DRIVE1)
     assert ret == 0
 
     wait_for_scsi_response(handle)
@@ -1199,7 +1234,8 @@ def test_idm__async_three_hosts_get_host_count(idm_cleanup):
     assert ret == 0
     assert result == 0
 
-    ret, handle = idm_scsi.idm_drive_unlock_async(lock_id0, host_id1, a, 8, DRIVE1)
+    ret, handle = idm_scsi.idm_drive_unlock_async(lock_id0, idm_scsi.IDM_MODE_SHAREABLE,
+                                                  host_id1, a, 8, DRIVE1)
     assert ret == 0
 
     wait_for_scsi_response(handle)
@@ -1208,7 +1244,8 @@ def test_idm__async_three_hosts_get_host_count(idm_cleanup):
     assert ret == 0
     assert result == 0
 
-    ret, handle = idm_scsi.idm_drive_unlock_async(lock_id0, host_id2, a, 8, DRIVE1)
+    ret, handle = idm_scsi.idm_drive_unlock_async(lock_id0, idm_scsi.IDM_MODE_SHAREABLE,
+                                                  host_id2, a, 8, DRIVE1)
     assert ret == 0
 
     wait_for_scsi_response(handle)
@@ -1240,7 +1277,7 @@ def test_idm__async_get_lock_mode(idm_cleanup):
 
     ret, mode, result = idm_scsi.idm_drive_lock_mode_async_result(handle)
     assert ret == 0
-    assert mode == idm_scsi.IDM_MODE_UNLOCKED
+    assert mode == idm_scsi.IDM_MODE_UNLOCK
     assert result == 0
 
 def test_idm__async_get_lock_exclusive_mode(idm_cleanup):
@@ -1278,7 +1315,8 @@ def test_idm__async_get_lock_exclusive_mode(idm_cleanup):
     a[6] = 0
     a[7] = 0
 
-    ret, handle = idm_scsi.idm_drive_unlock_async(lock_id0, host_id0, a, 8, DRIVE1)
+    ret, handle = idm_scsi.idm_drive_unlock_async(lock_id0, idm_scsi.IDM_MODE_EXCLUSIVE,
+                                                  host_id0, a, 8, DRIVE1)
     assert ret == 0
 
     wait_for_scsi_response(handle)
@@ -1322,7 +1360,8 @@ def test_idm__async_get_lock_shareable_mode(idm_cleanup):
     a[6] = 0
     a[7] = 0
 
-    ret, handle = idm_scsi.idm_drive_unlock_async(lock_id0, host_id0, a, 8, DRIVE1)
+    ret, handle = idm_scsi.idm_drive_unlock_async(lock_id0, idm_scsi.IDM_MODE_SHAREABLE,
+                                                  host_id0, a, 8, DRIVE1)
     assert ret == 0
 
     wait_for_scsi_response(handle)
