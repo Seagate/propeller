@@ -89,7 +89,7 @@ def test_idm__sync_lock_exclusive_twice(idm_cleanup):
     assert ret == 0
 
     ret = idm_scsi.idm_drive_unlock(lock_id0, host_id0, a, 8, DRIVE1)
-    assert ret == -2        # -ENOENT
+    assert ret == 0
 
 def test_idm__sync_lock_shareable_twice(idm_cleanup):
 
@@ -118,7 +118,7 @@ def test_idm__sync_lock_shareable_twice(idm_cleanup):
     assert ret == 0
 
     ret = idm_scsi.idm_drive_unlock(lock_id0, host_id0, a, 8, DRIVE1)
-    assert ret == -2        # -ENOENT
+    assert ret == 0
 
 def test_idm__sync_lock_exclusive_two_hosts(idm_cleanup):
 
@@ -752,10 +752,10 @@ def test_idm__sync_two_hosts_get_host_count(idm_cleanup):
     a[6] = 0
     a[7] = 0
 
-    ret = idm_scsi.idm_drive_unlock(lock_id0, host_id0, a, 8)
+    ret = idm_scsi.idm_drive_unlock(lock_id0, host_id0, a, 8, DRIVE1)
     assert ret == 0
 
-    ret = idm_scsi.idm_drive_unlock(lock_id0, host_id1, a, 8)
+    ret = idm_scsi.idm_drive_unlock(lock_id0, host_id1, a, 8, DRIVE1)
     assert ret == 0
 
     ret, count, self = idm_scsi.idm_drive_lock_count(lock_id0, host_id0, DRIVE1);
@@ -807,13 +807,13 @@ def test_idm__sync_three_hosts_get_host_count(idm_cleanup):
     a[6] = 0
     a[7] = 0
 
-    ret = idm_scsi.idm_drive_unlock(lock_id0, host_id0, a, 8)
+    ret = idm_scsi.idm_drive_unlock(lock_id0, host_id0, a, 8, DRIVE1)
     assert ret == 0
 
-    ret = idm_scsi.idm_drive_unlock(lock_id0, host_id1, a, 8)
+    ret = idm_scsi.idm_drive_unlock(lock_id0, host_id1, a, 8, DRIVE1)
     assert ret == 0
 
-    ret = idm_scsi.idm_drive_unlock(lock_id0, host_id2, a, 8)
+    ret = idm_scsi.idm_drive_unlock(lock_id0, host_id2, a, 8, DRIVE1)
     assert ret == 0
 
     ret, count, self = idm_scsi.idm_drive_lock_count(lock_id0, host_id0, DRIVE1);
