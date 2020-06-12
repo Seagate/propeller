@@ -378,9 +378,9 @@ static int _scsi_read(struct idm_scsi_request *request, int direction)
 		break;
 
 	case COMMAND_TERMINATED:
-		if (op == IDM_MUTEX_OP_REFRESH)
+		if (request->op == IDM_MUTEX_OP_REFRESH)
 			ret = -EPERM;
-		else if (op == IDM_MUTEX_OP_UNLOCK)
+		else if (request->op == IDM_MUTEX_OP_UNLOCK)
 			ret = -EINVAL;
 		else
 			ret = -EAGAIN;
@@ -729,6 +729,7 @@ int idm_drive_unlock_async(char *lock_id, int mode, char *host_id,
 		ilm_log_err("%s: fail to allocat scsi request", __func__);
 		return -ENOMEM;
 	}
+	memset(request, 0x0, sizeof(struct idm_scsi_request));
 
 	request->data = malloc(sizeof(struct idm_data));
 	if (!request) {
@@ -736,6 +737,7 @@ int idm_drive_unlock_async(char *lock_id, int mode, char *host_id,
 		ilm_log_err("%s: fail to allocat scsi data", __func__);
 		return -ENOMEM;
 	}
+	memset(request->data, 0x0, sizeof(struct idm_data));
 	request->data_len = sizeof(struct idm_data);
 
 	if (mode == IDM_MODE_EXCLUSIVE)
@@ -1343,6 +1345,7 @@ int idm_drive_lock_count_async(char *lock_id, char *host_id,
 		ilm_log_err("%s: fail to allocat scsi request", __func__);
 		return -ENOMEM;
 	}
+	memset(request, 0x0, sizeof(struct idm_scsi_request));
 
 	request->data = malloc(IDM_DATA_SIZE);
 	if (!request) {
@@ -1350,6 +1353,7 @@ int idm_drive_lock_count_async(char *lock_id, char *host_id,
 		ilm_log_err("%s: fail to allocat scsi data", __func__);
 		return -ENOMEM;
 	}
+	memset(request->data, 0x0, IDM_DATA_SIZE);
 	request->data_len = IDM_DATA_SIZE;
 
 	strncpy(request->drive, drive, PATH_MAX);
@@ -1380,13 +1384,20 @@ int idm_drive_lock_count_async_result(uint64_t handle, int *count, int *self,
 {
 	struct idm_scsi_request *request = (struct idm_scsi_request *)handle;
 	struct idm_data *data = request->data;
-	int ret, i;
+	uint64_t state;
+	int ret, i, locked;
 
 	ret = _scsi_get_async_result(request, SG_DXFER_FROM_DEV);
 
 	*count = 0;
 	*self = 0;
 	for (i = 0; i < IDM_DATA_BLOCK_NUM; i++) {
+		state = __bswap_64(data[i].state);
+		locked = (state == 0x101) || (state == 0x103);
+
+		if (!locked)
+			continue;
+
 		/* Skip for other locks */
 		if (memcmp(data[i].resource_id, request->lock_id,
 			   IDM_LOCK_ID_LEN))
@@ -1562,6 +1573,7 @@ int idm_drive_lock_mode_async_result(uint64_t handle, int *mode, int *result)
 {
 	struct idm_scsi_request *request = (struct idm_scsi_request *)handle;
 	struct idm_data *data = request->data;
+	uint64_t state, class;
 	int ret, i;
 
 	ret = _scsi_get_async_result(request, SG_DXFER_FROM_DEV);
@@ -1573,15 +1585,18 @@ int idm_drive_lock_mode_async_result(uint64_t handle, int *mode, int *result)
 			   IDM_LOCK_ID_LEN))
 			continue;
 
-		if (data[i].state == IDM_STATE_UNINIT ||
-		    data[i].state == IDM_STATE_UNLOCKED ||
-		    data[i].state == IDM_STATE_TIMEOUT) {
+		state = __bswap_64(data[i].state);
+		class = __bswap_64(data[i].class);
+
+		if (state == IDM_STATE_UNINIT ||
+		    state == IDM_STATE_UNLOCKED ||
+		    state == IDM_STATE_TIMEOUT) {
 			*mode = IDM_MODE_UNLOCK;
-		} else if (data[i].class == IDM_CLASS_EXCLUSIVE) {
+		} else if (class == IDM_CLASS_EXCLUSIVE) {
 			*mode = IDM_MODE_EXCLUSIVE;
-		} else if (data[i].class == IDM_CLASS_SHARED_PROTECTED_READ) {
+		} else if (class == IDM_CLASS_SHARED_PROTECTED_READ) {
 			*mode = IDM_MODE_SHAREABLE;
-		} else if (data[i].class == IDM_CLASS_PROTECTED_WRITE) {
+		} else if (class == IDM_CLASS_PROTECTED_WRITE) {
 			ilm_log_err("%s: PROTECTED_WRITE is not unsupported",
 				    __func__);
 			ret = -EFAULT;
