@@ -355,8 +355,9 @@ static int _raid_dispatch_request_async(struct _raid_request *req)
 					   drive->path, lock->timeout, &handle);
 		break;
 	case ILM_OP_UNLOCK:
-		ret = idm_drive_unlock_async(lock->id, req->host_id, req->lvb,
-					     req->lvb_size, drive->path, &handle);
+		ret = idm_drive_unlock_async(lock->id, req->mode, req->host_id,
+					     req->lvb, req->lvb_size,
+					     drive->path, &handle);
 		break;
 	case ILM_OP_CONVERT:
 		ret = idm_drive_convert_lock_async(lock->id, req->mode,
