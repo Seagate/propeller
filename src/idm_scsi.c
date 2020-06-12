@@ -378,9 +378,9 @@ static int _scsi_read(struct idm_scsi_request *request, int direction)
 		break;
 
 	case COMMAND_TERMINATED:
-		if (op == IDM_MUTEX_OP_REFRESH)
+		if (request->op == IDM_MUTEX_OP_REFRESH)
 			ret = -EPERM;
-		else if (op == IDM_MUTEX_OP_UNLOCK)
+		else if (request->op == IDM_MUTEX_OP_UNLOCK)
 			ret = -EINVAL;
 		else
 			ret = -EAGAIN;
