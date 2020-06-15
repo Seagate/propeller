@@ -185,14 +185,6 @@ def test_lock__lvb_write(ilm_daemon):
 
     ret = ilm.ilm_read_lvb(s, lock_id, a, 8);
     assert ret == 0
-    assert ord(a[0]) == 0
-    assert ord(a[1]) == 0
-    assert ord(a[2]) == 0
-    assert ord(a[3]) == 0
-    assert ord(a[4]) == 0
-    assert ord(a[5]) == 0
-    assert ord(a[6]) == 0
-    assert ord(a[7]) == 0
 
     a[0] = 'a'
     ret = ilm.ilm_write_lvb(s, lock_id, a, 8);
@@ -208,6 +200,9 @@ def test_lock__lvb_write(ilm_daemon):
     ret = ilm.ilm_read_lvb(s, lock_id, a, 8);
     assert ret == 0
     assert a[0] == 'a'
+
+    ret = ilm.ilm_unlock(s, lock_id)
+    assert ret == 0
 
     ret = ilm.ilm_disconnect(s)
     assert ret == 0
@@ -245,14 +240,6 @@ def test_lock__lvb_write_two_hosts(ilm_daemon):
 
     ret = ilm.ilm_read_lvb(s1, lock_id, a, 8);
     assert ret == 0
-    assert ord(a[0]) == 0
-    assert ord(a[1]) == 0
-    assert ord(a[2]) == 0
-    assert ord(a[3]) == 0
-    assert ord(a[4]) == 0
-    assert ord(a[5]) == 0
-    assert ord(a[6]) == 0
-    assert ord(a[7]) == 0
 
     a[0] = 'a'
     a[1] = 'b'
