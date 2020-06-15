@@ -585,6 +585,9 @@ int idm_drive_lock_async(char *lock_id, int mode, char *host_id,
 	struct idm_scsi_request *request;
 	int ret;
 
+	if (ilm_inject_fault_is_hit())
+		return -EIO;
+
 	if (!lock_id || !host_id || !drive)
 		return -EINVAL;
 
@@ -715,6 +718,9 @@ int idm_drive_unlock_async(char *lock_id, int mode, char *host_id,
 	struct idm_scsi_request *request;
 	int ret;
 
+	if (ilm_inject_fault_is_hit())
+		return -EIO;
+
 	if (!lock_id || !host_id || !drive)
 		return -EINVAL;
 
@@ -822,6 +828,9 @@ static int idm_drive_refresh_lock_async(char *lock_id, int mode,
 {
 	struct idm_scsi_request *request;
 	int ret;
+
+	if (ilm_inject_fault_is_hit())
+		return -EIO;
 
 	if (!lock_id || !host_id || !drive || !handle)
 		return -EINVAL;
@@ -1022,6 +1031,9 @@ int idm_drive_break_lock_async(char *lock_id, int mode, char *host_id,
 {
 	struct idm_scsi_request *request;
 	int ret;
+
+	if (ilm_inject_fault_is_hit())
+		return -EIO;
 
 	if (!lock_id || !host_id || !drive || !handle)
 		return -EINVAL;
@@ -1543,6 +1555,9 @@ int idm_drive_lock_mode_async(char *lock_id, char *drive, uint64_t *handle)
 	struct idm_scsi_request *request;
 	int ret;
 
+	if (ilm_inject_fault_is_hit())
+		return -EIO;
+
 	request = malloc(sizeof(struct idm_scsi_request));
 	if (!request) {
 		ilm_log_err("%s: fail to allocat scsi request", __func__);
@@ -1629,7 +1644,7 @@ out:
 
 /**
  * idm_drive_async_result - Read the result for normal operations.
- * @fd:			File descriptor (emulated with index).
+ * @handle:		SCSI request handle
  * @result:		Returned result for the operation.
  *
  * Returns zero or a negative error (ie. EINVAL).
@@ -1642,6 +1657,20 @@ int idm_drive_async_result(uint64_t handle, int *result)
 	free(request->data);
 	free(request);
 	return 0;
+}
+
+/**
+ * idm_drive_free_async_result - Free the async result
+ * @handle:		SCSI request handle
+ *
+ * No return value
+ */
+void idm_drive_free_async_result(uint64_t handle)
+{
+	struct idm_scsi_request *request = (struct idm_scsi_request *)handle;
+
+	free(request->data);
+	free(request);
 }
 
 /**
@@ -1659,6 +1688,9 @@ int idm_drive_host_state(char *lock_id, char *host_id,
 	struct idm_scsi_request *request;
 	struct idm_data *data;
 	int ret, i;
+
+	if (ilm_inject_fault_is_hit())
+		return -EIO;
 
 	if (!lock_id || !host_id || !drive)
 		return -EINVAL;
@@ -1741,6 +1773,9 @@ int idm_drive_read_group(char *drive, struct idm_info **info_ptr, int *info_num)
 	int ret, i;
 	struct idm_info *info_list, *info;
 	int max_alloc = 8;
+
+	if (ilm_inject_fault_is_hit())
+		return -EIO;
 
 	/* Let's firstly assume to allocet for 8 items */
 	info_list = malloc(sizeof(struct idm_info) * max_alloc);
