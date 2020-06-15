@@ -17,7 +17,7 @@ DRIVE6 = "/dev/sg7"
 DRIVE7 = "/dev/sg8"
 DRIVE8 = "/dev/sg9"
 
-@pytest.yield_fixture
+@pytest.yield_fixture(scope="session")
 def ilm_daemon():
     lock_id0 = "0000000000000000000000000000000000000000000000000000000000000000"
 
@@ -70,7 +70,7 @@ def ilm_daemon():
         p.kill()
         p.wait()
 
-@pytest.fixture
+@pytest.fixture(scope="session")
 def idm_cleanup():
     lock_id0 = "0000000000000000000000000000000000000000000000000000000000000000"
 
