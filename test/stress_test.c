@@ -11,6 +11,11 @@
 struct idm_lock_id lock_id;
 int need_exit = 0;
 
+#define DRIVE1	"/dev/sda2"
+#define DRIVE2	"/dev/sdb2"
+#define DRIVE3	"/dev/sdc2"
+#define DRIVE4	"/dev/sdd2"
+
 static void *test_thread(void *data)
 {
 	struct idm_lock_op lock_op;
@@ -38,10 +43,10 @@ static void *test_thread(void *data)
 
 		lock_op.mode = IDM_MODE_EXCLUSIVE;
 		lock_op.drive_num = 4;
-		lock_op.drives[0] = "/dev/sda1";
-		lock_op.drives[1] = "/dev/sda2";
-		lock_op.drives[2] = "/dev/sda3";
-		lock_op.drives[3] = "/dev/sda4";
+		lock_op.drives[0] = DRIVE1;
+		lock_op.drives[1] = DRIVE2;
+		lock_op.drives[2] = DRIVE3;
+		lock_op.drives[3] = DRIVE4;
 		lock_op.timeout = 3000;
 
 		ret = ilm_lock(s, &lock_id, &lock_op);

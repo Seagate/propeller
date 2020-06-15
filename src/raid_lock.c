@@ -303,7 +303,7 @@ static int _raid_dispatch_request(struct _raid_request *req)
 		break;
 	case ILM_OP_CONVERT:
 		ret = idm_drive_convert_lock(lock->id, req->mode, req->host_id,
-					     drive->path);
+					     drive->path, lock->timeout);
 		break;
 	case ILM_OP_BREAK:
 		ret = idm_drive_break_lock(lock->id, req->mode, req->host_id,
@@ -313,7 +313,7 @@ static int _raid_dispatch_request(struct _raid_request *req)
 		break;
 	case ILM_OP_RENEW:
 		ret = idm_drive_renew_lock(lock->id, req->mode, req->host_id,
-					   drive->path);
+					   drive->path, lock->timeout);
 		break;
 	case ILM_OP_READ_LVB:
 		ret = idm_drive_read_lvb(lock->id, req->host_id, req->lvb,
@@ -362,7 +362,7 @@ static int _raid_dispatch_request_async(struct _raid_request *req)
 	case ILM_OP_CONVERT:
 		ret = idm_drive_convert_lock_async(lock->id, req->mode,
 						   req->host_id, drive->path,
-						   &handle);
+						   lock->timeout, &handle);
 		break;
 	case ILM_OP_BREAK:
 		ret = idm_drive_break_lock_async(lock->id, req->mode,
@@ -372,7 +372,7 @@ static int _raid_dispatch_request_async(struct _raid_request *req)
 	case ILM_OP_RENEW:
 		ret = idm_drive_renew_lock_async(lock->id, req->mode,
 						 req->host_id, drive->path,
-						 &handle);
+						 lock->timeout, &handle);
 		break;
 	case ILM_OP_READ_LVB:
 		ret = idm_drive_read_lvb_async(lock->id, req->host_id,
@@ -445,6 +445,7 @@ static int _raid_read_result_async(struct _raid_request *req)
 static int _raid_state_machine_end(int state)
 {
 	ilm_log_dbg("%s: state=%d", __func__, state);
+
 	if (state == IDM_LOCK || state == IDM_INIT)
 		return 1;
 
@@ -713,8 +714,16 @@ static void *idm_raid_thread(void *data)
 
 		pthread_mutex_unlock(&raid_th->request_mutex);
 
-		list_for_each_entry(req, &raid_th->process_list, list) {
-			_raid_dispatch_request_async(req);
+		list_for_each_entry_safe(req, tmp,
+				         &raid_th->process_list, list) {
+			ret = _raid_dispatch_request_async(req);
+			if (ret < 0) {
+				req->result = ret;
+				/* Remove from process list */
+				list_del(&req->list);
+				idm_raid_notify(raid_th, req);
+			}
+
 			//_raid_dispatch_request(req);
 		}
 
