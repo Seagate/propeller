@@ -109,8 +109,8 @@ int main(void)
 	}
 
 	ret = ilm_unlock(s, &lock_id);
-	if (ret == -ETIME) {
-		printf("ilm_unlock: SUCCESS with timeout\n");
+	if (ret == 0) {
+		printf("ilm_unlock: SUCCESS\n");
 	} else {
 		printf("ilm_unlock: FAIL %d\n", ret);
 		exit(-1);
