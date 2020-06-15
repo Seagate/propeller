@@ -92,4 +92,6 @@ int idm_drive_whitelist(char *drive,
 
 int idm_drive_get_fd(uint64_t handle);
 
+void idm_drive_free_async_result(uint64_t handle);
+
 #endif
