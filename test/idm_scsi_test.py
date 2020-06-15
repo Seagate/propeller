@@ -314,7 +314,7 @@ def test_idm__sync_convert_1(idm_cleanup):
     assert ret == 0
 
     ret = idm_scsi.idm_drive_convert_lock(lock_id0, idm_scsi.IDM_MODE_EXCLUSIVE,
-                                          host_id0, DRIVE1);
+                                          host_id0, DRIVE1, 10000);
     assert ret == 0
 
     a = idm_scsi.charArray(8)
@@ -341,7 +341,7 @@ def test_idm__sync_convert_2(idm_cleanup):
     assert ret == 0
 
     ret = idm_scsi.idm_drive_convert_lock(lock_id0, idm_scsi.IDM_MODE_SHAREABLE,
-                                          host_id0, DRIVE1);
+                                          host_id0, DRIVE1, 10000);
     assert ret == 0
 
     a = idm_scsi.charArray(8)
@@ -373,7 +373,7 @@ def test_idm__sync_convert_3(idm_cleanup):
     assert ret == 0
 
     ret = idm_scsi.idm_drive_convert_lock(lock_id0, idm_scsi.IDM_MODE_EXCLUSIVE,
-                                          host_id1, DRIVE1);
+                                          host_id1, DRIVE1, 10000);
     assert ret == -1        # -EPERM
 
     a = idm_scsi.charArray(8)
@@ -406,19 +406,19 @@ def test_idm__sync_renew_1(idm_cleanup):
     time.sleep(5)
 
     ret = idm_scsi.idm_drive_renew_lock(lock_id0, idm_scsi.IDM_MODE_SHAREABLE,
-                                        host_id0, DRIVE1);
+                                        host_id0, DRIVE1, 10000);
     assert ret == 0
 
     time.sleep(5)
 
     ret = idm_scsi.idm_drive_renew_lock(lock_id0, idm_scsi.IDM_MODE_SHAREABLE,
-                                        host_id0, DRIVE1);
+                                        host_id0, DRIVE1, 10000);
     assert ret == 0
 
     time.sleep(5)
 
     ret = idm_scsi.idm_drive_renew_lock(lock_id0, idm_scsi.IDM_MODE_SHAREABLE,
-                                        host_id0, DRIVE1);
+                                        host_id0, DRIVE1, 10000);
     assert ret == 0
 
     a = idm_scsi.charArray(8)
@@ -447,19 +447,19 @@ def test_idm__sync_renew_2(idm_cleanup):
     time.sleep(5)
 
     ret = idm_scsi.idm_drive_renew_lock(lock_id0, idm_scsi.IDM_MODE_EXCLUSIVE,
-                                        host_id0, DRIVE1);
+                                        host_id0, DRIVE1, 10000);
     assert ret == 0
 
     time.sleep(5)
 
     ret = idm_scsi.idm_drive_renew_lock(lock_id0, idm_scsi.IDM_MODE_EXCLUSIVE,
-                                        host_id0, DRIVE1);
+                                        host_id0, DRIVE1, 10000);
     assert ret == 0
 
     time.sleep(5)
 
     ret = idm_scsi.idm_drive_renew_lock(lock_id0, idm_scsi.IDM_MODE_EXCLUSIVE,
-                                        host_id0, DRIVE1);
+                                        host_id0, DRIVE1, 10000);
     assert ret == 0
 
     a = idm_scsi.charArray(8)
@@ -488,7 +488,7 @@ def test_idm__sync_renew_timeout_1(idm_cleanup):
     time.sleep(7)
 
     ret = idm_scsi.idm_drive_renew_lock(lock_id0, idm_scsi.IDM_MODE_SHAREABLE,
-                                        host_id0, DRIVE1);
+                                        host_id0, DRIVE1, 5000);
     assert ret == 0
 
     a = idm_scsi.charArray(8)
@@ -517,7 +517,7 @@ def test_idm__sync_renew_timeout_2(idm_cleanup):
     time.sleep(7)
 
     ret = idm_scsi.idm_drive_renew_lock(lock_id0, idm_scsi.IDM_MODE_EXCLUSIVE,
-                                        host_id0, DRIVE1);
+                                        host_id0, DRIVE1, 5000);
     assert ret == 0
 
     a = idm_scsi.charArray(8)
@@ -546,7 +546,7 @@ def test_idm__sync_renew_timeout_3(idm_cleanup):
     time.sleep(7)
 
     ret = idm_scsi.idm_drive_renew_lock(lock_id0, idm_scsi.IDM_MODE_SHAREABLE,
-                                        host_id0, DRIVE1);
+                                        host_id0, DRIVE1, 5000);
     assert ret == 0
 
     a = idm_scsi.charArray(8)
@@ -575,7 +575,7 @@ def test_idm__sync_renew_timeout_4(idm_cleanup):
     time.sleep(7)
 
     ret = idm_scsi.idm_drive_renew_lock(lock_id0, idm_scsi.IDM_MODE_EXCLUSIVE,
-                                        host_id0, DRIVE1);
+                                        host_id0, DRIVE1, 5000);
     assert ret == 0
 
     a = idm_scsi.charArray(8)
