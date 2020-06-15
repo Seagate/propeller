@@ -477,9 +477,9 @@ def test_inject_fault_100_percent__1_drive_renew(ilm_daemon):
     ret = ilm.ilm_inject_fault(s, 0)
     assert ret == 0
 
-    # Return -ETIME
+    # Return success after timeout
     ret = ilm.ilm_unlock(s, lock_id)
-    assert ret == -62
+    assert ret == 0
 
     ret = ilm.ilm_disconnect(s)
     assert ret == 0
@@ -513,9 +513,9 @@ def test_inject_fault_50_percent__1_drive_renew(ilm_daemon):
     ret = ilm.ilm_inject_fault(s, 0)
     assert ret == 0
 
-    # Return -ETIME
+    # Return success after timeout
     ret = ilm.ilm_unlock(s, lock_id)
-    assert ret == -62
+    assert ret == 0
 
     ret = ilm.ilm_disconnect(s)
     assert ret == 0
@@ -585,9 +585,9 @@ def test_inject_fault__1_drive_renew(ilm_daemon):
     ret = ilm.ilm_inject_fault(s, 0)
     assert ret == 0
 
-    # Return -ETIME
+    # Return success after timeout
     ret = ilm.ilm_unlock(s, lock_id)
-    assert ret == -62
+    assert ret == 0
 
     ret = ilm.ilm_start_renew(s)
     assert ret == 0
@@ -609,9 +609,9 @@ def test_inject_fault__1_drive_renew(ilm_daemon):
     ret = ilm.ilm_inject_fault(s, 0)
     assert ret == 0
 
-    # Return -ETIME
+    # Return success after timeout
     ret = ilm.ilm_unlock(s, lock_id)
-    assert ret == -62
+    assert ret == 0
 
     ret = ilm.ilm_start_renew(s)
     assert ret == 0
@@ -665,9 +665,9 @@ def test_inject_fault_100_percent__2_drives_renew(ilm_daemon):
     ret = ilm.ilm_inject_fault(s, 0)
     assert ret == 0
 
-    # Return -ETIME
+    # Return success after timeout
     ret = ilm.ilm_unlock(s, lock_id)
-    assert ret == -62
+    assert ret == 0
 
     ret = ilm.ilm_disconnect(s)
     assert ret == 0
@@ -702,9 +702,9 @@ def test_inject_fault_50_percent__2_drives_renew(ilm_daemon):
     ret = ilm.ilm_inject_fault(s, 0)
     assert ret == 0
 
-    # Return -ETIME
+    # Return success after timeout
     ret = ilm.ilm_unlock(s, lock_id)
-    assert ret == -62
+    assert ret == 0
 
     ret = ilm.ilm_disconnect(s)
     assert ret == 0
@@ -857,9 +857,9 @@ def test_inject_fault_100_percent__3_drives_renew(ilm_daemon):
     ret = ilm.ilm_inject_fault(s, 0)
     assert ret == 0
 
-    # Return -ETIME
+    # Return success after timeout
     ret = ilm.ilm_unlock(s, lock_id)
-    assert ret == -62
+    assert ret == 0
 
     ret = ilm.ilm_disconnect(s)
     assert ret == 0
@@ -895,9 +895,9 @@ def test_inject_fault_50_percent__3_drives_renew(ilm_daemon):
     ret = ilm.ilm_inject_fault(s, 0)
     assert ret == 0
 
-    # Return -ETIME
+    # Return success after timeout
     ret = ilm.ilm_unlock(s, lock_id)
-    assert ret == -62
+    assert ret == 0
 
     ret = ilm.ilm_disconnect(s)
     assert ret == 0
@@ -971,9 +971,9 @@ def test_inject_fault__3_drives_renew(ilm_daemon):
     ret = ilm.ilm_inject_fault(s, 0)
     assert ret == 0
 
-    # Return -ETIME
+    # Return success after timeout
     ret = ilm.ilm_unlock(s, lock_id)
-    assert ret == -62
+    assert ret == 0
 
     ret = ilm.ilm_start_renew(s)
     assert ret == 0
@@ -995,9 +995,9 @@ def test_inject_fault__3_drives_renew(ilm_daemon):
     ret = ilm.ilm_inject_fault(s, 0)
     assert ret == 0
 
-    # Return -ETIME
+    # Return success after timeout
     ret = ilm.ilm_unlock(s, lock_id)
-    assert ret == -62
+    assert ret == 0
 
     ret = ilm.ilm_start_renew(s)
     assert ret == 0
@@ -1053,9 +1053,9 @@ def test_inject_fault_100_percent__4_drives_renew(ilm_daemon):
     ret = ilm.ilm_inject_fault(s, 0)
     assert ret == 0
 
-    # Return -ETIME
+    # Return success after timeout
     ret = ilm.ilm_unlock(s, lock_id)
-    assert ret == -62
+    assert ret == 0
 
     ret = ilm.ilm_disconnect(s)
     assert ret == 0
@@ -1092,9 +1092,9 @@ def test_inject_fault_50_percent__4_drives_renew(ilm_daemon):
     ret = ilm.ilm_inject_fault(s, 0)
     assert ret == 0
 
-    # Return -ETIME
+    # Return success after timeout
     ret = ilm.ilm_unlock(s, lock_id)
-    assert ret == -62
+    assert ret == 0
 
     ret = ilm.ilm_disconnect(s)
     assert ret == 0
@@ -1170,9 +1170,9 @@ def test_inject_fault__4_drives_renew(ilm_daemon):
     ret = ilm.ilm_inject_fault(s, 0)
     assert ret == 0
 
-    # Return -ETIME
+    # Return success after timeout
     ret = ilm.ilm_unlock(s, lock_id)
-    assert ret == -62
+    assert ret == 0
 
     ret = ilm.ilm_start_renew(s)
     assert ret == 0
@@ -1194,9 +1194,9 @@ def test_inject_fault__4_drives_renew(ilm_daemon):
     ret = ilm.ilm_inject_fault(s, 0)
     assert ret == 0
 
-    # Return -ETIME
+    # Return success after timeout
     ret = ilm.ilm_unlock(s, lock_id)
-    assert ret == -62
+    assert ret == 0
 
     ret = ilm.ilm_start_renew(s)
     assert ret == 0
