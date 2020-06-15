@@ -303,7 +303,7 @@ static int _raid_dispatch_request(struct _raid_request *req)
 		break;
 	case ILM_OP_CONVERT:
 		ret = idm_drive_convert_lock(lock->id, req->mode, req->host_id,
-					     drive->path);
+					     drive->path, lock->timeout);
 		break;
 	case ILM_OP_BREAK:
 		ret = idm_drive_break_lock(lock->id, req->mode, req->host_id,
@@ -313,7 +313,7 @@ static int _raid_dispatch_request(struct _raid_request *req)
 		break;
 	case ILM_OP_RENEW:
 		ret = idm_drive_renew_lock(lock->id, req->mode, req->host_id,
-					   drive->path);
+					   drive->path, lock->timeout);
 		break;
 	case ILM_OP_READ_LVB:
 		ret = idm_drive_read_lvb(lock->id, req->host_id, req->lvb,
@@ -362,7 +362,7 @@ static int _raid_dispatch_request_async(struct _raid_request *req)
 	case ILM_OP_CONVERT:
 		ret = idm_drive_convert_lock_async(lock->id, req->mode,
 						   req->host_id, drive->path,
-						   &handle);
+						   lock->timeout, &handle);
 		break;
 	case ILM_OP_BREAK:
 		ret = idm_drive_break_lock_async(lock->id, req->mode,
@@ -372,7 +372,7 @@ static int _raid_dispatch_request_async(struct _raid_request *req)
 	case ILM_OP_RENEW:
 		ret = idm_drive_renew_lock_async(lock->id, req->mode,
 						 req->host_id, drive->path,
-						 &handle);
+						 lock->timeout, &handle);
 		break;
 	case ILM_OP_READ_LVB:
 		ret = idm_drive_read_lvb_async(lock->id, req->host_id,

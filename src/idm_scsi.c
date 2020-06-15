@@ -763,7 +763,7 @@ int idm_drive_unlock_async(char *lock_id, int mode, char *host_id,
 }
 
 static int idm_drive_refresh_lock(char *lock_id, int mode, char *host_id,
-				  char *drive)
+				  char *drive, uint64_t timeout)
 {
 	struct idm_scsi_request *request;
 	int ret;
@@ -800,7 +800,7 @@ static int idm_drive_refresh_lock(char *lock_id, int mode, char *host_id,
 	strncpy(request->drive, drive, PATH_MAX);
 	request->op = IDM_MUTEX_OP_REFRESH;
 	request->mode = mode;
-	request->timeout = 0;
+	request->timeout = timeout;
 	request->res_ver_type = IDM_RES_VER_NO_UPDATE_NO_VALID;
 	request->data_len = sizeof(struct idm_data);
 	memcpy(request->lock_id, lock_id, IDM_LOCK_ID_LEN);
@@ -817,6 +817,7 @@ static int idm_drive_refresh_lock(char *lock_id, int mode, char *host_id,
 
 static int idm_drive_refresh_lock_async(char *lock_id, int mode,
 					char *host_id, char *drive,
+					uint64_t timeout,
 					uint64_t *handle)
 {
 	struct idm_scsi_request *request;
@@ -851,7 +852,7 @@ static int idm_drive_refresh_lock_async(char *lock_id, int mode,
 	strncpy(request->drive, drive, PATH_MAX);
 	request->op = IDM_MUTEX_OP_REFRESH;
 	request->mode = mode;
-	request->timeout = 0;
+	request->timeout = timeout;
 	request->res_ver_type = IDM_RES_VER_NO_UPDATE_NO_VALID;
 	request->data_len = sizeof(struct idm_data);
 	memcpy(request->lock_id, lock_id, IDM_LOCK_ID_LEN);
@@ -871,12 +872,15 @@ static int idm_drive_refresh_lock_async(char *lock_id, int mode,
  * @mode:		Lock mode (unlock, shareable, exclusive).
  * @host_id:		Host ID (32 bytes).
  * @drive:		Drive path name.
+ * @timeout:		Timeout for membership (unit: millisecond).
  *
  * Returns zero or a negative error (ie. EINVAL, ETIME).
  */
-int idm_drive_convert_lock(char *lock_id, int mode, char *host_id, char *drive)
+int idm_drive_convert_lock(char *lock_id, int mode, char *host_id,
+			   char *drive, uint64_t timeout)
 {
-	return idm_drive_refresh_lock(lock_id, mode, host_id, drive);
+	return idm_drive_refresh_lock(lock_id, mode, host_id,
+				      drive, timeout);
 }
 
 /**
@@ -885,15 +889,17 @@ int idm_drive_convert_lock(char *lock_id, int mode, char *host_id, char *drive)
  * @mode:		Lock mode (unlock, shareable, exclusive).
  * @host_id:		Host ID (32 bytes).
  * @drive:		Drive path name.
- * @fd:			File descriptor (emulated with index).
+ * @timeout:		Timeout for membership (unit: millisecond).
+ * @handle:		File descriptor (emulated with index).
  *
  * Returns zero or a negative error (ie. EINVAL, ETIME).
  */
 int idm_drive_convert_lock_async(char *lock_id, int mode, char *host_id,
-				 char *drive, uint64_t *handle)
+				 char *drive, uint64_t timeout,
+				 uint64_t *handle)
 {
 	return idm_drive_refresh_lock_async(lock_id, mode, host_id,
-					    drive, handle);
+					    drive, timeout, handle);
 }
 
 /**
@@ -902,12 +908,15 @@ int idm_drive_convert_lock_async(char *lock_id, int mode, char *host_id,
  * @mode:		Lock mode (unlock, shareable, exclusive).
  * @host_id:		Host ID (32 bytes).
  * @drive:		Drive path name.
+ * @timeout:		Timeout for membership (unit: millisecond).
  *
  * Returns zero or a negative error (ie. EINVAL, ETIME).
  */
-int idm_drive_renew_lock(char *lock_id, int mode, char *host_id, char *drive)
+int idm_drive_renew_lock(char *lock_id, int mode, char *host_id,
+			 char *drive, uint64_t timeout)
 {
-	return idm_drive_refresh_lock(lock_id, mode, host_id, drive);
+	return idm_drive_refresh_lock(lock_id, mode, host_id,
+				      drive, timeout);
 }
 
 /**
@@ -917,16 +926,18 @@ int idm_drive_renew_lock(char *lock_id, int mode, char *host_id, char *drive)
  * @mode:		Lock mode (unlock, shareable, exclusive).
  * @host_id:		Host ID (32 bytes).
  * @drive:		Drive path name.
- * @fd:			File descriptor (emulated with index).
+ * @timeout:		Timeout for membership (unit: millisecond).
+ * @handle:		File descriptor (emulated with index).
  *
  * Returns zero or a negative error (ie. EINVAL, ETIME).
  */
 int idm_drive_renew_lock_async(char *lock_id, int mode,
 			       char *host_id, char *drive,
+			       uint64_t timeout,
 			       uint64_t *handle)
 {
 	return idm_drive_refresh_lock_async(lock_id, mode, host_id,
-					    drive, handle);
+					    drive, timeout, handle);
 }
 
 /**

@@ -44,14 +44,15 @@ int idm_drive_unlock(char *lock_id, int mode, char *host_id,
 int idm_drive_unlock_async(char *lock_id, int mode, char *host_id,
 			   char *lvb, int lvb_size, char *drive,
 			   uint64_t *handle);
-int idm_drive_convert_lock(char *lock_id, int mode,
-                           char *host_id, char *drive);
+int idm_drive_convert_lock(char *lock_id, int mode, char *host_id,
+			   char *drive, uint64_t timeout);
 int idm_drive_convert_lock_async(char *lock_id, int mode, char *host_id,
-				 char *drive, uint64_t *handle);
-int idm_drive_renew_lock(char *lock_id, int mode,
-                         char *host_id, char *drive);
-int idm_drive_renew_lock_async(char *lock_id, int mode,
-			       char *host_id, char *drive, uint64_t *handle);
+				 char *drive, uint64_t timeout,
+				 uint64_t *handle);
+int idm_drive_renew_lock(char *lock_id, int mode, char *host_id,
+			 char *drive, uint64_t timeout);
+int idm_drive_renew_lock_async(char *lock_id, int mode, char *host_id,
+			       char *drive, uint64_t timeout, uint64_t *handle);
 int idm_drive_break_lock(char *lock_id, int mode, char *host_id,
 			 char *drive, uint64_t timeout);
 int idm_drive_break_lock_async(char *lock_id, int mode, char *host_id,
