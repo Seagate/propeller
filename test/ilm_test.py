@@ -747,9 +747,9 @@ def test_lock__timeout(ilm_daemon):
 
     time.sleep(5)
 
-    # Unlock will receive -ETIME
+    # Unlock will receive 0 if timeout
     ret = ilm.ilm_unlock(s, lock_id)
-    assert ret == -62
+    assert ret == 0
 
     ret = ilm.ilm_disconnect(s)
     assert ret == 0
@@ -778,10 +778,10 @@ def test_lock__timeout_convert1(ilm_daemon):
 
     time.sleep(5)
 
-    # If the lock is timeout, cannot convert the mode;
-    # will receive -ETIME
+    # If the lock is timeout, still can convert the mode;
+    # will receive 0
     ret = ilm.ilm_convert(s, lock_id, ilm.IDM_MODE_EXCLUSIVE)
-    assert ret == -62
+    assert ret == 0
 
     ret = ilm.ilm_unlock(s, lock_id)
     assert ret == 0
@@ -818,10 +818,10 @@ def test_lock__timeout_convert2(ilm_daemon):
 
     time.sleep(5)
 
-    # If the lock is timeout, cannot convert the mode;
-    # will receive -ETIME
+    # If the lock is timeout, still can convert the mode;
+    # will receive 0
     ret = ilm.ilm_convert(s, lock_id, ilm.IDM_MODE_SHAREABLE)
-    assert ret == -62
+    assert ret == 0
 
     ret = ilm.ilm_unlock(s, lock_id)
     assert ret == 0
@@ -880,9 +880,10 @@ def test_lock__get_mode_not_existed(ilm_daemon):
     lock_op.set_drive_names(1, DRIVE2)
     lock_op.timeout = 60000     # Timeout: 60s
 
-    # Return -ENOENT since the IDM has not been created
+    # Return unlock mode if the IDM has not been created
     ret, mode = ilm.ilm_get_mode(s, lock_id, lock_op)
-    assert ret == -2
+    assert ret == 0
+    assert mode == ilm.IDM_MODE_UNLOCK
 
     ret = ilm.ilm_disconnect(s)
     assert ret == 0

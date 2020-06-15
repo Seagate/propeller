@@ -132,7 +132,7 @@ def test_lock__lvb_read_two_hosts(ilm_daemon):
     assert b[4] == 'e'
     assert b[5] == 'f'
     assert b[6] == 'g'
-    assert b[7] == 'h'
+    assert ord(b[7]) == 0
 
     ret = ilm.ilm_unlock(s1, lock_id)
     assert ret == 0
@@ -151,7 +151,7 @@ def test_lock__lvb_read_two_hosts(ilm_daemon):
     assert c[4] == 'e'
     assert c[5] == 'f'
     assert c[6] == 'g'
-    assert c[7] == 'h'
+    assert ord(c[7]) == 0
 
     ret = ilm.ilm_unlock(s2, lock_id)
     assert ret == 0
@@ -283,7 +283,7 @@ def test_lock__lvb_write_two_hosts(ilm_daemon):
     assert b[4] == 'e'
     assert b[5] == 'f'
     assert b[6] == 'g'
-    assert b[7] == 'h'
+    assert ord(b[7]) == 0
 
     b[0] = 'U'
     b[1] = 'U'
@@ -312,7 +312,7 @@ def test_lock__lvb_write_two_hosts(ilm_daemon):
     assert a[4] == 'U'
     assert a[5] == 'U'
     assert a[6] == 'U'
-    assert a[7] == 'U'
+    assert ord(a[7]) == 0
 
     ret = ilm.ilm_unlock(s1, lock_id)
     assert ret == 0
