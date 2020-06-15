@@ -10,6 +10,9 @@ import pytest
 
 import ilm
 
+DRIVE1 = "/dev/sda2"
+DRIVE2 = "/dev/sdb2"
+
 def test_lock__lvb_read(ilm_daemon):
     ret, s = ilm.ilm_connect()
     assert ret == 0
@@ -22,8 +25,8 @@ def test_lock__lvb_read(ilm_daemon):
     lock_op = ilm.idm_lock_op()
     lock_op.mode = ilm.IDM_MODE_EXCLUSIVE
     lock_op.drive_num = 2
-    lock_op.set_drive_names(0, "/dev/sda1")
-    lock_op.set_drive_names(1, "/dev/sda2")
+    lock_op.set_drive_names(0, DRIVE1)
+    lock_op.set_drive_names(1, DRIVE2)
     lock_op.timeout = 60000     # Timeout: 60s
 
     ret = ilm.ilm_lock(s, lock_id, lock_op)
@@ -70,8 +73,8 @@ def test_lock__lvb_read_two_hosts(ilm_daemon):
     lock_op = ilm.idm_lock_op()
     lock_op.mode = ilm.IDM_MODE_EXCLUSIVE
     lock_op.drive_num = 2
-    lock_op.set_drive_names(0, "/dev/sda1")
-    lock_op.set_drive_names(1, "/dev/sda2")
+    lock_op.set_drive_names(0, DRIVE1)
+    lock_op.set_drive_names(1, DRIVE2)
     lock_op.timeout = 60000     # Timeout: 60s
 
     ret = ilm.ilm_lock(s1, lock_id, lock_op)
@@ -171,8 +174,8 @@ def test_lock__lvb_write(ilm_daemon):
     lock_op = ilm.idm_lock_op()
     lock_op.mode = ilm.IDM_MODE_EXCLUSIVE
     lock_op.drive_num = 2
-    lock_op.set_drive_names(0, "/dev/sda1")
-    lock_op.set_drive_names(1, "/dev/sda2")
+    lock_op.set_drive_names(0, DRIVE1)
+    lock_op.set_drive_names(1, DRIVE2)
     lock_op.timeout = 60000     # Timeout: 60s
 
     ret = ilm.ilm_lock(s, lock_id, lock_op)
@@ -231,8 +234,8 @@ def test_lock__lvb_write_two_hosts(ilm_daemon):
     lock_op = ilm.idm_lock_op()
     lock_op.mode = ilm.IDM_MODE_EXCLUSIVE
     lock_op.drive_num = 2
-    lock_op.set_drive_names(0, "/dev/sda1")
-    lock_op.set_drive_names(1, "/dev/sda2")
+    lock_op.set_drive_names(0, DRIVE1)
+    lock_op.set_drive_names(1, DRIVE2)
     lock_op.timeout = 60000     # Timeout: 60s
 
     ret = ilm.ilm_lock(s1, lock_id, lock_op)
@@ -342,8 +345,8 @@ def test_lock__lvb_read_timeout(ilm_daemon):
     lock_op = ilm.idm_lock_op()
     lock_op.mode = ilm.IDM_MODE_EXCLUSIVE
     lock_op.drive_num = 2
-    lock_op.set_drive_names(0, "/dev/sda1")
-    lock_op.set_drive_names(1, "/dev/sda2")
+    lock_op.set_drive_names(0, DRIVE1)
+    lock_op.set_drive_names(1, DRIVE2)
     lock_op.timeout = 5000     # Timeout: 5s
 
     ret = ilm.ilm_lock(s1, lock_id, lock_op)

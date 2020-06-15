@@ -10,6 +10,9 @@
 
 #include <ilm.h>
 
+#define DRIVE1	"/dev/sda2"
+#define DRIVE2	"/dev/sdb2"
+
 static int signal_received = 0;
 
 static void sigterm_handler(int sig,
@@ -72,8 +75,8 @@ int main(void)
 
 	lock_op.mode = IDM_MODE_EXCLUSIVE;
 	lock_op.drive_num = 2;
-	lock_op.drives[0] = "/dev/sda1";
-	lock_op.drives[1] = "/dev/sda2";
+	lock_op.drives[0] = DRIVE1;
+	lock_op.drives[1] = DRIVE2;
 
 	/* Set timeout to 3s */
 	lock_op.timeout = 3000;

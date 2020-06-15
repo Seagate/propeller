@@ -10,6 +10,11 @@ import pytest
 
 import ilm
 
+DRIVE1 = "/dev/sda2"
+DRIVE2 = "/dev/sdb2"
+DRIVE3 = "/dev/sdc2"
+DRIVE4 = "/dev/sdd2"
+
 def test_inject_fault__2_drives_lock(ilm_daemon):
     ret, s = ilm.ilm_connect()
     assert ret == 0
@@ -22,8 +27,8 @@ def test_inject_fault__2_drives_lock(ilm_daemon):
     lock_op = ilm.idm_lock_op()
     lock_op.mode = ilm.IDM_MODE_SHAREABLE
     lock_op.drive_num = 2
-    lock_op.set_drive_names(0, "/dev/sda1")
-    lock_op.set_drive_names(1, "/dev/sda2")
+    lock_op.set_drive_names(0, DRIVE1)
+    lock_op.set_drive_names(1, DRIVE2)
     lock_op.timeout = 60000     # Timeout: 60s
 
     ret = ilm.ilm_inject_fault(s, 100)
@@ -62,9 +67,9 @@ def test_inject_fault__3_drives_lock(ilm_daemon):
     lock_op = ilm.idm_lock_op()
     lock_op.mode = ilm.IDM_MODE_SHAREABLE
     lock_op.drive_num = 3
-    lock_op.set_drive_names(0, "/dev/sda1")
-    lock_op.set_drive_names(1, "/dev/sda2")
-    lock_op.set_drive_names(2, "/dev/sda3")
+    lock_op.set_drive_names(0, DRIVE1)
+    lock_op.set_drive_names(1, DRIVE2)
+    lock_op.set_drive_names(2, DRIVE3)
     lock_op.timeout = 60000     # Timeout: 60s
 
     ret = ilm.ilm_inject_fault(s, 100)
@@ -124,10 +129,10 @@ def test_inject_fault__4_drives_lock(ilm_daemon):
     lock_op = ilm.idm_lock_op()
     lock_op.mode = ilm.IDM_MODE_SHAREABLE
     lock_op.drive_num = 4
-    lock_op.set_drive_names(0, "/dev/sda1")
-    lock_op.set_drive_names(1, "/dev/sda2")
-    lock_op.set_drive_names(2, "/dev/sda3")
-    lock_op.set_drive_names(3, "/dev/sda4")
+    lock_op.set_drive_names(0, DRIVE1)
+    lock_op.set_drive_names(1, DRIVE2)
+    lock_op.set_drive_names(2, DRIVE3)
+    lock_op.set_drive_names(3, DRIVE4)
     lock_op.timeout = 60000     # Timeout: 60s
 
     ret = ilm.ilm_inject_fault(s, 100)
@@ -181,8 +186,8 @@ def test_inject_fault__2_drives_unlock(ilm_daemon):
     lock_op = ilm.idm_lock_op()
     lock_op.mode = ilm.IDM_MODE_SHAREABLE
     lock_op.drive_num = 2
-    lock_op.set_drive_names(0, "/dev/sda1")
-    lock_op.set_drive_names(1, "/dev/sda2")
+    lock_op.set_drive_names(0, DRIVE1)
+    lock_op.set_drive_names(1, DRIVE2)
     lock_op.timeout = 60000     # Timeout: 60s
 
     ret = ilm.ilm_lock(s, lock_id, lock_op)
@@ -219,9 +224,9 @@ def test_inject_fault__3_drives_unlock(ilm_daemon):
     lock_op = ilm.idm_lock_op()
     lock_op.mode = ilm.IDM_MODE_SHAREABLE
     lock_op.drive_num = 3
-    lock_op.set_drive_names(0, "/dev/sda1")
-    lock_op.set_drive_names(1, "/dev/sda2")
-    lock_op.set_drive_names(2, "/dev/sda3")
+    lock_op.set_drive_names(0, DRIVE1)
+    lock_op.set_drive_names(1, DRIVE2)
+    lock_op.set_drive_names(2, DRIVE3)
     lock_op.timeout = 60000     # Timeout: 60s
 
     ret = ilm.ilm_lock(s, lock_id, lock_op)
@@ -266,10 +271,10 @@ def test_inject_fault__4_drives_unlock(ilm_daemon):
     lock_op = ilm.idm_lock_op()
     lock_op.mode = ilm.IDM_MODE_SHAREABLE
     lock_op.drive_num = 4
-    lock_op.set_drive_names(0, "/dev/sda1")
-    lock_op.set_drive_names(1, "/dev/sda2")
-    lock_op.set_drive_names(2, "/dev/sda3")
-    lock_op.set_drive_names(3, "/dev/sda4")
+    lock_op.set_drive_names(0, DRIVE1)
+    lock_op.set_drive_names(1, DRIVE2)
+    lock_op.set_drive_names(2, DRIVE3)
+    lock_op.set_drive_names(3, DRIVE4)
     lock_op.timeout = 60000     # Timeout: 60s
 
     ret = ilm.ilm_lock(s, lock_id, lock_op)
@@ -323,8 +328,8 @@ def test_inject_fault__2_drives_convert(ilm_daemon):
     lock_op = ilm.idm_lock_op()
     lock_op.mode = ilm.IDM_MODE_SHAREABLE
     lock_op.drive_num = 2
-    lock_op.set_drive_names(0, "/dev/sda1")
-    lock_op.set_drive_names(1, "/dev/sda2")
+    lock_op.set_drive_names(0, DRIVE1)
+    lock_op.set_drive_names(1, DRIVE2)
     lock_op.timeout = 60000     # Timeout: 60s
 
     ret = ilm.ilm_lock(s, lock_id, lock_op)
@@ -366,9 +371,9 @@ def test_inject_fault__3_drives_convert(ilm_daemon):
     lock_op = ilm.idm_lock_op()
     lock_op.mode = ilm.IDM_MODE_SHAREABLE
     lock_op.drive_num = 3
-    lock_op.set_drive_names(0, "/dev/sda1")
-    lock_op.set_drive_names(1, "/dev/sda2")
-    lock_op.set_drive_names(2, "/dev/sda3")
+    lock_op.set_drive_names(0, DRIVE1)
+    lock_op.set_drive_names(1, DRIVE2)
+    lock_op.set_drive_names(2, DRIVE3)
     lock_op.timeout = 60000     # Timeout: 60s
 
     ret = ilm.ilm_lock(s, lock_id, lock_op)
@@ -410,10 +415,10 @@ def test_inject_fault__4_drives_convert(ilm_daemon):
     lock_op = ilm.idm_lock_op()
     lock_op.mode = ilm.IDM_MODE_SHAREABLE
     lock_op.drive_num = 4
-    lock_op.set_drive_names(0, "/dev/sda1")
-    lock_op.set_drive_names(1, "/dev/sda2")
-    lock_op.set_drive_names(2, "/dev/sda3")
-    lock_op.set_drive_names(3, "/dev/sda4")
+    lock_op.set_drive_names(0, DRIVE1)
+    lock_op.set_drive_names(1, DRIVE2)
+    lock_op.set_drive_names(2, DRIVE3)
+    lock_op.set_drive_names(3, DRIVE4)
     lock_op.timeout = 60000     # Timeout: 60s
 
     ret = ilm.ilm_lock(s, lock_id, lock_op)
@@ -455,7 +460,7 @@ def test_inject_fault_100_percent__1_drive_renew(ilm_daemon):
     lock_op = ilm.idm_lock_op()
     lock_op.mode = ilm.IDM_MODE_SHAREABLE
     lock_op.drive_num = 1
-    lock_op.set_drive_names(0, "/dev/sda1")
+    lock_op.set_drive_names(0, DRIVE1)
     lock_op.timeout = 3000     # Timeout: 3s
 
     ret = ilm.ilm_lock(s, lock_id, lock_op)
@@ -491,7 +496,7 @@ def test_inject_fault_50_percent__1_drive_renew(ilm_daemon):
     lock_op = ilm.idm_lock_op()
     lock_op.mode = ilm.IDM_MODE_SHAREABLE
     lock_op.drive_num = 1
-    lock_op.set_drive_names(0, "/dev/sda1")
+    lock_op.set_drive_names(0, DRIVE1)
     lock_op.timeout = 3000     # Timeout: 3s
 
     ret = ilm.ilm_lock(s, lock_id, lock_op)
@@ -527,7 +532,7 @@ def test_inject_fault_10_percent__1_drive_renew(ilm_daemon):
     lock_op = ilm.idm_lock_op()
     lock_op.mode = ilm.IDM_MODE_SHAREABLE
     lock_op.drive_num = 1
-    lock_op.set_drive_names(0, "/dev/sda1")
+    lock_op.set_drive_names(0, DRIVE1)
     lock_op.timeout = 3000     # Timeout: 3s
 
     ret = ilm.ilm_lock(s, lock_id, lock_op)
@@ -562,7 +567,7 @@ def test_inject_fault__1_drive_renew(ilm_daemon):
     lock_op = ilm.idm_lock_op()
     lock_op.mode = ilm.IDM_MODE_SHAREABLE
     lock_op.drive_num = 1
-    lock_op.set_drive_names(0, "/dev/sda1")
+    lock_op.set_drive_names(0, DRIVE1)
     lock_op.timeout = 3000     # Timeout: 3s
 
     ## Test for 100 percentage fault
@@ -642,8 +647,8 @@ def test_inject_fault_100_percent__2_drives_renew(ilm_daemon):
     lock_op = ilm.idm_lock_op()
     lock_op.mode = ilm.IDM_MODE_SHAREABLE
     lock_op.drive_num = 2
-    lock_op.set_drive_names(0, "/dev/sda1")
-    lock_op.set_drive_names(1, "/dev/sda2")
+    lock_op.set_drive_names(0, DRIVE1)
+    lock_op.set_drive_names(1, DRIVE2)
     lock_op.timeout = 3000     # Timeout: 3s
 
     ret = ilm.ilm_lock(s, lock_id, lock_op)
@@ -679,8 +684,8 @@ def test_inject_fault_50_percent__2_drives_renew(ilm_daemon):
     lock_op = ilm.idm_lock_op()
     lock_op.mode = ilm.IDM_MODE_SHAREABLE
     lock_op.drive_num = 2
-    lock_op.set_drive_names(0, "/dev/sda1")
-    lock_op.set_drive_names(1, "/dev/sda2")
+    lock_op.set_drive_names(0, DRIVE1)
+    lock_op.set_drive_names(1, DRIVE2)
     lock_op.timeout = 3000     # Timeout: 3s
 
     ret = ilm.ilm_lock(s, lock_id, lock_op)
@@ -716,8 +721,8 @@ def test_inject_fault_10_percent__2_drives_renew(ilm_daemon):
     lock_op = ilm.idm_lock_op()
     lock_op.mode = ilm.IDM_MODE_SHAREABLE
     lock_op.drive_num = 2
-    lock_op.set_drive_names(0, "/dev/sda1")
-    lock_op.set_drive_names(1, "/dev/sda2")
+    lock_op.set_drive_names(0, DRIVE1)
+    lock_op.set_drive_names(1, DRIVE2)
     lock_op.timeout = 3000     # Timeout: 3s
 
     ret = ilm.ilm_lock(s, lock_id, lock_op)
@@ -752,8 +757,8 @@ def test_inject_fault__2_drives_renew(ilm_daemon):
     lock_op = ilm.idm_lock_op()
     lock_op.mode = ilm.IDM_MODE_SHAREABLE
     lock_op.drive_num = 2
-    lock_op.set_drive_names(0, "/dev/sda1")
-    lock_op.set_drive_names(1, "/dev/sda2")
+    lock_op.set_drive_names(0, DRIVE1)
+    lock_op.set_drive_names(1, DRIVE2)
     lock_op.timeout = 3000     # Timeout: 3s
 
     ## Test for 100 percentage fault
@@ -833,9 +838,9 @@ def test_inject_fault_100_percent__3_drives_renew(ilm_daemon):
     lock_op = ilm.idm_lock_op()
     lock_op.mode = ilm.IDM_MODE_SHAREABLE
     lock_op.drive_num = 3
-    lock_op.set_drive_names(0, "/dev/sda1")
-    lock_op.set_drive_names(1, "/dev/sda2")
-    lock_op.set_drive_names(2, "/dev/sda3")
+    lock_op.set_drive_names(0, DRIVE1)
+    lock_op.set_drive_names(1, DRIVE2)
+    lock_op.set_drive_names(2, DRIVE3)
     lock_op.timeout = 3000     # Timeout: 3s
 
     ret = ilm.ilm_lock(s, lock_id, lock_op)
@@ -871,9 +876,9 @@ def test_inject_fault_50_percent__3_drives_renew(ilm_daemon):
     lock_op = ilm.idm_lock_op()
     lock_op.mode = ilm.IDM_MODE_SHAREABLE
     lock_op.drive_num = 3
-    lock_op.set_drive_names(0, "/dev/sda1")
-    lock_op.set_drive_names(1, "/dev/sda2")
-    lock_op.set_drive_names(2, "/dev/sda3")
+    lock_op.set_drive_names(0, DRIVE1)
+    lock_op.set_drive_names(1, DRIVE2)
+    lock_op.set_drive_names(2, DRIVE3)
     lock_op.timeout = 3000     # Timeout: 3s
 
     ret = ilm.ilm_lock(s, lock_id, lock_op)
@@ -909,9 +914,9 @@ def test_inject_fault_10_percent__3_drives_renew(ilm_daemon):
     lock_op = ilm.idm_lock_op()
     lock_op.mode = ilm.IDM_MODE_SHAREABLE
     lock_op.drive_num = 3
-    lock_op.set_drive_names(0, "/dev/sda1")
-    lock_op.set_drive_names(1, "/dev/sda2")
-    lock_op.set_drive_names(2, "/dev/sda3")
+    lock_op.set_drive_names(0, DRIVE1)
+    lock_op.set_drive_names(1, DRIVE2)
+    lock_op.set_drive_names(2, DRIVE3)
     lock_op.timeout = 3000     # Timeout: 3s
 
     ret = ilm.ilm_lock(s, lock_id, lock_op)
@@ -946,9 +951,9 @@ def test_inject_fault__3_drives_renew(ilm_daemon):
     lock_op = ilm.idm_lock_op()
     lock_op.mode = ilm.IDM_MODE_SHAREABLE
     lock_op.drive_num = 3
-    lock_op.set_drive_names(0, "/dev/sda1")
-    lock_op.set_drive_names(1, "/dev/sda2")
-    lock_op.set_drive_names(2, "/dev/sda3")
+    lock_op.set_drive_names(0, DRIVE1)
+    lock_op.set_drive_names(1, DRIVE2)
+    lock_op.set_drive_names(2, DRIVE3)
     lock_op.timeout = 3000     # Timeout: 3s
 
     ## Test for 100 percentage fault
@@ -1028,10 +1033,10 @@ def test_inject_fault_100_percent__4_drives_renew(ilm_daemon):
     lock_op = ilm.idm_lock_op()
     lock_op.mode = ilm.IDM_MODE_SHAREABLE
     lock_op.drive_num = 4
-    lock_op.set_drive_names(0, "/dev/sda1")
-    lock_op.set_drive_names(1, "/dev/sda2")
-    lock_op.set_drive_names(2, "/dev/sda3")
-    lock_op.set_drive_names(3, "/dev/sda4")
+    lock_op.set_drive_names(0, DRIVE1)
+    lock_op.set_drive_names(1, DRIVE2)
+    lock_op.set_drive_names(2, DRIVE3)
+    lock_op.set_drive_names(3, DRIVE4)
     lock_op.timeout = 3000     # Timeout: 3s
 
     ret = ilm.ilm_lock(s, lock_id, lock_op)
@@ -1067,10 +1072,10 @@ def test_inject_fault_50_percent__4_drives_renew(ilm_daemon):
     lock_op = ilm.idm_lock_op()
     lock_op.mode = ilm.IDM_MODE_SHAREABLE
     lock_op.drive_num = 4
-    lock_op.set_drive_names(0, "/dev/sda1")
-    lock_op.set_drive_names(1, "/dev/sda2")
-    lock_op.set_drive_names(2, "/dev/sda3")
-    lock_op.set_drive_names(3, "/dev/sda4")
+    lock_op.set_drive_names(0, DRIVE1)
+    lock_op.set_drive_names(1, DRIVE2)
+    lock_op.set_drive_names(2, DRIVE3)
+    lock_op.set_drive_names(3, DRIVE4)
     lock_op.timeout = 3000     # Timeout: 3s
 
     ret = ilm.ilm_lock(s, lock_id, lock_op)
@@ -1106,10 +1111,10 @@ def test_inject_fault_10_percent__4_drives_renew(ilm_daemon):
     lock_op = ilm.idm_lock_op()
     lock_op.mode = ilm.IDM_MODE_SHAREABLE
     lock_op.drive_num = 4
-    lock_op.set_drive_names(0, "/dev/sda1")
-    lock_op.set_drive_names(1, "/dev/sda2")
-    lock_op.set_drive_names(2, "/dev/sda3")
-    lock_op.set_drive_names(3, "/dev/sda4")
+    lock_op.set_drive_names(0, DRIVE1)
+    lock_op.set_drive_names(1, DRIVE2)
+    lock_op.set_drive_names(2, DRIVE3)
+    lock_op.set_drive_names(3, DRIVE4)
     lock_op.timeout = 3000     # Timeout: 3s
 
     ret = ilm.ilm_lock(s, lock_id, lock_op)
@@ -1144,10 +1149,10 @@ def test_inject_fault__4_drives_renew(ilm_daemon):
     lock_op = ilm.idm_lock_op()
     lock_op.mode = ilm.IDM_MODE_SHAREABLE
     lock_op.drive_num = 4
-    lock_op.set_drive_names(0, "/dev/sda1")
-    lock_op.set_drive_names(1, "/dev/sda2")
-    lock_op.set_drive_names(2, "/dev/sda3")
-    lock_op.set_drive_names(3, "/dev/sda4")
+    lock_op.set_drive_names(0, DRIVE1)
+    lock_op.set_drive_names(1, DRIVE2)
+    lock_op.set_drive_names(2, DRIVE3)
+    lock_op.set_drive_names(3, DRIVE4)
     lock_op.timeout = 3000     # Timeout: 3s
 
     ## Test for 100 percentage fault
