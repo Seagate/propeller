@@ -18,8 +18,8 @@
 #define IDM_VALUE_LEN			8
 
 struct idm_lock_id {
-	uuid_t vg_uuid;
-	uuid_t lv_uuid;
+	char vg_uuid[32];
+	char lv_uuid[32];
 };
 
 struct idm_lock_op {
