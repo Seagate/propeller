@@ -236,9 +236,7 @@ int ilm_lock(int sock, struct idm_lock_id *id, struct idm_lock_op *op)
 	payload.drive_num = op->drive_num;
 	payload.timeout = op->timeout;
 
-	memcpy(payload.lock_id, &id->lv_uuid, sizeof(uuid_t));
-	memcpy(payload.lock_id + sizeof(uuid_t),
-	       &id->vg_uuid, sizeof(uuid_t));
+	memcpy(payload.lock_id, id, sizeof(*id));
 
 	ret = send_data(sock, &payload, sizeof(struct ilm_lock_payload), 0);
 	if (ret < 0)
@@ -271,9 +269,7 @@ int ilm_unlock(int sock, struct idm_lock_id *id)
 
 	memset(&payload, 0, sizeof(struct ilm_lock_payload));
 	payload.magic = ILM_LOCK_MAGIC;
-	memcpy(payload.lock_id, &id->lv_uuid, sizeof(uuid_t));
-	memcpy(payload.lock_id + sizeof(uuid_t),
-	       &id->vg_uuid, sizeof(uuid_t));
+	memcpy(payload.lock_id, id, sizeof(*id));
 
 	ret = send_data(sock, &payload, sizeof(struct ilm_lock_payload), 0);
 	if (ret < 0)
@@ -300,9 +296,7 @@ int ilm_convert(int sock, struct idm_lock_id *id, uint32_t mode)
 	memset(&payload, 0, sizeof(struct ilm_lock_payload));
 	payload.magic = ILM_LOCK_MAGIC;
 	payload.mode = mode;
-	memcpy(payload.lock_id, &id->lv_uuid, sizeof(uuid_t));
-	memcpy(payload.lock_id + sizeof(uuid_t),
-	       &id->vg_uuid, sizeof(uuid_t));
+	memcpy(payload.lock_id, id, sizeof(*id));
 
 	ret = send_data(sock, &payload, sizeof(struct ilm_lock_payload), 0);
 	if (ret < 0)
@@ -329,9 +323,7 @@ int ilm_write_lvb(int sock, struct idm_lock_id *id, char *lvb, int lvb_len)
 
 	memset(&payload, 0, sizeof(struct ilm_lock_payload));
 	payload.magic = ILM_LOCK_MAGIC;
-	memcpy(payload.lock_id, &id->lv_uuid, sizeof(uuid_t));
-	memcpy(payload.lock_id + sizeof(uuid_t),
-	       &id->vg_uuid, sizeof(uuid_t));
+	memcpy(payload.lock_id, id, sizeof(*id));
 
 	ret = send_data(sock, &payload, sizeof(struct ilm_lock_payload), 0);
 	if (ret < 0)
@@ -361,9 +353,7 @@ int ilm_read_lvb(int sock, struct idm_lock_id *id, char *lvb, int lvb_len)
 
 	memset(&payload, 0, sizeof(struct ilm_lock_payload));
 	payload.magic = ILM_LOCK_MAGIC;
-	memcpy(payload.lock_id, &id->lv_uuid, sizeof(uuid_t));
-	memcpy(payload.lock_id + sizeof(uuid_t),
-	       &id->vg_uuid, sizeof(uuid_t));
+	memcpy(payload.lock_id, id, sizeof(*id));
 
 	ret = send_data(sock, &payload, sizeof(struct ilm_lock_payload), 0);
 	if (ret < 0)
@@ -451,9 +441,7 @@ int ilm_get_host_count(int sock, struct idm_lock_id *id,
 	payload.magic = ILM_LOCK_MAGIC;
 	payload.drive_num = op->drive_num;
 
-	memcpy(payload.lock_id, &id->lv_uuid, sizeof(uuid_t));
-	memcpy(payload.lock_id + sizeof(uuid_t),
-	       &id->vg_uuid, sizeof(uuid_t));
+	memcpy(payload.lock_id, id, sizeof(*id));
 
 	ret = send_data(sock, &payload, sizeof(struct ilm_lock_payload), 0);
 	if (ret < 0)
@@ -499,9 +487,7 @@ int ilm_get_mode(int sock, struct idm_lock_id *id,
 	payload.magic = ILM_LOCK_MAGIC;
 	payload.drive_num = op->drive_num;
 
-	memcpy(payload.lock_id, &id->lv_uuid, sizeof(uuid_t));
-	memcpy(payload.lock_id + sizeof(uuid_t),
-	       &id->vg_uuid, sizeof(uuid_t));
+	memcpy(payload.lock_id, id, sizeof(*id));
 
 	ret = send_data(sock, &payload, sizeof(struct ilm_lock_payload), 0);
 	if (ret < 0)
