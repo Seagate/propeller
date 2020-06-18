@@ -165,7 +165,7 @@ static struct ilm_lock *ilm_alloc(struct ilm_cmd *cmd,
 		*pos += ret;
 
 		if (lstat(path, &stats)) {
-			ilm_log_err("Fail to find drive path\n");
+			ilm_log_err("Fail to find drive path %s", path);
 			goto drive_fail;
 		}
 
@@ -225,11 +225,35 @@ static int ilm_free(struct ilm_lockspace *ls, struct ilm_lock *lock)
 	return 0;
 }
 
+static int ilm_id_write_format(const char *id, char *buffer, size_t size)
+{
+	int i, tot;
+
+	static const unsigned group_size[] = { 6, 4, 4, 4, 4, 4, 6 };
+
+	/* split into groups separated by dashes */
+	if (size < (32 + 6 + 1)) {
+		if (size > 0)
+			buffer[0] = '\0';
+		ilm_log_err("Couldn't write uuid, buffer too small.");
+		return -1;
+	}
+
+	for (i = 0, tot = 0; i < 7; i++) {
+		memcpy(buffer, id + tot, group_size[i]);
+		buffer += group_size[i];
+		tot += group_size[i];
+		*buffer++ = '-';
+	}
+
+	*--buffer = '\0';
+	return 0;
+}
+
 static void ilm_lock_dump(const char *str, struct ilm_lock *lock)
 {
 	int i;
-	uuid_t uuid;
-	char uuid_str[37];	/* uuid string is 36 chars + '\0' */
+	char uuid_str[39];	/* uuid string is 39 chars + '\0' */
 
 	ilm_log_dbg("Lock context in %s", str);
 	ilm_log_dbg("drive_num=%d", lock->drive_num);
@@ -237,15 +261,19 @@ static void ilm_lock_dump(const char *str, struct ilm_lock *lock)
 		ilm_log_dbg("drive_path[%d]=%s", i, lock->drive[i].path);
 	ilm_log_dbg("mode=%d", lock->mode);
 
-	memcpy(&uuid, lock->id, sizeof(uuid_t));
-	uuid_unparse(uuid, uuid_str);
-	uuid_str[36] = '\0';
-	ilm_log_dbg("lock ID (LV): %s", uuid_str);
+	ilm_log_array_dbg("lock ID", lock->id, 64);
 
-	memcpy(&uuid, lock->id + sizeof(uuid_t), sizeof(uuid_t));
-	uuid_unparse(uuid, uuid_str);
-	uuid_str[36] = '\0';
-	ilm_log_dbg("lock ID (VG): %s", uuid_str);
+	ilm_id_write_format(lock->id, uuid_str, sizeof(uuid_str));
+	if (strlen(uuid_str))
+		ilm_log_dbg("lock ID (VG): %s", uuid_str);
+	else
+		ilm_log_dbg("lock ID (VG): empty string");
+
+	ilm_id_write_format(lock->id + 32, uuid_str, sizeof(uuid_str));
+	if (strlen(uuid_str))
+		ilm_log_dbg("lock ID (LV): %s", uuid_str);
+	else
+		ilm_log_dbg("lock ID (LV): empty string");
 }
 
 int ilm_lock_acquire(struct ilm_cmd *cmd, struct ilm_lockspace *ls)
