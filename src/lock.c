@@ -94,23 +94,25 @@ static int ilm_sort_drives(struct ilm_lock *lock)
 		}
 	}
 
-	for (i = 1; i < drive_num; i++) {
+	for (i = 0; i < drive_num; ) {
 
 		matched = 0;
-		for (j = 0; j < i; j++) {
+		for (j = i + 1; j < drive_num; j++) {
 			if (!strcmp(lock->drive[i].path,
 				    lock->drive[j].path))
 				matched = 1;
 		}
 
-		if (!matched)
+		if (!matched) {
+			i++;
 			continue;
+		}
 
 		/* Find the duplicate item with prior items, free it */
 		free(lock->drive[i].path);
-		drive_num--;
 
-		for (j = i; j < drive_num; j++) {
+		for (j = i; j <= drive_num - 2; j++) {
+
 			/* Move ahead sequential items */
 			lock->drive[j].path = lock->drive[j+1].path;
 			memcpy(&lock->drive[j].uuid,
@@ -120,6 +122,8 @@ static int ilm_sort_drives(struct ilm_lock *lock)
 			lock->drive[j+1].path = NULL;
 			memset(&lock->drive[j+1].uuid, 0x0, sizeof(uuid_t));
 		}
+
+		drive_num--;
 	}
 
 	lock->drive_num = drive_num;
