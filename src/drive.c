@@ -10,6 +10,7 @@
 #include <blkid/blkid.h>
 #include <ctype.h>
 #include <dirent.h>
+#include <pthread.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -47,6 +48,75 @@ struct ilm_hw_drive_node {
 
 static struct list_head drive_list;
 static char blk_str[PATH_MAX];
+
+struct ilm_device_map {
+	struct list_head list;
+	char *dev_map;
+	char *sg_path;
+	uuid_t uuid;
+};
+
+static struct list_head dev_map_list = LIST_HEAD_INIT(dev_map_list);
+static int dev_map_num = 0;
+static pthread_mutex_t dev_map_mutex = PTHREAD_MUTEX_INITIALIZER;
+
+char *ilm_find_cached_device_mapping(char *dev_map, uuid_t *id)
+{
+	struct ilm_device_map *pos;
+	char *path;
+
+	if (!strstr(dev_map, "/dev/mapper"))
+		return NULL;
+
+	pthread_mutex_lock(&dev_map_mutex);
+
+	list_for_each_entry(pos, &dev_map_list, list) {
+		if (!strcmp(dev_map, pos->dev_map)) {
+			memcpy(id, &pos->uuid, sizeof(uuid_t));
+			path = strdup(pos->sg_path);
+			pthread_mutex_unlock(&dev_map_mutex);
+			return path;
+		}
+	}
+
+	pthread_mutex_unlock(&dev_map_mutex);
+	return NULL;
+}
+
+int ilm_add_cached_device_mapping(char *dev_map, char *sg_path, uuid_t *id)
+{
+	struct ilm_device_map *pos, *tmp;
+
+	pthread_mutex_lock(&dev_map_mutex);
+
+	list_for_each_entry(pos, &dev_map_list, list) {
+		if (!strcmp(dev_map, pos->dev_map)) {
+			/* Find existed cached item, bail out */
+			pthread_mutex_unlock(&dev_map_mutex);
+			return 0;
+		}
+	}
+
+	if (dev_map_num > 100) {
+		tmp = list_first_entry(&dev_map_list,
+				       struct ilm_device_map, list);
+		if (tmp) {
+			free(tmp->dev_map);
+			free(tmp->sg_path);
+			free(tmp);
+		}
+		dev_map_num--;
+	}
+
+	tmp = malloc(sizeof(struct ilm_device_map));
+	tmp->dev_map = strdup(dev_map);
+	tmp->sg_path = strdup(sg_path);
+	memcpy(&tmp->uuid, id, sizeof(uuid_t));
+	list_add_tail(&tmp->list, &dev_map_list);
+
+	pthread_mutex_unlock(&dev_map_mutex);
+	return 0;
+}
 
 int ilm_read_blk_uuid(char *dev, uuid_t *uuid)
 {

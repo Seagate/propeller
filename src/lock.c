@@ -169,6 +169,18 @@ static struct ilm_lock *ilm_alloc(struct ilm_cmd *cmd,
 
 		*pos += ret;
 
+		sg_path = ilm_find_cached_device_mapping(path, &id);
+		if (sg_path) {
+			ilm_log_err("Find cached device mapping %s->%s",
+				    path, sg_path);
+			lock->drive[copied].path = sg_path;
+			lock->drive[copied].index = copied;
+			memcpy(&lock->drive[copied].uuid, &id,
+			       sizeof(uuid_t));
+			copied++;
+			continue;
+		}
+
 		if (lstat(path, &stats)) {
 			ilm_log_err("Fail to find drive path %s", path);
 			failed++;
@@ -204,6 +216,8 @@ static struct ilm_lock *ilm_alloc(struct ilm_cmd *cmd,
 		lock->drive[copied].index = copied;
 		memcpy(&lock->drive[copied].uuid, &id, sizeof(uuid_t));
 		copied++;
+
+		ilm_add_cached_device_mapping(path, sg_path, &id);
 	}
 
 	lock->good_drive_num = copied;
