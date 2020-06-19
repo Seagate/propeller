@@ -386,17 +386,28 @@ char *ilm_scsi_convert_blk_name(char *blk_dev)
 	strncpy(tmp, blk_dev, sizeof(tmp));
 
 	if (strstr(tmp, "/dev/mapper")) {
+
 		snprintf(cmd, sizeof(cmd),
 			 "dmsetup deps -o devname %s", tmp);
 
-		if ((fp = popen(cmd, "r")) == NULL)
+		if ((fp = popen(cmd, "r")) == NULL) {
+			ilm_log_err("Fail to execute command %s", cmd);
 			return NULL;
+		}
 
-		if (fgets(buf, sizeof(buf), fp) == NULL)
+		if (fgets(buf, sizeof(buf), fp) == NULL) {
+			ilm_log_err("Fail to read command buffer %s", cmd);
 			return NULL;
+		}
+
+		pclose(fp);
 
 		sscanf(buf, "%u dependencies  : (%[a-z])", &num, tmp);
-		pclose(fp);
+		if (num != 1) {
+			ilm_log_dbg("Fail to parse device mapper %s", tmp);
+			return NULL;
+		}
+
 		ilm_log_dbg("num %d dev %s", num, tmp);
 	}
 
@@ -414,7 +425,7 @@ char *ilm_scsi_convert_blk_name(char *blk_dev)
 	blk_name = malloc(strlen(base_name) + 1);
 	strncpy(blk_name, base_name, strlen(base_name) + 1);
 
-	ilm_log_dbg("blk_name %s", blk_dev);
+	ilm_log_dbg("blk_name %s", blk_name);
 	return blk_name;
 }
 
