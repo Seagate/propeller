@@ -39,7 +39,9 @@ struct ilm_lock {
 	int timeout;
 	uint64_t last_renewal_success;
 
-	int drive_num;
+	int fail_drive_num;
+	int good_drive_num;
+	int total_drive_num;
 	struct ilm_drive drive[ILM_DRIVE_MAX_NUM];
 
 	char vb[IDM_VALUE_LEN];
