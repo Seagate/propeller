@@ -4,6 +4,9 @@
 #include <stdint.h>
 #include <uuid/uuid.h>
 
+char *ilm_find_cached_device_mapping(char *dev_map, uuid_t *id);
+int ilm_add_cached_device_mapping(char *dev_map, char *sg_path, uuid_t *id);
+
 int ilm_read_blk_uuid(char *dev, uuid_t *uuid);
 char *ilm_convert_sg(char *blk_dev);
 int ilm_read_parttable_id(char *dev, uuid_t *uuid);
