@@ -72,6 +72,8 @@ char *ilm_find_cached_device_mapping(char *dev_map, uuid_t *id)
 
 	list_for_each_entry(pos, &dev_map_list, list) {
 		if (!strcmp(dev_map, pos->dev_map)) {
+			ilm_log_dbg("Find cached device mapping %s->%s",
+				    dev_map, pos->sg_path);
 			memcpy(id, &pos->uuid, sizeof(uuid_t));
 			path = strdup(pos->sg_path);
 			pthread_mutex_unlock(&dev_map_mutex);
@@ -91,6 +93,17 @@ int ilm_add_cached_device_mapping(char *dev_map, char *sg_path, uuid_t *id)
 
 	list_for_each_entry(pos, &dev_map_list, list) {
 		if (!strcmp(dev_map, pos->dev_map)) {
+			if (strcmp(sg_path, pos->sg_path)) {
+				ilm_log_warn("Find stale cached device mapping old=%s new=%s",
+					     pos->sg_path, sg_path);
+				/* Free the old sg path */
+				free(pos->sg_path);
+
+				/* Update for new found device mapping */
+				pos->sg_path = strdup(sg_path);
+				memcpy(&pos->uuid, id, sizeof(uuid_t));
+			}
+
 			/* Find existed cached item, bail out */
 			pthread_mutex_unlock(&dev_map_mutex);
 			return 0;
