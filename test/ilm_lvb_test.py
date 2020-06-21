@@ -10,8 +10,15 @@ import pytest
 
 import ilm
 
-DRIVE1 = "/dev/sda2"
-DRIVE2 = "/dev/sdb2"
+DRIVE1 = "/dev/sdb2"
+DRIVE2 = "/dev/sdd2"
+
+LOCK1_VG_UUID = "00000000000000000000000000000001"
+LOCK1_LV_UUID = "0123456789abcdef0123456789abcdef"
+
+HOST1 = "00000000000000000000000000000000"
+HOST2 = "00000000000000000000000000000001"
+HOST3 = "00000000000000000000000000000002"
 
 def test_lock__lvb_read(ilm_daemon):
     ret, s = ilm.ilm_connect()
@@ -19,8 +26,8 @@ def test_lock__lvb_read(ilm_daemon):
     assert s > 0
 
     lock_id = ilm.idm_lock_id()
-    lock_id.set_vg_uuid("0000000000000001")
-    lock_id.set_lv_uuid("0123456789abcdef")
+    lock_id.set_vg_uuid(LOCK1_VG_UUID)
+    lock_id.set_lv_uuid(LOCK1_LV_UUID)
 
     lock_op = ilm.idm_lock_op()
     lock_op.mode = ilm.IDM_MODE_EXCLUSIVE
@@ -56,19 +63,19 @@ def test_lock__lvb_read_two_hosts(ilm_daemon):
     assert ret == 0
     assert s1 > 0
 
-    host_id = "00000000000000000000000000000000"
+    host_id = HOST1
     ret = ilm.ilm_set_host_id(s1, host_id, 32)
 
     ret, s2 = ilm.ilm_connect()
     assert ret == 0
     assert s2 > 0
 
-    host_id = "11111111111111111111111111111111"
+    host_id = HOST2
     ret = ilm.ilm_set_host_id(s2, host_id, 32)
 
     lock_id = ilm.idm_lock_id()
-    lock_id.set_vg_uuid("0000000000000001")
-    lock_id.set_lv_uuid("0123456789abcdef")
+    lock_id.set_vg_uuid(LOCK1_VG_UUID)
+    lock_id.set_lv_uuid(LOCK1_LV_UUID)
 
     lock_op = ilm.idm_lock_op()
     lock_op.mode = ilm.IDM_MODE_EXCLUSIVE
@@ -115,7 +122,7 @@ def test_lock__lvb_read_two_hosts(ilm_daemon):
     assert ret == 0
     assert s1 > 0
 
-    host_id = "00000000000000000000000000000000"
+    host_id = HOST1
     ret = ilm.ilm_set_host_id(s1, host_id, 32)
 
     ret = ilm.ilm_lock(s1, lock_id, lock_op)
@@ -168,8 +175,8 @@ def test_lock__lvb_write(ilm_daemon):
     assert s > 0
 
     lock_id = ilm.idm_lock_id()
-    lock_id.set_vg_uuid("0000000000000001")
-    lock_id.set_lv_uuid("0123456789abcdef")
+    lock_id.set_vg_uuid(LOCK1_VG_UUID)
+    lock_id.set_lv_uuid(LOCK1_LV_UUID)
 
     lock_op = ilm.idm_lock_op()
     lock_op.mode = ilm.IDM_MODE_EXCLUSIVE
@@ -212,19 +219,19 @@ def test_lock__lvb_write_two_hosts(ilm_daemon):
     assert ret == 0
     assert s1 > 0
 
-    host_id = "00000000000000000000000000000000"
+    host_id = HOST1
     ret = ilm.ilm_set_host_id(s1, host_id, 32)
 
     ret, s2 = ilm.ilm_connect()
     assert ret == 0
     assert s2 > 0
 
-    host_id = "11111111111111111111111111111111"
+    host_id = HOST2
     ret = ilm.ilm_set_host_id(s2, host_id, 32)
 
     lock_id = ilm.idm_lock_id()
-    lock_id.set_vg_uuid("0000000000000001")
-    lock_id.set_lv_uuid("0123456789abcdef")
+    lock_id.set_vg_uuid(LOCK1_VG_UUID)
+    lock_id.set_lv_uuid(LOCK1_LV_UUID)
 
     lock_op = ilm.idm_lock_op()
     lock_op.mode = ilm.IDM_MODE_EXCLUSIVE
@@ -315,19 +322,19 @@ def test_lock__lvb_read_timeout(ilm_daemon):
     assert ret == 0
     assert s1 > 0
 
-    host_id = "00000000000000000000000000000000"
+    host_id = HOST1
     ret = ilm.ilm_set_host_id(s1, host_id, 32)
 
     ret, s2 = ilm.ilm_connect()
     assert ret == 0
     assert s2 > 0
 
-    host_id = "11111111111111111111111111111111"
+    host_id = HOST2
     ret = ilm.ilm_set_host_id(s2, host_id, 32)
 
     lock_id = ilm.idm_lock_id()
-    lock_id.set_vg_uuid("0000000000000001")
-    lock_id.set_lv_uuid("0123456789abcdef")
+    lock_id.set_vg_uuid(LOCK1_VG_UUID)
+    lock_id.set_lv_uuid(LOCK1_LV_UUID)
 
     lock_op = ilm.idm_lock_op()
     lock_op.mode = ilm.IDM_MODE_EXCLUSIVE

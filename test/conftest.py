@@ -9,13 +9,13 @@ from . import ilm_util
 import idm_scsi
 
 DRIVE1 = "/dev/sg2"
-DRIVE2 = "/dev/sg3"
-DRIVE3 = "/dev/sg4"
-DRIVE4 = "/dev/sg5"
-DRIVE5 = "/dev/sg6"
-DRIVE6 = "/dev/sg7"
-DRIVE7 = "/dev/sg8"
-DRIVE8 = "/dev/sg9"
+DRIVE2 = "/dev/sg4"
+DRIVE3 = "/dev/sg5"
+DRIVE4 = "/dev/sg7"
+DRIVE5 = "/dev/sg10"
+DRIVE6 = "/dev/sg11"
+DRIVE7 = "/dev/sg13"
+DRIVE8 = "/dev/sg14"
 
 @pytest.yield_fixture(scope="session")
 def ilm_daemon():

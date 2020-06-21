@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <uuid/uuid.h>
+#include <string.h>
 
 #include <ilm.h>
 
@@ -18,8 +19,8 @@ int main(void)
 		exit(-1);
 	}
 
-	uuid_generate(lock_id.vg_uuid);
-	uuid_generate(lock_id.lv_uuid);
+	memset(lock_id.vg_uuid, 0x1, 32);
+	memset(lock_id.lv_uuid, 0x2, 32);
 
 	lock_op.mode = 1;
 	lock_op.drive_num = 2;

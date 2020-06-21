@@ -10,10 +10,17 @@ import pytest
 
 import ilm
 
-DRIVE1 = "/dev/sda2"
-DRIVE2 = "/dev/sdb2"
-DRIVE3 = "/dev/sdc2"
-DRIVE4 = "/dev/sdd2"
+DRIVE1 = "/dev/sdb2"
+DRIVE2 = "/dev/sdd2"
+DRIVE3 = "/dev/sde2"
+DRIVE4 = "/dev/sdg2"
+
+LOCK1_VG_UUID = "00000000000000000000000000000001"
+LOCK1_LV_UUID = "0123456789abcdef0123456789abcdef"
+
+HOST1 = "00000000000000000000000000000000"
+HOST2 = "00000000000000000000000000000001"
+HOST3 = "00000000000000000000000000000002"
 
 def test_inject_fault__2_drives_lock(ilm_daemon):
     ret, s = ilm.ilm_connect()
@@ -21,8 +28,8 @@ def test_inject_fault__2_drives_lock(ilm_daemon):
     assert s > 0
 
     lock_id = ilm.idm_lock_id()
-    lock_id.set_vg_uuid("0000000000000001")
-    lock_id.set_lv_uuid("0123456789abcdef")
+    lock_id.set_vg_uuid(LOCK1_VG_UUID)
+    lock_id.set_lv_uuid(LOCK1_LV_UUID)
 
     lock_op = ilm.idm_lock_op()
     lock_op.mode = ilm.IDM_MODE_SHAREABLE
@@ -61,8 +68,8 @@ def test_inject_fault__3_drives_lock(ilm_daemon):
     assert s > 0
 
     lock_id = ilm.idm_lock_id()
-    lock_id.set_vg_uuid("0000000000000001")
-    lock_id.set_lv_uuid("0123456789abcdef")
+    lock_id.set_vg_uuid(LOCK1_VG_UUID)
+    lock_id.set_lv_uuid(LOCK1_LV_UUID)
 
     lock_op = ilm.idm_lock_op()
     lock_op.mode = ilm.IDM_MODE_SHAREABLE
@@ -123,8 +130,8 @@ def test_inject_fault__4_drives_lock(ilm_daemon):
     assert s > 0
 
     lock_id = ilm.idm_lock_id()
-    lock_id.set_vg_uuid("0000000000000001")
-    lock_id.set_lv_uuid("0123456789abcdef")
+    lock_id.set_vg_uuid(LOCK1_VG_UUID)
+    lock_id.set_lv_uuid(LOCK1_LV_UUID)
 
     lock_op = ilm.idm_lock_op()
     lock_op.mode = ilm.IDM_MODE_SHAREABLE
@@ -180,8 +187,8 @@ def test_inject_fault__2_drives_unlock(ilm_daemon):
     assert s > 0
 
     lock_id = ilm.idm_lock_id()
-    lock_id.set_vg_uuid("0000000000000001")
-    lock_id.set_lv_uuid("0123456789abcdef")
+    lock_id.set_vg_uuid(LOCK1_VG_UUID)
+    lock_id.set_lv_uuid(LOCK1_LV_UUID)
 
     lock_op = ilm.idm_lock_op()
     lock_op.mode = ilm.IDM_MODE_SHAREABLE
@@ -218,8 +225,8 @@ def test_inject_fault__3_drives_unlock(ilm_daemon):
     assert s > 0
 
     lock_id = ilm.idm_lock_id()
-    lock_id.set_vg_uuid("0000000000000001")
-    lock_id.set_lv_uuid("0123456789abcdef")
+    lock_id.set_vg_uuid(LOCK1_VG_UUID)
+    lock_id.set_lv_uuid(LOCK1_LV_UUID)
 
     lock_op = ilm.idm_lock_op()
     lock_op.mode = ilm.IDM_MODE_SHAREABLE
@@ -268,8 +275,8 @@ def test_inject_fault__4_drives_unlock(ilm_daemon):
     assert s > 0
 
     lock_id = ilm.idm_lock_id()
-    lock_id.set_vg_uuid("0000000000000001")
-    lock_id.set_lv_uuid("0123456789abcdef")
+    lock_id.set_vg_uuid(LOCK1_VG_UUID)
+    lock_id.set_lv_uuid(LOCK1_LV_UUID)
 
     lock_op = ilm.idm_lock_op()
     lock_op.mode = ilm.IDM_MODE_SHAREABLE
@@ -325,8 +332,8 @@ def test_inject_fault__2_drives_convert(ilm_daemon):
     assert s > 0
 
     lock_id = ilm.idm_lock_id()
-    lock_id.set_vg_uuid("0000000000000001")
-    lock_id.set_lv_uuid("0123456789abcdef")
+    lock_id.set_vg_uuid(LOCK1_VG_UUID)
+    lock_id.set_lv_uuid(LOCK1_LV_UUID)
 
     lock_op = ilm.idm_lock_op()
     lock_op.mode = ilm.IDM_MODE_SHAREABLE
@@ -368,8 +375,8 @@ def test_inject_fault__3_drives_convert(ilm_daemon):
     assert s > 0
 
     lock_id = ilm.idm_lock_id()
-    lock_id.set_vg_uuid("0000000000000001")
-    lock_id.set_lv_uuid("0123456789abcdef")
+    lock_id.set_vg_uuid(LOCK1_VG_UUID)
+    lock_id.set_lv_uuid(LOCK1_LV_UUID)
 
     lock_op = ilm.idm_lock_op()
     lock_op.mode = ilm.IDM_MODE_SHAREABLE
@@ -412,8 +419,8 @@ def test_inject_fault__4_drives_convert(ilm_daemon):
     assert s > 0
 
     lock_id = ilm.idm_lock_id()
-    lock_id.set_vg_uuid("0000000000000001")
-    lock_id.set_lv_uuid("0123456789abcdef")
+    lock_id.set_vg_uuid(LOCK1_VG_UUID)
+    lock_id.set_lv_uuid(LOCK1_LV_UUID)
 
     lock_op = ilm.idm_lock_op()
     lock_op.mode = ilm.IDM_MODE_SHAREABLE
@@ -457,8 +464,8 @@ def test_inject_fault_100_percent__1_drive_renew(ilm_daemon):
     assert s > 0
 
     lock_id = ilm.idm_lock_id()
-    lock_id.set_vg_uuid("0000000000000001")
-    lock_id.set_lv_uuid("0123456789abcdef")
+    lock_id.set_vg_uuid(LOCK1_VG_UUID)
+    lock_id.set_lv_uuid(LOCK1_LV_UUID)
 
     lock_op = ilm.idm_lock_op()
     lock_op.mode = ilm.IDM_MODE_SHAREABLE
@@ -493,8 +500,8 @@ def test_inject_fault_50_percent__1_drive_renew(ilm_daemon):
     assert s > 0
 
     lock_id = ilm.idm_lock_id()
-    lock_id.set_vg_uuid("0000000000000001")
-    lock_id.set_lv_uuid("0123456789abcdef")
+    lock_id.set_vg_uuid(LOCK1_VG_UUID)
+    lock_id.set_lv_uuid(LOCK1_LV_UUID)
 
     lock_op = ilm.idm_lock_op()
     lock_op.mode = ilm.IDM_MODE_SHAREABLE
@@ -529,8 +536,8 @@ def test_inject_fault_10_percent__1_drive_renew(ilm_daemon):
     assert s > 0
 
     lock_id = ilm.idm_lock_id()
-    lock_id.set_vg_uuid("0000000000000001")
-    lock_id.set_lv_uuid("0123456789abcdef")
+    lock_id.set_vg_uuid(LOCK1_VG_UUID)
+    lock_id.set_lv_uuid(LOCK1_LV_UUID)
 
     lock_op = ilm.idm_lock_op()
     lock_op.mode = ilm.IDM_MODE_SHAREABLE
@@ -564,8 +571,8 @@ def test_inject_fault__1_drive_renew(ilm_daemon):
     assert s > 0
 
     lock_id = ilm.idm_lock_id()
-    lock_id.set_vg_uuid("0000000000000001")
-    lock_id.set_lv_uuid("0123456789abcdef")
+    lock_id.set_vg_uuid(LOCK1_VG_UUID)
+    lock_id.set_lv_uuid(LOCK1_LV_UUID)
 
     lock_op = ilm.idm_lock_op()
     lock_op.mode = ilm.IDM_MODE_SHAREABLE
@@ -644,8 +651,8 @@ def test_inject_fault_100_percent__2_drives_renew(ilm_daemon):
     assert s > 0
 
     lock_id = ilm.idm_lock_id()
-    lock_id.set_vg_uuid("0000000000000001")
-    lock_id.set_lv_uuid("0123456789abcdef")
+    lock_id.set_vg_uuid(LOCK1_VG_UUID)
+    lock_id.set_lv_uuid(LOCK1_LV_UUID)
 
     lock_op = ilm.idm_lock_op()
     lock_op.mode = ilm.IDM_MODE_SHAREABLE
@@ -681,8 +688,8 @@ def test_inject_fault_50_percent__2_drives_renew(ilm_daemon):
     assert s > 0
 
     lock_id = ilm.idm_lock_id()
-    lock_id.set_vg_uuid("0000000000000001")
-    lock_id.set_lv_uuid("0123456789abcdef")
+    lock_id.set_vg_uuid(LOCK1_VG_UUID)
+    lock_id.set_lv_uuid(LOCK1_LV_UUID)
 
     lock_op = ilm.idm_lock_op()
     lock_op.mode = ilm.IDM_MODE_SHAREABLE
@@ -718,8 +725,8 @@ def test_inject_fault_10_percent__2_drives_renew(ilm_daemon):
     assert s > 0
 
     lock_id = ilm.idm_lock_id()
-    lock_id.set_vg_uuid("0000000000000001")
-    lock_id.set_lv_uuid("0123456789abcdef")
+    lock_id.set_vg_uuid(LOCK1_VG_UUID)
+    lock_id.set_lv_uuid(LOCK1_LV_UUID)
 
     lock_op = ilm.idm_lock_op()
     lock_op.mode = ilm.IDM_MODE_SHAREABLE
@@ -754,8 +761,8 @@ def test_inject_fault__2_drives_renew(ilm_daemon):
     assert s > 0
 
     lock_id = ilm.idm_lock_id()
-    lock_id.set_vg_uuid("0000000000000001")
-    lock_id.set_lv_uuid("0123456789abcdef")
+    lock_id.set_vg_uuid(LOCK1_VG_UUID)
+    lock_id.set_lv_uuid(LOCK1_LV_UUID)
 
     lock_op = ilm.idm_lock_op()
     lock_op.mode = ilm.IDM_MODE_SHAREABLE
@@ -835,8 +842,8 @@ def test_inject_fault_100_percent__3_drives_renew(ilm_daemon):
     assert s > 0
 
     lock_id = ilm.idm_lock_id()
-    lock_id.set_vg_uuid("0000000000000001")
-    lock_id.set_lv_uuid("0123456789abcdef")
+    lock_id.set_vg_uuid(LOCK1_VG_UUID)
+    lock_id.set_lv_uuid(LOCK1_LV_UUID)
 
     lock_op = ilm.idm_lock_op()
     lock_op.mode = ilm.IDM_MODE_SHAREABLE
@@ -873,8 +880,8 @@ def test_inject_fault_50_percent__3_drives_renew(ilm_daemon):
     assert s > 0
 
     lock_id = ilm.idm_lock_id()
-    lock_id.set_vg_uuid("0000000000000001")
-    lock_id.set_lv_uuid("0123456789abcdef")
+    lock_id.set_vg_uuid(LOCK1_VG_UUID)
+    lock_id.set_lv_uuid(LOCK1_LV_UUID)
 
     lock_op = ilm.idm_lock_op()
     lock_op.mode = ilm.IDM_MODE_SHAREABLE
@@ -911,8 +918,8 @@ def test_inject_fault_10_percent__3_drives_renew(ilm_daemon):
     assert s > 0
 
     lock_id = ilm.idm_lock_id()
-    lock_id.set_vg_uuid("0000000000000001")
-    lock_id.set_lv_uuid("0123456789abcdef")
+    lock_id.set_vg_uuid(LOCK1_VG_UUID)
+    lock_id.set_lv_uuid(LOCK1_LV_UUID)
 
     lock_op = ilm.idm_lock_op()
     lock_op.mode = ilm.IDM_MODE_SHAREABLE
@@ -948,8 +955,8 @@ def test_inject_fault__3_drives_renew(ilm_daemon):
     assert s > 0
 
     lock_id = ilm.idm_lock_id()
-    lock_id.set_vg_uuid("0000000000000001")
-    lock_id.set_lv_uuid("0123456789abcdef")
+    lock_id.set_vg_uuid(LOCK1_VG_UUID)
+    lock_id.set_lv_uuid(LOCK1_LV_UUID)
 
     lock_op = ilm.idm_lock_op()
     lock_op.mode = ilm.IDM_MODE_SHAREABLE
@@ -1030,8 +1037,8 @@ def test_inject_fault_100_percent__4_drives_renew(ilm_daemon):
     assert s > 0
 
     lock_id = ilm.idm_lock_id()
-    lock_id.set_vg_uuid("0000000000000001")
-    lock_id.set_lv_uuid("0123456789abcdef")
+    lock_id.set_vg_uuid(LOCK1_VG_UUID)
+    lock_id.set_lv_uuid(LOCK1_LV_UUID)
 
     lock_op = ilm.idm_lock_op()
     lock_op.mode = ilm.IDM_MODE_SHAREABLE
@@ -1069,8 +1076,8 @@ def test_inject_fault_50_percent__4_drives_renew(ilm_daemon):
     assert s > 0
 
     lock_id = ilm.idm_lock_id()
-    lock_id.set_vg_uuid("0000000000000001")
-    lock_id.set_lv_uuid("0123456789abcdef")
+    lock_id.set_vg_uuid(LOCK1_VG_UUID)
+    lock_id.set_lv_uuid(LOCK1_LV_UUID)
 
     lock_op = ilm.idm_lock_op()
     lock_op.mode = ilm.IDM_MODE_SHAREABLE
@@ -1108,8 +1115,8 @@ def test_inject_fault_10_percent__4_drives_renew(ilm_daemon):
     assert s > 0
 
     lock_id = ilm.idm_lock_id()
-    lock_id.set_vg_uuid("0000000000000001")
-    lock_id.set_lv_uuid("0123456789abcdef")
+    lock_id.set_vg_uuid(LOCK1_VG_UUID)
+    lock_id.set_lv_uuid(LOCK1_LV_UUID)
 
     lock_op = ilm.idm_lock_op()
     lock_op.mode = ilm.IDM_MODE_SHAREABLE
@@ -1146,8 +1153,8 @@ def test_inject_fault__4_drives_renew(ilm_daemon):
     assert s > 0
 
     lock_id = ilm.idm_lock_id()
-    lock_id.set_vg_uuid("0000000000000001")
-    lock_id.set_lv_uuid("0123456789abcdef")
+    lock_id.set_vg_uuid(LOCK1_VG_UUID)
+    lock_id.set_lv_uuid(LOCK1_LV_UUID)
 
     lock_op = ilm.idm_lock_op()
     lock_op.mode = ilm.IDM_MODE_SHAREABLE
