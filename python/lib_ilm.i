@@ -16,8 +16,8 @@
 #define ILM_DRIVE_MAX_NUM       32
 
 struct idm_lock_id {
-        char vg_uuid[16];
-        char lv_uuid[16];
+        char vg_uuid[32];
+        char lv_uuid[32];
 };
 
 struct idm_lock_op {
@@ -54,8 +54,8 @@ int ilm_inject_fault(int sock, int percentage);
 #define IDM_MODE_SHAREABLE      2
 
 struct idm_lock_id {
-        char vg_uuid[16];
-        char lv_uuid[16];
+        char vg_uuid[32];
+        char lv_uuid[32];
 };
 
 struct idm_lock_op {
@@ -92,10 +92,10 @@ int ilm_inject_fault(int sock, int percentage);
 
 %extend idm_lock_id {
         void set_vg_uuid(char *id) {
-                memcpy($self->vg_uuid, id, 16);
+                memcpy($self->vg_uuid, id, 32);
         }
 
         void set_lv_uuid(char *id) {
-                memcpy($self->lv_uuid, id, 16);
+                memcpy($self->lv_uuid, id, 32);
         }
 }
