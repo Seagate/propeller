@@ -5,16 +5,17 @@
 #include <time.h>
 #include <uuid/uuid.h>
 #include <unistd.h>
+#include <string.h>
 
 #include <ilm.h>
 
 struct idm_lock_id lock_id;
 int need_exit = 0;
 
-#define DRIVE1	"/dev/sda2"
-#define DRIVE2	"/dev/sdb2"
-#define DRIVE3	"/dev/sdc2"
-#define DRIVE4	"/dev/sdd2"
+#define DRIVE1	"/dev/sdb2"
+#define DRIVE2	"/dev/sdd2"
+#define DRIVE3	"/dev/sde2"
+#define DRIVE4	"/dev/sdg2"
 
 static void *test_thread(void *data)
 {
@@ -96,8 +97,8 @@ int main(void)
 	int arg[4];
 	int i;
 
-	uuid_generate(lock_id.vg_uuid);
-	uuid_generate(lock_id.lv_uuid);
+	memset(lock_id.vg_uuid, 0x1, 32);
+	memset(lock_id.lv_uuid, 0x2, 32);
 
 	for (i = 0; i < 4; i++) {
 		arg[i] = i;

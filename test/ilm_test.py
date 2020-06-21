@@ -10,8 +10,15 @@ import pytest
 
 import ilm
 
-DRIVE1 = "/dev/sda2"
-DRIVE2 = "/dev/sdb2"
+DRIVE1 = "/dev/sdb2"
+DRIVE2 = "/dev/sdd2"
+
+LOCK1_VG_UUID = "00000000000000000000000000000001"
+LOCK1_LV_UUID = "0123456789abcdef0123456789abcdef"
+
+HOST1 = "00000000000000000000000000000000"
+HOST2 = "00000000000000000000000000000001"
+HOST3 = "00000000000000000000000000000002"
 
 def test_lockspace(ilm_daemon):
     ret, s = ilm.ilm_connect()
@@ -39,8 +46,8 @@ def test_lock__shareable_smoke_test(ilm_daemon):
     assert s > 0
 
     lock_id = ilm.idm_lock_id()
-    lock_id.set_vg_uuid("0000000000000001")
-    lock_id.set_lv_uuid("0123456789abcdef")
+    lock_id.set_vg_uuid(LOCK1_VG_UUID)
+    lock_id.set_lv_uuid(LOCK1_LV_UUID)
 
     lock_op = ilm.idm_lock_op()
     lock_op.mode = ilm.IDM_MODE_SHAREABLE
@@ -64,8 +71,8 @@ def test_lock__shareable_100_times(ilm_daemon):
     assert s > 0
 
     lock_id = ilm.idm_lock_id()
-    lock_id.set_vg_uuid("0000000000000001")
-    lock_id.set_lv_uuid("0123456789abcdef")
+    lock_id.set_vg_uuid(LOCK1_VG_UUID)
+    lock_id.set_lv_uuid(LOCK1_LV_UUID)
 
     for i in range(100):
         lock_op = ilm.idm_lock_op()
@@ -90,8 +97,8 @@ def test_lock__exclusive_smoke_test(ilm_daemon):
     assert s > 0
 
     lock_id = ilm.idm_lock_id()
-    lock_id.set_vg_uuid("0000000000000001")
-    lock_id.set_lv_uuid("0123456789abcdef")
+    lock_id.set_vg_uuid(LOCK1_VG_UUID)
+    lock_id.set_lv_uuid(LOCK1_LV_UUID)
 
     lock_op = ilm.idm_lock_op()
     lock_op.mode = ilm.IDM_MODE_EXCLUSIVE
@@ -115,8 +122,8 @@ def test_lock__exclusive_100_times(ilm_daemon):
     assert s > 0
 
     lock_id = ilm.idm_lock_id()
-    lock_id.set_vg_uuid("0000000000000001")
-    lock_id.set_lv_uuid("0123456789abcdef")
+    lock_id.set_vg_uuid(LOCK1_VG_UUID)
+    lock_id.set_lv_uuid(LOCK1_LV_UUID)
 
     for i in range(100):
         lock_op = ilm.idm_lock_op()
@@ -141,8 +148,8 @@ def test_lock__wrong_mode(ilm_daemon):
     assert s > 0
 
     lock_id = ilm.idm_lock_id()
-    lock_id.set_vg_uuid("0000000000000001")
-    lock_id.set_lv_uuid("0123456789abcdef")
+    lock_id.set_vg_uuid(LOCK1_VG_UUID)
+    lock_id.set_lv_uuid(LOCK1_LV_UUID)
 
     lock_op = ilm.idm_lock_op()
     lock_op.mode = 0
@@ -163,8 +170,8 @@ def test_lock__one_host_exclusive_twice(ilm_daemon):
     assert s > 0
 
     lock_id = ilm.idm_lock_id()
-    lock_id.set_vg_uuid("0000000000000001")
-    lock_id.set_lv_uuid("0123456789abcdef")
+    lock_id.set_vg_uuid(LOCK1_VG_UUID)
+    lock_id.set_lv_uuid(LOCK1_LV_UUID)
 
     lock_op = ilm.idm_lock_op()
     lock_op.mode = ilm.IDM_MODE_EXCLUSIVE
@@ -191,8 +198,8 @@ def test_lock__one_host_shareable_twice(ilm_daemon):
     assert s > 0
 
     lock_id = ilm.idm_lock_id()
-    lock_id.set_vg_uuid("0000000000000001")
-    lock_id.set_lv_uuid("0123456789abcdef")
+    lock_id.set_vg_uuid(LOCK1_VG_UUID)
+    lock_id.set_lv_uuid(LOCK1_LV_UUID)
 
     lock_op = ilm.idm_lock_op()
     lock_op.mode = ilm.IDM_MODE_SHAREABLE
@@ -219,8 +226,8 @@ def test_lock__one_host_release_twice(ilm_daemon):
     assert s > 0
 
     lock_id = ilm.idm_lock_id()
-    lock_id.set_vg_uuid("0000000000000001")
-    lock_id.set_lv_uuid("0123456789abcdef")
+    lock_id.set_vg_uuid(LOCK1_VG_UUID)
+    lock_id.set_lv_uuid(LOCK1_LV_UUID)
 
     lock_op = ilm.idm_lock_op()
     lock_op.mode = ilm.IDM_MODE_SHAREABLE
@@ -246,19 +253,19 @@ def test_lock__two_hosts_exclusive_success_exclusive_fail(ilm_daemon):
     assert ret == 0
     assert s1 > 0
 
-    host_id = "00000000000000000000000000000000"
+    host_id = HOST1
     ret = ilm.ilm_set_host_id(s1, host_id, 32)
 
     ret, s2 = ilm.ilm_connect()
     assert ret == 0
     assert s2 > 0
 
-    host_id = "11111111111111111111111111111111"
+    host_id = HOST2
     ret = ilm.ilm_set_host_id(s2, host_id, 32)
 
     lock_id = ilm.idm_lock_id()
-    lock_id.set_vg_uuid("0000000000000001")
-    lock_id.set_lv_uuid("0123456789abcdef")
+    lock_id.set_vg_uuid(LOCK1_VG_UUID)
+    lock_id.set_lv_uuid(LOCK1_LV_UUID)
 
     lock_op = ilm.idm_lock_op()
     lock_op.mode = ilm.IDM_MODE_EXCLUSIVE
@@ -288,19 +295,19 @@ def test_lock__two_hosts_shareable_success_shareable_success(ilm_daemon):
     assert ret == 0
     assert s1 > 0
 
-    host_id = "00000000000000000000000000000000"
+    host_id = HOST1
     ret = ilm.ilm_set_host_id(s1, host_id, 32)
 
     ret, s2 = ilm.ilm_connect()
     assert ret == 0
     assert s2 > 0
 
-    host_id = "11111111111111111111111111111111"
+    host_id = HOST2
     ret = ilm.ilm_set_host_id(s2, host_id, 32)
 
     lock_id = ilm.idm_lock_id()
-    lock_id.set_vg_uuid("0000000000000001")
-    lock_id.set_lv_uuid("0123456789abcdef")
+    lock_id.set_vg_uuid(LOCK1_VG_UUID)
+    lock_id.set_lv_uuid(LOCK1_LV_UUID)
 
     lock_op = ilm.idm_lock_op()
     lock_op.mode = ilm.IDM_MODE_SHAREABLE
@@ -332,19 +339,19 @@ def test_lock__two_hosts_shareable_success_exclusive_fail(ilm_daemon):
     assert ret == 0
     assert s1 > 0
 
-    host_id = "00000000000000000000000000000000"
+    host_id = HOST1
     ret = ilm.ilm_set_host_id(s1, host_id, 32)
 
     ret, s2 = ilm.ilm_connect()
     assert ret == 0
     assert s2 > 0
 
-    host_id = "11111111111111111111111111111111"
+    host_id = HOST2
     ret = ilm.ilm_set_host_id(s2, host_id, 32)
 
     lock_id = ilm.idm_lock_id()
-    lock_id.set_vg_uuid("0000000000000001")
-    lock_id.set_lv_uuid("0123456789abcdef")
+    lock_id.set_vg_uuid(LOCK1_VG_UUID)
+    lock_id.set_lv_uuid(LOCK1_LV_UUID)
 
     lock_op = ilm.idm_lock_op()
     lock_op.mode = ilm.IDM_MODE_SHAREABLE
@@ -383,19 +390,19 @@ def test_lock__two_hosts_exclusive_success_shareable_fail(ilm_daemon):
     assert ret == 0
     assert s1 > 0
 
-    host_id = "00000000000000000000000000000000"
+    host_id = HOST1
     ret = ilm.ilm_set_host_id(s1, host_id, 32)
 
     ret, s2 = ilm.ilm_connect()
     assert ret == 0
     assert s2 > 0
 
-    host_id = "11111111111111111111111111111111"
+    host_id = HOST2
     ret = ilm.ilm_set_host_id(s2, host_id, 32)
 
     lock_id = ilm.idm_lock_id()
-    lock_id.set_vg_uuid("0000000000000001")
-    lock_id.set_lv_uuid("0123456789abcdef")
+    lock_id.set_vg_uuid(LOCK1_VG_UUID)
+    lock_id.set_lv_uuid(LOCK1_LV_UUID)
 
     lock_op = ilm.idm_lock_op()
     lock_op.mode = ilm.IDM_MODE_EXCLUSIVE
@@ -434,19 +441,19 @@ def test_lock__two_hosts_exclusive_wrong_release_ahead(ilm_daemon):
     assert ret == 0
     assert s1 > 0
 
-    host_id = "00000000000000000000000000000000"
+    host_id = HOST1
     ret = ilm.ilm_set_host_id(s1, host_id, 32)
 
     ret, s2 = ilm.ilm_connect()
     assert ret == 0
     assert s2 > 0
 
-    host_id = "11111111111111111111111111111111"
+    host_id = HOST2
     ret = ilm.ilm_set_host_id(s2, host_id, 32)
 
     lock_id = ilm.idm_lock_id()
-    lock_id.set_vg_uuid("0000000000000001")
-    lock_id.set_lv_uuid("0123456789abcdef")
+    lock_id.set_vg_uuid(LOCK1_VG_UUID)
+    lock_id.set_lv_uuid(LOCK1_LV_UUID)
 
     lock_op = ilm.idm_lock_op()
     lock_op.mode = ilm.IDM_MODE_EXCLUSIVE
@@ -475,19 +482,19 @@ def test_lock__two_hosts_exclusive_wrong_release_after(ilm_daemon):
     assert ret == 0
     assert s1 > 0
 
-    host_id = "00000000000000000000000000000000"
+    host_id = HOST1
     ret = ilm.ilm_set_host_id(s1, host_id, 32)
 
     ret, s2 = ilm.ilm_connect()
     assert ret == 0
     assert s2 > 0
 
-    host_id = "11111111111111111111111111111111"
+    host_id = HOST2
     ret = ilm.ilm_set_host_id(s2, host_id, 32)
 
     lock_id = ilm.idm_lock_id()
-    lock_id.set_vg_uuid("0000000000000001")
-    lock_id.set_lv_uuid("0123456789abcdef")
+    lock_id.set_vg_uuid(LOCK1_VG_UUID)
+    lock_id.set_lv_uuid(LOCK1_LV_UUID)
 
     lock_op = ilm.idm_lock_op()
     lock_op.mode = ilm.IDM_MODE_EXCLUSIVE
@@ -517,8 +524,8 @@ def test_lock__convert_shareable_to_shareable(ilm_daemon):
     assert s > 0
 
     lock_id = ilm.idm_lock_id()
-    lock_id.set_vg_uuid("0000000000000001")
-    lock_id.set_lv_uuid("0123456789abcdef")
+    lock_id.set_vg_uuid(LOCK1_VG_UUID)
+    lock_id.set_lv_uuid(LOCK1_LV_UUID)
 
     lock_op = ilm.idm_lock_op()
     lock_op.mode = ilm.IDM_MODE_SHAREABLE
@@ -545,8 +552,8 @@ def test_lock__convert_shareable_to_exclusive(ilm_daemon):
     assert s > 0
 
     lock_id = ilm.idm_lock_id()
-    lock_id.set_vg_uuid("0000000000000001")
-    lock_id.set_lv_uuid("0123456789abcdef")
+    lock_id.set_vg_uuid(LOCK1_VG_UUID)
+    lock_id.set_lv_uuid(LOCK1_LV_UUID)
 
     lock_op = ilm.idm_lock_op()
     lock_op.mode = ilm.IDM_MODE_SHAREABLE
@@ -573,8 +580,8 @@ def test_lock__convert_exclusive_to_shareable(ilm_daemon):
     assert s > 0
 
     lock_id = ilm.idm_lock_id()
-    lock_id.set_vg_uuid("0000000000000001")
-    lock_id.set_lv_uuid("0123456789abcdef")
+    lock_id.set_vg_uuid(LOCK1_VG_UUID)
+    lock_id.set_lv_uuid(LOCK1_LV_UUID)
 
     lock_op = ilm.idm_lock_op()
     lock_op.mode = ilm.IDM_MODE_EXCLUSIVE
@@ -601,8 +608,8 @@ def test_lock__convert_exclusive_to_exclusive(ilm_daemon):
     assert s > 0
 
     lock_id = ilm.idm_lock_id()
-    lock_id.set_vg_uuid("0000000000000001")
-    lock_id.set_lv_uuid("0123456789abcdef")
+    lock_id.set_vg_uuid(LOCK1_VG_UUID)
+    lock_id.set_lv_uuid(LOCK1_LV_UUID)
 
     lock_op = ilm.idm_lock_op()
     lock_op.mode = ilm.IDM_MODE_EXCLUSIVE
@@ -628,19 +635,19 @@ def test_lock__two_hosts_convert_shareable_to_exclusive(ilm_daemon):
     assert ret == 0
     assert s1 > 0
 
-    host_id = "00000000000000000000000000000000"
+    host_id = HOST1
     ret = ilm.ilm_set_host_id(s1, host_id, 32)
 
     ret, s2 = ilm.ilm_connect()
     assert ret == 0
     assert s2 > 0
 
-    host_id = "11111111111111111111111111111111"
+    host_id = HOST2
     ret = ilm.ilm_set_host_id(s2, host_id, 32)
 
     lock_id = ilm.idm_lock_id()
-    lock_id.set_vg_uuid("0000000000000001")
-    lock_id.set_lv_uuid("0123456789abcdef")
+    lock_id.set_vg_uuid(LOCK1_VG_UUID)
+    lock_id.set_lv_uuid(LOCK1_LV_UUID)
 
     lock_op = ilm.idm_lock_op()
     lock_op.mode = ilm.IDM_MODE_SHAREABLE
@@ -678,19 +685,19 @@ def test_lock__two_hosts_convert_shareable_to_exclusive_success(ilm_daemon):
     assert ret == 0
     assert s1 > 0
 
-    host_id = "00000000000000000000000000000000"
+    host_id = HOST1
     ret = ilm.ilm_set_host_id(s1, host_id, 32)
 
     ret, s2 = ilm.ilm_connect()
     assert ret == 0
     assert s2 > 0
 
-    host_id = "11111111111111111111111111111111"
+    host_id = HOST2
     ret = ilm.ilm_set_host_id(s2, host_id, 32)
 
     lock_id = ilm.idm_lock_id()
-    lock_id.set_vg_uuid("0000000000000001")
-    lock_id.set_lv_uuid("0123456789abcdef")
+    lock_id.set_vg_uuid(LOCK1_VG_UUID)
+    lock_id.set_lv_uuid(LOCK1_LV_UUID)
 
     lock_op = ilm.idm_lock_op()
     lock_op.mode = ilm.IDM_MODE_SHAREABLE
@@ -729,8 +736,8 @@ def test_lock__timeout(ilm_daemon):
     assert s > 0
 
     lock_id = ilm.idm_lock_id()
-    lock_id.set_vg_uuid("0000000000000001")
-    lock_id.set_lv_uuid("0123456789abcdef")
+    lock_id.set_vg_uuid(LOCK1_VG_UUID)
+    lock_id.set_lv_uuid(LOCK1_LV_UUID)
 
     lock_op = ilm.idm_lock_op()
     lock_op.mode = ilm.IDM_MODE_SHAREABLE
@@ -760,8 +767,8 @@ def test_lock__timeout_convert1(ilm_daemon):
     assert s > 0
 
     lock_id = ilm.idm_lock_id()
-    lock_id.set_vg_uuid("0000000000000001")
-    lock_id.set_lv_uuid("0123456789abcdef")
+    lock_id.set_vg_uuid(LOCK1_VG_UUID)
+    lock_id.set_lv_uuid(LOCK1_LV_UUID)
 
     lock_op = ilm.idm_lock_op()
     lock_op.mode = ilm.IDM_MODE_SHAREABLE
@@ -795,8 +802,8 @@ def test_lock__timeout_convert2(ilm_daemon):
     assert s > 0
 
     lock_id = ilm.idm_lock_id()
-    lock_id.set_vg_uuid("0000000000000001")
-    lock_id.set_lv_uuid("0123456789abcdef")
+    lock_id.set_vg_uuid(LOCK1_VG_UUID)
+    lock_id.set_lv_uuid(LOCK1_LV_UUID)
 
     lock_op = ilm.idm_lock_op()
     lock_op.mode = ilm.IDM_MODE_SHAREABLE
@@ -835,8 +842,8 @@ def test_lock__get_mode(ilm_daemon):
     assert s > 0
 
     lock_id = ilm.idm_lock_id()
-    lock_id.set_vg_uuid("0000000000000001")
-    lock_id.set_lv_uuid("0123456789abcdef")
+    lock_id.set_vg_uuid(LOCK1_VG_UUID)
+    lock_id.set_lv_uuid(LOCK1_LV_UUID)
 
     lock_op = ilm.idm_lock_op()
     lock_op.mode = ilm.IDM_MODE_SHAREABLE
@@ -871,8 +878,8 @@ def test_lock__get_mode_not_existed(ilm_daemon):
     assert s > 0
 
     lock_id = ilm.idm_lock_id()
-    lock_id.set_vg_uuid("0000000000000001")
-    lock_id.set_lv_uuid("0123456789abcdef")
+    lock_id.set_vg_uuid(LOCK1_VG_UUID)
+    lock_id.set_lv_uuid(LOCK1_LV_UUID)
 
     lock_op = ilm.idm_lock_op()
     lock_op.drive_num = 2
@@ -893,19 +900,19 @@ def test_lock__two_hosts_get_mode(ilm_daemon):
     assert ret == 0
     assert s1 > 0
 
-    host_id = "00000000000000000000000000000000"
+    host_id = HOST1
     ret = ilm.ilm_set_host_id(s1, host_id, 32)
 
     ret, s2 = ilm.ilm_connect()
     assert ret == 0
     assert s2 > 0
 
-    host_id = "11111111111111111111111111111111"
+    host_id = HOST2
     ret = ilm.ilm_set_host_id(s2, host_id, 32)
 
     lock_id = ilm.idm_lock_id()
-    lock_id.set_vg_uuid("0000000000000001")
-    lock_id.set_lv_uuid("0123456789abcdef")
+    lock_id.set_vg_uuid(LOCK1_VG_UUID)
+    lock_id.set_lv_uuid(LOCK1_LV_UUID)
 
     lock_op = ilm.idm_lock_op()
     lock_op.mode = ilm.IDM_MODE_SHAREABLE
@@ -956,8 +963,8 @@ def test_lock__get_host_count(ilm_daemon):
     assert s > 0
 
     lock_id = ilm.idm_lock_id()
-    lock_id.set_vg_uuid("0000000000000001")
-    lock_id.set_lv_uuid("0123456789abcdef")
+    lock_id.set_vg_uuid(LOCK1_VG_UUID)
+    lock_id.set_lv_uuid(LOCK1_LV_UUID)
 
     lock_op = ilm.idm_lock_op()
     lock_op.mode = ilm.IDM_MODE_SHAREABLE
@@ -990,19 +997,19 @@ def test_lock__two_hosts_get_host_count(ilm_daemon):
     assert ret == 0
     assert s1 > 0
 
-    host_id = "00000000000000000000000000000000"
+    host_id = HOST1
     ret = ilm.ilm_set_host_id(s1, host_id, 32)
 
     ret, s2 = ilm.ilm_connect()
     assert ret == 0
     assert s2 > 0
 
-    host_id = "11111111111111111111111111111111"
+    host_id = HOST2
     ret = ilm.ilm_set_host_id(s2, host_id, 32)
 
     lock_id = ilm.idm_lock_id()
-    lock_id.set_vg_uuid("0000000000000001")
-    lock_id.set_lv_uuid("0123456789abcdef")
+    lock_id.set_vg_uuid(LOCK1_VG_UUID)
+    lock_id.set_lv_uuid(LOCK1_LV_UUID)
 
     lock_op = ilm.idm_lock_op()
     lock_op.mode = ilm.IDM_MODE_SHAREABLE
@@ -1049,7 +1056,7 @@ def test_lock__three_hosts_get_host_count(ilm_daemon):
     assert ret == 0
     assert s1 > 0
 
-    host_id = "00000000000000000000000000000000"
+    host_id = HOST1
     ret = ilm.ilm_set_host_id(s1, host_id, 32)
     assert ret == 0
 
@@ -1057,7 +1064,7 @@ def test_lock__three_hosts_get_host_count(ilm_daemon):
     assert ret == 0
     assert s2 > 0
 
-    host_id = "11111111111111111111111111111111"
+    host_id = HOST2
     ret = ilm.ilm_set_host_id(s2, host_id, 32)
     assert ret == 0
 
@@ -1065,13 +1072,13 @@ def test_lock__three_hosts_get_host_count(ilm_daemon):
     assert ret == 0
     assert s3 > 0
 
-    host_id = "22222222222222222222222222222222"
+    host_id = HOST3
     ret = ilm.ilm_set_host_id(s3, host_id, 32)
     assert ret == 0
 
     lock_id = ilm.idm_lock_id()
-    lock_id.set_vg_uuid("0000000000000001")
-    lock_id.set_lv_uuid("0123456789abcdef")
+    lock_id.set_vg_uuid(LOCK1_VG_UUID)
+    lock_id.set_lv_uuid(LOCK1_LV_UUID)
 
     lock_op = ilm.idm_lock_op()
     lock_op.mode = ilm.IDM_MODE_SHAREABLE
@@ -1144,7 +1151,7 @@ def test_lock__destroy(ilm_daemon):
     assert ret == 0
     assert s1 > 0
 
-    host_id = "00000000000000000000000000000000"
+    host_id = HOST1
     ret = ilm.ilm_set_host_id(s1, host_id, 32)
     assert ret == 0
 
@@ -1152,7 +1159,7 @@ def test_lock__destroy(ilm_daemon):
     assert ret == 0
     assert s2 > 0
 
-    host_id = "11111111111111111111111111111111"
+    host_id = HOST2
     ret = ilm.ilm_set_host_id(s2, host_id, 32)
     assert ret == 0
 
@@ -1160,13 +1167,13 @@ def test_lock__destroy(ilm_daemon):
     assert ret == 0
     assert s3 > 0
 
-    host_id = "22222222222222222222222222222222"
+    host_id = HOST3
     ret = ilm.ilm_set_host_id(s3, host_id, 32)
     assert ret == 0
 
     lock_id = ilm.idm_lock_id()
-    lock_id.set_vg_uuid("0000000000000001")
-    lock_id.set_lv_uuid("0123456789abcdef")
+    lock_id.set_vg_uuid(LOCK1_VG_UUID)
+    lock_id.set_lv_uuid(LOCK1_LV_UUID)
 
     lock_op = ilm.idm_lock_op()
     lock_op.mode = ilm.IDM_MODE_SHAREABLE

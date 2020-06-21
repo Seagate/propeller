@@ -10,8 +10,8 @@
 
 #include <ilm.h>
 
-#define DRIVE1	"/dev/sda2"
-#define DRIVE2	"/dev/sdb2"
+#define DRIVE1	"/dev/sdb2"
+#define DRIVE2	"/dev/sdd2"
 
 static int signal_received = 0;
 
@@ -70,8 +70,8 @@ int main(void)
 		exit(-1);
 	}
 
-	uuid_generate(lock_id.vg_uuid);
-	uuid_generate(lock_id.lv_uuid);
+	memset(lock_id.vg_uuid, 0x1, 32);
+	memset(lock_id.lv_uuid, 0x2, 32);
 
 	lock_op.mode = IDM_MODE_EXCLUSIVE;
 	lock_op.drive_num = 2;
