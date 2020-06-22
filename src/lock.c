@@ -139,6 +139,46 @@ static int ilm_sort_drives(struct ilm_lock *lock)
 	return 0;
 }
 
+static char *ilm_find_sg_path(char *path, uuid_t *id)
+{
+        struct stat stats;
+	char *tmp, *sg_path;
+	int ret;
+
+	if (lstat(path, &stats)) {
+		ilm_log_err("Fail to find drive path %s", path);
+		goto try_cached_dev_map;
+	}
+
+	tmp = ilm_scsi_convert_blk_name(path);
+	if (!tmp) {
+		ilm_log_err("Fail to convert block name %s", path);
+		goto try_cached_dev_map;
+	}
+
+	sg_path = ilm_scsi_get_first_sg(tmp);
+	free(tmp);
+
+	if (!sg_path) {
+		ilm_log_err("Fail to get sg for %s", tmp);
+		goto try_cached_dev_map;
+	}
+
+	ret = ilm_scsi_get_part_table_uuid(sg_path, id);
+	if (ret) {
+		ilm_log_err("Fail to read uuid for drive (%s %s)",
+			    tmp, sg_path);
+		free(sg_path);
+		goto try_cached_dev_map;
+	}
+
+	/* Find sg path successfully */
+	return sg_path;
+
+try_cached_dev_map:
+	return ilm_find_cached_device_mapping(path, id);
+}
+
 static struct ilm_lock *ilm_alloc(struct ilm_cmd *cmd,
 				  struct ilm_lockspace *ls,
 				  int drive_num, int *pos)
@@ -146,8 +186,7 @@ static struct ilm_lock *ilm_alloc(struct ilm_cmd *cmd,
 	char path[PATH_MAX];
 	struct ilm_lock *lock;
 	int ret, i, copied = 0, failed = 0;
-        struct stat stats;
-	char *tmp, *sg_path;
+	char *sg_path;
 	uuid_t id;
 
 	lock = malloc(sizeof(struct ilm_lock));
@@ -169,46 +208,9 @@ static struct ilm_lock *ilm_alloc(struct ilm_cmd *cmd,
 
 		*pos += ret;
 
-		sg_path = ilm_find_cached_device_mapping(path, &id);
-		if (sg_path) {
-			ilm_log_err("Find cached device mapping %s->%s",
-				    path, sg_path);
-			lock->drive[copied].path = sg_path;
-			lock->drive[copied].index = copied;
-			memcpy(&lock->drive[copied].uuid, &id,
-			       sizeof(uuid_t));
-			copied++;
-			continue;
-		}
-
-		if (lstat(path, &stats)) {
-			ilm_log_err("Fail to find drive path %s", path);
-			failed++;
-			continue;
-		}
-
-		tmp = ilm_scsi_convert_blk_name(path);
-		if (!tmp) {
-			ilm_log_err("Fail to convert block name %s", path);
-			failed++;
-			continue;
-		}
-
-		sg_path = ilm_scsi_get_first_sg(tmp);
-		free(tmp);
-
+		sg_path = ilm_find_sg_path(path, &id);
 		if (!sg_path) {
-			ilm_log_err("Fail to get sg for %s", tmp);
 			failed++;
-			continue;
-		}
-
-		ret = ilm_scsi_get_part_table_uuid(sg_path, &id);
-		if (ret) {
-			ilm_log_err("Fail to read uuid for drive (%s %s)",
-				    tmp, sg_path);
-			failed++;
-			free(sg_path);
 			continue;
 		}
 
