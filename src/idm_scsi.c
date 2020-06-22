@@ -120,6 +120,13 @@ static char sense_lba_oor[28] = {
 	0x00, 0x00, 0x00, 0x00,
 };
 
+static char sense_list_is_full[32] = {
+	0x72, 0x07, 0x30, 0x00, 0x00, 0x00, 0x00, 0x14,
+	0x03, 0x02, 0x00, 0x01, 0x80, 0x0e, 0x00, 0x00,
+	0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+	0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+};
+
 static void _scsi_generate_write_cdb(uint8_t *cdb, int mutex_op)
 {
 	cdb[0] = IDM_SCSI_WRITE;
@@ -236,6 +243,14 @@ static int _scsi_sg_io(char *drive, uint8_t *cdb, int cdb_len,
 			break;
 		}
 
+		/* check if mutex list is full */
+		if (!memcmp(sense, sense_list_is_full,
+			    sizeof(sense_list_is_full))) {
+			ilm_log_err("%s: Mutex list is full", __func__);
+			ret = -ENOMEM;
+			break;
+		}
+
 		/* Otherwise, also reports error */
 		ret = -EINVAL;
 		break;
@@ -339,6 +354,16 @@ static int _scsi_read(struct idm_scsi_request *request, int direction)
 		return 0;
 
 	status = io_hdr.masked_status;
+
+	ilm_log_dbg("%s: status 0x%x", __func__, io_hdr.status);
+	ilm_log_dbg("%s: masked status 0x%x", __func__, io_hdr.masked_status);
+	ilm_log_dbg("%s: host status 0x%x", __func__, io_hdr.host_status);
+	ilm_log_dbg("%s: driver status 0x%x", __func__, io_hdr.driver_status);
+
+	if (status != GOOD)
+		ilm_log_array_err("sense:", (char *)request->sense,
+				  SCSI_SENSE_LEN);
+
 	switch (status) {
 	case CHECK_CONDITION:
 		if (!memcmp(request->sense, sense_invalid_opcode,
@@ -358,9 +383,14 @@ static int _scsi_read(struct idm_scsi_request *request, int direction)
 			break;
 		}
 
-		/* Otherwise, also reports error */
-		ilm_log_array_err("sense:", (char *)request->sense,
-				  SCSI_SENSE_LEN);
+		/* check if mutex list is full */
+		if (!memcmp(request->sense, sense_list_is_full,
+			    sizeof(sense_list_is_full))) {
+			ilm_log_err("%s: Mutex list is full", __func__);
+			ret = -ENOMEM;
+			break;
+		}
+
 		ret = -EINVAL;
 		break;
 
