@@ -157,12 +157,13 @@ static char *ilm_find_sg_path(char *path, uuid_t *id)
 	}
 
 	sg_path = ilm_scsi_get_first_sg(tmp);
-	free(tmp);
-
 	if (!sg_path) {
 		ilm_log_err("Fail to get sg for %s", tmp);
+		free(tmp);
 		goto try_cached_dev_map;
 	}
+
+	free(tmp);
 
 	ret = ilm_scsi_get_part_table_uuid(sg_path, id);
 	if (ret) {
