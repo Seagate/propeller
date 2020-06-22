@@ -929,7 +929,8 @@ static void idm_raid_destroy(struct ilm_drive *drive)
 			    least_renew->last_renew_time, least_renew->timeout);
 		ilm_log_array_dbg("Lock ID:", least_renew->id, IDM_LOCK_ID_LEN);
 		ilm_log_array_dbg("Host ID:", least_renew->host_id, IDM_HOST_ID_LEN);
-		idm_drive_destroy(least_renew->id, drive->path);
+		idm_drive_destroy(least_renew->id, least_renew->mode,
+				  least_renew->host_id, drive->path);
 	}
 }
 

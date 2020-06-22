@@ -42,9 +42,9 @@
 #define IDM_RES_VER_UPDATE_VALID	0x2
 #define IDM_RES_VER_INVALID		0x3
 
-/* Now simply read out data with predefined size: 512B * 1000 = 500KB */
+/* Now simply read out data with predefined size: 512B * 512 = 256KB */
 #define IDM_DATA_BLOCK_SIZE		512
-#define IDM_DATA_BLOCK_NUM		4
+#define IDM_DATA_BLOCK_NUM		8
 #define IDM_DATA_SIZE			(IDM_DATA_BLOCK_SIZE * IDM_DATA_BLOCK_NUM)
 
 #define IDM_STATE_UNINIT		0
@@ -52,6 +52,7 @@
 #define IDM_STATE_UNLOCKED		0x102
 #define IDM_STATE_MULTIPLE_LOCKED	0x103
 #define IDM_STATE_TIMEOUT		0x104
+#define IDM_STATE_DEAD			0xdead
 
 #define IDM_CLASS_EXCLUSIVE		0x0
 #define IDM_CLASS_PROTECTED_WRITE	0x1
@@ -1532,14 +1533,15 @@ int idm_drive_lock_mode(char *lock_id, int *mode, char *drive)
 	*mode = -1;
 	data = request->data;
 	for (i = 0; i < IDM_DATA_BLOCK_NUM; i++) {
-		/* Skip for other locks */
-		if (memcmp(data[i].resource_id, request->lock_id, IDM_LOCK_ID_LEN))
-			continue;
 
 		state = __bswap_64(data[i].state);
 		class = __bswap_64(data[i].class);
 
 		ilm_log_dbg("%s: state=%lx class=%lx", __func__, state, class);
+
+		/* Skip for other locks */
+		if (memcmp(data[i].resource_id, request->lock_id, IDM_LOCK_ID_LEN))
+			continue;
 
 		if (state == IDM_STATE_UNINIT ||
 		    state == IDM_STATE_UNLOCKED ||
@@ -1803,6 +1805,7 @@ int idm_drive_read_group(char *drive, struct idm_info **info_ptr, int *info_num)
 	int ret, i;
 	struct idm_info *info_list, *info;
 	int max_alloc = 8;
+	uint64_t state;
 
 	if (ilm_inject_fault_is_hit())
 		return -EIO;
@@ -1839,6 +1842,10 @@ int idm_drive_read_group(char *drive, struct idm_info **info_ptr, int *info_num)
 
 	data = request->data;
 	for (i = 0; i < IDM_DATA_BLOCK_NUM; i++) {
+
+		state = __bswap_64(data[i].state);
+		if (state == IDM_STATE_DEAD)
+			break;
 
 		if (i >= max_alloc) {
 			max_alloc += 8;
@@ -1902,7 +1909,8 @@ free_info_list:
  *
  * Returns zero or a negative error (ie. EINVAL).
  */
-int idm_drive_destroy(char *lock_id, char *drive)
+int idm_drive_destroy(char *lock_id, int mode, char *host_id,
+		      char *drive)
 {
 	struct idm_scsi_request *request;
 	int ret;
@@ -1925,14 +1933,16 @@ int idm_drive_destroy(char *lock_id, char *drive)
 		ilm_log_err("%s: fail to allocat scsi data", __func__);
 		return -ENOMEM;
 	}
-	request->data_len = sizeof(struct idm_data);
+	memset(request->data, 0x0, sizeof(struct idm_data));
 
 	strncpy(request->drive, drive, PATH_MAX);
 	request->op = IDM_MUTEX_OP_DESTROY;
-	request->mode = 0;
+	request->mode = mode;
 	request->timeout = 0;
 	request->res_ver_type = IDM_RES_VER_NO_UPDATE_NO_VALID;
+	request->data_len = sizeof(struct idm_data);
 	memcpy(request->lock_id, lock_id, IDM_LOCK_ID_LEN);
+	memcpy(request->host_id, host_id, IDM_HOST_ID_LEN);
 
 	ret = _scsi_xfer_sync(request);
 	if (ret < 0)
