@@ -464,7 +464,7 @@ static int _raid_state_find_op(int state, int func)
 	case IDM_INIT:
 		assert(func == ILM_OP_LOCK || func == ILM_OP_COUNT ||
 		       func == ILM_OP_MODE || func == ILM_OP_RENEW ||
-		       func == ILM_OP_CONVERT);
+		       func == ILM_OP_CONVERT || func == ILM_OP_READ_LVB);
 
 		/* Enlarge majority when renew or convert */
 		if (func == ILM_OP_RENEW || func == ILM_OP_CONVERT)
@@ -543,6 +543,8 @@ static int idm_raid_state_transition(struct _raid_request *req)
 	if (state == IDM_INIT && req->op == ILM_OP_COUNT)
 		result = 1;
 	else if (state == IDM_INIT && req->op == ILM_OP_MODE)
+		result = 1;
+	else if (state == IDM_INIT && req->op == ILM_OP_READ_LVB)
 		result = 1;
 	else if (state == IDM_LOCK && req->op == ILM_OP_UNLOCK)
 		result = 1;
@@ -1252,7 +1254,7 @@ int idm_raid_read_lvb(struct ilm_lock *lock, char *host_id,
 		for (i = 0; i < lock->good_drive_num; i++) {
 			drive = &lock->drive[i];
 
-			if (!drive->result && drive->state == IDM_LOCK) {
+			if (!drive->result) {
 				score++;
 				/*
 				 * FIXME: so far VB only has 8 bytes, so simply
