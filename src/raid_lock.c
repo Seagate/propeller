@@ -860,9 +860,9 @@ int idm_raid_thread_create(struct _raid_thread **rth)
 
 static void idm_raid_destroy(struct ilm_drive *drive)
 {
-	struct idm_info *info_list, *info_i, *info_j, *least_renew = NULL;
+	struct idm_info *info_list, *info, *least_renew = NULL;
 	int info_num;
-	int ret, i, j;
+	int ret, i;
 	uint64_t least_renew_time = -1ULL;
 
 	ret = idm_drive_read_group(drive->path, &info_list, &info_num);
@@ -874,64 +874,35 @@ static void idm_raid_destroy(struct ilm_drive *drive)
 	 * traversing all items
 	 */
 	for (i = 0; i < info_num; i++) {
-		info_i = info_list + i;
+		info = info_list + i;
 
-		for (j = 0; j < info_num; j++) {
-			if (i == j)
-				continue;
+		ilm_log_dbg("%s: state=%d mode=%d last_renew_time=%lu",
+		            __func__, info->state, info->mode,
+		            info->last_renew_time);
 
-			info_j = info_list + j;
+		ilm_log_array_dbg("Search Lock ID:", info->id, IDM_LOCK_ID_LEN);
+		ilm_log_array_dbg("Search Host ID:", info->host_id, IDM_HOST_ID_LEN);
 
-
-			if (memcmp(info_i->id, info_j->id, IDM_LOCK_ID_LEN))
-				continue;
-
-			/*
-			 * If two items have the same lock ID, consolidate their
-			 * 'timeout' flags; if any item is not timeout, the
-			 * related IDM cannot be destroied.  Simply set all
-			 * items as not timeout as we don't consider it as a
-			 * destroying candidate.
-			 */
-			if (!info_i->timeout || !info_j->timeout) {
-				info_i->timeout = 0;
-				info_j->timeout = 0;
-				continue;
-			}
-
-			/*
-			 * Make consistent for the last renew time for all
-			 * items associated with the same IDM.
-			 */
-			if (info_i->last_renew_time > info_j->last_renew_time)
-				info_j->last_renew_time = info_i->last_renew_time;
-			else
-				info_i->last_renew_time = info_j->last_renew_time;
-		}
-	}
-
-	/* Find out the least renewal item */
-	for (i = 0; i < info_num; i++) {
-		info_i = info_list + i;
-
-		if (!info_i->timeout)
+		/* If the mutex is not unlock, skip it */
+		if (info->state != IDM_MODE_UNLOCK)
 			continue;
 
-		if (least_renew_time > info_i->last_renew_time) {
-			least_renew = info_i;
-			least_renew_time = info_i->last_renew_time;
+		if (least_renew_time > info->last_renew_time) {
+			least_renew = info;
+			least_renew_time = info->last_renew_time;
 		}
 	}
 
-	if (least_renew) {
-		ilm_log_dbg("%s: least_renew mode=%d last_renew_time=%lu timeout=%d",
-			    __func__, least_renew->mode,
-			    least_renew->last_renew_time, least_renew->timeout);
-		ilm_log_array_dbg("Lock ID:", least_renew->id, IDM_LOCK_ID_LEN);
-		ilm_log_array_dbg("Host ID:", least_renew->host_id, IDM_HOST_ID_LEN);
-		idm_drive_destroy(least_renew->id, least_renew->mode,
-				  least_renew->host_id, drive->path);
-	}
+	if (!least_renew)
+		return;
+
+	ilm_log_dbg("%s: least_renew state=%d mode=%d last_renew_time=%lu",
+		    __func__, least_renew->state, least_renew->mode,
+		    least_renew->last_renew_time);
+	ilm_log_array_dbg("Lock ID:", least_renew->id, IDM_LOCK_ID_LEN);
+	ilm_log_array_dbg("Host ID:", least_renew->host_id, IDM_HOST_ID_LEN);
+	idm_drive_destroy(least_renew->id, least_renew->mode,
+			  least_renew->host_id, drive->path);
 }
 
 static void idm_raid_multi_issue(struct ilm_lock *lock, char *host_id,

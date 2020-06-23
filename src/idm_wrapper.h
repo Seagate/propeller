@@ -14,6 +14,7 @@
 struct idm_info {
 	/* Lock ID */
 	char id[IDM_LOCK_ID_LEN];
+	int state;
 	int mode;
 
 	/* Host ID */
@@ -21,7 +22,6 @@ struct idm_info {
 
 	/* Membership */
 	uint64_t last_renew_time;
-	int timeout;
 };
 
 /*

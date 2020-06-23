@@ -1804,14 +1804,13 @@ int idm_drive_read_group(char *drive, struct idm_info **info_ptr, int *info_num)
 	struct idm_data *data;
 	int ret, i;
 	struct idm_info *info_list, *info;
-	int max_alloc = 8;
-	uint64_t state;
+	uint64_t state, class;
 
 	if (ilm_inject_fault_is_hit())
 		return -EIO;
 
-	/* Let's firstly assume to allocet for 8 items */
-	info_list = malloc(sizeof(struct idm_info) * max_alloc);
+	/* Let's allocate for the same item with data block */
+	info_list = malloc(sizeof(struct idm_info) * IDM_DATA_BLOCK_NUM);
 	if (!info_list)
 		return -ENOMEM;
 
@@ -1843,50 +1842,44 @@ int idm_drive_read_group(char *drive, struct idm_info **info_ptr, int *info_num)
 	data = request->data;
 	for (i = 0; i < IDM_DATA_BLOCK_NUM; i++) {
 
+		ilm_log_array_dbg("DATA XXX", (char *)&data[i], IDM_DATA_BLOCK_SIZE);
+
 		state = __bswap_64(data[i].state);
 		if (state == IDM_STATE_DEAD)
 			break;
 
-		if (i >= max_alloc) {
-			max_alloc += 8;
-
-			info_list = realloc(info_list,
-					sizeof(struct idm_info) * max_alloc);
-			if (!info_list) {
-				ret = -ENOMEM;
-				goto out;
-			}
-		}
-
 		info = info_list + i;
+
+		ilm_log_array_dbg("DR Lock ID:", data[i].resource_id, IDM_LOCK_ID_LEN);
+		ilm_log_array_dbg("DR Host ID:", data[i].host_id, IDM_HOST_ID_LEN);
 
 		/* Copy host ID */
 		_scsi_data_swap(info->id, data[i].resource_id, IDM_LOCK_ID_LEN);
 		_scsi_data_swap(info->host_id, data[i].host_id, IDM_HOST_ID_LEN);
 
-		data[i].state = __bswap_64(data[i].state);
-		data[i].class = __bswap_64(data[i].class);
-		data[i].time_now = __bswap_64(data[i].time_now);
-		data[i].countdown = __bswap_64(data[i].countdown);
+		ilm_log_array_dbg("RG Lock ID:", info->id, IDM_LOCK_ID_LEN);
+		ilm_log_array_dbg("RG Host ID:", info->host_id, IDM_HOST_ID_LEN);
 
-		if (data[i].state == IDM_STATE_UNINIT ||
-		    data[i].state == IDM_STATE_UNLOCKED ||
-		    data[i].state == IDM_STATE_TIMEOUT) {
-			info->mode = IDM_MODE_UNLOCK;
-		} else if (data[i].class == IDM_CLASS_EXCLUSIVE) {
+		class = __bswap_64(data[i].class);
+
+		if (class == IDM_CLASS_EXCLUSIVE) {
 			info->mode = IDM_MODE_EXCLUSIVE;
-		} else if (data[i].class == IDM_CLASS_SHARED_PROTECTED_READ) {
+		} else if (class == IDM_CLASS_SHARED_PROTECTED_READ) {
 			info->mode = IDM_MODE_SHAREABLE;
-		} else if (data[i].class == IDM_CLASS_PROTECTED_WRITE) {
-			ilm_log_err("%s: PROTECTED_WRITE is not unsupported",
-				    __func__);
+		} else {
+			ilm_log_err("%s: IDM class is not unsupported %ld",
+				    __func__, class);
 			ret = -EFAULT;
 			goto out;
 		}
 
-		info->last_renew_time = data[i].time_now;
-		info->timeout = data[i].countdown;
-		i++;
+		if (state == IDM_STATE_UNINIT || state == IDM_STATE_UNLOCKED ||
+		    state == IDM_STATE_TIMEOUT)
+			info->state = IDM_MODE_UNLOCK;
+		else
+			info->state = 1;
+
+		info->last_renew_time = __bswap_64(data[i].time_now);
 	}
 
 	*info_ptr = info_list;
@@ -1918,7 +1911,10 @@ int idm_drive_destroy(char *lock_id, int mode, char *host_id,
 	if (ilm_inject_fault_is_hit())
 		return -EIO;
 
-	if (!lock_id || !drive)
+	if (!lock_id || !host_id || !drive)
+		return -EINVAL;
+
+	if (mode != IDM_MODE_EXCLUSIVE && mode != IDM_MODE_SHAREABLE)
 		return -EINVAL;
 
 	request = malloc(sizeof(struct idm_scsi_request));
@@ -1926,6 +1922,7 @@ int idm_drive_destroy(char *lock_id, int mode, char *host_id,
 		ilm_log_err("%s: fail to allocat scsi request", __func__);
 		return -ENOMEM;
 	}
+	memset(request, 0x0, sizeof(struct idm_scsi_request));
 
 	request->data = malloc(sizeof(struct idm_data));
 	if (!request->data) {
@@ -1934,6 +1931,11 @@ int idm_drive_destroy(char *lock_id, int mode, char *host_id,
 		return -ENOMEM;
 	}
 	memset(request->data, 0x0, sizeof(struct idm_data));
+
+	if (mode == IDM_MODE_EXCLUSIVE)
+		mode = IDM_CLASS_EXCLUSIVE;
+	else if (mode == IDM_MODE_SHAREABLE)
+		mode = IDM_CLASS_SHARED_PROTECTED_READ;
 
 	strncpy(request->drive, drive, PATH_MAX);
 	request->op = IDM_MUTEX_OP_DESTROY;
