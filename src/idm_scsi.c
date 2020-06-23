@@ -1842,23 +1842,15 @@ int idm_drive_read_group(char *drive, struct idm_info **info_ptr, int *info_num)
 	data = request->data;
 	for (i = 0; i < IDM_DATA_BLOCK_NUM; i++) {
 
-		ilm_log_array_dbg("DATA XXX", (char *)&data[i], IDM_DATA_BLOCK_SIZE);
-
 		state = __bswap_64(data[i].state);
 		if (state == IDM_STATE_DEAD)
 			break;
 
 		info = info_list + i;
 
-		ilm_log_array_dbg("DR Lock ID:", data[i].resource_id, IDM_LOCK_ID_LEN);
-		ilm_log_array_dbg("DR Host ID:", data[i].host_id, IDM_HOST_ID_LEN);
-
 		/* Copy host ID */
 		_scsi_data_swap(info->id, data[i].resource_id, IDM_LOCK_ID_LEN);
 		_scsi_data_swap(info->host_id, data[i].host_id, IDM_HOST_ID_LEN);
-
-		ilm_log_array_dbg("RG Lock ID:", info->id, IDM_LOCK_ID_LEN);
-		ilm_log_array_dbg("RG Host ID:", info->host_id, IDM_HOST_ID_LEN);
 
 		class = __bswap_64(data[i].class);
 
