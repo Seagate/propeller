@@ -14,6 +14,7 @@
 struct idm_info {
 	/* Lock ID */
 	char id[IDM_LOCK_ID_LEN];
+	int state;
 	int mode;
 
 	/* Host ID */
@@ -21,7 +22,6 @@ struct idm_info {
 
 	/* Membership */
 	uint64_t last_renew_time;
-	int timeout;
 };
 
 /*
@@ -78,7 +78,7 @@ int idm_drive_lock_mode(char *lock_id, int *mode, char *drive);
 int idm_drive_lock_mode_async(char *lock_id, char *drive, uint64_t *handle);
 int idm_drive_lock_mode_async_result(uint64_t handle, int *mode, int *result);
 int idm_drive_read_group(char *drive, struct idm_info **info_ptr, int *info_num);
-int idm_drive_destroy(char *lock_id, char *drive);
+int idm_drive_destroy(char *lock_id, int mode, char *host_id, char *drive);
 
 int idm_drive_async_result(uint64_t handle, int *result);
 

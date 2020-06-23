@@ -42,9 +42,9 @@
 #define IDM_RES_VER_UPDATE_VALID	0x2
 #define IDM_RES_VER_INVALID		0x3
 
-/* Now simply read out data with predefined size: 512B * 1000 = 500KB */
+/* Now simply read out data with predefined size: 512B * 512 = 256KB */
 #define IDM_DATA_BLOCK_SIZE		512
-#define IDM_DATA_BLOCK_NUM		4
+#define IDM_DATA_BLOCK_NUM		512
 #define IDM_DATA_SIZE			(IDM_DATA_BLOCK_SIZE * IDM_DATA_BLOCK_NUM)
 
 #define IDM_STATE_UNINIT		0
@@ -52,6 +52,7 @@
 #define IDM_STATE_UNLOCKED		0x102
 #define IDM_STATE_MULTIPLE_LOCKED	0x103
 #define IDM_STATE_TIMEOUT		0x104
+#define IDM_STATE_DEAD			0xdead
 
 #define IDM_CLASS_EXCLUSIVE		0x0
 #define IDM_CLASS_PROTECTED_WRITE	0x1
@@ -118,6 +119,13 @@ static char sense_lba_oor[28] = {
 	0x03, 0x02, 0x00, 0x01, 0x80, 0x0e, 0x00, 0x00,
 	0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
 	0x00, 0x00, 0x00, 0x00,
+};
+
+static char sense_list_is_full[32] = {
+	0x72, 0x07, 0x30, 0x00, 0x00, 0x00, 0x00, 0x14,
+	0x03, 0x02, 0x00, 0x01, 0x80, 0x0e, 0x00, 0x00,
+	0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+	0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
 };
 
 static void _scsi_generate_write_cdb(uint8_t *cdb, int mutex_op)
@@ -236,6 +244,14 @@ static int _scsi_sg_io(char *drive, uint8_t *cdb, int cdb_len,
 			break;
 		}
 
+		/* check if mutex list is full */
+		if (!memcmp(sense, sense_list_is_full,
+			    sizeof(sense_list_is_full))) {
+			ilm_log_err("%s: Mutex list is full", __func__);
+			ret = -ENOMEM;
+			break;
+		}
+
 		/* Otherwise, also reports error */
 		ret = -EINVAL;
 		break;
@@ -339,6 +355,16 @@ static int _scsi_read(struct idm_scsi_request *request, int direction)
 		return 0;
 
 	status = io_hdr.masked_status;
+
+	ilm_log_dbg("%s: status 0x%x", __func__, io_hdr.status);
+	ilm_log_dbg("%s: masked status 0x%x", __func__, io_hdr.masked_status);
+	ilm_log_dbg("%s: host status 0x%x", __func__, io_hdr.host_status);
+	ilm_log_dbg("%s: driver status 0x%x", __func__, io_hdr.driver_status);
+
+	if (status != GOOD)
+		ilm_log_array_err("sense:", (char *)request->sense,
+				  SCSI_SENSE_LEN);
+
 	switch (status) {
 	case CHECK_CONDITION:
 		if (!memcmp(request->sense, sense_invalid_opcode,
@@ -358,9 +384,14 @@ static int _scsi_read(struct idm_scsi_request *request, int direction)
 			break;
 		}
 
-		/* Otherwise, also reports error */
-		ilm_log_array_err("sense:", (char *)request->sense,
-				  SCSI_SENSE_LEN);
+		/* check if mutex list is full */
+		if (!memcmp(request->sense, sense_list_is_full,
+			    sizeof(sense_list_is_full))) {
+			ilm_log_err("%s: Mutex list is full", __func__);
+			ret = -ENOMEM;
+			break;
+		}
+
 		ret = -EINVAL;
 		break;
 
@@ -1502,14 +1533,15 @@ int idm_drive_lock_mode(char *lock_id, int *mode, char *drive)
 	*mode = -1;
 	data = request->data;
 	for (i = 0; i < IDM_DATA_BLOCK_NUM; i++) {
-		/* Skip for other locks */
-		if (memcmp(data[i].resource_id, request->lock_id, IDM_LOCK_ID_LEN))
-			continue;
 
 		state = __bswap_64(data[i].state);
 		class = __bswap_64(data[i].class);
 
 		ilm_log_dbg("%s: state=%lx class=%lx", __func__, state, class);
+
+		/* Skip for other locks */
+		if (memcmp(data[i].resource_id, request->lock_id, IDM_LOCK_ID_LEN))
+			continue;
 
 		if (state == IDM_STATE_UNINIT ||
 		    state == IDM_STATE_UNLOCKED ||
@@ -1772,13 +1804,13 @@ int idm_drive_read_group(char *drive, struct idm_info **info_ptr, int *info_num)
 	struct idm_data *data;
 	int ret, i;
 	struct idm_info *info_list, *info;
-	int max_alloc = 8;
+	uint64_t state, class;
 
 	if (ilm_inject_fault_is_hit())
 		return -EIO;
 
-	/* Let's firstly assume to allocet for 8 items */
-	info_list = malloc(sizeof(struct idm_info) * max_alloc);
+	/* Let's allocate for the same item with data block */
+	info_list = malloc(sizeof(struct idm_info) * IDM_DATA_BLOCK_NUM);
 	if (!info_list)
 		return -ENOMEM;
 
@@ -1810,16 +1842,9 @@ int idm_drive_read_group(char *drive, struct idm_info **info_ptr, int *info_num)
 	data = request->data;
 	for (i = 0; i < IDM_DATA_BLOCK_NUM; i++) {
 
-		if (i >= max_alloc) {
-			max_alloc += 8;
-
-			info_list = realloc(info_list,
-					sizeof(struct idm_info) * max_alloc);
-			if (!info_list) {
-				ret = -ENOMEM;
-				goto out;
-			}
-		}
+		state = __bswap_64(data[i].state);
+		if (state == IDM_STATE_DEAD)
+			break;
 
 		info = info_list + i;
 
@@ -1827,29 +1852,26 @@ int idm_drive_read_group(char *drive, struct idm_info **info_ptr, int *info_num)
 		_scsi_data_swap(info->id, data[i].resource_id, IDM_LOCK_ID_LEN);
 		_scsi_data_swap(info->host_id, data[i].host_id, IDM_HOST_ID_LEN);
 
-		data[i].state = __bswap_64(data[i].state);
-		data[i].class = __bswap_64(data[i].class);
-		data[i].time_now = __bswap_64(data[i].time_now);
-		data[i].countdown = __bswap_64(data[i].countdown);
+		class = __bswap_64(data[i].class);
 
-		if (data[i].state == IDM_STATE_UNINIT ||
-		    data[i].state == IDM_STATE_UNLOCKED ||
-		    data[i].state == IDM_STATE_TIMEOUT) {
-			info->mode = IDM_MODE_UNLOCK;
-		} else if (data[i].class == IDM_CLASS_EXCLUSIVE) {
+		if (class == IDM_CLASS_EXCLUSIVE) {
 			info->mode = IDM_MODE_EXCLUSIVE;
-		} else if (data[i].class == IDM_CLASS_SHARED_PROTECTED_READ) {
+		} else if (class == IDM_CLASS_SHARED_PROTECTED_READ) {
 			info->mode = IDM_MODE_SHAREABLE;
-		} else if (data[i].class == IDM_CLASS_PROTECTED_WRITE) {
-			ilm_log_err("%s: PROTECTED_WRITE is not unsupported",
-				    __func__);
+		} else {
+			ilm_log_err("%s: IDM class is not unsupported %ld",
+				    __func__, class);
 			ret = -EFAULT;
 			goto out;
 		}
 
-		info->last_renew_time = data[i].time_now;
-		info->timeout = data[i].countdown;
-		i++;
+		if (state == IDM_STATE_UNINIT || state == IDM_STATE_UNLOCKED ||
+		    state == IDM_STATE_TIMEOUT)
+			info->state = IDM_MODE_UNLOCK;
+		else
+			info->state = 1;
+
+		info->last_renew_time = __bswap_64(data[i].time_now);
 	}
 
 	*info_ptr = info_list;
@@ -1872,7 +1894,8 @@ free_info_list:
  *
  * Returns zero or a negative error (ie. EINVAL).
  */
-int idm_drive_destroy(char *lock_id, char *drive)
+int idm_drive_destroy(char *lock_id, int mode, char *host_id,
+		      char *drive)
 {
 	struct idm_scsi_request *request;
 	int ret;
@@ -1880,7 +1903,10 @@ int idm_drive_destroy(char *lock_id, char *drive)
 	if (ilm_inject_fault_is_hit())
 		return -EIO;
 
-	if (!lock_id || !drive)
+	if (!lock_id || !host_id || !drive)
+		return -EINVAL;
+
+	if (mode != IDM_MODE_EXCLUSIVE && mode != IDM_MODE_SHAREABLE)
 		return -EINVAL;
 
 	request = malloc(sizeof(struct idm_scsi_request));
@@ -1888,6 +1914,7 @@ int idm_drive_destroy(char *lock_id, char *drive)
 		ilm_log_err("%s: fail to allocat scsi request", __func__);
 		return -ENOMEM;
 	}
+	memset(request, 0x0, sizeof(struct idm_scsi_request));
 
 	request->data = malloc(sizeof(struct idm_data));
 	if (!request->data) {
@@ -1895,14 +1922,21 @@ int idm_drive_destroy(char *lock_id, char *drive)
 		ilm_log_err("%s: fail to allocat scsi data", __func__);
 		return -ENOMEM;
 	}
-	request->data_len = sizeof(struct idm_data);
+	memset(request->data, 0x0, sizeof(struct idm_data));
+
+	if (mode == IDM_MODE_EXCLUSIVE)
+		mode = IDM_CLASS_EXCLUSIVE;
+	else if (mode == IDM_MODE_SHAREABLE)
+		mode = IDM_CLASS_SHARED_PROTECTED_READ;
 
 	strncpy(request->drive, drive, PATH_MAX);
 	request->op = IDM_MUTEX_OP_DESTROY;
-	request->mode = 0;
+	request->mode = mode;
 	request->timeout = 0;
 	request->res_ver_type = IDM_RES_VER_NO_UPDATE_NO_VALID;
+	request->data_len = sizeof(struct idm_data);
 	memcpy(request->lock_id, lock_id, IDM_LOCK_ID_LEN);
+	memcpy(request->host_id, host_id, IDM_HOST_ID_LEN);
 
 	ret = _scsi_xfer_sync(request);
 	if (ret < 0)

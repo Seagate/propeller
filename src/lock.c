@@ -157,12 +157,13 @@ static char *ilm_find_sg_path(char *path, uuid_t *id)
 	}
 
 	sg_path = ilm_scsi_get_first_sg(tmp);
-	free(tmp);
-
 	if (!sg_path) {
 		ilm_log_err("Fail to get sg for %s", tmp);
+		free(tmp);
 		goto try_cached_dev_map;
 	}
+
+	free(tmp);
 
 	ret = ilm_scsi_get_part_table_uuid(sg_path, id);
 	if (ret) {
@@ -262,31 +263,6 @@ static int ilm_free(struct ilm_lockspace *ls, struct ilm_lock *lock)
 		return ret;
 
 	free(lock);
-	return 0;
-}
-
-static int ilm_id_write_format(const char *id, char *buffer, size_t size)
-{
-	int i, tot;
-
-	static const unsigned group_size[] = { 6, 4, 4, 4, 4, 4, 6 };
-
-	/* split into groups separated by dashes */
-	if (size < (32 + 6 + 1)) {
-		if (size > 0)
-			buffer[0] = '\0';
-		ilm_log_err("Couldn't write uuid, buffer too small.");
-		return -1;
-	}
-
-	for (i = 0, tot = 0; i < 7; i++) {
-		memcpy(buffer, id + tot, group_size[i]);
-		buffer += group_size[i];
-		tot += group_size[i];
-		*buffer++ = '-';
-	}
-
-	*--buffer = '\0';
 	return 0;
 }
 
