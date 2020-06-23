@@ -44,7 +44,7 @@
 
 /* Now simply read out data with predefined size: 512B * 512 = 256KB */
 #define IDM_DATA_BLOCK_SIZE		512
-#define IDM_DATA_BLOCK_NUM		8
+#define IDM_DATA_BLOCK_NUM		512
 #define IDM_DATA_SIZE			(IDM_DATA_BLOCK_SIZE * IDM_DATA_BLOCK_NUM)
 
 #define IDM_STATE_UNINIT		0
