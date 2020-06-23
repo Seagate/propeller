@@ -42,9 +42,9 @@
 #define IDM_RES_VER_UPDATE_VALID	0x2
 #define IDM_RES_VER_INVALID		0x3
 
-/* Now simply read out data with predefined size: 512B * 512 = 256KB */
+/* Now simply read out data with predefined size: 512B * 512 = 64KB */
 #define IDM_DATA_BLOCK_SIZE		512
-#define IDM_DATA_BLOCK_NUM		512
+#define IDM_DATA_BLOCK_NUM		128
 #define IDM_DATA_SIZE			(IDM_DATA_BLOCK_SIZE * IDM_DATA_BLOCK_NUM)
 
 #define IDM_STATE_UNINIT		0
@@ -1865,8 +1865,10 @@ int idm_drive_read_group(char *drive, struct idm_info **info_ptr, int *info_num)
 			goto out;
 		}
 
-		if (state == IDM_STATE_UNINIT || state == IDM_STATE_UNLOCKED ||
-		    state == IDM_STATE_TIMEOUT)
+		if (state == IDM_STATE_UNINIT)
+			info->state = -1;
+		else if (state == IDM_STATE_UNLOCKED ||
+			 state == IDM_STATE_TIMEOUT)
 			info->state = IDM_MODE_UNLOCK;
 		else
 			info->state = 1;
