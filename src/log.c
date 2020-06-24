@@ -33,12 +33,10 @@
 
 #define ILM_LOG_FILE		"seagate_ilm.log"
 
-#define ILM_LOG_STR_LEN		(512)
+#define ILM_LOG_STR_LEN		(256)
 #define ILM_LOG_DUMP_SIZE	(1024 * 1024)
 
-#define ILM_LOG_ENTRIES		4096
-
-static char log_str[ILM_LOG_STR_LEN];
+#define ILM_LOG_ENTRIES		50000
 
 static pthread_t log_thd;
 
@@ -96,6 +94,7 @@ void ilm_log(int level, const char *fmt, ...)
 {
 	va_list ap;
 	int ret, pos = 0;
+	char log_str[ILM_LOG_STR_LEN];
 	int len = ILM_LOG_STR_LEN - 2; /* leave room for \n\0 */
 	struct timeval cur_time;
 	struct tm time_info;
@@ -149,6 +148,7 @@ void ilm_log(int level, const char *fmt, ...)
 
 void ilm_log_array(int level, const char *array_name, char *buf, int buf_len)
 {
+	char log_str[ILM_LOG_STR_LEN];
 	int len = ILM_LOG_STR_LEN - 2; /* leave room for \n\0 */
 	int ret, pos = 0;
 	int i;
