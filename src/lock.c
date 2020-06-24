@@ -145,11 +145,6 @@ static char *ilm_find_sg_path(char *path, uuid_t *id)
 	char *tmp, *sg_path;
 	int ret;
 
-	if (lstat(path, &stats)) {
-		ilm_log_err("Fail to find drive path %s", path);
-		goto try_cached_dev_map;
-	}
-
 	tmp = ilm_scsi_convert_blk_name(path);
 	if (!tmp) {
 		ilm_log_err("Fail to convert block name %s", path);
