@@ -42,9 +42,9 @@
 #define IDM_RES_VER_UPDATE_VALID	0x2
 #define IDM_RES_VER_INVALID		0x3
 
-/* Now simply read out data with predefined size: 512B * 512 = 256KB */
+/* Now simply read out data with predefined size: 512B * 512 = 64KB */
 #define IDM_DATA_BLOCK_SIZE		512
-#define IDM_DATA_BLOCK_NUM		512
+#define IDM_DATA_BLOCK_NUM		128
 #define IDM_DATA_SIZE			(IDM_DATA_BLOCK_SIZE * IDM_DATA_BLOCK_NUM)
 
 #define IDM_STATE_UNINIT		0
@@ -209,8 +209,8 @@ static int _scsi_sg_io(char *drive, uint8_t *cdb, int cdb_len,
 		goto out;
 	}
 
-	if (direction == SG_DXFER_FROM_DEV)
-		ilm_log_array_dbg("data", (char *)data, data_len);
+	//if (direction == SG_DXFER_FROM_DEV)
+	//	ilm_log_array_dbg("data", (char *)data, data_len);
 
 	/* Make success */
 	if ((io_hdr.info & SG_INFO_OK_MASK) == SG_INFO_OK) {
@@ -318,8 +318,11 @@ static int _scsi_write(struct idm_scsi_request *request, int direction)
 
 	ilm_log_array_dbg("_scsi_write cdb",
                           (char *)request->cdb, SCSI_CDB_LEN);
-	ilm_log_array_dbg("_scsi_write data",
-                          (char *)request->data, request->data_len);
+
+	if (direction == SG_DXFER_TO_DEV)
+		ilm_log_array_dbg("_scsi_write data",
+				  (char *)request->data,
+				  request->data_len);
 
 	ret = write(sg_fd, &io_hdr, sizeof(io_hdr));
 	if (ret < 0) {
@@ -1865,8 +1868,10 @@ int idm_drive_read_group(char *drive, struct idm_info **info_ptr, int *info_num)
 			goto out;
 		}
 
-		if (state == IDM_STATE_UNINIT || state == IDM_STATE_UNLOCKED ||
-		    state == IDM_STATE_TIMEOUT)
+		if (state == IDM_STATE_UNINIT)
+			info->state = -1;
+		else if (state == IDM_STATE_UNLOCKED ||
+			 state == IDM_STATE_TIMEOUT)
 			info->state = IDM_MODE_UNLOCK;
 		else
 			info->state = 1;

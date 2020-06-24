@@ -65,9 +65,6 @@ char *ilm_find_cached_device_mapping(char *dev_map, uuid_t *id)
 	struct ilm_device_map *pos;
 	char *path;
 
-	if (!strstr(dev_map, "/dev/mapper"))
-		return NULL;
-
 	pthread_mutex_lock(&dev_map_mutex);
 
 	list_for_each_entry(pos, &dev_map_list, list) {
@@ -453,46 +450,72 @@ out:
 }
 #endif
 
+static int ilm_find_deepest_device_mapping(char *in, char *out)
+{
+	char in_tmp[128], out_tmp[128], tmp[128];
+	struct stat stats;
+	char cmd[128];
+	char buf[512];
+	FILE *fp;
+	int num;
+	int ret;
+
+	if (stat(in, &stats)) {
+		ilm_log_err("%s: Fail to stat %s", __func__, in);
+		goto failed;
+	}
+
+	snprintf(cmd, sizeof(cmd), "dmsetup deps -o devname %s", in);
+	ilm_log_dbg("%s: cmd=%s", __func__, cmd);
+
+	if ((fp = popen(cmd, "r")) == NULL) {
+		ilm_log_err("%s: Fail to execute command %s", __func__, cmd);
+		goto failed;
+	}
+
+	if (fgets(buf, sizeof(buf), fp) == NULL) {
+		ilm_log_err("%s: Fail to read command buffer %s", __func__, cmd);
+		pclose(fp);
+		goto failed;
+	}
+
+	pclose(fp);
+
+	ilm_log_dbg("%s: buf=%s", __func__, buf);
+
+	ret = sscanf(buf, "%u dependencies  : (%[a-zA-Z0-9_-])", &num, tmp);
+	if (ret == EOF) {
+		ilm_log_dbg("%s: Fail to sscanf string %s", __func__, buf);
+		goto failed;
+	}
+
+	snprintf(in_tmp, sizeof(in_tmp), "/dev/mapper/%s", tmp);
+	ilm_log_dbg("%s: device mapper %s", __func__, in_tmp);
+
+	ret = ilm_find_deepest_device_mapping(in_tmp, out_tmp);
+	if (ret < 0) {
+		strcpy(out, tmp);
+	} else {
+		strcpy(out, out_tmp);
+	}
+	return 0;
+
+failed:
+	strcpy(out, in);
+	return -1;
+}
+
 char *ilm_scsi_convert_blk_name(char *blk_dev)
 {
-	FILE *fp;
-	char tmp[128];
-	char cmd[128];
-	char buf[128];
+	char in_tmp[128], tmp[128];
 	char *base_name;
 	char *blk_name;
-	unsigned int num;
 	int i;
 
-	ilm_log_dbg("blk_dev %s", blk_dev);
-
-	strncpy(tmp, blk_dev, sizeof(tmp));
-
-	if (strstr(tmp, "/dev/mapper")) {
-
-		snprintf(cmd, sizeof(cmd),
-			 "dmsetup deps -o devname %s", tmp);
-
-		if ((fp = popen(cmd, "r")) == NULL) {
-			ilm_log_err("Fail to execute command %s", cmd);
-			return NULL;
-		}
-
-		if (fgets(buf, sizeof(buf), fp) == NULL) {
-			ilm_log_err("Fail to read command buffer %s", cmd);
-			return NULL;
-		}
-
-		pclose(fp);
-
-		sscanf(buf, "%u dependencies  : (%[a-z])", &num, tmp);
-		if (num != 1) {
-			ilm_log_dbg("Fail to parse device mapper %s", tmp);
-			return NULL;
-		}
-
-		ilm_log_dbg("num %d dev %s", num, tmp);
-	}
+	strncpy(in_tmp, blk_dev, sizeof(in_tmp));
+	ilm_find_deepest_device_mapping(in_tmp, tmp);
+	ilm_log_dbg("%s: block device %s deepest mapping -> %s",
+		    __func__, blk_dev, tmp);
 
 	i = strlen(tmp);
 	if (!i)
@@ -508,7 +531,8 @@ char *ilm_scsi_convert_blk_name(char *blk_dev)
 	blk_name = malloc(strlen(base_name) + 1);
 	strncpy(blk_name, base_name, strlen(base_name) + 1);
 
-	ilm_log_dbg("blk_name %s", blk_name);
+	ilm_log_dbg("%s: block device %s -> dev node %s",
+		    __func__, blk_dev, blk_name);
 	return blk_name;
 }
 
