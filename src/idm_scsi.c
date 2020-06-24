@@ -209,8 +209,8 @@ static int _scsi_sg_io(char *drive, uint8_t *cdb, int cdb_len,
 		goto out;
 	}
 
-	if (direction == SG_DXFER_FROM_DEV)
-		ilm_log_array_dbg("data", (char *)data, data_len);
+	//if (direction == SG_DXFER_FROM_DEV)
+	//	ilm_log_array_dbg("data", (char *)data, data_len);
 
 	/* Make success */
 	if ((io_hdr.info & SG_INFO_OK_MASK) == SG_INFO_OK) {
@@ -318,8 +318,11 @@ static int _scsi_write(struct idm_scsi_request *request, int direction)
 
 	ilm_log_array_dbg("_scsi_write cdb",
                           (char *)request->cdb, SCSI_CDB_LEN);
-	ilm_log_array_dbg("_scsi_write data",
-                          (char *)request->data, request->data_len);
+
+	if (direction == SG_DXFER_TO_DEV)
+		ilm_log_array_dbg("_scsi_write data",
+				  (char *)request->data,
+				  request->data_len);
 
 	ret = write(sg_fd, &io_hdr, sizeof(io_hdr));
 	if (ret < 0) {
