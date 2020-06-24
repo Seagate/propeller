@@ -483,7 +483,7 @@ static int ilm_find_deepest_device_mapping(char *in, char *out)
 
 	ilm_log_dbg("%s: buf=%s", __func__, buf);
 
-	ret = sscanf(buf, "%u dependencies  : (%[a-zA-Z0-9-_])", &num, tmp);
+	ret = sscanf(buf, "%u dependencies  : (%[a-zA-Z0-9_-])", &num, tmp);
 	if (ret == EOF) {
 		ilm_log_dbg("%s: Fail to sscanf string %s", __func__, buf);
 		goto failed;
