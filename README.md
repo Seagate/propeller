@@ -99,10 +99,10 @@ Testing
 Let's divide testing into two different modes: manual mode and
 automatic mode with py.test.
 
-At the beginning, it's good to configure the environment so this can
-allow to access log files even without root permission.  So either for
+Before running test case, it's good to configure the environment so can
+allow to access log files even without root permission.  Either for
 manual mode or automatic mode, both suggest to configure the
-environment variables ahead before run any testing:
+environment variables before run any testing:
 
     $ cd /path/to/propeller/test
     $ . init_env.sh (or execute 'source init_env.sh')
@@ -119,7 +119,7 @@ script can only take effect for its own shell.
 
 For manual testing mode, we can use below command to launch daemon:
 
-    $ ./src/seagate_ilm -D 1 -l 0 -L 7 -E 7
+    $ ./src/seagate_ilm -D 1 -l 0 -L 7 -E 7 -S 7
 
 In this command, the options have below meanings:
 
@@ -135,9 +135,11 @@ In this command, the options have below meanings:
 
   '-E': Stderr log priority, the argument value is the same with '-L'.
 
-So up command for manually launching IDM lock manager, it specifies the
+  '-S': Syslog log priority, the argument value is the same with '-L'.
+
+Up command manually launches IDM lock manager, it specifies the
 arguments with 'enabling debugging mode, without lockdown VA, log file
-priority is 7, stderr log priority is 7'.
+priority is 7, stderr log priority is 7, syslog log priority is 7'.
 
 With manual testing mode, it's useful for us to run some C program,
 e.g. for the smoke testing:
@@ -174,3 +176,7 @@ For test IDM SCSI wrapper APIs with sync mode, use the command:
 For test IDM SCSI wrapper APIs with async mode, use the command:
 
     $ py.test -v -k test_idm__async
+
+For test without suppressing verbose log onn the console:
+
+    $ py.test -v -k test_idm__async -s
