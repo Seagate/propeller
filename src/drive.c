@@ -65,9 +65,6 @@ char *ilm_find_cached_device_mapping(char *dev_map, uuid_t *id)
 	struct ilm_device_map *pos;
 	char *path;
 
-	if (!strstr(dev_map, "/dev/mapper"))
-		return NULL;
-
 	pthread_mutex_lock(&dev_map_mutex);
 
 	list_for_each_entry(pos, &dev_map_list, list) {
