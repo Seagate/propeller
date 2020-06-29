@@ -3,6 +3,7 @@
 - 8 cases are caused by cannot find drive path cannot achieve
   majority:
 
+```
   activate-missing-segment.sh
   large-physical-sector-size.sh
   lvchange-partial-raid10.sh
@@ -11,13 +12,16 @@
   profiles-thin.sh
   topology-support.sh
   vgchange-partial.sh
+  ```
 
 - 4 cases are dependent on big disk.
 
+```
   lvconvert-cache-chunks.sh
   lvcreate-large-raid.sh
   profiles-cache.sh
   thin-large.sh
+```
 
 ## Comparision with sanlock lock manager
 
