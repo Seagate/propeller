@@ -100,25 +100,10 @@ Install dependency libs on Centos7:
     $ sudo yum install lvm2-lockd
     $ sudo yum install libaio-devel dbus-devel libudev-devel
     $ sudo yum install readline readline-devel
+    $ sudo yum install corosynclib corosynclib-devel
     $ sudo yum install python3 python3-devel
-    $ sudo pip3 install pyudev dbus-python
+    $ sudo pip3 install pyudev
 ```
-
-LVM2 (with tag v2_02_187) needs to upgrade systemd to version 232.
-The detailed info can refer the link [systemd-backports-for-centos-7](https://copr.fedorainfracloud.org/coprs/jsynacek/systemd-backports-for-centos-7/)
-for the more detailed info.
-
-Below are steps to upgrade systemd to 232:
-
-```
-    $ sudo vi /etc/selinux/config
-    *Change the field 'SELINUX' as 'SELINUX=disabled' or 'SELINUX=permissive'*
-    $ sudo wget https://copr.fedorainfracloud.org/coprs/jsynacek/systemd-backports-for-centos-7/repo/epel-7/jsynacek-systemd-backports-for-centos-7-epel-7.repo -O /etc/yum.repos.d/jsynacek-systemd-centos-7.repo
-    $ sudo yum update systemd
-```
-
-Then reboot the system to execute the upgraded systemd.
-
 
 ## Build LVM toolkit
 
@@ -143,24 +128,20 @@ Then reboot the system to execute the upgraded systemd.
       --sharedstatedir=/var/lib \
       --mandir=/usr/share/man \
       --infodir=/usr/share/info \
-      --enable-blkid_wiping \
-      --enable-cmdlib \
-      --enable-dmeventd \
-      --enable-dbus-service \
-      --enable-lvmlockd-idm \
-      --enable-lvmlockd-sanlock \
-      --enable-lvmlockd-dlm \
-      --enable-lvmpolld \
-      --enable-notify-dbus \
-      --enable-pkgconfig \
-      --enable-readline \
-      --enable-udev_rules \
-      --enable-udev_sync \
-      --with-thin-check=/usr/sbin/thin_check \
-      --with-thin-dump=/usr/sbin/thin_dump \
-      --with-thin-repair=/usr/sbin/thin_repair \
-      --with-cache=internal \
-      --with-thin=internal
+      --with-default-dm-run-dir=/run \
+      --with-default-run-dir=/run/lvm \
+      --with-default-pid-dir=/run \
+      --with-default-locking-dir=/run/lock/lvm \
+      --with-usrlibdir=/usr/lib64 \
+      --enable-fsadm --enable-write_install \
+      --with-user= --with-group= --with-device-uid=0 --with-device-gid=6 \
+      --with-device-mode=0660 --enable-pkgconfig --enable-applib \
+      --enable-cmdlib --enable-dmeventd --enable-blkid_wiping \
+      --enable-python2-bindings --with-cluster=internal \
+      --with-clvmd=corosync --enable-cmirrord --with-udevdir=/usr/lib/udev/rules.d \
+      --enable-udev_sync --with-thin=internal --enable-lvmetad --with-cache=internal \
+      --enable-lvmpolld --enable-lvmlockd-dlm --enable-lvmlockd-sanlock \
+      --enable-lvmlockd-idm --enable-dmfilemapd
     $ make
 ```
 
