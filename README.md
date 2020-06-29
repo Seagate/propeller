@@ -10,45 +10,10 @@ for full stack releasing.
 
 The library and APIs is implemented in C.
 
-Dependency
-----------
+Building and Installation
+-------------------------
 
-It depends below libs and utilities:
-
-Install dependencies on Debian 18.04:
-
-    $ sudo apt-get install build-essential
-    $ sudo apt-get install libblkid-dev libblkid1
-    $ sudo apt-get install uuid-dev
-    $ sudo apt-get install python-pytest
-
-Install dependencies on Centos 7:
-
-    $ sudo yum groupinstall 'Development Tools'
-    $ sudo yum install libuuid-devel
-    $ sudo yum install libblkid libblkid-devel
-    $ sudo yum install python-pytest
-
-Building
---------
-
-In this repository, there have three main parts to build:
-
-- IDM lock manager and the lib which is in 'src' folder;
-- Python wrapper for pytest in 'python' folder;
-- Test cases in 'test' folder, especially, there have some C program
-  code needs to build before run the test cases.
-
-For simplify building steps, change to the root folder of Propeller and
-execute 'make' commands, it will build all up three parts.
-
-    $ cd /path/to/propeller
-    $ make
-
-Installation
-------------
-
-TODO
+See [doc/lvm_propeller_install.md] for details.
 
 Enviornment Variables
 ---------------------
