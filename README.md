@@ -13,7 +13,7 @@ The library and APIs is implemented in C.
 Building and Installation
 -------------------------
 
-See [doc/lvm_propeller_install.md] for details.
+See [LVM and IDM lock manager installation](doc/lvm_propeller_install.md) for details.
 
 Enviornment Variables
 ---------------------
