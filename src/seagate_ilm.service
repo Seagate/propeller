@@ -1,0 +1,12 @@
+[Unit]
+Description=Seagate Propeller IDM Lock Manager
+After=syslog.target
+
+[Service]
+Type=forking
+ExecStart=/usr/sbin/seagate_ilm -l 0 -L 7 -E 7 -S 7
+SendSIGKILL=no
+
+[Install]
+WantedBy=multi-user.target
+
