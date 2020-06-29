@@ -13,7 +13,7 @@ Propeller/LVM on Centos7.
     $ sudo yum groupinstall 'Development Tools'
     $ sudo yum install libuuid-devel
     $ sudo yum install libblkid libblkid-devel
-    $ sudo yum install python-pytest
+    $ sudo yum install python-pytest python-devel
 ```
 
 ### Load the dependency modules
@@ -98,17 +98,27 @@ Install dependency libs on Centos7:
     $ sudo yum install sanlock sanlock-devel sanlock-lib
     $ sudo yum install dlm dlm-devel dlm-lib
     $ sudo yum install lvm2-lockd
+    $ sudo yum install libaio-devel dbus-devel libudev-devel
+    $ sudo yum install readline readline-devel
+    $ sudo yum install python3 python3-devel
+    $ sudo pip3 install pyudev dbus-python
 ```
 
 LVM2 (with tag v2_02_187) needs to upgrade systemd to version 232.
-So we need to upgrade systemd to 232 with below steps:
+The detailed info can refer the link (systemd-backports-for-centos-7)[https://copr.fedorainfracloud.org/coprs/jsynacek/systemd-backports-for-centos-7/]
+for the more detailed info.
+
+Below are steps to upgrade systemd to 232:
 
 ```
     $ sudo vi /etc/selinux/config
-    Change the field 'SELINUX' as 'SELINUX=disabled' or 'SELINUX=permissive'
+    *Change the field 'SELINUX' as 'SELINUX=disabled' or 'SELINUX=permissive'*
     $ sudo wget https://copr.fedorainfracloud.org/coprs/jsynacek/systemd-backports-for-centos-7/repo/epel-7/jsynacek-systemd-backports-for-centos-7-epel-7.repo -O /etc/yum.repos.d/jsynacek-systemd-centos-7.repo
     $ sudo yum update systemd
 ```
+
+Then reboot the system to execute the upgraded systemd.
+
 
 ## Build LVM toolkit
 
@@ -116,6 +126,7 @@ So we need to upgrade systemd to 232 with below steps:
     $ cd /work/path
     $ git clone https://github.com/Seagate/lvm2-stx-private
     $ cd /work/path/lvm2-stx-private
+    $ git checkout -b centos7_lvm2 origin/centos7_lvm2
     $ ./configure --build=x86_64-redhat-linux-gnu --host=x86_64-redhat-linux-gnu \
       --program-prefix= \
       --disable-dependency-tracking \
