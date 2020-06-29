@@ -105,7 +105,7 @@ Install dependency libs on Centos7:
 ```
 
 LVM2 (with tag v2_02_187) needs to upgrade systemd to version 232.
-The detailed info can refer the link (systemd-backports-for-centos-7)[https://copr.fedorainfracloud.org/coprs/jsynacek/systemd-backports-for-centos-7/]
+The detailed info can refer the link [systemd-backports-for-centos-7](https://copr.fedorainfracloud.org/coprs/jsynacek/systemd-backports-for-centos-7/)
 for the more detailed info.
 
 Below are steps to upgrade systemd to 232:
