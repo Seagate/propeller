@@ -101,6 +101,11 @@ static int ilm_sort_drives(struct ilm_lock *lock)
 			if (!strcmp(lock->drive[i].path,
 				    lock->drive[j].path))
 				matched = 1;
+
+			if (!memcmp(&lock->drive[i].uuid,
+			            &lock->drive[j].uuid,
+				    sizeof(uuid_t)))
+				matched = 1;
 		}
 
 		if (!matched) {
@@ -141,7 +146,7 @@ static int ilm_sort_drives(struct ilm_lock *lock)
 
 static char *ilm_find_sg_path(char *path, uuid_t *id)
 {
-        struct stat stats;
+	char dev_path[PATH_MAX];
 	char *tmp, *sg_path;
 	int ret;
 
@@ -151,16 +156,17 @@ static char *ilm_find_sg_path(char *path, uuid_t *id)
 		goto try_cached_dev_map;
 	}
 
-	sg_path = ilm_scsi_get_first_sg(tmp);
+	sg_path = ilm_convert_sg(tmp);
 	if (!sg_path) {
 		ilm_log_err("Fail to get sg for %s", tmp);
 		free(tmp);
 		goto try_cached_dev_map;
 	}
 
+	snprintf(dev_path, sizeof(dev_path), "/dev/%s", tmp);
 	free(tmp);
 
-	ret = ilm_scsi_get_part_table_uuid(sg_path, id);
+	ret = ilm_read_parttable_id(dev_path, id);
 	if (ret) {
 		ilm_log_err("Fail to read uuid for drive (%s %s)",
 			    tmp, sg_path);
