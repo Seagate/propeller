@@ -297,11 +297,13 @@ static int ilm_scsi_parse_sg_node(unsigned int maj, unsigned int min,
 			continue;
 
 		if (major(stats.st_rdev) == maj && minor(stats.st_rdev) == min) {
+			closedir(dirp);
 			strcpy(dev, path);
 			return 0;
 		}
 	}
 
+	closedir(dirp);
 	return -1;
 }
 
