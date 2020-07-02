@@ -544,48 +544,10 @@ char *ilm_convert_sg(char *blk_dev)
 	sg = strdup(blk_dev);
 	return sg;
 #else
-	char *tmp = strdup(blk_dev);
 	char *sg;
-	char cmd[128];
-	char buf[128];
-	unsigned int num;
-	int i;
-	FILE *fp;
 
-	if (strstr(tmp, "/dev/mapper")) {
-		snprintf(cmd, sizeof(cmd),
-			 "dmsetup deps -o devname %s", tmp);
-
-		if ((fp = popen(cmd, "r")) == NULL)
-			goto failed;
-
-		if (fgets(buf, sizeof(buf), fp) == NULL)
-			goto failed;
-
-		sscanf(buf, "%u dependencies  : (%[a-z])", &num, tmp);
-		pclose(fp);
-		ilm_log_dbg("num %d dev %s", num, tmp);
-	}
-
-	i = strlen(tmp);
-	if (!i || !tmp)
-		goto failed;
-
-	/* Iterate all digital */
-	while ((i > 0) && isdigit(tmp[i-1]))
-		i--;
-
-	tmp[i] = '\0';
-
-	sg = ilm_find_sg(basename(tmp));
-
-	free(tmp);
+	sg = ilm_find_sg(blk_dev);
 	return sg;
-
-failed:
-	if (tmp)
-		free(tmp);
-	return NULL;
 #endif
 }
 
