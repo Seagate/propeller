@@ -656,8 +656,12 @@ int idm_drive_lock_async(char *lock_id, int mode, char *host_id,
 	memcpy(request->host_id, host_id, IDM_HOST_ID_LEN);
 
 	ret = _scsi_xfer_async(request);
-	if (ret < 0)
+	if (ret < 0) {
 		ilm_log_err("%s: command fail %d", __func__, ret);
+		free(request->data);
+		free(request);
+		return ret;
+	}
 
 	*handle = (uint64_t)request;
 	return ret;
@@ -793,8 +797,12 @@ int idm_drive_unlock_async(char *lock_id, int mode, char *host_id,
 	memcpy(request->lvb, lvb, lvb_size);
 
 	ret = _scsi_xfer_async(request);
-	if (ret < 0)
+	if (ret < 0) {
 		ilm_log_err("%s: command fail %d", __func__, ret);
+		free(request->data);
+		free(request);
+		return ret;
+	}
 
 	*handle = (uint64_t)request;
 	return ret;
@@ -900,8 +908,12 @@ static int idm_drive_refresh_lock_async(char *lock_id, int mode,
 	memcpy(request->host_id, host_id, IDM_HOST_ID_LEN);
 
 	ret = _scsi_xfer_async(request);
-	if (ret < 0)
+	if (ret < 0) {
 		ilm_log_err("%s: command fail %d", __func__, ret);
+		free(request->data);
+		free(request);
+		return ret;
+	}
 
 	*handle = (uint64_t)request;
 	return ret;
@@ -1103,8 +1115,12 @@ int idm_drive_break_lock_async(char *lock_id, int mode, char *host_id,
 	memcpy(request->host_id, host_id, IDM_HOST_ID_LEN);
 
 	ret = _scsi_xfer_async(request);
-	if (ret < 0)
+	if (ret < 0) {
 		ilm_log_err("%s: command fail %d", __func__, ret);
+		free(request->data);
+		free(request);
+		return ret;
+	}
 
 	*handle = (uint64_t)request;
 	return ret;
@@ -1228,6 +1244,8 @@ int idm_drive_read_lvb_async(char *lock_id, char *host_id, char *drive, uint64_t
 	ret = _scsi_recv_async(request);
 	if (ret < 0) {
 		ilm_log_err("%s: fail to read data %d", __func__, ret);
+		free(request->data);
+		free(request);
 		return ret;
 	}
 
@@ -1418,6 +1436,8 @@ int idm_drive_lock_count_async(char *lock_id, char *host_id,
 	ret = _scsi_recv_async(request);
 	if (ret < 0) {
 		ilm_log_err("%s: fail to read data %d", __func__, ret);
+		free(request->data);
+		free(request);
 		return ret;
 	}
 
