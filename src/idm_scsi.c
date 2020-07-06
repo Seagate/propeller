@@ -506,7 +506,6 @@ static int _scsi_recv_async(struct idm_scsi_request *request)
 	ret = _scsi_write(request, SG_DXFER_FROM_DEV);
 	if (ret < 0) {
 		ilm_log_err("%s: fail to write scsi %d", __func__, ret);
-		free(request);
 		return ret;
 	}
 
