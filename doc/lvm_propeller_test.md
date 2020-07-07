@@ -1,11 +1,101 @@
 # Introduction
 
-This document is to describe the detailed info for testing
-Propeller/LVM on Centos7.
+This document is to describe the detailed info for testing Propeller/LVM
+on Centos7.
 
-# Preparations
+# Test for IDM SCSI wrapper and IDM lock manager
 
-## Create disk partitions
+Let's divide testing into two different modes: manual mode and
+automatic mode with py.test.
+
+Before running test case, it's good to configure the environment so can
+allow to access log files even without root permission.  Either for
+manual mode or automatic mode, both suggest to configure the
+environment variables before run any testing:
+
+    $ cd /path/to/propeller/test
+    $ . init_env.sh (or execute 'source init_env.sh')
+
+Except to set run directory variable, the script 'init_env.sh' will
+configure shell variables for lib path, python path.
+
+Please be aware, if you want to launch two different shell windows to
+execute testing, two shell windows are useful for debugging IDM lock
+manager daemon with one shell window and another is dedicated for
+client.  These two shell windows should run command
+'. init_env.sh' to configure environment variables separately, the
+script can only take effect for its own shell.
+
+For manual testing mode, we can use below command to launch daemon:
+
+    $ ./src/seagate_ilm -D 1 -l 0 -L 7 -E 7 -S 7
+
+In this command, the options have below meanings:
+
+  '-D': Enable debugging mode and don't invoke daemon() function, this
+        allows the program to run as background process;
+
+  '-l': If set, lockdown process's virtual address space into RAM;
+
+  '-L': Log file priority (which is written into seagate_ilm.log)
+        7 means to output all level's log (debug, warning, err);
+        4 means to output warning and error level's log;
+        3 means to output error level's log;
+
+  '-E': Stderr log priority, the argument value is the same with '-L'.
+
+  '-S': Syslog log priority, the argument value is the same with '-L'.
+
+Up command manually launches IDM lock manager, it specifies the
+arguments with 'enabling debugging mode, without lockdown VA, log file
+priority is 7, stderr log priority is 7, syslog log priority is 7'.
+
+With manual testing mode, it's useful for us to run some C program,
+e.g. for the smoke testing:
+
+    $ cd test
+    $ ./smoke_test
+
+For automatic testing mode, the command is straightforward:
+
+    $ cd test
+
+Run all cases, '-v' will output verbose logs
+
+    $ py.test -v
+
+The option '-t' specifies testing cases, in this example it only
+executes cases with prefix 'test_lock'.
+
+    $ py.test -v -t test_lock'
+
+The option '--run-destroy' will enable an extra case for testing
+IDM destroy.
+
+    $ py.test -v --run-destroy
+
+For test IDM SCSI wrapper APIs, it can use the command:
+
+    $ py.test -v -k test_idm
+
+For test IDM SCSI wrapper APIs with sync mode, use the command:
+
+    $ py.test -v -k test_idm__sync
+
+For test IDM SCSI wrapper APIs with async mode, use the command:
+
+    $ py.test -v -k test_idm__async
+
+For test without suppressing verbose log onn the console:
+
+    $ py.test -v -k test_idm__async -s
+
+
+# Test for LVM tool
+
+## Preparation
+
+### Create disk partitions
 
 Let's take the an example that a system have four block devices:
 /dev/sdi, /dev/sdj, /dev/sdk, /dev/sdm.
@@ -52,7 +142,7 @@ gives the indication for IDM locking that these disks will be used for
 global lock.  But there have no any specific requirement for other
 partitions, the label and partition size both are flexible.
 
-## LVM test configurations
+### LVM test configurations
 
 - After setup disk partitions, we need to change LVM's test
   configuration file to specify multiple device in the
@@ -96,7 +186,7 @@ partitions, the label and partition size both are flexible.
   sg_raw -v -s 512 -i test_data.bin /dev/sg14 8E 00 FF 00 00 00 00 00 00 00 00 00 00 01 00 00
 ```
 
-# Cleanup before run testing
+## Cleanup before run testing
 
 Since the LVM testing is dependent on lock manager, it's needed to
 prepare a clean enviornment for LVM testing.
@@ -108,9 +198,9 @@ prepare a clean enviornment for LVM testing.
   killall sanlock
 ```
 
-# Run LVM test suites
+## Run LVM test suites
 
-## Test with single drive
+### Test with single drive
 
 Below is an example to use the partition /dev/sdj3 as backing device
 for testing, in this case the test will create device mappers as PV.
@@ -120,7 +210,7 @@ for testing, in this case the test will create device mappers as PV.
   # make check_lvmlockd_idm LVM_TEST_BACKING_DEVICE=/dev/sdj3
 ```
 
-## Test with multiple drives
+### Test with multiple drives
 
 As the multiple devices have been configured in the shell array 'BLK_DEVS',
 it can support maximum to 16 devices.  If any case requires more than 16
@@ -132,7 +222,7 @@ device and create device mapping on it.
   # make check_lvmlockd_idm LVM_TEST_BACKING_MULTI_DEVICES=1
 ```
 
-## Test with multiple drives
+### Test with multiple drives
 
 As the multiple devices have been configured in the shell array 'BLK_DEVS',
 it can support maximum to 16 devices.  If any case requires more than 16
@@ -144,7 +234,7 @@ device and create device mapping on it.
   # make check_lvmlockd_idm LVM_TEST_BACKING_MULTI_DEVICES=1
 ```
 
-## Test for fault injection
+### Test for fault injection
 
 There have three test cases which is used to test with fault injection:
 - shell/idm_ilm_failure.sh: This test case is to verify when the IDM
@@ -170,7 +260,7 @@ There have three test cases which is used to test with fault injection:
   # make check_lvmlockd_idm LVM_TEST_FAILURE_INJECTION=1 T=idm_fabric_failure.sh
 ```
 
-## Test for multi hosts
+### Test for multi hosts
 
 There have four cases for multi hosts testing, the test case name
 contains 'hosta' and 'hostb', which means these two test script should
