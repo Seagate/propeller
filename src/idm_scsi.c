@@ -59,7 +59,7 @@
 #define IDM_CLASS_SHARED_PROTECTED_READ	0x2
 
 #define IDM_SCSI_WRITE			0x89  /* Or change to use 0x8E */
-#define IDM_SCSI_READ			0x88  /* Or change to use 0x8E */
+#define IDM_SCSI_READ			0x88
 
 #define IDM_MUTEX_GROUP			0x1
 
@@ -150,7 +150,7 @@ static void _scsi_generate_read_cdb(uint8_t *cdb)
 {
 	cdb[0] = IDM_SCSI_READ;
 	cdb[1] = 0x0;			/* WRPROTECT=000b DPO=0b FUA=0b */
-	cdb[2] = IDM_MUTEX_GROUP;	/* MUTEX GROUP=0 as default value */
+	cdb[2] = IDM_MUTEX_GROUP;	/* MUTEX GROUP=1 as default value */
 	cdb[3] = 0x0;			/* cdb[3..9] are ignored */
 	cdb[4] = 0x0;
 	cdb[5] = 0x0;
