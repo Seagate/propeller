@@ -15,48 +15,10 @@ Building and Installation
 
 See [LVM and IDM lock manager installation](doc/lvm_propeller_install.md) for details.
 
-Enviornment Variables
----------------------
+Enviornment Variables and Logging
+---------------------------------
 
-So far, only provides one variable 'ILM_RUN_DIR' which can be used to
-set the runtime directory.  If without this variable, IDM lock manager
-will use '/run/seagate_ilm' as default runtime directory.  Please note,
-usually '/run/' and its child directories only can be accessed with
-root, so other users have no permission to access it.  Thus, the normal
-user without root permission can set variable with below command:
-
-    $ export ILM_RUN_DIR=/tmp/seagate_ilm/
-
-Logging
--------
-
-IDM lock manager follows the syslog's logging level definition:
-
-        LOG_EMERG       0       /* system is unusable */
-        LOG_ALERT       1       /* action must be taken immediately */
-        LOG_CRIT        2       /* critical conditions */
-        LOG_ERR         3       /* error conditions */
-        LOG_WARNING     4       /* warning conditions */
-        LOG_NOTICE      5       /* normal but significant condition */
-        LOG_INFO        6       /* informational */
-        LOG_DEBUG       7       /* debug-level messages */
-
-To simplify the logging system in IDM lock manager, now it supports
-below three types:
-
-        LOG_ERR         3       /* error conditions */
-        LOG_WARNING     4       /* warning conditions */
-        LOG_DEBUG       7       /* debug-level messages */
-
-In the code, usually debug-level log is mainly used for debugging purpose;
-for a running daemon, it's sugguested to only enable warning and error's
-level log, this can avoid verbose messages.
-
-The log will be written into three targets:
-
-- stderr;
-- log file $ILM_RUN_DIR/seagate_ilm.log;
-- syslog.
+See [LVM and IDM lock manager debugging](doc/lvm_propeller_debug.md) for details.
 
 Testing
 -------
