@@ -977,6 +977,11 @@ static void idm_raid_multi_issue(struct ilm_lock *lock, char *host_id,
 		if (drive->state == IDM_INIT && req->result == -ENOMEM)
 			idm_raid_destroy(drive);
 
+		if (drive->state == IDM_LOCK && req->result == -EPERM &&
+		    op == ILM_OP_CONVERT && mode == IDM_MODE_EXCLUSIVE)
+			req->result = idm_drive_break_lock(lock->id, req->mode,
+				req->host_id, req->drive->path, lock->timeout);
+
 		if (_raid_state_machine_end(drive->state)) {
 			drive->result = req->result;
 			drive->mode = req->mode;
