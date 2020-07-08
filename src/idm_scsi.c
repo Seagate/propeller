@@ -1703,7 +1703,9 @@ int idm_drive_lock_mode(char *lock_id, int *mode, char *drive)
 		}
 
 		ilm_log_dbg("%s: mode=%d", __func__, *mode);
-		break;
+
+		if (*mode == IDM_MODE_EXCLUSIVE || *mode == IDM_MODE_SHAREABLE)
+			break;
 	}
 
 	/*
@@ -1815,7 +1817,8 @@ int idm_drive_lock_mode_async_result(uint64_t handle, int *mode, int *result)
 			goto out;
 		}
 
-		break;
+		if (*mode == IDM_MODE_EXCLUSIVE || *mode == IDM_MODE_SHAREABLE)
+			break;
 	}
 
 	if (*mode == -1)
