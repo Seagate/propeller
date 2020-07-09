@@ -930,7 +930,7 @@ static void idm_raid_multi_issue(struct ilm_lock *lock, char *host_id,
 {
 	struct ilm_drive *drive;
 	struct _raid_request *req;
-	int i;
+	int i, reverse_mode;
 
 	ilm_log_dbg("%s: op=%d mode=%d", __func__, op, mode);
 
@@ -974,13 +974,43 @@ static void idm_raid_multi_issue(struct ilm_lock *lock, char *host_id,
 
 		drive = req->drive;
 
+		/* Drive compliants no free memory, destroy mutex */
 		if (drive->state == IDM_INIT && req->result == -ENOMEM)
 			idm_raid_destroy(drive);
 
+		/*
+		 * When release mutex, if returns -EINVAL usually it means
+		 * it passes wrong lock mode, this might be caused by the
+		 * previous user forgot to release mutex.  For this case,
+		 * try to cleanup the context by destroying the mutex,
+		 * and needs to revert the locking mode so can allow drive
+		 * firmware to destroy mutex successfully.
+		 */
+		if (drive->state == IDM_INIT && req->result == -EINVAL &&
+		    req->op == ILM_OP_UNLOCK) {
+			if (req->mode == IDM_MODE_EXCLUSIVE)
+				reverse_mode = IDM_MODE_SHAREABLE;
+			else
+				reverse_mode = IDM_MODE_EXCLUSIVE;
+
+			idm_drive_unlock(lock->id, reverse_mode, req->host_id,
+					 req->lvb, req->lvb_size, drive->path);
+			idm_drive_destroy(lock->id, reverse_mode,
+					  req->host_id, drive->path);
+		}
+
+		/*
+		 * When convert lock mode from shareable to exclusive, if
+		 * there have other hosts have been timeout, it returns error
+		 * -EPERM.  For this case, needs to use break operation to
+		 * dismiss the hosts have been timeout, and it can promote
+		 * lock mode to exclusive.
+		 */
 		if (drive->state == IDM_LOCK && req->result == -EPERM &&
-		    op == ILM_OP_CONVERT && mode == IDM_MODE_EXCLUSIVE)
+		    req->op == ILM_OP_CONVERT && req->mode == IDM_MODE_EXCLUSIVE) {
 			req->result = idm_drive_break_lock(lock->id, req->mode,
 				req->host_id, req->drive->path, lock->timeout);
+		}
 
 		if (_raid_state_machine_end(drive->state)) {
 			drive->result = req->result;
