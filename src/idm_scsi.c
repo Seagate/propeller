@@ -205,19 +205,11 @@ static int _scsi_sg_io(char *drive, uint8_t *cdb, int cdb_len,
 	/* io_hdr.pack_id = 0; */
 	/* io_hdr.usr_ptr = NULL; */
 
-	ilm_log_array_dbg("cdb", (char *)cdb, cdb_len);
-
-	if (direction == SG_DXFER_TO_DEV)
-		ilm_log_array_dbg("data", (char *)data, data_len);
-
 	ret = ioctl(sg_fd, SG_IO, &io_hdr);
 	if (ret) {
 		ilm_log_err("%s: fail to send cdb %d", __func__, ret);
 		goto out;
 	}
-
-	//if (direction == SG_DXFER_FROM_DEV)
-	//	ilm_log_array_dbg("data", (char *)data, data_len);
 
 	/* Make success */
 	if ((io_hdr.info & SG_INFO_OK_MASK) == SG_INFO_OK) {
@@ -227,13 +219,15 @@ static int _scsi_sg_io(char *drive, uint8_t *cdb, int cdb_len,
 
 	status = io_hdr.masked_status;
 
-	ilm_log_dbg("%s: status 0x%x", __func__, io_hdr.status);
-	ilm_log_dbg("%s: masked status 0x%x", __func__, io_hdr.masked_status);
-	ilm_log_dbg("%s: host status 0x%x", __func__, io_hdr.host_status);
-	ilm_log_dbg("%s: driver status 0x%x", __func__, io_hdr.driver_status);
-
-	if (status != GOOD)
-		ilm_log_array_err("sense:", (char *)sense, sense_len);
+	if (status != GOOD) {
+		ilm_log_array_err("SCSI CDB:", (char *)cdb, data_len);
+		ilm_log_array_err("SCSI DATA:", (char *)data, data_len);
+		ilm_log_array_err("SCSI SENSE:", (char *)sense, sense_len);
+		ilm_log_err("SCSI status: 0x%x", io_hdr.status);
+		ilm_log_err("SCSI masked status: 0x%x", io_hdr.masked_status);
+		ilm_log_err("SCSI host status: 0x%x", io_hdr.host_status);
+		ilm_log_err("SCSI driver status: 0x%x", io_hdr.driver_status);
+	}
 
 	switch (status) {
 	case CHECK_CONDITION:
@@ -339,14 +333,6 @@ static int _scsi_write(struct idm_scsi_request *request, int direction)
 	/* io_hdr.pack_id = 0; */
 	/* io_hdr.usr_ptr = NULL; */
 
-	ilm_log_array_dbg("_scsi_write cdb",
-                          (char *)request->cdb, SCSI_CDB_LEN);
-
-	if (direction == SG_DXFER_TO_DEV)
-		ilm_log_array_dbg("_scsi_write data",
-				  (char *)request->data,
-				  request->data_len);
-
 	ret = write(sg_fd, &io_hdr, sizeof(io_hdr));
 	if (ret < 0) {
 		close(sg_fd);
@@ -382,14 +368,15 @@ static int _scsi_read(struct idm_scsi_request *request, int direction)
 
 	status = io_hdr.masked_status;
 
-	ilm_log_dbg("%s: status 0x%x", __func__, io_hdr.status);
-	ilm_log_dbg("%s: masked status 0x%x", __func__, io_hdr.masked_status);
-	ilm_log_dbg("%s: host status 0x%x", __func__, io_hdr.host_status);
-	ilm_log_dbg("%s: driver status 0x%x", __func__, io_hdr.driver_status);
-
-	if (status != GOOD)
-		ilm_log_array_err("sense:", (char *)request->sense,
-				  SCSI_SENSE_LEN);
+	if (status != GOOD) {
+		ilm_log_array_err("SCSI CDB:", (char *)request->cdb, SCSI_CDB_LEN);
+		ilm_log_array_err("SCSI DATA:", (char *)request->data, request->data_len);
+		ilm_log_array_err("SCSI SENSE:", (char *)request->sense, SCSI_SENSE_LEN);
+		ilm_log_err("SCSI status: 0x%x", io_hdr.status);
+		ilm_log_err("SCSI masked status: 0x%x", io_hdr.masked_status);
+		ilm_log_err("SCSI host status: 0x%x", io_hdr.host_status);
+		ilm_log_err("SCSI driver status: 0x%x", io_hdr.driver_status);
+	}
 
 	switch (status) {
 	case CHECK_CONDITION:
