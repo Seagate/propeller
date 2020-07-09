@@ -834,14 +834,15 @@ def test_lock__two_hosts_convert_shareable_timeout_to_shareable_success(ilm_daem
     assert ret == 0
     assert mode == ilm.IDM_MODE_SHAREABLE
 
-    time.sleep(30)
-
     ret = ilm.ilm_lock(s3, lock_id, lock_op)
     assert ret == 0
 
     ret, mode = ilm.ilm_get_mode(s3, lock_id, lock_op)
     assert ret == 0
     assert mode == ilm.IDM_MODE_SHAREABLE
+
+    ret = ilm.ilm_unlock(s2, lock_id)
+    assert ret == 0
 
     ret = ilm.ilm_unlock(s3, lock_id)
     assert ret == 0
