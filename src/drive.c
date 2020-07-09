@@ -463,7 +463,7 @@ static int ilm_find_deepest_device_mapping(char *in, char *out)
 	int ret;
 
 	if (stat(in, &stats)) {
-		ilm_log_err("%s: Fail to stat %s", __func__, in);
+		ilm_log_dbg("%s: Fail to stat %s", __func__, in);
 		goto failed;
 	}
 
@@ -471,12 +471,12 @@ static int ilm_find_deepest_device_mapping(char *in, char *out)
 	ilm_log_dbg("%s: cmd=%s", __func__, cmd);
 
 	if ((fp = popen(cmd, "r")) == NULL) {
-		ilm_log_err("%s: Fail to execute command %s", __func__, cmd);
+		ilm_log_dbg("%s: Fail to execute command %s", __func__, cmd);
 		goto failed;
 	}
 
 	if (fgets(buf, sizeof(buf), fp) == NULL) {
-		ilm_log_err("%s: Fail to read command buffer %s", __func__, cmd);
+		ilm_log_dbg("%s: Fail to read command buffer %s", __func__, cmd);
 		pclose(fp);
 		goto failed;
 	}
@@ -516,8 +516,6 @@ char *ilm_scsi_convert_blk_name(char *blk_dev)
 
 	strncpy(in_tmp, blk_dev, sizeof(in_tmp));
 	ilm_find_deepest_device_mapping(in_tmp, tmp);
-	ilm_log_dbg("%s: block device %s deepest mapping -> %s",
-		    __func__, blk_dev, tmp);
 
 	i = strlen(tmp);
 	if (!i)
@@ -533,7 +531,7 @@ char *ilm_scsi_convert_blk_name(char *blk_dev)
 	blk_name = malloc(strlen(base_name) + 1);
 	strncpy(blk_name, base_name, strlen(base_name) + 1);
 
-	ilm_log_dbg("%s: block device %s -> dev node %s",
+	ilm_log_dbg("%s: block device mapping %s -> %s",
 		    __func__, blk_dev, blk_name);
 	return blk_name;
 }
