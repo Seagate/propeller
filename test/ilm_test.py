@@ -16,6 +16,9 @@ DRIVE2 = "/dev/sdd2"
 LOCK1_VG_UUID = "00000000000000000000000000000001"
 LOCK1_LV_UUID = "0123456789abcdef0123456789abcdef"
 
+LOCK2_VG_UUID = "00000000000000000000000000000002"
+LOCK2_LV_UUID = "0123456789abcdef1111111111111111"
+
 HOST1 = "00000000000000000000000000000000"
 HOST2 = "00000000000000000000000000000001"
 HOST3 = "00000000000000000000000000000002"
@@ -746,8 +749,8 @@ def test_lock__two_hosts_convert_shareable_timeout_to_exclusive_success(ilm_daem
     ret = ilm.ilm_set_host_id(s2, host_id, 32)
 
     lock_id = ilm.idm_lock_id()
-    lock_id.set_vg_uuid(LOCK1_VG_UUID)
-    lock_id.set_lv_uuid(LOCK1_LV_UUID)
+    lock_id.set_vg_uuid(LOCK2_VG_UUID)
+    lock_id.set_lv_uuid(LOCK2_LV_UUID)
 
     lock_op = ilm.idm_lock_op()
     lock_op.mode = ilm.IDM_MODE_SHAREABLE
@@ -769,6 +772,185 @@ def test_lock__two_hosts_convert_shareable_timeout_to_exclusive_success(ilm_daem
 
     ret = ilm.ilm_convert(s2, lock_id, ilm.IDM_MODE_EXCLUSIVE)
     assert ret == 0
+
+    ret, mode = ilm.ilm_get_mode(s2, lock_id, lock_op)
+    assert ret == 0
+    assert mode == ilm.IDM_MODE_EXCLUSIVE
+
+    ret = ilm.ilm_unlock(s2, lock_id)
+    assert ret == 0
+
+    ret = ilm.ilm_disconnect(s1)
+    assert ret == 0
+
+    ret = ilm.ilm_disconnect(s2)
+    assert ret == 0
+
+def test_lock__two_hosts_convert_shareable_timeout_to_shareable_success(ilm_daemon):
+    ret, s1 = ilm.ilm_connect()
+    assert ret == 0
+    assert s1 > 0
+
+    host_id = HOST1
+    ret = ilm.ilm_set_host_id(s1, host_id, 32)
+
+    ret, s2 = ilm.ilm_connect()
+    assert ret == 0
+    assert s2 > 0
+
+    host_id = HOST2
+    ret = ilm.ilm_set_host_id(s2, host_id, 32)
+
+    ret, s3 = ilm.ilm_connect()
+    assert ret == 0
+    assert s2 > 0
+
+    host_id = HOST3
+    ret = ilm.ilm_set_host_id(s3, host_id, 32)
+
+    lock_id = ilm.idm_lock_id()
+    lock_id.set_vg_uuid(LOCK2_VG_UUID)
+    lock_id.set_lv_uuid(LOCK2_LV_UUID)
+
+    lock_op = ilm.idm_lock_op()
+    lock_op.mode = ilm.IDM_MODE_SHAREABLE
+    lock_op.drive_num = 2
+    lock_op.set_drive_names(0, DRIVE1)
+    lock_op.set_drive_names(1, DRIVE2)
+    lock_op.timeout = 20000     # Timeout: 20s
+
+    ret = ilm.ilm_lock(s1, lock_id, lock_op)
+    assert ret == 0
+
+    ret = ilm.ilm_lock(s2, lock_id, lock_op)
+    assert ret == 0
+
+    ret = ilm.ilm_stop_renew(s1)
+    assert ret == 0
+
+    time.sleep(30)
+
+    ret, mode = ilm.ilm_get_mode(s2, lock_id, lock_op)
+    assert ret == 0
+    assert mode == ilm.IDM_MODE_SHAREABLE
+
+    ret = ilm.ilm_lock(s3, lock_id, lock_op)
+    assert ret == 0
+
+    ret, mode = ilm.ilm_get_mode(s3, lock_id, lock_op)
+    assert ret == 0
+    assert mode == ilm.IDM_MODE_SHAREABLE
+
+    ret = ilm.ilm_unlock(s2, lock_id)
+    assert ret == 0
+
+    ret = ilm.ilm_unlock(s3, lock_id)
+    assert ret == 0
+
+    ret = ilm.ilm_disconnect(s1)
+    assert ret == 0
+
+    ret = ilm.ilm_disconnect(s2)
+    assert ret == 0
+
+    ret = ilm.ilm_disconnect(s3)
+    assert ret == 0
+
+def test_lock__two_hosts_convert_exclusive_timeout_to_exclusive_success(ilm_daemon):
+    ret, s1 = ilm.ilm_connect()
+    assert ret == 0
+    assert s1 > 0
+
+    host_id = HOST1
+    ret = ilm.ilm_set_host_id(s1, host_id, 32)
+
+    ret, s2 = ilm.ilm_connect()
+    assert ret == 0
+    assert s2 > 0
+
+    host_id = HOST2
+    ret = ilm.ilm_set_host_id(s2, host_id, 32)
+
+    lock_id = ilm.idm_lock_id()
+    lock_id.set_vg_uuid(LOCK2_VG_UUID)
+    lock_id.set_lv_uuid(LOCK2_LV_UUID)
+
+    lock_op = ilm.idm_lock_op()
+    lock_op.mode = ilm.IDM_MODE_EXCLUSIVE
+    lock_op.drive_num = 2
+    lock_op.set_drive_names(0, DRIVE1)
+    lock_op.set_drive_names(1, DRIVE2)
+    lock_op.timeout = 20000     # Timeout: 20s
+
+    ret = ilm.ilm_lock(s1, lock_id, lock_op)
+    assert ret == 0
+
+    ret = ilm.ilm_stop_renew(s1)
+    assert ret == 0
+
+    time.sleep(30)
+
+    ret = ilm.ilm_lock(s2, lock_id, lock_op)
+    assert ret == 0
+
+    ret = ilm.ilm_convert(s2, lock_id, ilm.IDM_MODE_SHAREABLE)
+    assert ret == 0
+
+    ret, mode = ilm.ilm_get_mode(s2, lock_id, lock_op)
+    assert ret == 0
+    assert mode == ilm.IDM_MODE_SHAREABLE
+
+    ret = ilm.ilm_unlock(s2, lock_id)
+    assert ret == 0
+
+    ret = ilm.ilm_disconnect(s1)
+    assert ret == 0
+
+    ret = ilm.ilm_disconnect(s2)
+    assert ret == 0
+
+def test_lock__two_hosts_convert_exclusive_timeout_to_shareable_success(ilm_daemon):
+    ret, s1 = ilm.ilm_connect()
+    assert ret == 0
+    assert s1 > 0
+
+    host_id = HOST1
+    ret = ilm.ilm_set_host_id(s1, host_id, 32)
+
+    ret, s2 = ilm.ilm_connect()
+    assert ret == 0
+    assert s2 > 0
+
+    host_id = HOST2
+    ret = ilm.ilm_set_host_id(s2, host_id, 32)
+
+    lock_id = ilm.idm_lock_id()
+    lock_id.set_vg_uuid(LOCK2_VG_UUID)
+    lock_id.set_lv_uuid(LOCK2_LV_UUID)
+
+    lock_op = ilm.idm_lock_op()
+    lock_op.mode = ilm.IDM_MODE_EXCLUSIVE
+    lock_op.drive_num = 2
+    lock_op.set_drive_names(0, DRIVE1)
+    lock_op.set_drive_names(1, DRIVE2)
+    lock_op.timeout = 20000     # Timeout: 20s
+
+    ret = ilm.ilm_lock(s1, lock_id, lock_op)
+    assert ret == 0
+
+    ret = ilm.ilm_stop_renew(s1)
+    assert ret == 0
+
+    time.sleep(30)
+
+    lock_op.mode = ilm.IDM_MODE_SHAREABLE
+
+    ret = ilm.ilm_lock(s2, lock_id, lock_op)
+    assert ret == 0
+
+    ret, mode = ilm.ilm_get_mode(s2, lock_id, lock_op)
+    assert ret == 0
+    assert mode == ilm.IDM_MODE_SHAREABLE
 
     ret = ilm.ilm_unlock(s2, lock_id)
     assert ret == 0
