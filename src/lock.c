@@ -272,26 +272,31 @@ static void ilm_lock_dump(const char *str, struct ilm_lock *lock)
 	int i;
 	char uuid_str[39];	/* uuid string is 39 chars + '\0' */
 
-	ilm_log_dbg("Lock context in %s", str);
-	ilm_log_dbg("Bad drive num=%d", lock->fail_drive_num);
-	ilm_log_dbg("Good drive num=%d", lock->good_drive_num);
-	for (i = 0; i < lock->good_drive_num; i++)
-		ilm_log_dbg("drive_path[%d]=%s", i, lock->drive[i].path);
-	ilm_log_dbg("mode=%d", lock->mode);
+	ilm_log_err("<<<<< Lock dump: %s <<<<<", str);
+	ilm_log_err("Drive number statistics: Total=%d Good=%d Good=%d",
+		    lock->total_drive_num, lock->good_drive_num,
+		    lock->fail_drive_num);
 
-	ilm_log_array_dbg("lock ID", lock->id, 64);
+	for (i = 0; i < lock->good_drive_num; i++)
+		ilm_log_err("Drive[%d] path=%s", i, lock->drive[i].path);
+
+	ilm_log_err("Lock mode=%d", lock->mode);
+
+	ilm_log_array_err("Lock ID", lock->id, 64);
 
 	ilm_id_write_format(lock->id, uuid_str, sizeof(uuid_str));
 	if (strlen(uuid_str))
-		ilm_log_dbg("lock ID (VG): %s", uuid_str);
+		ilm_log_err("lock ID (VG): %s", uuid_str);
 	else
-		ilm_log_dbg("lock ID (VG): Empty string");
+		ilm_log_err("lock ID (VG): Empty string");
 
 	ilm_id_write_format(lock->id + 32, uuid_str, sizeof(uuid_str));
 	if (strlen(uuid_str))
-		ilm_log_dbg("lock ID (LV): %s", uuid_str);
+		ilm_log_err("lock ID (LV): %s", uuid_str);
 	else
-		ilm_log_dbg("lock ID (LV): Empty string");
+		ilm_log_err("lock ID (LV): Empty string");
+
+	ilm_log_err(">>>>> Lock dump: %s >>>>>", str);
 }
 
 int ilm_lock_acquire(struct ilm_cmd *cmd, struct ilm_lockspace *ls)
