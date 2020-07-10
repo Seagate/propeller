@@ -71,6 +71,15 @@ static void log_save_record(int level, char *str, int len)
 
 	if (log_pending_ents == ILM_LOG_ENTRIES) {
 		log_dropped++;
+
+		/*
+		 * If tail pointer equals to head pointer, it means the
+		 * log buffer is empty.  So correct tail pointer to one
+		 * item ahead than head pointer so can distinguish the
+		 * the buffer is full.
+		 */
+		if (log_tail == log_head)
+			log_tail = (log_head + 1) % ILM_LOG_ENTRIES;
 		return;
 	}
 
