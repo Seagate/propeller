@@ -281,6 +281,48 @@ struct _raid_state_transition state_transition[] = {
 	},
 };
 
+static const char *_raid_state_str(int state)
+{
+	if (state == IDM_INIT)
+		return "IDM_INIT";
+	if (state == IDM_BUSY)
+		return "IDM_BUSY";
+	if (state == IDM_DUPLICATE)
+		return "IDM_DUPLICATE";
+	if (state == IDM_LOCK)
+		return "IDM_LOCK";
+	if (state == IDM_TIMEOUT)
+		return "IDM_TIMEOUT";
+	if (state == IDM_FAULT)
+		return "IDM_FAULT";
+
+	return "UNKNOWN STATE";
+}
+
+static const char *_raid_op_str(int op)
+{
+	if (op == ILM_OP_LOCK)
+		return "ILM_OP_LOCK";
+	if (op == ILM_OP_UNLOCK)
+		return "ILM_OP_UNLOCK";
+	if (op == ILM_OP_CONVERT)
+		return "ILM_OP_CONVERT";
+	if (op == ILM_OP_BREAK)
+		return "ILM_OP_BREAK";
+	if (op == ILM_OP_RENEW)
+		return "ILM_OP_RENEW";
+	if (op == ILM_OP_WRITE_LVB)
+		return "ILM_OP_WRITE_LVB";
+	if (op == ILM_OP_READ_LVB)
+		return "ILM_OP_READ_LVB";
+	if (op == ILM_OP_COUNT)
+		return "ILM_OP_COUNT";
+	if (op == ILM_OP_MODE)
+		return "ILM_OP_MODE";
+
+	return "UNKNOWN OP";
+}
+
 #if 0
 static int _raid_dispatch_request(struct _raid_request *req)
 {
@@ -431,11 +473,14 @@ static int _raid_read_result_async(struct _raid_request *req)
 						       &req->result);
 		break;
 	default:
-		assert(1);
+		ilm_log_err("%s: unsupported op=%d", __func__, req->op);
+		ret = -1;
 		break;
 	}
 
-	ilm_log_dbg("%s: ret=%d", __func__, ret);
+	if (ret)
+		ilm_log_err("%s: ret=%d", __func__, ret);
+
 	assert(ret == 0);
 	return ret;
 }
@@ -494,7 +539,11 @@ static int _raid_state_find_op(int state, int func)
 		break;
 	}
 
-	ilm_log_dbg("%s: state=%d op=%d->%d", __func__, state, func, op);
+	ilm_log_err("%s: state=%s(%d) orignal op=%s(%d) op=%s(%d)",
+		    __func__, _raid_state_str(state), state,
+		    _raid_op_str(func), func,
+		    _raid_op_str(op), op);
+
 	return op;
 }
 
@@ -549,9 +598,12 @@ static int idm_raid_state_transition(struct _raid_request *req)
 
 	next_state = _raid_state_lockup(state, result);
 
-	ilm_log_dbg("%s: drive=%s", __func__, drive->path);
-	ilm_log_dbg("%s: op=%d return=%d state=%d->%d",
-		    __func__, req->op, result, state, next_state);
+	ilm_log_err("%s: drive=%s state=%s(%d) -> next_state=%s(%d) op=%s(%d) result=%d",
+		    __func__, drive->path,
+		    _raid_state_str(drive->state), drive->state,
+		    _raid_state_str(next_state), next_state,
+		    _raid_op_str(req->op), req->op,
+		    result);
 
 	drive->state = next_state;
 	return 0;
@@ -573,9 +625,11 @@ static int idm_raid_add_request(struct _raid_thread *raid_th,
 
 	list_add_tail(&req->list, &raid_th->request_list);
 
-	ilm_log_dbg("%s: raid_thread=%p drive=%s op=%d mode=%d renew=%d",
-		    __func__, raid_th, drive->path,
-		    req->op, req->mode, req->renew);
+	ilm_log_err("%s: drive=%s state=%s(%d) op=%s(%d) mode=%d renew=%d => raid_thread=%p",
+		    __func__, drive->path,
+		    _raid_state_str(drive->state), drive->state,
+		    _raid_op_str(req->op), req->op,
+		    req->mode, req->renew, raid_th);
 
 	pthread_mutex_unlock(&raid_th->request_mutex);
 
@@ -721,9 +775,10 @@ static void *idm_raid_thread(void *data)
 				         &raid_th->process_list, list) {
 			ret = _raid_dispatch_request_async(req);
 
-			ilm_log_dbg("%s: raid_thread=%p dispatch request [drive=%s op=%d result=%d handle=%lx] ret=%d",
+			ilm_log_err("%s: raid_thread=%p => drive=%s op=%s(%d) result=%d ret=%d",
 				    __func__, raid_th, req->drive->path,
-				    req->op, req->result, req->handle, ret);
+				    _raid_op_str(req->op), req->op,
+				    req->result, ret);
 
 			if (ret < 0) {
 				req->result = ret;
@@ -791,9 +846,9 @@ static void *idm_raid_thread(void *data)
 
 				_raid_read_result_async(req);
 
-				ilm_log_dbg("%s: raid_thread=%p read request result [drive=%s op=%d result=%d]",
+				ilm_log_err("%s: raid_thread=%p <= drive=%s op=%s(%d) result=%d",
 					    __func__, raid_th, req->drive->path,
-					    req->op, req->result);
+					    _raid_op_str(req->op), req->op, req->result);
 
 				list_del(&req->list);
 				idm_raid_notify(raid_th, req);
@@ -933,7 +988,8 @@ static void idm_raid_multi_issue(struct ilm_lock *lock, char *host_id,
 	struct _raid_request *req;
 	int i, reverse_mode;
 
-	ilm_log_dbg("%s: op=%d mode=%d", __func__, op, mode);
+	ilm_log_err("%s: start mutex op=%s(%d) mode=%d renew=%d",
+		    __func__, _raid_op_str(op), op, mode, renew);
 
 	for (i = 0; i < lock->good_drive_num; i++) {
 
