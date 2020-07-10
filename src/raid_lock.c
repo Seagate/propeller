@@ -1034,14 +1034,13 @@ static void ilm_raid_lock_dump(const char *str, struct ilm_lock *lock)
 {
 	int i;
 
-	ilm_log_dbg("<<<<< RAID lock dump: %s <<<<<", str);
+	ilm_log_err("<<<<< RAID lock dump: %s <<<<<", str);
 
-	ilm_log_array_dbg("lock ID", lock->id, IDM_LOCK_ID_LEN);
 	for (i = 0; i < lock->good_drive_num; i++)
-		ilm_log_dbg("drive[%d]: path=%s state=%d",
+		ilm_log_err("drive[%d]=%s state=%d",
 			    i, lock->drive[i].path, lock->drive[i].state);
 
-	ilm_log_dbg(">>>>> RAID lock dump: %s >>>>>", str);
+	ilm_log_err(">>>>> RAID lock dump: %s >>>>>", str);
 }
 
 int idm_raid_lock(struct ilm_lock *lock, char *host_id)
@@ -1097,7 +1096,7 @@ int idm_raid_lock(struct ilm_lock *lock, char *host_id)
 
 	} while (ilm_curr_time() < timeout);
 
-	ilm_log_dbg("%s: Timeout", __func__);
+	ilm_raid_lock_dump("raid_lock failed", lock);
 
 	/*
 	 * If I/O error prevents to achieve the majority, this is different
@@ -1123,7 +1122,7 @@ int idm_raid_unlock(struct ilm_lock *lock, char *host_id)
 	int io_err = 0, timeout = 0;
 	int i, ret = 0;
 
-	ilm_raid_lock_dump("Enter raid_unlock", lock);
+	ilm_raid_lock_dump("raid_unlock", lock);
 
 	idm_raid_multi_issue(lock, host_id, ILM_OP_UNLOCK, lock->mode, 0);
 
@@ -1148,7 +1147,9 @@ int idm_raid_unlock(struct ilm_lock *lock, char *host_id)
 			(lock->total_drive_num - (lock->total_drive_num >> 1)))
 		ret = -EIO;
 
-	ilm_log_dbg("%s: ret=%d", __func__, ret);
+	if (ret)
+		ilm_raid_lock_dump("raid_unlock failed", lock);
+
 	return ret;
 }
 
@@ -1164,8 +1165,11 @@ int idm_raid_convert_lock(struct ilm_lock *lock, char *host_id, int mode)
 	 * If fail to convert mode previously, afterwards cannot convert
 	 * mode anymore.
 	 */
-	if (lock->convert_failed == 1)
+	if (lock->convert_failed == 1) {
+		ilm_log_err("%s: failed to convert mode previously, directly bail out",
+			    __func__);
 		return -1;
+	}
 
 	idm_raid_multi_issue(lock, host_id, ILM_OP_CONVERT, mode, 0);
 
@@ -1189,6 +1193,8 @@ int idm_raid_convert_lock(struct ilm_lock *lock, char *host_id, int mode)
 		return 0;
 	}
 
+	ilm_raid_lock_dump("raid_convert_lock failed", lock);
+
 	/* Majority drives have been timeout */
 	if (timeout >= (lock->total_drive_num - (lock->total_drive_num >> 1)))
 		return -ETIME;
@@ -1205,7 +1211,7 @@ int idm_raid_convert_lock(struct ilm_lock *lock, char *host_id, int mode)
 	 */
 	if (lock->mode == IDM_MODE_EXCLUSIVE && mode == IDM_MODE_SHAREABLE) {
 		lock->convert_failed = 1;
-		ilm_log_warn("%s: demotion from ex to sh", __func__);
+		ilm_log_warn("%s: emotion from ex to sh", __func__);
 		return 0;
 	}
 
@@ -1265,7 +1271,7 @@ int idm_raid_renew_lock(struct ilm_lock *lock, char *host_id)
 
 	} while (ilm_curr_time() < timeout);
 
-	ilm_log_dbg("%s: Timeout", __func__);
+	ilm_raid_lock_dump("raid_renew_lock failed", lock);
 
 	/* Timeout, fail to acquire lock with majoirty */
 	return -1;
@@ -1279,7 +1285,7 @@ int idm_raid_read_lvb(struct ilm_lock *lock, char *host_id,
 	int score, i;
 	uint64_t max_vb = 0, vb;
 
-	ilm_raid_lock_dump("Enter raid_read_lvb", lock);
+	ilm_raid_lock_dump("raid_read_lvb", lock);
 
 	assert(lvb_size == sizeof(uint64_t));
 
@@ -1335,7 +1341,7 @@ int idm_raid_read_lvb(struct ilm_lock *lock, char *host_id,
 		}
 	} while (ilm_curr_time() < timeout);
 
-	ilm_log_dbg("%s: Timeout", __func__);
+	ilm_raid_lock_dump("raid_read_lvb failed", lock);
 
 	/* Timeout, return failure */
 	return -1;
@@ -1357,6 +1363,8 @@ int idm_raid_count(struct ilm_lock *lock, char *host_id, int *count, int *self)
 	int cnt = 0, slf = 0, no_ent = 0;
 	struct ilm_drive *drive;
 
+	ilm_raid_lock_dump("raid_count", lock);
+
 	idm_raid_multi_issue(lock, host_id, ILM_OP_COUNT, lock->mode, 0);
 
 	for (i = 0; i < lock->good_drive_num; i++) {
@@ -1375,8 +1383,11 @@ int idm_raid_count(struct ilm_lock *lock, char *host_id, int *count, int *self)
 	}
 
 	/* The IDM doesn't exist */
-	if (no_ent == lock->good_drive_num)
+	if (no_ent == lock->good_drive_num) {
+		ilm_raid_lock_dump("raid_count failed", lock);
+		ilm_log_err("%s: no mutex entries", __func__);
 		return -ENOENT;
+	}
 
 	*count = cnt;
 	*self = slf;
@@ -1395,6 +1406,8 @@ int idm_raid_mode(struct ilm_lock *lock, int *mode)
 	int i, m;
 	int stat_mode[3] = { 0 }, mode_max = 0, no_ent = 0;
 	struct ilm_drive *drive;
+
+	ilm_raid_lock_dump("raid_mode", lock);
 
 	idm_raid_multi_issue(lock, NULL, ILM_OP_MODE, lock->mode, 0);
 
@@ -1416,8 +1429,11 @@ int idm_raid_mode(struct ilm_lock *lock, int *mode)
 	}
 
 	/* The IDM doesn't exist */
-	if (no_ent == lock->good_drive_num)
+	if (no_ent == lock->good_drive_num) {
+		ilm_raid_lock_dump("raid_mode failed", lock);
+		ilm_log_err("%s: no mutex entries", __func__);
 		return -ENOENT;
+	}
 
 	/* Figure out which index is maximum */
 	for (i = 0; i < 3; i++) {
@@ -1430,5 +1446,6 @@ int idm_raid_mode(struct ilm_lock *lock, int *mode)
 		return 0;
 	}
 
+	ilm_raid_lock_dump("raid_mode failed", lock);
 	return -1;
 }
