@@ -905,21 +905,22 @@ static void idm_raid_destroy(struct ilm_drive *drive)
 	if (!least_renew)
 		return;
 
-	ilm_log_dbg("%s: least_renew state=%d mode=%d last_renew_time=%lu",
-		    __func__, least_renew->state, least_renew->mode,
-		    least_renew->last_renew_time);
-
-	ilm_log_array_dbg("lock ID", least_renew->id, IDM_LOCK_ID_LEN);
+	ilm_log_array_err("raid_destroy: lock ID", least_renew->id, IDM_LOCK_ID_LEN);
 	ilm_id_write_format(least_renew->id, uuid_str, sizeof(uuid_str));
 	if (strlen(uuid_str))
-		ilm_log_dbg("lock ID (VG): %s", uuid_str);
+		ilm_log_err("raid_destroy: lock ID (VG): %s", uuid_str);
 	else
-		ilm_log_dbg("lock ID (VG): Empty string");
+		ilm_log_err("raid_destroy: lock ID (VG): Empty string");
+
 	ilm_id_write_format(least_renew->id + 32, uuid_str, sizeof(uuid_str));
 	if (strlen(uuid_str))
-		ilm_log_dbg("lock ID (LV): %s", uuid_str);
+		ilm_log_err("raid_destroy: lock ID (LV): %s", uuid_str);
 	else
-		ilm_log_dbg("lock ID (LV): Empty string");
+		ilm_log_err("raid_destroy: lock ID (LV): Empty string");
+
+	ilm_log_err("raid_destroy: state=%d mode=%d last_renew_time=%lu",
+		    least_renew->state, least_renew->mode,
+		    least_renew->last_renew_time);
 
 	idm_drive_destroy(least_renew->id, least_renew->mode,
 			  least_renew->host_id, drive->path);
