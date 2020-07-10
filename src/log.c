@@ -71,6 +71,15 @@ static void log_save_record(int level, char *str, int len)
 
 	if (log_pending_ents == ILM_LOG_ENTRIES) {
 		log_dropped++;
+
+		/*
+		 * If tail pointer equals to head pointer, it means the
+		 * log buffer is empty.  So correct tail pointer to one
+		 * item ahead than head pointer so can distinguish the
+		 * the buffer is full.
+		 */
+		if (log_tail == log_head)
+			log_tail = (log_head + 1) % ILM_LOG_ENTRIES;
 		return;
 	}
 
@@ -151,11 +160,32 @@ void ilm_log_array(int level, const char *array_name, char *buf, int buf_len)
 	char log_str[ILM_LOG_STR_LEN];
 	int len = ILM_LOG_STR_LEN - 2; /* leave room for \n\0 */
 	int ret, pos = 0;
+	struct timeval cur_time;
+	struct tm time_info;
+	pid_t tid;
+	struct timespec ts;
 	int i;
 
 	pthread_mutex_lock(&log_mutex);
 
-	ret = snprintf(log_str + pos, len - pos, "array: %s\n", array_name);
+	gettimeofday(&cur_time, NULL);
+
+	if (log_file_use_utc)
+		gmtime_r(&cur_time.tv_sec, &time_info);
+	else
+		localtime_r(&cur_time.tv_sec, &time_info);
+
+	ret = strftime(log_str + pos, len - pos,
+		       "%Y-%m-%d %H:%M:%S ", &time_info);
+	pos += ret;
+
+	tid = syscall(SYS_gettid);
+	clock_gettime(CLOCK_MONOTONIC, &ts);
+	ret = snprintf(log_str + pos, len - pos, "%lu [%u]: ",
+		       ts.tv_sec, tid);
+	pos += ret;
+
+	ret = snprintf(log_str + pos, len - pos, "ARRAY: %s\n", array_name);
 	pos += ret;
 
 	log_str[pos++] = '\0';
