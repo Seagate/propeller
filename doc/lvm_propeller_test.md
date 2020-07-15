@@ -186,7 +186,18 @@ partitions, the label and partition size both are flexible.
   sg_raw -v -s 512 -i test_data.bin /dev/sg14 8E 00 FF 00 00 00 00 00 00 00 00 00 00 01 00 00
 ```
 
-## Cleanup before run testing
+## Check and Cleanup before run testing
+
+Please check the drive firmware has been upgraded to the expected
+version number, so far the latest firmware version is 1759:
+
+```
+  [root@target ~]# lsscsi -g
+  [0:0:8:0]    disk    SEAGATE  XS3840SE70014    1759  /dev/sdi   /dev/sg10
+  [0:0:9:0]    disk    SEAGATE  XS3840SE70014    1759  /dev/sdj   /dev/sg11
+  [0:0:10:0]   disk    SEAGATE  XS3840SE70014    1759  /dev/sdk   /dev/sg12
+  [0:0:12:0]   disk    SEAGATE  XS3840SE70014    1759  /dev/sdm   /dev/sg14
+```
 
 Since the LVM testing is dependent on lock manager, it's needed to
 prepare a clean enviornment for LVM testing.
@@ -208,6 +219,26 @@ for testing, in this case the test will create device mappers as PV.
 ```
   # cd lvm2-stx-private/test
   # make check_lvmlockd_idm LVM_TEST_BACKING_DEVICE=/dev/sdj3
+```
+
+If see many failures for the single drive testing, it's good to test
+with a simple test case and verify if the envoirnment has been prepared
+properly, e.g. we can run the test case 'activate-minor.sh' and it can
+give us the result in short time, so we can use this way to quickly
+check if the test machine is ready for mass testing or not.
+
+```
+  # cd lvm2-stx-private/test
+  # make check_lvmlockd_idm LVM_TEST_BACKING_DEVICE=/dev/sdj3 T=activate-minor.sh
+```
+
+After finish run the testing, the folder lvm2-stx-private/test/results
+contains the detailed info for testing result, so it's good to package
+it for offline analysis:
+
+```
+  # cd lvm2-stx-private/test
+  # tar czvf results.tgz result
 ```
 
 ### Test with multiple drives
@@ -237,27 +268,50 @@ device and create device mapping on it.
 ### Test for fault injection
 
 There have three test cases which is used to test with fault injection:
-- shell/idm_ilm_failure.sh: This test case is to verify when the IDM
-  lock manager has failed, the drive firmware should remove the host
+- shell/idm_lvmlockd_failure.sh: This test case is to verify if lvmlockd
+  exits abnormally, it can relaunch and talk to IDM lock manager again;
+  it also can activate again for VG and LV by acquiring the VG/LV lock.
+- shell/idm_ilm_abnormal_exit.sh: This test case is to verify when the
+  IDM lock manager has failed, the drive firmware should remove the host
   from its whitelist and fence out the host.
   KNOWN ISSUE: the whitelist functionality is postponed to develop in
   next phase.
-- shell/idm_ilm_recovery_back.sh: This test case is to verify if the
-  IDM lock manager has lost the connection with drives, and then after
-  a while the manager reconnects with drives, if the manager can
-  operate properly the mutexs.
-- shell/idm_fabric_failure.sh: This test case is to emulate the fabric
-  issue, so the drives will disappear from system.  And after a while,
-  if the drives reconnect with system, test the lock manager can work
-  as expected or not.
+- shell/idm_ilm_recovery_back.sh: This test case is to inject drive
+  failure and drives recovery back without timeout, so the lvmlockd and
+  IDM lock manager can continue mutex operations and without errors.
+- shell/idm_ilm_fabric_failure_half_brain.sh: This test case is to
+  emulate fabric failure and introduce half brain, but since the renewal
+  can keep majority by making success half of drives, so IDM lock
+  manager still can renew the lock successfully.
+  KNOWN ISSUE: After run this case, the drive might fail to recovery back
+  to system and the drive names will be altered, this might impact later's
+  testing, in some situation, need to restart the machine so can continue
+  other testing.
+- shell/idm_ilm_fabric_failure_timeout.sh: This test case is to emulate
+  fabric failure and fail to renew the ownership, leads to timeout issue;
+  IDM lock manager will invoke kill path when detect timeout.
+  KNOWN ISSUE: After run this case, the drive might fail to recovery back
+  to system and the drive names will be altered, this might impact later's
+  testing, in some situation, need to restart the machine so can continue
+  other testing.
+- shell/idm_ilm_fabric_failure.sh: This test case is to emulate the
+  fabric issue, so the drives will disappear from system.  And after a
+  while, if the drives reconnect with system, even the drive device node
+  name and SG node name have been altered, the lock manager is expected
+  to work with these altered names.
   NOTE: when run the test case idm_fabric_failure.sh, please ensure the
   drive names are corrected appropriately for the system.
+  KNOWN ISSUE: IDM lock manager so far cannot handle properly for the
+  altered device node name and SG node name, so this case fails.
 
 ```
   # cd lvm2-stx-private/test
-  # make check_lvmlockd_idm LVM_TEST_FAILURE_INJECTION=1 T=idm_ilm_failure.sh
+  # make check_lvmlockd_idm LVM_TEST_FAILURE_INJECTION=1 T=idm_ilm_abnormal_exit.sh
   # make check_lvmlockd_idm LVM_TEST_FAILURE_INJECTION=1 T=idm_ilm_recovery_back.sh
-  # make check_lvmlockd_idm LVM_TEST_FAILURE_INJECTION=1 T=idm_fabric_failure.sh
+  # make check_lvmlockd_idm LVM_TEST_FAILURE_INJECTION=1 T=idm_ilm_fabric_failure_half_brain.sh
+  # make check_lvmlockd_idm LVM_TEST_FAILURE_INJECTION=1 T=idm_ilm_fabric_failure_timeout.sh
+  # make check_lvmlockd_idm LVM_TEST_FAILURE_INJECTION=1 T=idm_ilm_fabric_failure.sh
+  # make check_lvmlockd_idm LVM_TEST_FAILURE_INJECTION=1 T=idm_lvmlockd_failure.sh
 ```
 
 ### Test for multi hosts
