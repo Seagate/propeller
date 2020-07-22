@@ -306,12 +306,12 @@ There have three test cases which is used to test with fault injection:
 
 ```
   # cd lvm2-stx-private/test
-  # make check_lvmlockd_idm LVM_TEST_FAILURE_INJECTION=1 T=idm_ilm_abnormal_exit.sh
-  # make check_lvmlockd_idm LVM_TEST_FAILURE_INJECTION=1 T=idm_ilm_recovery_back.sh
+  # make check_lvmlockd_idm LVM_TEST_FAILURE_INJECTION=1 T=idm_lvmlockd_failure.sh
+  # make check_lvmlockd_idm LVM_TEST_FAILURE_INJECTION=1 LVM_TEST_BACKING_MULTI_DEVICES=1 T=idm_ilm_abnormal_exit.sh
+  # make check_lvmlockd_idm LVM_TEST_FAILURE_INJECTION=1 LVM_TEST_BACKING_MULTI_DEVICES=1 T=idm_ilm_recovery_back.sh
   # make check_lvmlockd_idm LVM_TEST_FAILURE_INJECTION=1 T=idm_ilm_fabric_failure_half_brain.sh
   # make check_lvmlockd_idm LVM_TEST_FAILURE_INJECTION=1 T=idm_ilm_fabric_failure_timeout.sh
   # make check_lvmlockd_idm LVM_TEST_FAILURE_INJECTION=1 T=idm_ilm_fabric_failure.sh
-  # make check_lvmlockd_idm LVM_TEST_FAILURE_INJECTION=1 T=idm_lvmlockd_failure.sh
 ```
 
 ### Test for multi hosts
