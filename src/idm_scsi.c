@@ -135,6 +135,24 @@ static char sense_1_mutex_host_list_is_full[16] = {
 	0x03, 0x02, 0x00, 0x01, 0x80, 0x0e, 0x00, 0x00,
 };
 
+static char sense_fixed_mutex_list_is_full[18] = {
+	0x70, 0x00, 0x07, 0x00, 0x00, 0x00, 0x00, 0x0a,
+	0x00, 0x00, 0x00, 0x00, 0x40, 0x00, 0x01, 0x00,
+	0x00, 0x00,
+};
+
+static char sense_fixed_host_list_is_full[18] = {
+	0x70, 0x00, 0x07, 0x00, 0x00, 0x00, 0x00, 0x0a,
+	0x00, 0x00, 0x00, 0x00, 0x41, 0x00, 0x01, 0x00,
+	0x00, 0x00,
+};
+
+static char sense_fixed_1_mutex_host_list_is_full[18] = {
+	0x70, 0x00, 0x07, 0x00, 0x00, 0x00, 0x00, 0x0a,
+	0x00, 0x00, 0x00, 0x00, 0x42, 0x00, 0x01, 0x00,
+	0x00, 0x00,
+};
+
 static void _scsi_generate_write_cdb(uint8_t *cdb, int mutex_op)
 {
 	cdb[0] = IDM_SCSI_WRITE;
@@ -253,6 +271,13 @@ static int _scsi_sg_io(char *drive, uint8_t *cdb, int cdb_len,
 			break;
 		}
 
+		if (!memcmp(sense, sense_fixed_mutex_list_is_full,
+			    sizeof(sense_fixed_mutex_list_is_full))) {
+			ilm_log_err("%s: Mutex list is full", __func__);
+			ret = -ENOMEM;
+			break;
+		}
+
 		/* check if host list is full */
 		if (!memcmp(sense, sense_host_list_is_full,
 			    sizeof(sense_host_list_is_full))) {
@@ -261,9 +286,23 @@ static int _scsi_sg_io(char *drive, uint8_t *cdb, int cdb_len,
 			break;
 		}
 
+		if (!memcmp(sense, sense_fixed_host_list_is_full,
+			    sizeof(sense_fixed_host_list_is_full))) {
+			ilm_log_err("%s: Host list is full", __func__);
+			ret = -ENOMEM;
+			break;
+		}
+
 		/* check if a mutex's host list is full */
 		if (!memcmp(sense, sense_1_mutex_host_list_is_full,
 			    sizeof(sense_1_mutex_host_list_is_full))) {
+			ilm_log_err("%s: A mutex's host list is full", __func__);
+			ret = -ENOMEM;
+			break;
+		}
+
+		if (!memcmp(sense, sense_fixed_1_mutex_host_list_is_full,
+			    sizeof(sense_fixed_1_mutex_host_list_is_full))) {
 			ilm_log_err("%s: A mutex's host list is full", __func__);
 			ret = -ENOMEM;
 			break;
@@ -405,6 +444,13 @@ static int _scsi_read(struct idm_scsi_request *request, int direction)
 			break;
 		}
 
+		if (!memcmp(request->sense, sense_fixed_mutex_list_is_full,
+			    sizeof(sense_fixed_mutex_list_is_full))) {
+			ilm_log_err("%s: Mutex list is full", __func__);
+			ret = -ENOMEM;
+			break;
+		}
+
 		/* check if host list is full */
 		if (!memcmp(request->sense, sense_host_list_is_full,
 			    sizeof(sense_host_list_is_full))) {
@@ -413,9 +459,23 @@ static int _scsi_read(struct idm_scsi_request *request, int direction)
 			break;
 		}
 
+		if (!memcmp(request->sense, sense_fixed_host_list_is_full,
+			    sizeof(sense_fixed_host_list_is_full))) {
+			ilm_log_err("%s: Host list is full", __func__);
+			ret = -ENOMEM;
+			break;
+		}
+
 		/* check if a mutex's host list is full */
 		if (!memcmp(request->sense, sense_1_mutex_host_list_is_full,
 			    sizeof(sense_1_mutex_host_list_is_full))) {
+			ilm_log_err("%s: A mutex's host list is full", __func__);
+			ret = -ENOMEM;
+			break;
+		}
+
+		if (!memcmp(request->sense, sense_fixed_1_mutex_host_list_is_full,
+			    sizeof(sense_fixed_1_mutex_host_list_is_full))) {
 			ilm_log_err("%s: A mutex's host list is full", __func__);
 			ret = -ENOMEM;
 			break;
