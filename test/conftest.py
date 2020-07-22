@@ -65,8 +65,7 @@ def ilm_daemon():
         ilm_util.wait_for_daemon(0.5)
         yield
     finally:
-        # Killing sanlock allows terminating without reomving the lockspace,
-        # which takes about 3 seconds, slowing down the tests.
+        # Killing lock manager allows terminating without reomving the lockspace.
         p.kill()
         p.wait()
 
