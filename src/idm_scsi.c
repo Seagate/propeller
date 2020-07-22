@@ -135,6 +135,18 @@ static char sense_1_mutex_host_list_is_full[16] = {
 	0x03, 0x02, 0x00, 0x01, 0x80, 0x0e, 0x00, 0x00,
 };
 
+static char sense_fixed_invalid_opcode[18] = {
+	0x70, 0x00, 0x07, 0x00, 0x00, 0x00, 0x00, 0x0a,
+	0x00, 0x00, 0x00, 0x00, 0x31, 0x00, 0x01, 0x00,
+	0x00, 0x00,
+};
+
+static char sense_fixed_lba_oor[18] = {
+	0x70, 0x00, 0x05, 0x00, 0x00, 0x00, 0x00, 0x0a,
+	0x00, 0x00, 0x00, 0x00, 0x21, 0x00, 0x01, 0x00,
+	0x00, 0x00,
+};
+
 static char sense_fixed_mutex_list_is_full[18] = {
 	0x70, 0x00, 0x07, 0x00, 0x00, 0x00, 0x00, 0x0a,
 	0x00, 0x00, 0x00, 0x00, 0x40, 0x00, 0x01, 0x00,
@@ -256,8 +268,22 @@ static int _scsi_sg_io(char *drive, uint8_t *cdb, int cdb_len,
 			break;
 		}
 
+		if (!memcmp(sense, sense_fixed_invalid_opcode,
+			    sizeof(sense_fixed_invalid_opcode))) {
+			ilm_log_err("%s: invalid opcode", __func__);
+			ret = -EINVAL;
+			break;
+		}
+
 		/* check if LBA is out of range */
 		if (!memcmp(sense, sense_lba_oor, sizeof(sense_lba_oor))) {
+			ilm_log_err("%s: LBA is out of range", __func__);
+			ret = -ENOENT;
+			break;
+		}
+
+		if (!memcmp(sense, sense_fixed_lba_oor,
+			    sizeof(sense_fixed_lba_oor))) {
 			ilm_log_err("%s: LBA is out of range", __func__);
 			ret = -ENOENT;
 			break;
@@ -427,9 +453,25 @@ static int _scsi_read(struct idm_scsi_request *request, int direction)
 			break;
 		}
 
+		if (!memcmp(request->sense, sense_fixed_invalid_opcode,
+			    sizeof(sense_fixed_invalid_opcode))) {
+			ilm_log_err("%s: unsupported opcode=%d",
+				    __func__, request->op);
+			ret = -EINVAL;
+			break;
+		}
+
 		/* check if LBA is out of range */
 		if (!memcmp(request->sense, sense_lba_oor,
 			    sizeof(sense_lba_oor))) {
+			ilm_log_err("%s: LBA is out of range=%d",
+				    __func__, request->op);
+			ret = -ENOENT;
+			break;
+		}
+
+		if (!memcmp(request->sense, sense_fixed_lba_oor,
+			    sizeof(sense_fixed_lba_oor))) {
 			ilm_log_err("%s: LBA is out of range=%d",
 				    __func__, request->op);
 			ret = -ENOENT;
