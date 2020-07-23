@@ -172,7 +172,7 @@ partitions, the label and partition size both are flexible.
   as an indicator for global locking).
 
 - Specify sg nodes to clean up drive firmwares in the LVM's
-  [test/lib/aux.sh file](https://github.com/Seagate/lvm2-stx-private/blob/centos7_lvm2/test/lib/aux.sh#L954)
+  [test/shell/aa-lvmlockd-idm-prepare.sh file](https://github.com/Seagate/lvm2-stx-private/blob/centos7_lvm2/test/shell/aa-lvmlockd-idm-prepare.sh#L23)
 
 ```
   sg_raw -v -r 512 -o test_data.bin /dev/sg2  88 00 01 00 00 00 00 20 FF 01 00 00 00 01 00 00
