@@ -1,6 +1,5 @@
 /*
  * Copyright (C) 2020-2021 Seagate
- * Copyright (C) 2020-2021 Linaro Ltd
  *
  * This file is licensed under the terms of the GNU General Public
  * License version 2. This program is licensed "as is" without any
