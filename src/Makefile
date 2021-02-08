@@ -78,3 +78,4 @@ install: all
 	cp -a $(LIB_TARGET).so.$(SOMAJOR) $(DESTDIR)/$(LIBDIR)
 	$(INSTALL) -c -m 644 $(HEADER_TARGET) $(DESTDIR)/$(HEADIR)
 	$(INSTALL) -c -m 644 seagate_ilm.service /usr/lib/systemd/system/
+	$(INSTALL) -c -m 644 logrotate.ilm /etc/logrotate.d/seagate_ilm
