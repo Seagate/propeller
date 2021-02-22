@@ -8,13 +8,16 @@
 #include "list.h"
 #include "lockspace.h"
 
+#define IDM_DRIVE_PATH_NUM		4
+
 #define IDM_LOCK_ID_LEN			64
 #define IDM_VALUE_LEN			8
 
 struct ilm_drive {
 	int index;
 	int state;
-	char *path;
+	char *path[IDM_DRIVE_PATH_NUM];
+	int path_num;
 	uuid_t uuid;
 
 	int result;		/* cache the result */
