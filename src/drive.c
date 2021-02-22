@@ -572,6 +572,32 @@ char *ilm_scsi_get_first_sg(char *dev)
 	return tmp;
 }
 
+/* Read out the SG path strings */
+int ilm_scsi_get_all_sgs(uuid_t id, char **sg_node, int sg_num)
+{
+	struct ilm_hw_drive_node *pos, *found = NULL;
+	int i, ret;
+
+	list_for_each_entry(pos, &drive_list, list) {
+		ret = uuid_compare(pos->drive.id, id);
+		if (!ret) {
+			found = pos;
+			break;
+		}
+	}
+
+	if (!found)
+		return 0;
+
+	if (sg_num > found->drive.path_num)
+		sg_num = found->drive.path_num;
+
+	for (i = 0; i < sg_num; i++)
+		sg_node[i] = strdup(found->drive.path[i].sg_path);
+
+	return sg_num;
+}
+
 int ilm_scsi_get_part_table_uuid(char *dev, uuid_t *id)
 {
 	struct ilm_hw_drive_node *pos, *found = NULL;
