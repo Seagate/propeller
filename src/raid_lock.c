@@ -1146,12 +1146,12 @@ int idm_raid_lock(struct ilm_lock *lock, char *host_id)
 
 		/*
 		 * Sleep for random interval for sleep, the interval range
-		 * is [1 .. 10] us; this can avoid the multiple hosts keeping
+		 * is [500 .. 1000] us; this can avoid the multiple hosts keeping
 		 * the same pace thus every one cannot acquire majority (e.g.
 		 * two hosts, every host only can acquire successfully half
 		 * drives, and finally no host can achieve the majority).
 		 */
-		rand_sleep = ilm_rand(1, 10);
+		rand_sleep = ilm_rand(500, 1000);
 		usleep(rand_sleep);
 
 	} while (ilm_curr_time() < timeout);
