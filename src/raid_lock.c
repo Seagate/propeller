@@ -541,7 +541,7 @@ static int _raid_state_find_op(int state, int func)
 		break;
 	}
 
-	ilm_log_err("%s: state=%s(%d) orignal op=%s(%d) op=%s(%d)",
+	ilm_log_dbg("%s: state=%s(%d) orignal op=%s(%d) op=%s(%d)",
 		    __func__, _raid_state_str(state), state,
 		    _raid_op_str(func), func,
 		    _raid_op_str(op), op);
@@ -600,12 +600,11 @@ static int idm_raid_state_transition(struct _raid_request *req)
 
 	next_state = _raid_state_lockup(state, result);
 
-	ilm_log_err("%s: drive=%s state=%s(%d) -> next_state=%s(%d) op=%s(%d) result=%d",
-		    __func__, req->path,
+	ilm_log_err("raid_lock state transition: drive=%s op=%s(%d) result=%d state=%s(%d) -> next_state=%s(%d)",
+		    req->path, _raid_op_str(req->op),
+		    req->op, result,
 		    _raid_state_str(drive->state), drive->state,
-		    _raid_state_str(next_state), next_state,
-		    _raid_op_str(req->op), req->op,
-		    result);
+		    _raid_state_str(next_state), next_state);
 
 	drive->state = next_state;
 	return 0;
@@ -627,23 +626,18 @@ static int idm_raid_add_request(struct _raid_thread *raid_th,
 
 	list_add_tail(&req->list, &raid_th->request_list);
 
-	ilm_log_err("%s: drive=%s state=%s(%d) op=%s(%d) mode=%d renew=%d => raid_thread=%p",
-		    __func__, req->path,
-		    _raid_state_str(drive->state), drive->state,
-		    _raid_op_str(req->op), req->op,
-		    req->mode, req->renew, raid_th);
-
 	pthread_mutex_unlock(&raid_th->request_mutex);
 
-	if (req->renew) {
+	if (req->renew)
 		raid_th->renew_count++;
-		ilm_log_dbg("%s: raid_thread=%p renew_count=%d",
-			    __func__, raid_th, raid_th->renew_count);
-	} else {
+	else
 		raid_th->count++;
-		ilm_log_dbg("%s: raid_thread=%p count=%d",
-			    __func__, raid_th, raid_th->count);
-	}
+
+	ilm_log_err("raid_lock send request: drive=%s state=%s(%d) op=%s(%d) mode=%d renew=%d",
+		    req->path, _raid_state_str(drive->state), drive->state,
+		    _raid_op_str(req->op), req->op, req->mode, req->renew);
+	ilm_log_err("  -> raid_thread=%p renew_count=%d count=%d",
+		    raid_th, raid_th->renew_count, raid_th->count);
 
 	return 0;
 }
@@ -720,23 +714,17 @@ static void idm_raid_notify(struct _raid_thread *raid_th,
 	if (req->renew) {
 		pthread_mutex_lock(&raid_th->renew_mutex);
 		list_add_tail(&req->list, &raid_th->renew_list);
-
-		ilm_log_dbg("%s: add to renew list [drive=%s]",
-			    __func__, req->path);
-
 		pthread_cond_signal(&raid_th->renew_cond);
 		pthread_mutex_unlock(&raid_th->renew_mutex);
 	} else {
 		pthread_mutex_lock(&raid_th->response_mutex);
 		list_add_tail(&req->list, &raid_th->response_list);
-
-		ilm_log_dbg("%s: add to response list [drive=%s]",
-			    __func__, req->path);
-
 		pthread_cond_signal(&raid_th->response_cond);
 		pthread_mutex_unlock(&raid_th->response_mutex);
 	}
 
+	ilm_log_dbg("[raid_thread=%p] <- add [drive=%s] result to %s list",
+		    raid_th, req->path, req->renew ? "renew" : "response");
 	return;
 }
 
@@ -767,8 +755,6 @@ static void *idm_raid_thread(void *data)
 			list_del(&req->list);
 			list_add_tail(&req->list, &raid_th->process_list);
 			process_num++;
-			ilm_log_dbg("%s: raid_thread=%p process request [drive=%s]",
-				    __func__, raid_th, req->path);
 		}
 
 		pthread_mutex_unlock(&raid_th->request_mutex);
@@ -777,10 +763,9 @@ static void *idm_raid_thread(void *data)
 				         &raid_th->process_list, list) {
 			ret = _raid_dispatch_request_async(req);
 
-			ilm_log_err("%s: raid_thread=%p => drive=%s op=%s(%d) result=%d ret=%d",
-				    __func__, raid_th, req->path,
-				    _raid_op_str(req->op), req->op,
-				    req->result, ret);
+			ilm_log_err("[raid_thread=%p] -> (async) drive=%s op=%s(%d) ret=%d",
+				    raid_th, req->path, _raid_op_str(req->op),
+				    req->op, ret);
 
 			if (ret < 0) {
 				req->result = ret;
@@ -794,8 +779,8 @@ static void *idm_raid_thread(void *data)
 
 		poll_fd = malloc(sizeof(struct pollfd) * process_num);
 		if (!poll_fd) {
-			ilm_log_err("%s: raid_thread=%p cannot allcoate pollfd",
-				    __func__, raid_th);
+			ilm_log_err("[raid_thread=%p] cannot allcoate pollfd",
+				    raid_th);
 			return NULL;
 		}
 
@@ -841,16 +826,16 @@ static void *idm_raid_thread(void *data)
 
 				/* Should never happen? */
 				if (!req) {
-					ilm_log_err("%s: raid_thread=%p fail to find request for polling fd %d",
-						    __func__, raid_th, poll_fd[i].fd);
+					ilm_log_err("[raid_thread=%p] fail to find request for polling fd %d",
+						    raid_th, poll_fd[i].fd);
 					continue;
 				}
 
 				_raid_read_result_async(req);
 
-				ilm_log_err("%s: raid_thread=%p <= drive=%s op=%s(%d) result=%d",
-					    __func__, raid_th, req->path,
-					    _raid_op_str(req->op), req->op, req->result);
+				ilm_log_err("[raid_thread=%p] <- (resp) drive=%s op=%s(%d) result=%d",
+					    raid_th, req->path, _raid_op_str(req->op),
+					    req->op, req->result);
 
 				list_del(&req->list);
 				idm_raid_notify(raid_th, req);
@@ -1161,12 +1146,12 @@ int idm_raid_lock(struct ilm_lock *lock, char *host_id)
 
 		/*
 		 * Sleep for random interval for sleep, the interval range
-		 * is [1 .. 10] us; this can avoid the multiple hosts keeping
+		 * is [500 .. 1000] us; this can avoid the multiple hosts keeping
 		 * the same pace thus every one cannot acquire majority (e.g.
 		 * two hosts, every host only can acquire successfully half
 		 * drives, and finally no host can achieve the majority).
 		 */
-		rand_sleep = ilm_rand(1, 10);
+		rand_sleep = ilm_rand(500, 1000);
 		usleep(rand_sleep);
 
 	} while (ilm_curr_time() < timeout);

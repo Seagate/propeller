@@ -18,7 +18,7 @@ struct ilm_drive {
 	int state;
 	char *path[IDM_DRIVE_PATH_NUM];
 	int path_num;
-	uuid_t uuid;
+	unsigned long wwn;
 
 	int result;		/* cache the result */
 	int mode;		/* cache the lock mode */

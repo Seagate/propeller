@@ -53,32 +53,28 @@ static int ilm_lock_payload_read(struct ilm_cmd *cmd,
 	return ret;
 }
 
-static int ilm_sort_drive_uuid(uuid_t *uuid, int drive_num)
+static int ilm_sort_drive_uuid(unsigned long *wwn_arr, int drive_num)
 {
-	int i, j, ret;
-	char uuid_str[37];	/* uuid string is 36 chars + '\0' */
-	uuid_t uuid_tmp;
+	int i, j;
+	unsigned long cmp, wwn_tmp;
 
 	for (i = 1; i < drive_num; i++) {
 		for (j = i; j > 0; j--) {
-			ret = memcmp(&uuid[j], &uuid[j - 1], sizeof(uuid_t));
+			cmp = wwn_arr[j] -  wwn_arr[j - 1];
 
-			if (ret == 0) {
-				ilm_log_err("Two drives have same UUID?");
-
-				uuid_unparse(uuid[j], uuid_str);
-				uuid_str[36] = '\0';
-				ilm_log_err("drive UUID: %s", uuid_str);
+			if (cmp == 0) {
+				ilm_log_err("Two drives have same WWN (0x%lx)?",
+					    wwn_arr[j]);
 				continue;
 			}
 
-			if (ret > 0)
+			if (cmp > 0)
 				continue;
 
 			/* Swap two uuids */
-			memcpy(&uuid_tmp, &uuid[j], sizeof(uuid_t));
-			memcpy(&uuid[j], &uuid[j - 1], sizeof(uuid_t));
-			memcpy(&uuid[j - 1], &uuid_tmp, sizeof(uuid_t));
+			wwn_tmp = wwn_arr[j];
+			wwn_arr[j] = wwn_arr[j - 1];
+			wwn_arr[j - 1] = wwn_tmp;
 		}
 	}
 
@@ -86,22 +82,20 @@ static int ilm_sort_drive_uuid(uuid_t *uuid, int drive_num)
 }
 
 static int ilm_insert_drive_multi_paths(struct ilm_lock *lock,
-					uuid_t *uuid,
-					int uuid_num)
+					unsigned long *wwn,
+					int wwn_num)
 {
 	int i, j;
 	struct ilm_drive *drive;
 	int found;
-	char uuid_str[37];	/* uuid string is 36 chars + '\0' */
 
-	for (i = 0; i < uuid_num; i++) {
+	for (i = 0; i < wwn_num; i++) {
 
 		/* Check if the drive paths have been initialized yet */
 		found = 0;
 		for (j = 0; j < lock->good_drive_num; j++) {
 			/* Find a matched drive */
-			if (!memcmp(&lock->drive[j].uuid, &uuid[i],
-				    sizeof(uuid_t))) {
+			if (lock->drive[j].wwn == wwn[i]) {
 				found = 1;
 				break;
 			}
@@ -109,23 +103,21 @@ static int ilm_insert_drive_multi_paths(struct ilm_lock *lock,
 
 		/*
 		 * The drive has been initialized in previous loop,
-		 * continue to serve next uuid.
+		 * continue to serve next WWN.
 		 */
 		if (found)
 			continue;
 
 		drive = &lock->drive[lock->good_drive_num];
-		memcpy(&drive->uuid, &uuid[i], sizeof(uuid_t));
-		drive->path_num = ilm_scsi_get_all_sgs(drive->uuid, drive->path,
+		drive->wwn = wwn[i];
+		drive->path_num = ilm_scsi_get_all_sgs(drive->wwn, drive->path,
 						       IDM_DRIVE_PATH_NUM);
 		if (drive->path_num) {
 			drive->index = lock->good_drive_num;
 			lock->good_drive_num++;
 		} else {
-			uuid_unparse(drive->uuid, uuid_str);
-			uuid_str[36] = '\0';
-			ilm_log_err("Drive with UUID %s failed to parse sgs",
-				    uuid_str);
+			ilm_log_err("Drive with WWN 0x%lx failed to parse sgs",
+				    drive->wwn);
 			lock->fail_drive_num++;
 		}
 	}
@@ -136,9 +128,7 @@ static int ilm_insert_drive_multi_paths(struct ilm_lock *lock,
 
 	for (i = 0; i < lock->good_drive_num; i++) {
 		drive = &lock->drive[i];
-		uuid_unparse(drive->uuid, uuid_str);
-		uuid_str[36] = '\0';
-		ilm_log_dbg("Drive %d UUID: %s", i, uuid_str);
+		ilm_log_dbg("Drive %d WWN: 0x%lx", i, drive->wwn);
 		for (j = 0; j < drive->path_num; j++)
 			ilm_log_dbg("  Path [%d] is %s", j, drive->path[j]);
 	}
@@ -146,7 +136,7 @@ static int ilm_insert_drive_multi_paths(struct ilm_lock *lock,
 	return 0;
 }
 
-static char *ilm_find_sg_path(char *path, uuid_t *id)
+static char *ilm_find_sg_path(char *path, unsigned long *wwn)
 {
 	char dev_path[PATH_MAX];
 	char *tmp, *sg_path;
@@ -168,9 +158,9 @@ static char *ilm_find_sg_path(char *path, uuid_t *id)
 	snprintf(dev_path, sizeof(dev_path), "/dev/%s", tmp);
 	free(tmp);
 
-	ret = ilm_read_parttable_id(dev_path, id);
+	ret = ilm_read_device_wwn(dev_path, wwn);
 	if (ret) {
-		ilm_log_err("Fail to read uuid for drive (%s %s)",
+		ilm_log_err("Fail to read WWN for drive (%s %s)",
 			    tmp, sg_path);
 		free(sg_path);
 		goto try_cached_dev_map;
@@ -180,7 +170,7 @@ static char *ilm_find_sg_path(char *path, uuid_t *id)
 	return sg_path;
 
 try_cached_dev_map:
-	return ilm_find_cached_device_mapping(path, id);
+	return ilm_find_cached_device_mapping(path, wwn);
 }
 
 static struct ilm_lock *ilm_alloc(struct ilm_cmd *cmd,
@@ -190,10 +180,10 @@ static struct ilm_lock *ilm_alloc(struct ilm_cmd *cmd,
 	char path[PATH_MAX];
 	struct ilm_lock *lock;
 	struct ilm_drive *drive;
-	uuid_t *uuid;
 	int ret, i, j, copied = 0, failed = 0;
 	char *sg_path;
-	uuid_t id;
+	unsigned long *wwn_arr;
+	unsigned long wwn;
 
 	lock = malloc(sizeof(struct ilm_lock));
 	if (!lock) {
@@ -202,9 +192,9 @@ static struct ilm_lock *ilm_alloc(struct ilm_cmd *cmd,
 	}
 	memset(lock, 0, sizeof(struct ilm_lock));
 
-	uuid = malloc(sizeof(uuid_t) * drive_num);
-	if (!uuid) {
-	        ilm_log_err("Failed to allocate uuid array, drive_num=%d\n",
+	wwn_arr = malloc(sizeof(unsigned long) * drive_num);
+	if (!wwn_arr) {
+	        ilm_log_err("Failed to allocate wwn array, drive_num=%d\n",
 			    drive_num);
 		free(lock);
 		return NULL;
@@ -222,25 +212,25 @@ static struct ilm_lock *ilm_alloc(struct ilm_cmd *cmd,
 
 		*pos += ret;
 
-		sg_path = ilm_find_sg_path(path, &id);
+		sg_path = ilm_find_sg_path(path, &wwn);
 		if (!sg_path) {
 			failed++;
 			continue;
 		}
 
-		memcpy(&uuid[copied], &id, sizeof(uuid_t));
+		wwn_arr[copied] = wwn;
 		copied++;
 
-		ilm_add_cached_device_mapping(path, sg_path, &id);
+		ilm_add_cached_device_mapping(path, sg_path, wwn);
 	}
 
 	lock->fail_drive_num = failed;
 
-	ret = ilm_sort_drive_uuid(uuid, copied);
+	ret = ilm_sort_drive_uuid(wwn_arr, copied);
 	if (ret < 0)
 		goto drive_fail;
 
-	ret = ilm_insert_drive_multi_paths(lock, uuid, copied);
+	ret = ilm_insert_drive_multi_paths(lock, wwn_arr, copied);
 	if (ret < 0)
 		goto drive_fail;
 
@@ -259,7 +249,7 @@ static struct ilm_lock *ilm_alloc(struct ilm_cmd *cmd,
 		goto drive_fail;
 
 	lock->raid_th = ls->raid_thd;
-	free(uuid);
+	free(wwn_arr);
 	return lock;
 
 drive_fail:
@@ -272,7 +262,7 @@ drive_fail:
 	for (i = 0; i < copied; i++)
 		free(lock->drive[i].path);
 	free(lock);
-	free(uuid);
+	free(wwn_arr);
 	return NULL;
 }
 
@@ -299,8 +289,8 @@ static int ilm_free(struct ilm_lockspace *ls, struct ilm_lock *lock)
 static void ilm_lock_dump(const char *str, struct ilm_lock *lock)
 {
 	int i, j;
+	char uuid_str[39];	/* 32 chars + 6 chars '-' + '\0' */
 	struct ilm_drive *drive;
-	char uuid_str[39];	/* uuid string is 39 chars + '\0' */
 
 	ilm_log_err("<<<<< Lock dump: %s <<<<<", str);
 	ilm_log_err("Drive number statistics: Total=%d Good=%d Fail=%d",
@@ -309,9 +299,7 @@ static void ilm_lock_dump(const char *str, struct ilm_lock *lock)
 
 	for (i = 0; i < lock->good_drive_num; i++) {
 		drive = &lock->drive[i];
-		uuid_unparse(drive->uuid, uuid_str);
-		uuid_str[36] = '\0';
-		ilm_log_dbg("Drive %d UUID: %s", i, uuid_str);
+		ilm_log_dbg("Drive %d WWN: 0x%lx", i, drive->wwn);
 		for (j = 0; j < drive->path_num; j++)
 			ilm_log_dbg("  Path [%d] is %s", j, drive->path[j]);
 	}

@@ -35,7 +35,7 @@ struct ilm_hw_drive_path {
 };
 
 struct ilm_hw_drive {
-	uuid_t id;
+	unsigned long wwn;
 	uint32_t path_num;
 	struct ilm_hw_drive_path path[ILM_DRIVE_MAX_NUM];
 };
@@ -52,14 +52,14 @@ struct ilm_device_map {
 	struct list_head list;
 	char *dev_map;
 	char *sg_path;
-	uuid_t uuid;
+	unsigned long wwn;
 };
 
 static struct list_head dev_map_list = LIST_HEAD_INIT(dev_map_list);
 static int dev_map_num = 0;
 static pthread_mutex_t dev_map_mutex = PTHREAD_MUTEX_INITIALIZER;
 
-char *ilm_find_cached_device_mapping(char *dev_map, uuid_t *id)
+char *ilm_find_cached_device_mapping(char *dev_map, unsigned long *wwn)
 {
 	struct ilm_device_map *pos;
 	char *path;
@@ -70,7 +70,7 @@ char *ilm_find_cached_device_mapping(char *dev_map, uuid_t *id)
 		if (!strcmp(dev_map, pos->dev_map)) {
 			ilm_log_dbg("Find cached device mapping %s->%s",
 				    dev_map, pos->sg_path);
-			memcpy(id, &pos->uuid, sizeof(uuid_t));
+			*wwn = pos->wwn;
 			path = strdup(pos->sg_path);
 			pthread_mutex_unlock(&dev_map_mutex);
 			return path;
@@ -81,9 +81,16 @@ char *ilm_find_cached_device_mapping(char *dev_map, uuid_t *id)
 	return NULL;
 }
 
-int ilm_add_cached_device_mapping(char *dev_map, char *sg_path, uuid_t *id)
+int ilm_add_cached_device_mapping(char *dev_map, char *sg_path,
+				  unsigned long wwn)
 {
 	struct ilm_device_map *pos, *tmp;
+
+	if (!wwn) {
+		ilm_log_err("%s: cannot cache for %s with wwn is zero\n",
+			    __func__, dev_map);
+		return -1;
+	}
 
 	pthread_mutex_lock(&dev_map_mutex);
 
@@ -97,7 +104,7 @@ int ilm_add_cached_device_mapping(char *dev_map, char *sg_path, uuid_t *id)
 
 				/* Update for new found device mapping */
 				pos->sg_path = strdup(sg_path);
-				memcpy(&pos->uuid, id, sizeof(uuid_t));
+				pos->wwn = wwn;
 			}
 
 			/* Find existed cached item, bail out */
@@ -120,7 +127,7 @@ int ilm_add_cached_device_mapping(char *dev_map, char *sg_path, uuid_t *id)
 	tmp = malloc(sizeof(struct ilm_device_map));
 	tmp->dev_map = strdup(dev_map);
 	tmp->sg_path = strdup(sg_path);
-	memcpy(&tmp->uuid, id, sizeof(uuid_t));
+	tmp->wwn = wwn;
 	list_add_tail(&tmp->list, &dev_map_list);
 
 	pthread_mutex_unlock(&dev_map_mutex);
@@ -213,6 +220,43 @@ int ilm_read_parttable_id(char *dev, uuid_t *uuid)
 	blkid_free_probe(probe);
 	return 0;
 #endif
+}
+
+int ilm_read_device_wwn(char *dev, unsigned long *wwn)
+{
+	char cmd[128];
+	char buf[512];
+	char tmp[128], tmp1[128];
+	FILE *fp;
+	int ret;
+
+	snprintf(cmd, sizeof(cmd), "udevadm info %s", dev);
+	ilm_log_dbg("%s: cmd=%s", __func__, cmd);
+
+	if ((fp = popen(cmd, "r")) == NULL) {
+		ilm_log_err("fail to find udev info for %s", dev);
+		return -1;
+	}
+
+	*wwn = 0;
+	while (fgets(buf, sizeof(buf), fp) != NULL) {
+		ret = sscanf(buf, "%s ID_WWN=%s", tmp, tmp1);
+		if (ret != 2)
+			continue;
+
+		*wwn = strtol(tmp1, NULL, 16);
+		ilm_log_dbg("%s: dev=%s wwn=0x%lx\n", __func__, dev, *wwn);
+		break;
+	}
+
+	pclose(fp);
+
+	if (!*wwn) {
+		ilm_log_err("%s: cmd=%s", __func__, cmd);
+		return -1;
+	}
+
+        return 0;
 }
 
 #ifndef IDM_PTHREAD_EMULATION
@@ -573,14 +617,13 @@ char *ilm_scsi_get_first_sg(char *dev)
 }
 
 /* Read out the SG path strings */
-int ilm_scsi_get_all_sgs(uuid_t id, char **sg_node, int sg_num)
+int ilm_scsi_get_all_sgs(unsigned long wwn, char **sg_node, int sg_num)
 {
 	struct ilm_hw_drive_node *pos, *found = NULL;
-	int i, ret;
+	int i;
 
 	list_for_each_entry(pos, &drive_list, list) {
-		ret = uuid_compare(pos->drive.id, id);
-		if (!ret) {
+		if (pos->drive.wwn == wwn) {
 			found = pos;
 			break;
 		}
@@ -598,6 +641,7 @@ int ilm_scsi_get_all_sgs(uuid_t id, char **sg_node, int sg_num)
 	return sg_num;
 }
 
+#if 0
 int ilm_scsi_get_part_table_uuid(char *dev, uuid_t *id)
 {
 	struct ilm_hw_drive_node *pos, *found = NULL;
@@ -625,18 +669,15 @@ int ilm_scsi_get_part_table_uuid(char *dev, uuid_t *id)
 	memcpy(id, &found->drive.id, sizeof(uuid_t));
 	return 0;
 }
+#endif
 
 static void ilm_scsi_dump_nodes(void)
 {
 	struct ilm_hw_drive_node *pos;
-	char uuid_str[37];	/* uuid string is 36 chars + '\0' */
 	int i;
 
 	list_for_each_entry(pos, &drive_list, list) {
-
-		uuid_unparse(pos->drive.id, uuid_str);
-		uuid_str[36] = '\0';
-		ilm_log_dbg("SCSI dev ID: %s", uuid_str);
+		ilm_log_dbg("SCSI dev WWN: 0x%lx", pos->drive.wwn);
 
 		for (i = 0; i < pos->drive.path_num; i++) {
 			ilm_log_dbg("blk_path %s", pos->drive.path[i].blk_path);
@@ -645,15 +686,14 @@ static void ilm_scsi_dump_nodes(void)
 	}
 }
 
-static int ilm_scsi_add_new_node(char *dev_node, char *sg_node, uuid_t id)
+static int ilm_scsi_add_new_node(char *dev_node, char *sg_node,
+				 unsigned long wwn)
 {
 	struct ilm_hw_drive_node *pos, *found = NULL;
 	struct ilm_hw_drive *drive;
-	int ret;
 
 	list_for_each_entry(pos, &drive_list, list) {
-		ret = uuid_compare(pos->drive.id, id);
-		if (!ret) {
+		if (pos->drive.wwn == wwn) {
 			found = pos;
 			break;
 		}
@@ -662,7 +702,7 @@ static int ilm_scsi_add_new_node(char *dev_node, char *sg_node, uuid_t id)
 	if (!found) {
 		found = malloc(sizeof(struct ilm_hw_drive_node));
 		memset(found, 0x0, sizeof(struct ilm_hw_drive_node));
-		uuid_copy(found->drive.id, id);
+		found->drive.wwn = wwn;
 		list_add(&found->list, &drive_list);
 	}
 
@@ -685,7 +725,7 @@ int ilm_scsi_list_init(void)
 	int ret;
 	char value[64];
 	unsigned int maj, min;
-	uuid_t uuid;
+	unsigned long wwn;
 
 	INIT_LIST_HEAD(&drive_list);
 
@@ -747,13 +787,13 @@ int ilm_scsi_list_init(void)
 		ilm_log_err("dev_node=%s", dev_node);
 		ilm_log_err("sg_node=%s", sg_node);
 
-		ret = ilm_read_parttable_id(dev_node, &uuid);
+		ret = ilm_read_device_wwn(dev_node, &wwn);
 		if (ret < 0) {
 			ilm_log_err("fail to read parttable id");
 			continue;
 		}
 
-		ret = ilm_scsi_add_new_node(dev_node, sg_node, uuid);
+		ret = ilm_scsi_add_new_node(dev_node, sg_node, wwn);
 		if (ret < 0) {
 			ilm_log_err("fail to add scsi node");
 			goto out;
