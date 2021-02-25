@@ -405,7 +405,6 @@ static int _scsi_write(struct idm_scsi_request *request, int direction)
 	}
 
 	request->fd = sg_fd;
-	ilm_log_dbg("%s: fd %d", __func__, request->fd);
 	return ret;
 }
 
@@ -417,8 +416,6 @@ static int _scsi_read(struct idm_scsi_request *request, int direction)
 	memset(&io_hdr, 0, sizeof(io_hdr));
 	io_hdr.interface_id = 'S';
 	io_hdr.dxfer_direction = direction;
-
-	ilm_log_dbg("%s: fd %d", __func__, request->fd);
 
 	ret = read(request->fd, &io_hdr, sizeof(io_hdr));
 	if (ret < 0) {
