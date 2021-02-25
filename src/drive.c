@@ -215,6 +215,43 @@ int ilm_read_parttable_id(char *dev, uuid_t *uuid)
 #endif
 }
 
+int ilm_read_device_wwn(char *dev, unsigned long *wwn)
+{
+	char cmd[128];
+	char buf[512];
+	char tmp[128], tmp1[128];
+	FILE *fp;
+	int ret;
+
+	snprintf(cmd, sizeof(cmd), "udevadm info %s", dev);
+	ilm_log_dbg("%s: cmd=%s", __func__, cmd);
+
+	if ((fp = popen(cmd, "r")) == NULL) {
+		ilm_log_err("fail to find udev info for %s", dev);
+		return -1;
+	}
+
+	*wwn = 0;
+	while (fgets(buf, sizeof(buf), fp) != NULL) {
+		ret = sscanf(buf, "%s ID_WWN=%s", tmp, tmp1);
+		if (ret != 2)
+			continue;
+
+		*wwn = strtol(tmp1, NULL, 16);
+		ilm_log_dbg("%s: dev=%s wwn=0x%lx\n", __func__, dev, *wwn);
+		break;
+	}
+
+	pclose(fp);
+
+	if (!*wwn) {
+		ilm_log_err("%s: cmd=%s", __func__, cmd);
+		return -1;
+	}
+
+        return 0;
+}
+
 #ifndef IDM_PTHREAD_EMULATION
 static int ilm_scsi_dir_select(const struct dirent *s)
 {
