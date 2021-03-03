@@ -259,8 +259,6 @@ drive_fail:
 			free(drive->path[j]);
 	}
 
-	for (i = 0; i < copied; i++)
-		free(lock->drive[i].path);
 	free(lock);
 	free(wwn_arr);
 	return NULL;
