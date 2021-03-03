@@ -29,10 +29,11 @@
 
 #include "failure.h"
 #include "log.h"
+#include "ilm_internal.h"
 
 #define MAX_AV_COUNT 8
 
-static void ilm_run_path(char *kill_path, char *kill_args)
+static __maybe_unused void ilm_run_path(char *kill_path, char *kill_args)
 {
 	char arg[IDM_FAILURE_ARGS_LEN];
 	char *args = kill_args;
@@ -102,30 +103,28 @@ exec_prog:
 
 int ilm_failure_handler(struct ilm_lockspace *ls)
 {
-	int pid, status, ret;
+	int ret;
+	char cmd[512];
 
 	if (ls->kill_path) {
-		ilm_log_err("%s: kill_path=%s", __func__, ls->kill_path);
-
-		pid = fork();
-		if (!pid) {
-			ilm_run_path(ls->kill_path, ls->kill_args);
-			exit(-1);
+		ret = snprintf(cmd, sizeof(cmd), "%s %s", ls->kill_path,
+			       ls->kill_args);
+		if (ret < 0 || ret == sizeof(cmd)) {
+			ilm_log_err("%s: Fail to generate kill path cmd %d",
+				    __func__, ret);
+			return -1;
 		}
 
-		while (1) {
-			ret = waitpid(pid, &status, WNOHANG);
+		ilm_log_warn("%s: kill command=%s", __func__, cmd);
 
-			/* The child has been teminated */
-			if (ret == pid)
-				break;
-
-			if (ret < 0)
-				break;
+		if (!(popen(cmd, "r"))) {
+			ilm_log_err("%s: Fail to execute kill path cmd %s",
+				    __func__, cmd);
+			return -1;
 		}
 	} else if (ls->kill_sig) {
-		ilm_log_err("%s: kill_pid=%d kill_sig=%d",
-			    __func__, ls->kill_pid, ls->kill_sig);
+		ilm_log_warn("%s: kill_pid=%d kill_sig=%d",
+			     __func__, ls->kill_pid, ls->kill_sig);
 		kill(ls->kill_pid, ls->kill_sig);
 	}
 
