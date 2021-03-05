@@ -713,6 +713,27 @@ static int ilm_scsi_add_new_node(char *dev_node, char *sg_node,
 	return 0;
 }
 
+static int ilm_scsi_release_drv_list(void)
+{
+	struct ilm_hw_drive_node *pos, *next;
+	struct ilm_hw_drive *drive;
+	int i;
+
+	list_for_each_entry_safe(pos, next, &drive_list, list) {
+		list_del(&pos->list);
+
+		drive = &pos->drive;
+		for (i = 0; i < drive->path_num; i++) {
+			free(drive->path[i].blk_path);
+			free(drive->path[i].sg_path);
+		}
+
+		free(pos);
+	}
+
+	return 0;
+}
+
 int ilm_scsi_list_init(void)
 {
 	struct dirent **namelist;
@@ -722,7 +743,7 @@ int ilm_scsi_list_init(void)
 	char dev_node[PATH_MAX];
 	char sg_node[PATH_MAX];
 	int i, num;
-	int ret;
+	int ret = 0;
 	char value[64];
 	unsigned int maj, min;
 	unsigned long wwn;
@@ -805,24 +826,14 @@ out:
         for (i = 0; i < num; i++)
                 free(namelist[i]);
 	free(namelist);
-        return 0;
+
+	if (ret)
+		ilm_scsi_release_drv_list();
+
+	return ret;
 }
 
 void ilm_scsi_list_exit(void)
 {
-	struct ilm_hw_drive_node *pos, *next;
-	struct ilm_hw_drive *drive;
-	int i;
-
-	list_for_each_entry_safe(pos, next, &drive_list, list) {
-		list_del(&pos->list);
-
-		drive = &pos->drive;
-		for (i = 0; i < drive->path_num; i++) {
-			free(drive->path[i].blk_path);
-			free(drive->path[i].sg_path);
-		}
-
-		free(pos);
-	}
+	ilm_scsi_release_drv_list();
 }
