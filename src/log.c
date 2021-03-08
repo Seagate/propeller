@@ -306,7 +306,7 @@ int ilm_log_init(void)
 	int fd, rv;
 	char logfile_path[PATH_MAX];
 
-	snprintf(logfile_path, PATH_MAX, "%s/%s", env.run_dir,
+	snprintf(logfile_path, PATH_MAX, "%s/%s", env.log_dir,
 		 ILM_LOG_FILE);
 
 	log_file_fp = fopen(logfile_path, "a+");

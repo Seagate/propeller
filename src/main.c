@@ -88,6 +88,10 @@ static int ilm_read_args(int argc, char *argv[])
 	if (!env.run_dir)
 		env.run_dir = ILM_DEFAULT_RUN_DIR;
 
+	env.log_dir = getenv("ILM_LOG_DIR");
+	if (!env.log_dir)
+		env.log_dir = ILM_DEFAULT_LOG_DIR;
+
 	old_umask = umask(0002);
 
 	/* Create run directory */

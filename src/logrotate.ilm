@@ -1,4 +1,4 @@
-/run/seagate_ilm/seagate_ilm.log {
+/var/log/seagate_ilm.log {
     rotate 3
     missingok
     copytruncate
