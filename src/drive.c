@@ -51,6 +51,8 @@ static pthread_t drive_thd;
 static unsigned int drive_thd_done;
 static struct list_head drive_list;
 static pthread_mutex_t drive_list_mutex = PTHREAD_MUTEX_INITIALIZER;
+static unsigned int drive_list_version = 0;
+
 static char blk_str[PATH_MAX];
 
 struct ilm_device_map {
@@ -708,6 +710,17 @@ static void ilm_scsi_dump_nodes(void)
 	pthread_mutex_unlock(&drive_list_mutex);
 }
 
+int ilm_scsi_drive_version(void)
+{
+	int version;
+
+	pthread_mutex_lock(&drive_list_mutex);
+	version = drive_list_version;
+	pthread_mutex_unlock(&drive_list_mutex);
+
+	return version;
+}
+
 static int ilm_scsi_add_drive_path(char *dev_node, char *sg_node,
 				   unsigned long wwn)
 {
@@ -754,6 +767,7 @@ static int ilm_scsi_add_drive_path(char *dev_node, char *sg_node,
 	drive->path[drive->path_num].sg_path = strdup(sg_node);
 	drive->path_num++;
 
+	drive_list_version++;
 	pthread_mutex_unlock(&drive_list_mutex);
 	return 0;
 }
@@ -801,6 +815,7 @@ clean_node:
 	}
 	drive->path_num--;
 
+	drive_list_version++;
 	pthread_mutex_unlock(&drive_list_mutex);
 	return 0;
 }
