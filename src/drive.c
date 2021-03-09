@@ -947,6 +947,43 @@ out:
 	pthread_exit(NULL);
 }
 
+static int ilm_sg_mod_is_loaded(void)
+{
+	FILE *fp;
+	char *line = NULL;
+	size_t len = 0;
+	ssize_t read;
+	char tmp[128], tmp1[128];
+	int num, num1;
+	int ret, found = 0;
+
+	fp = fopen("/proc/modules", "r");
+	if (fp == NULL)
+		return 0;
+
+	while ((read = getline(&line, &len, fp)) != -1) {
+		/*
+		 * Detect if it contains the line:
+		 *   sg 40719 0 - Live 0xffffffffc07d1000
+		 */
+		ret = sscanf(line, "sg %u %u %s Live %s\n",
+			     &num, &num1, tmp, tmp1);
+		if (ret == 4) {
+			found = 1;
+			break;
+		}
+	}
+
+	fclose(fp);
+	if (line)
+		free(line);
+
+	if (found)
+		return 1;
+
+	return 0;
+}
+
 int ilm_scsi_list_init(void)
 {
 	struct dirent **namelist;
@@ -960,6 +997,14 @@ int ilm_scsi_list_init(void)
 	char value[64];
 	unsigned int maj, min;
 	unsigned long wwn;
+
+	if (!ilm_sg_mod_is_loaded()) {
+		ilm_log_err("Kernel module \"sg\" hasn't been loaded?!");
+		ilm_log_err("Use command \"modprobe sg\" to load it;");
+		ilm_log_err("Or use the command \"sudo echo sg >> /etc/modules-load.d/scsi.conf\";"
+			    " so system can automatically load module when booting");
+		return -1;
+	}
 
 	INIT_LIST_HEAD(&drive_list);
 
