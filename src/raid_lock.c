@@ -1232,9 +1232,6 @@ int idm_raid_unlock(struct ilm_lock *lock, char *host_id)
 	for (i = 0; i < lock->good_drive_num; i++) {
 		drive = &lock->drive[i];
 
-		/* Always make success to unlock */
-		assert(drive->state == IDM_INIT);
-
 		if (drive->result == -EIO)
 			io_err++;
 
