@@ -44,7 +44,7 @@ LIB_CFLAGS = -fPIC
 
 LDFLAGS = -Wl,-z,relro -pie
 
-LDLIBS = -lpthread -luuid -lblkid
+LDLIBS = -lpthread -luuid -lblkid -ludev
 
 all: $(LIBSO_TARGET) $(TARGET)
 

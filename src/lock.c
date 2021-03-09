@@ -81,6 +81,66 @@ static int ilm_sort_drive_uuid(unsigned long *wwn_arr, int drive_num)
 	return 0;
 }
 
+int ilm_update_drive_multi_paths(struct ilm_lock *lock)
+{
+	int i, j, retry = 0;
+	struct ilm_drive *drive;
+
+	/*
+	 * If the drive version is not changed, do nothing and
+	 * directly bail out.
+	 */
+	if (lock->drive_version == ilm_scsi_drive_version())
+		return 0;
+
+	do {
+		if (retry >= 10) {
+			ilm_log_err("%s: retries > 10 times for but fails",
+				    __func__);
+			return -1;
+		}
+
+		/* Update to the latest drive version */
+		lock->drive_version = ilm_scsi_drive_version();
+
+		for (i = 0; i < lock->good_drive_num; i++) {
+			drive = &lock->drive[i];
+
+			/* Cleanup for old pathes */
+			for (j = 0; j < drive->path_num; j++) {
+				free(drive->path[j]);
+				drive->path[j] = NULL;
+			}
+
+			drive->path_num = ilm_scsi_get_all_sgs(drive->wwn,
+				drive->path, IDM_DRIVE_PATH_NUM);
+		}
+
+		ilm_log_warn("Detects drive path is altered, update!");
+
+		for (i = 0; i < lock->good_drive_num; i++) {
+			drive = &lock->drive[i];
+
+			ilm_log_warn(" Drive %d WWN: 0x%lx", i, drive->wwn);
+
+			if (!drive->path_num) {
+				ilm_log_warn("  Cannot find any known path");
+				continue;
+			}
+
+			for (j = 0; j < drive->path_num; j++)
+				ilm_log_warn("  Path [%d] is %s", j, drive->path[j]);
+		}
+
+	/*
+	 * It's possible that the drive list is altered during updating,
+	 * check the version number and if doesn't match, try it again.
+	 */
+	} while (lock->drive_version != ilm_scsi_drive_version());
+
+	return 0;
+}
+
 static int ilm_insert_drive_multi_paths(struct ilm_lock *lock,
 					unsigned long *wwn,
 					int wwn_num)
@@ -88,6 +148,8 @@ static int ilm_insert_drive_multi_paths(struct ilm_lock *lock,
 	int i, j;
 	struct ilm_drive *drive;
 	int found;
+
+	lock->drive_version = ilm_scsi_drive_version();
 
 	for (i = 0; i < wwn_num; i++) {
 
@@ -128,7 +190,7 @@ static int ilm_insert_drive_multi_paths(struct ilm_lock *lock,
 
 	for (i = 0; i < lock->good_drive_num; i++) {
 		drive = &lock->drive[i];
-		ilm_log_dbg("Drive %d WWN: 0x%lx", i, drive->wwn);
+		ilm_log_dbg(" Drive %d WWN: 0x%lx", i, drive->wwn);
 		for (j = 0; j < drive->path_num; j++)
 			ilm_log_dbg("  Path [%d] is %s", j, drive->path[j]);
 	}
@@ -364,16 +426,18 @@ int ilm_lock_acquire(struct ilm_cmd *cmd, struct ilm_lockspace *ls)
 	memcpy(lock->id, payload.lock_id, IDM_LOCK_ID_LEN);
 	lock->mode = payload.mode;
 	lock->timeout = payload.timeout;
-	pthread_mutex_unlock(&lock->mutex);
 
 	ilm_lock_dump("lock_acquire", lock);
 
 	ret = idm_raid_lock(lock, ls->host_id);
 	if (ret) {
+		pthread_mutex_unlock(&lock->mutex);
 	        ilm_log_err("Fail to acquire raid lock %d\n", ret);
 		ilm_free(ls, lock);
 		goto out;
 	}
+
+	pthread_mutex_unlock(&lock->mutex);
 
 	ilm_lockspace_start_lock(ls, lock, ilm_curr_time());
 out:
@@ -403,7 +467,9 @@ int ilm_lock_release(struct ilm_cmd *cmd, struct ilm_lockspace *ls)
 
 	ilm_lockspace_stop_lock(ls, lock, NULL);
 
+	pthread_mutex_lock(&lock->mutex);
 	ret = idm_raid_unlock(lock, ls->host_id);
+	pthread_mutex_unlock(&lock->mutex);
 
 	ilm_free(ls, lock);
 out:
@@ -441,16 +507,18 @@ int ilm_lock_convert_mode(struct ilm_cmd *cmd, struct ilm_lockspace *ls)
 	 */
 	ilm_lockspace_stop_lock(ls, lock, &time);
 
+	pthread_mutex_lock(&lock->mutex);
+
 	ret = idm_raid_convert_lock(lock, ls->host_id, payload.mode);
 	if (ret)
 	        ilm_log_err("Fail to convert raid lock %d mode %d vs %d\n",
 			    ret, lock->mode, payload.mode);
 	else {
 		/* Update after convert mode successfully */
-		pthread_mutex_lock(&lock->mutex);
 		lock->mode = payload.mode;
-		pthread_mutex_unlock(&lock->mutex);
 	}
+
+	pthread_mutex_unlock(&lock->mutex);
 
 	/* Restart the lock renewal */
 	ilm_lockspace_start_lock(ls, lock, time);
@@ -534,16 +602,19 @@ int ilm_lock_vb_read(struct ilm_cmd *cmd, struct ilm_lockspace *ls)
 
 	ilm_lock_dump("lock_vb_read", lock);
 
+	pthread_mutex_lock(&lock->mutex);
+
 	ret = idm_raid_read_lvb(lock, ls->host_id, buf, IDM_VALUE_LEN);
 	if (ret) {
 		ilm_log_err("Fail to read lvb %d\n", ret);
+		pthread_mutex_unlock(&lock->mutex);
 		goto fail;
 	} else {
 		/* Update the cached LVB */
-		pthread_mutex_lock(&lock->mutex);
 		memcpy(lock->vb, buf, IDM_VALUE_LEN);
-		pthread_mutex_unlock(&lock->mutex);
 	}
+
+	pthread_mutex_unlock(&lock->mutex);
 
 	ilm_log_array_dbg("value buffer:", buf, IDM_VALUE_LEN);
 
@@ -592,11 +663,15 @@ int ilm_lock_host_count(struct ilm_cmd *cmd, struct ilm_lockspace *ls)
 
 	ilm_lock_dump("lock_host_count", lock);
 
+	pthread_mutex_lock(&lock->mutex);
 	ret = idm_raid_count(lock, ls->host_id, &account.count, &account.self);
+	pthread_mutex_unlock(&lock->mutex);
+
 	if (ret) {
 		ilm_log_err("Fail to read count %d\n", ret);
 		goto out;
 	}
+
 	ilm_log_dbg("Lock host count %d self %d\n", account.count, account.self);
 
 out:
@@ -644,7 +719,10 @@ int ilm_lock_mode(struct ilm_cmd *cmd, struct ilm_lockspace *ls)
 	}
 	ilm_lock_dump("lock_host_mode", lock);
 
+	pthread_mutex_lock(&lock->mutex);
 	ret = idm_raid_mode(lock, &mode);
+	pthread_mutex_unlock(&lock->mutex);
+
 	if (ret) {
 		ilm_log_err("Fail to read mode %d\n", ret);
 		goto out;

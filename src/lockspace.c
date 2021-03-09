@@ -109,7 +109,9 @@ static void *ilm_lockspace_thread(void *data)
 				continue;
 			}
 
+			pthread_mutex_lock(&lock->mutex);
 			ret = idm_raid_renew_lock(lock, ls->host_id);
+			pthread_mutex_unlock(&lock->mutex);
 			if (!ret)
 				lock->last_renewal_success = ilm_curr_time();
 		}

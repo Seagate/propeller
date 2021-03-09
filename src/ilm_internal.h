@@ -13,12 +13,15 @@
 #define ILM_SOCKET_NAME		"main.sock"
 #define ILM_LOCKFILE_NAME	"main.pid"
 
+#define ILM_DEFAULT_LOG_DIR	"/var/log"
+
 #define __maybe_unused		__attribute__((__unused__))
 
 struct ilm_env {
 	int debug;
 	int mlock;
 	const char *run_dir;
+	const char *log_dir;
 };
 
 extern struct ilm_env env;

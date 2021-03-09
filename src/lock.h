@@ -46,6 +46,7 @@ struct ilm_lock {
 	int good_drive_num;
 	int total_drive_num;
 	struct ilm_drive drive[ILM_DRIVE_MAX_NUM];
+	int drive_version;
 
 	char vb[IDM_VALUE_LEN];
 
@@ -73,5 +74,6 @@ int ilm_lock_host_count(struct ilm_cmd *cmd, struct ilm_lockspace *ls);
 int ilm_lock_mode(struct ilm_cmd *cmd, struct ilm_lockspace *ls);
 int ilm_lock_terminate(struct ilm_lockspace *ls, struct ilm_lock *lock);
 int ilm_lock_version(struct ilm_cmd *cmd, struct ilm_lockspace *ls);
+int ilm_update_drive_multi_paths(struct ilm_lock *lock);
 
 #endif /* __LOCK_H__ */

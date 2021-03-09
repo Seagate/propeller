@@ -9,6 +9,7 @@
 #include <blkid/blkid.h>
 #include <ctype.h>
 #include <dirent.h>
+#include <libudev.h>
 #include <pthread.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -20,6 +21,7 @@
 #include <unistd.h>
 #include <linux/limits.h>
 
+#include "ilm_internal.h"
 #include "ilm.h"
 
 #include "drive.h"
@@ -45,7 +47,12 @@ struct ilm_hw_drive_node {
 	struct ilm_hw_drive drive;
 };
 
+static pthread_t drive_thd;
+static unsigned int drive_thd_done;
 static struct list_head drive_list;
+static pthread_mutex_t drive_list_mutex = PTHREAD_MUTEX_INITIALIZER;
+static unsigned int drive_list_version = 0;
+
 static char blk_str[PATH_MAX];
 
 struct ilm_device_map {
@@ -600,6 +607,8 @@ char *ilm_scsi_get_first_sg(char *dev)
 	char *tmp;
 	int i;
 
+	pthread_mutex_lock(&drive_list_mutex);
+
 	list_for_each_entry(pos, &drive_list, list) {
 		for (i = 0; i < pos->drive.path_num; i++) {
 			if (!strcmp(dev, basename(pos->drive.path[i].blk_path))) {
@@ -609,10 +618,15 @@ char *ilm_scsi_get_first_sg(char *dev)
 		}
 	}
 
-	if (!found)
-		return NULL;
+	if (!found) {
+		tmp = NULL;
+		goto out;
+	}
 
 	tmp = strdup(found->drive.path[0].sg_path);
+
+out:
+	pthread_mutex_unlock(&drive_list_mutex);
 	return tmp;
 }
 
@@ -622,6 +636,8 @@ int ilm_scsi_get_all_sgs(unsigned long wwn, char **sg_node, int sg_num)
 	struct ilm_hw_drive_node *pos, *found = NULL;
 	int i;
 
+	pthread_mutex_lock(&drive_list_mutex);
+
 	list_for_each_entry(pos, &drive_list, list) {
 		if (pos->drive.wwn == wwn) {
 			found = pos;
@@ -629,8 +645,10 @@ int ilm_scsi_get_all_sgs(unsigned long wwn, char **sg_node, int sg_num)
 		}
 	}
 
-	if (!found)
-		return 0;
+	if (!found) {
+		sg_num = 0;
+		goto out;
+	}
 
 	if (sg_num > found->drive.path_num)
 		sg_num = found->drive.path_num;
@@ -638,6 +656,8 @@ int ilm_scsi_get_all_sgs(unsigned long wwn, char **sg_node, int sg_num)
 	for (i = 0; i < sg_num; i++)
 		sg_node[i] = strdup(found->drive.path[i].sg_path);
 
+out:
+	pthread_mutex_unlock(&drive_list_mutex);
 	return sg_num;
 }
 
@@ -676,6 +696,8 @@ static void ilm_scsi_dump_nodes(void)
 	struct ilm_hw_drive_node *pos;
 	int i;
 
+	pthread_mutex_lock(&drive_list_mutex);
+
 	list_for_each_entry(pos, &drive_list, list) {
 		ilm_log_dbg("SCSI dev WWN: 0x%lx", pos->drive.wwn);
 
@@ -684,13 +706,29 @@ static void ilm_scsi_dump_nodes(void)
 			ilm_log_dbg("sg_path %s", pos->drive.path[i].sg_path);
 		}
 	}
+
+	pthread_mutex_unlock(&drive_list_mutex);
 }
 
-static int ilm_scsi_add_new_node(char *dev_node, char *sg_node,
-				 unsigned long wwn)
+int ilm_scsi_drive_version(void)
+{
+	int version;
+
+	pthread_mutex_lock(&drive_list_mutex);
+	version = drive_list_version;
+	pthread_mutex_unlock(&drive_list_mutex);
+
+	return version;
+}
+
+static int ilm_scsi_add_drive_path(char *dev_node, char *sg_node,
+				   unsigned long wwn)
 {
 	struct ilm_hw_drive_node *pos, *found = NULL;
 	struct ilm_hw_drive *drive;
+	int i;
+
+	pthread_mutex_lock(&drive_list_mutex);
 
 	list_for_each_entry(pos, &drive_list, list) {
 		if (pos->drive.wwn == wwn) {
@@ -707,10 +745,206 @@ static int ilm_scsi_add_new_node(char *dev_node, char *sg_node,
 	}
 
 	drive = &found->drive;
+
+	for (i = 0; i < drive->path_num; i++) {
+		/*
+		 * If the device node has been added into the list,
+		 * avoid to add the duplicate path.
+		 */
+		if (!strcmp(drive->path[i].blk_path, dev_node)) {
+			pthread_mutex_unlock(&drive_list_mutex);
+			return 0;
+		}
+	}
+
+	/* Detect if it's overflow for the drive path array */
+	if (drive->path_num >= (ILM_DRIVE_MAX_NUM - 1)) {
+		pthread_mutex_unlock(&drive_list_mutex);
+		return -1;
+	}
+
 	drive->path[drive->path_num].blk_path = strdup(dev_node);
 	drive->path[drive->path_num].sg_path = strdup(sg_node);
 	drive->path_num++;
+
+	drive_list_version++;
+	pthread_mutex_unlock(&drive_list_mutex);
 	return 0;
+}
+
+static int ilm_scsi_del_drive_path(char *dev_node)
+{
+	struct ilm_hw_drive_node *pos, *found = NULL;
+	struct ilm_hw_drive *drive;
+	int i;
+
+	pthread_mutex_lock(&drive_list_mutex);
+
+	list_for_each_entry(pos, &drive_list, list) {
+		drive = &pos->drive;
+		for (i = 0; i < drive->path_num; i++) {
+			if (!strcmp(drive->path[i].blk_path, dev_node)) {
+				found = pos;
+
+				/* Cleanup the path info */
+				free(drive->path[i].blk_path);
+				drive->path[i].blk_path = NULL;
+				free(drive->path[i].sg_path);
+				drive->path[i].sg_path = NULL;
+				goto clean_node;
+			}
+		}
+	}
+
+	if (!found) {
+		pthread_mutex_unlock(&drive_list_mutex);
+		ilm_log_warn("%s: fail to find dev node %s", __func__, dev_node);
+		return -1;
+	}
+
+clean_node:
+	drive = &found->drive;
+	for (i = 0; i < drive->path_num - 1; i++) {
+		if (drive->path[i].blk_path)
+			continue;
+
+		drive->path[i].blk_path = drive->path[i + 1].blk_path;
+		drive->path[i].sg_path = drive->path[i + 1].sg_path;
+		drive->path[i + 1].blk_path = NULL;
+		drive->path[i + 1].sg_path = NULL;
+	}
+	drive->path_num--;
+
+	drive_list_version++;
+	pthread_mutex_unlock(&drive_list_mutex);
+	return 0;
+}
+
+static int ilm_scsi_release_drv_list(void)
+{
+	struct ilm_hw_drive_node *pos, *next;
+	struct ilm_hw_drive *drive;
+	int i;
+
+	pthread_mutex_lock(&drive_list_mutex);
+
+	list_for_each_entry_safe(pos, next, &drive_list, list) {
+		list_del(&pos->list);
+
+		drive = &pos->drive;
+		for (i = 0; i < drive->path_num; i++) {
+			free(drive->path[i].blk_path);
+			free(drive->path[i].sg_path);
+		}
+
+		free(pos);
+	}
+
+	pthread_mutex_unlock(&drive_list_mutex);
+	return 0;
+}
+
+static void *drive_thd_fn(void *arg __maybe_unused)
+{
+	struct udev *udev;
+	struct udev_device *dev;
+	struct udev_monitor *mon;
+	int fd;
+
+	/* create udev object */
+	udev = udev_new();
+	if (!udev) {
+		ilm_log_err("%s: Can't create udev", __func__);
+		goto out;
+	}
+
+	mon = udev_monitor_new_from_netlink(udev, "udev");
+	udev_monitor_filter_add_match_subsystem_devtype(mon, "block", NULL);
+	udev_monitor_enable_receiving(mon);
+	fd = udev_monitor_get_fd(mon);
+
+	while (1) {
+		fd_set fds;
+		struct timeval tv;
+		int ret;
+
+		/* Exit if the main thread is exiting */
+		if (drive_thd_done)
+			break;
+
+		FD_ZERO(&fds);
+		FD_SET(fd, &fds);
+		tv.tv_sec = 1;		/* Timeout is 1s */
+		tv.tv_usec = 0;
+
+		ret = select(fd + 1, &fds, NULL, NULL, &tv);
+		if (ret > 0 && FD_ISSET(fd, &fds)) {
+			const char *action;
+			char *dev_name;
+			char *sg = NULL;
+			char dev_node[64];
+			unsigned long wwn;
+			int i;
+
+			dev = udev_monitor_receive_device(mon);
+			if (!dev)
+				continue;
+
+			action = udev_device_get_action(dev);
+
+			dev_name = strdup(udev_device_get_sysname(dev));
+
+			i = strlen(dev_name);
+			if (!i)
+				continue;
+
+			/* Iterate all digital */
+			while ((i > 0) && isdigit(dev_name[i-1]))
+				i--;
+
+			dev_name[i] = '\0';
+
+			ilm_log_dbg("%s: action=%s dev_name=%s", __func__,
+				    action, dev_name);
+
+			snprintf(dev_node, sizeof(dev_node), "/dev/%s", dev_name);
+
+			if (!strcmp(action, "add")) {
+				sg = ilm_find_sg(dev_name);
+				if (!sg) {
+					ilm_log_err("%s: Fail to find sg for %s",
+						    __func__, dev_name);
+					goto free_dev_ref;
+				}
+
+				ret = ilm_read_device_wwn(dev_node, &wwn);
+				if (ret < 0) {
+					ilm_log_err("%s: Fail to read wwn for %s",
+						    __func__, dev_node);
+					goto free_dev_ref;
+				}
+
+				ilm_scsi_add_drive_path(dev_node, sg, wwn);
+			} else if (!strcmp(action, "remove")) {
+				ilm_scsi_del_drive_path(dev_node);
+			}
+
+			ilm_scsi_dump_nodes();
+
+free_dev_ref:
+			if (sg)
+				free(sg);
+			free(dev_name);
+			/* free dev */
+			udev_device_unref(dev);
+		}
+	}
+
+	/* free udev */
+	udev_unref(udev);
+
+out:
+	pthread_exit(NULL);
 }
 
 int ilm_scsi_list_init(void)
@@ -722,7 +956,7 @@ int ilm_scsi_list_init(void)
 	char dev_node[PATH_MAX];
 	char sg_node[PATH_MAX];
 	int i, num;
-	int ret;
+	int ret = 0;
 	char value[64];
 	unsigned int maj, min;
 	unsigned long wwn;
@@ -784,8 +1018,8 @@ int ilm_scsi_list_init(void)
 			continue;
 		}
 
-		ilm_log_err("dev_node=%s", dev_node);
-		ilm_log_err("sg_node=%s", sg_node);
+		ilm_log_dbg("%s: dev_node=%s sg_node=%s", __func__,
+			    dev_node, sg_node);
 
 		ret = ilm_read_device_wwn(dev_node, &wwn);
 		if (ret < 0) {
@@ -793,11 +1027,17 @@ int ilm_scsi_list_init(void)
 			continue;
 		}
 
-		ret = ilm_scsi_add_new_node(dev_node, sg_node, wwn);
+		ret = ilm_scsi_add_drive_path(dev_node, sg_node, wwn);
 		if (ret < 0) {
 			ilm_log_err("fail to add scsi node");
 			goto out;
 		}
+	}
+
+	ret = pthread_create(&drive_thd, NULL, drive_thd_fn, NULL);
+	if (ret) {
+		ilm_log_err("Fail to create drive thread");
+		goto out;
 	}
 
 	ilm_scsi_dump_nodes();
@@ -805,24 +1045,20 @@ out:
         for (i = 0; i < num; i++)
                 free(namelist[i]);
 	free(namelist);
-        return 0;
+
+	if (ret)
+		ilm_scsi_release_drv_list();
+
+	return ret;
 }
 
 void ilm_scsi_list_exit(void)
 {
-	struct ilm_hw_drive_node *pos, *next;
-	struct ilm_hw_drive *drive;
-	int i;
+	/* Notify drive thread to exit */
+	drive_thd_done = 1;
 
-	list_for_each_entry_safe(pos, next, &drive_list, list) {
-		list_del(&pos->list);
+	/* Wait for drive thread to exit */
+	pthread_join(drive_thd, NULL);
 
-		drive = &pos->drive;
-		for (i = 0; i < drive->path_num; i++) {
-			free(drive->path[i].blk_path);
-			free(drive->path[i].sg_path);
-		}
-
-		free(pos);
-	}
+	ilm_scsi_release_drv_list();
 }
