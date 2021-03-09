@@ -4,6 +4,7 @@ After=syslog.target
 
 [Service]
 Type=forking
+ExecStartPre=/sbin/modprobe sg
 ExecStart=/usr/sbin/seagate_ilm -l 0 -L 7 -E 7 -S 7
 SendSIGKILL=no
 
