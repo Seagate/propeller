@@ -426,16 +426,18 @@ int ilm_lock_acquire(struct ilm_cmd *cmd, struct ilm_lockspace *ls)
 	memcpy(lock->id, payload.lock_id, IDM_LOCK_ID_LEN);
 	lock->mode = payload.mode;
 	lock->timeout = payload.timeout;
-	pthread_mutex_unlock(&lock->mutex);
 
 	ilm_lock_dump("lock_acquire", lock);
 
 	ret = idm_raid_lock(lock, ls->host_id);
 	if (ret) {
+		pthread_mutex_unlock(&lock->mutex);
 	        ilm_log_err("Fail to acquire raid lock %d\n", ret);
 		ilm_free(ls, lock);
 		goto out;
 	}
+
+	pthread_mutex_unlock(&lock->mutex);
 
 	ilm_lockspace_start_lock(ls, lock, ilm_curr_time());
 out:
@@ -465,7 +467,9 @@ int ilm_lock_release(struct ilm_cmd *cmd, struct ilm_lockspace *ls)
 
 	ilm_lockspace_stop_lock(ls, lock, NULL);
 
+	pthread_mutex_lock(&lock->mutex);
 	ret = idm_raid_unlock(lock, ls->host_id);
+	pthread_mutex_unlock(&lock->mutex);
 
 	ilm_free(ls, lock);
 out:
@@ -503,16 +507,18 @@ int ilm_lock_convert_mode(struct ilm_cmd *cmd, struct ilm_lockspace *ls)
 	 */
 	ilm_lockspace_stop_lock(ls, lock, &time);
 
+	pthread_mutex_lock(&lock->mutex);
+
 	ret = idm_raid_convert_lock(lock, ls->host_id, payload.mode);
 	if (ret)
 	        ilm_log_err("Fail to convert raid lock %d mode %d vs %d\n",
 			    ret, lock->mode, payload.mode);
 	else {
 		/* Update after convert mode successfully */
-		pthread_mutex_lock(&lock->mutex);
 		lock->mode = payload.mode;
-		pthread_mutex_unlock(&lock->mutex);
 	}
+
+	pthread_mutex_unlock(&lock->mutex);
 
 	/* Restart the lock renewal */
 	ilm_lockspace_start_lock(ls, lock, time);
@@ -596,16 +602,19 @@ int ilm_lock_vb_read(struct ilm_cmd *cmd, struct ilm_lockspace *ls)
 
 	ilm_lock_dump("lock_vb_read", lock);
 
+	pthread_mutex_lock(&lock->mutex);
+
 	ret = idm_raid_read_lvb(lock, ls->host_id, buf, IDM_VALUE_LEN);
 	if (ret) {
 		ilm_log_err("Fail to read lvb %d\n", ret);
+		pthread_mutex_unlock(&lock->mutex);
 		goto fail;
 	} else {
 		/* Update the cached LVB */
-		pthread_mutex_lock(&lock->mutex);
 		memcpy(lock->vb, buf, IDM_VALUE_LEN);
-		pthread_mutex_unlock(&lock->mutex);
 	}
+
+	pthread_mutex_unlock(&lock->mutex);
 
 	ilm_log_array_dbg("value buffer:", buf, IDM_VALUE_LEN);
 
@@ -654,11 +663,15 @@ int ilm_lock_host_count(struct ilm_cmd *cmd, struct ilm_lockspace *ls)
 
 	ilm_lock_dump("lock_host_count", lock);
 
+	pthread_mutex_lock(&lock->mutex);
 	ret = idm_raid_count(lock, ls->host_id, &account.count, &account.self);
+	pthread_mutex_unlock(&lock->mutex);
+
 	if (ret) {
 		ilm_log_err("Fail to read count %d\n", ret);
 		goto out;
 	}
+
 	ilm_log_dbg("Lock host count %d self %d\n", account.count, account.self);
 
 out:
@@ -706,7 +719,10 @@ int ilm_lock_mode(struct ilm_cmd *cmd, struct ilm_lockspace *ls)
 	}
 	ilm_lock_dump("lock_host_mode", lock);
 
+	pthread_mutex_lock(&lock->mutex);
 	ret = idm_raid_mode(lock, &mode);
+	pthread_mutex_unlock(&lock->mutex);
+
 	if (ret) {
 		ilm_log_err("Fail to read mode %d\n", ret);
 		goto out;
