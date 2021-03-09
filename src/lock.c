@@ -81,6 +81,66 @@ static int ilm_sort_drive_uuid(unsigned long *wwn_arr, int drive_num)
 	return 0;
 }
 
+int ilm_update_drive_multi_paths(struct ilm_lock *lock)
+{
+	int i, j, retry = 0;
+	struct ilm_drive *drive;
+
+	/*
+	 * If the drive version is not changed, do nothing and
+	 * directly bail out.
+	 */
+	if (lock->drive_version == ilm_scsi_drive_version())
+		return 0;
+
+	do {
+		if (retry >= 10) {
+			ilm_log_err("%s: retries > 10 times for but fails",
+				    __func__);
+			return -1;
+		}
+
+		/* Update to the latest drive version */
+		lock->drive_version = ilm_scsi_drive_version();
+
+		for (i = 0; i < lock->good_drive_num; i++) {
+			drive = &lock->drive[i];
+
+			/* Cleanup for old pathes */
+			for (j = 0; j < drive->path_num; j++) {
+				free(drive->path[j]);
+				drive->path[j] = NULL;
+			}
+
+			drive->path_num = ilm_scsi_get_all_sgs(drive->wwn,
+				drive->path, IDM_DRIVE_PATH_NUM);
+		}
+
+		ilm_log_warn("Detects drive path is altered, update!");
+
+		for (i = 0; i < lock->good_drive_num; i++) {
+			drive = &lock->drive[i];
+
+			ilm_log_warn(" Drive %d WWN: 0x%lx", i, drive->wwn);
+
+			if (!drive->path_num) {
+				ilm_log_warn("  Cannot find any known path");
+				continue;
+			}
+
+			for (j = 0; j < drive->path_num; j++)
+				ilm_log_warn("  Path [%d] is %s", j, drive->path[j]);
+		}
+
+	/*
+	 * It's possible that the drive list is altered during updating,
+	 * check the version number and if doesn't match, try it again.
+	 */
+	} while (lock->drive_version != ilm_scsi_drive_version());
+
+	return 0;
+}
+
 static int ilm_insert_drive_multi_paths(struct ilm_lock *lock,
 					unsigned long *wwn,
 					int wwn_num)
@@ -88,6 +148,8 @@ static int ilm_insert_drive_multi_paths(struct ilm_lock *lock,
 	int i, j;
 	struct ilm_drive *drive;
 	int found;
+
+	lock->drive_version = ilm_scsi_drive_version();
 
 	for (i = 0; i < wwn_num; i++) {
 
@@ -128,7 +190,7 @@ static int ilm_insert_drive_multi_paths(struct ilm_lock *lock,
 
 	for (i = 0; i < lock->good_drive_num; i++) {
 		drive = &lock->drive[i];
-		ilm_log_dbg("Drive %d WWN: 0x%lx", i, drive->wwn);
+		ilm_log_dbg(" Drive %d WWN: 0x%lx", i, drive->wwn);
 		for (j = 0; j < drive->path_num; j++)
 			ilm_log_dbg("  Path [%d] is %s", j, drive->path[j]);
 	}

@@ -975,8 +975,10 @@ static void idm_raid_multi_issue(struct ilm_lock *lock, char *host_id,
 	struct _raid_request *req;
 	int i, reverse_mode;
 
-	ilm_log_err("%s: start mutex op=%s(%d) mode=%d renew=%d",
+	ilm_log_dbg("%s: start mutex op=%s(%d) mode=%d renew=%d",
 		    __func__, _raid_op_str(op), op, mode, renew);
+
+	ilm_update_drive_multi_paths(lock);
 
 	for (i = 0; i < lock->good_drive_num; i++) {
 
@@ -987,7 +989,23 @@ static void idm_raid_multi_issue(struct ilm_lock *lock, char *host_id,
 			continue;
 		}
 
+		/*
+		 * If failed to fetch the drive's paths, skip the send
+		 * command and directly return error -EIO.
+		 */
+		if (drive->path_num == 0 || drive->path[0] == NULL) {
+			ilm_log_err("%s: cannot find any path for drive with wwn 0x%lx\n",
+				    __func__, drive->wwn);
+			drive->result = -EIO;
+			continue;
+		}
+
 		req = malloc(sizeof(struct _raid_request));
+		if (!req) {
+			drive->result = -ENOMEM;
+			continue;
+		}
+
 		memset(req, 0, sizeof(struct _raid_request));
 
 		req->op = op;
@@ -997,7 +1015,18 @@ static void idm_raid_multi_issue(struct ilm_lock *lock, char *host_id,
 		req->mode = (mode != -1) ? mode : lock->mode;
 		req->renew = renew;
 		req->path_idx = 0;
-		req->path = drive->path[req->path_idx];
+
+		/*
+		 * Since the drive pathes might be altered by other requesters,
+		 * duplicate the drive path at this point to avoid the
+		 * use-after-free issue.
+		 */
+		req->path = strdup(drive->path[req->path_idx]);
+		if (!req->path) {
+			free(req);
+			drive->result = -ENOMEM;
+			continue;
+		}
 
 		/*
 		 * When unlock an IDM, it's the time to write LVB into drive,
@@ -1018,15 +1047,28 @@ static void idm_raid_multi_issue(struct ilm_lock *lock, char *host_id,
 	while ((req = idm_raid_wait(lock->raid_th, renew))) {
 
 		drive = req->drive;
+
+		/*
+		 * Detect the I/O failure, we can try another path for the same
+		 * drive, this can allow us to have more chance to make success
+		 * for the request.
+		 */
 		if (req->result == -EIO &&
-			(req->path_idx < drive->path_num -1)) {
+		    (req->path_idx < drive->path_num -1) &&
+		    (drive->path[req->path_idx + 1] != NULL)) {
+
 			ilm_log_dbg("%s: I/O failure path=%s", __func__, req->path);
 
+			/* Free the previous drive path */
+			free(req->path);
+
 			req->path_idx++;
-			req->path = drive->path[req->path_idx];
-			ilm_log_dbg("%s: New path selection: idx=%d path=%s",
-				    __func__, req->path_idx, req->path);
-			goto send_next_request;
+			req->path = strdup(drive->path[req->path_idx]);
+			if (req->path) {
+				ilm_log_dbg("%s: New path selection: idx=%d path=%s",
+					    __func__, req->path_idx, req->path);
+				goto send_next_request;
+			}
 		}
 
 		idm_raid_state_transition(req);
@@ -1076,6 +1118,7 @@ static void idm_raid_multi_issue(struct ilm_lock *lock, char *host_id,
 			drive->self = req->self;
 			ilm_log_dbg("%s: drive result=%d mode=%d count=%d", __func__,
 				    drive->result, drive->mode, drive->count);
+			free(req->path);
 			free(req);
 			continue;
 		}
