@@ -247,6 +247,17 @@ struct _raid_state_transition state_transition[] = {
 	},
 
 	/*
+	 * If the lock has been acquired, afterwards, if the lock entry has
+	 * been removed from the drive firwarem, convert to the IDM_INIT state,
+	 * try to acquire the mutex again.
+	 */
+	{
+		.curr	= IDM_LOCK,
+		.result	= -ENOENT,
+		.next	= IDM_INIT,
+	},
+
+	/*
 	 * This is a special case which is used for the normal unlock flow.
 	 */
 	{
