@@ -4,7 +4,7 @@ includedir=${prefix}/include
 libdir=${exec_prefix}/lib
 
 Name: libseagate_ilm
-Description: The sanlock client library
+Description: The Seagate In Drive Mutex (IDM) library
 Version: 0.1.0
 Cflags: -I${includedir}
 Libs: -L${libdir} -llibseagate_ilm
