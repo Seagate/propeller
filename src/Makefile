@@ -71,11 +71,14 @@ install: all
 	$(INSTALL) -d $(DESTDIR)/$(BINDIR)
 	$(INSTALL) -d $(DESTDIR)/$(LIBDIR)
 	$(INSTALL) -d $(DESTDIR)/$(HEADIR)
+	$(INSTALL) -d $(DESTDIR)/$(LIBDIR)/pkgconfig
+	$(INSTALL) -d $(DESTDIR)/usr/lib/systemd/system
+	$(INSTALL) -d $(DESTDIR)/etc/logrotate.d/seagate_ilm
 	$(INSTALL) -c -m 755 $(TARGET) $(DESTDIR)/$(BINDIR)
 	$(INSTALL) -c -m 755 $(LIBSO_TARGET) $(DESTDIR)/$(LIBDIR)
 	$(INSTALL) -c -m 644 $(LIBPC_TARGET) $(DESTDIR)/$(LIBDIR)/pkgconfig
 	cp -a $(LIB_TARGET).so $(DESTDIR)/$(LIBDIR)
 	cp -a $(LIB_TARGET).so.$(SOMAJOR) $(DESTDIR)/$(LIBDIR)
 	$(INSTALL) -c -m 644 $(HEADER_TARGET) $(DESTDIR)/$(HEADIR)
-	$(INSTALL) -c -m 644 seagate_ilm.service /usr/lib/systemd/system/
-	$(INSTALL) -c -m 644 logrotate.ilm /etc/logrotate.d/seagate_ilm
+	$(INSTALL) -c -m 644 seagate_ilm.service $(DESTDIR)/usr/lib/systemd/system/
+	$(INSTALL) -c -m 644 logrotate.ilm $(DESTDIR)/etc/logrotate.d/seagate_ilm
