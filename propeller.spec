@@ -1,9 +1,9 @@
-Summary: Customized locking scheme based on Seagate In-Drive-Mutex (IDM) and integration into lvmlockd
+Summary: A lock manager based on Seagate In-Drive-Mutex (IDM)
 Name: propeller
 Epoch: 1
 Version: 1
 Release: 1%{?dist}
-License: GPLv2
+License: GPLv2 and LGPLv2
 URL: http://github.com/Seagate/propeller
 Source0: propeller.%{version}.tgz
 
@@ -12,13 +12,11 @@ BuildRequires: libblkid
 BuildRequires: libblkid-devel
 BuildRequires: python-pytest
 BuildRequires: python-devel
+BuildRequires: libudev
 
 %description
-Propeller provides the customized locking scheme based on Seagate 
-In-Drive-Mutex (IDM) and integration into lvmlockd. It contains the IDM 
-lock manager under 'src' folder; later it can be extended to add IDM 
-wrapper APIs lib and integrate with LVM2 for full stack releasing.
-The library and APIs is implemented in C.
+The Seagate IDM Lock Manager (ILM) manages lease for the host
+using the mutexes that exist in the drive.
 
 %prep
 %setup -q -n propeller.%{version}
