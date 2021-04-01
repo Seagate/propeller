@@ -13,7 +13,7 @@
 %apply int *OUTPUT { int *version };
 
 %{
-#define ILM_DRIVE_MAX_NUM       32
+#define ILM_DRIVE_MAX_NUM       512
 
 struct idm_lock_id {
         char vg_uuid[32];
@@ -47,7 +47,7 @@ int ilm_start_renew(int sock);
 int ilm_inject_fault(int sock, int percentage);
 %}
 
-#define ILM_DRIVE_MAX_NUM       32
+#define ILM_DRIVE_MAX_NUM       512
 
 #define IDM_MODE_UNLOCK         0
 #define IDM_MODE_EXCLUSIVE      1
