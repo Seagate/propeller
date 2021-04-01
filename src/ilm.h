@@ -6,7 +6,7 @@
 #include <stdio.h>
 #include <uuid/uuid.h>
 
-#define ILM_DRIVE_MAX_NUM	32
+#define ILM_DRIVE_MAX_NUM		512
 
 #define IDM_MODE_UNLOCK			0
 #define IDM_MODE_EXCLUSIVE		1
@@ -26,7 +26,7 @@ struct idm_lock_op {
 	uint32_t mode;
 
 	uint32_t drive_num;
-	const char *drives[ILM_DRIVE_MAX_NUM];
+	char *drives[ILM_DRIVE_MAX_NUM];
 
 	int timeout; /* -1 means unlimited timeout */
 };
