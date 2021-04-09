@@ -1,3 +1,12 @@
+/* SPDX-License-Identifier: LGPL-2.1-only */
+/*
+ * Copyright (C) 2010-2011 Red Hat, Inc.
+ * Copyright (C) 2021 Seagate Technology LLC and/or its Affiliates.
+ *
+ * Derived from the sanlock file of src/client.c, where the
+ * license was LGPL-2.1-or-later.
+ */
+
 #include <unistd.h>
 #include <stdio.h>
 #include <stdlib.h>

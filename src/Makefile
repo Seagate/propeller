@@ -1,9 +1,6 @@
-# Copyright 2020-2021 Seagate
-#
-# This copyrighted material is made available to anyone wishing to use,
-# modify, copy, or redistribute it subject to the terms and conditions
-# of the GNU General Public License v2 or (at your option) any later version.
-#
+# SPDX-License-Identifier: LGPL-2.1-only
+# Copyright (C) 2021 Seagate Technology LLC and/or its Affiliates.
+
 include ../Makefile.config
 include ../Makefile.common
 

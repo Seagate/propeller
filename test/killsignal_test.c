@@ -1,3 +1,8 @@
+/* SPDX-License-Identifier: LGPL-2.1-only */
+/*
+ * Copyright (C) 2021 Seagate Technology LLC and/or its Affiliates.
+ */
+
 #include <errno.h>
 #include <signal.h>
 #include <stddef.h>

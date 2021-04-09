@@ -1,9 +1,9 @@
+/* SPDX-License-Identifier: GPL-2.0-or-later */
 /*
- * Copyright (C) 2020-2021 Seagate
+ * Copyright (C) 2010-2011 Red Hat, Inc.
+ * Copyright (C) 2021 Seagate Technology LLC and/or its Affiliates.
  *
- * This file is licensed under the terms of the GNU General Public
- * License version 2. This program is licensed "as is" without any
- * warranty of any kind, whether express or implied.
+ * Derived from the sanlock file of the same name.
  */
 
 #include <inttypes.h>

@@ -1,5 +1,8 @@
 #! /bin/sh
 
+# SPDX-License-Identifier: LGPL-2.1-only
+# Copyright (C) 2021 Seagate Technology LLC and/or its Affiliates.
+
 dump_mutex() {
 	sg_raw -v -r 512 /dev/$1              88 00 01 00 00 00 00 20 FF 01 00 00 00 01 00 00
 }

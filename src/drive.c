@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: LGPL-2.1-only
+/* SPDX-License-Identifier: LGPL-2.1-only */
 /*
  * Copyright (C) 2021 Seagate Technology LLC and/or its Affiliates.
  */
