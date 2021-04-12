@@ -53,8 +53,6 @@ static struct list_head drive_list;
 static pthread_mutex_t drive_list_mutex = PTHREAD_MUTEX_INITIALIZER;
 static unsigned int drive_list_version = 0;
 
-static char blk_str[PATH_MAX];
-
 struct ilm_device_map {
 	struct list_head list;
 	char *dev_map;
@@ -375,11 +373,10 @@ static int ilm_scsi_block_node_select(const struct dirent *s)
 			return 0;   /* parent: '..' */
 	}
 
-	strncpy(blk_str, s->d_name, PATH_MAX);
 	return 1;
 }
 
-static int ilm_scsi_find_block_node(const char *dir_name)
+static int ilm_scsi_find_block_node(const char *dir_name, char **blk_dev)
 {
         int num, i;
         struct dirent **namelist;
@@ -388,9 +385,15 @@ static int ilm_scsi_find_block_node(const char *dir_name)
         if (num < 0)
                 return -1;
 
+	*blk_dev = strdup(namelist[0]->d_name);
+
         for (i = 0; i < num; ++i)
                 free(namelist[i]);
         free(namelist);
+
+	if (!*blk_dev)
+		return -1;
+
         return num;
 }
 
@@ -992,6 +995,7 @@ int ilm_scsi_list_init(void)
 	char blk_path[PATH_MAX];
 	char dev_node[PATH_MAX];
 	char sg_node[PATH_MAX];
+	char *blk_str = NULL;
 	int i, num;
 	int ret = 0;
 	char value[64];
@@ -1032,11 +1036,12 @@ int ilm_scsi_list_init(void)
 			goto out;
 		}
 
-		ret = ilm_scsi_find_block_node(blk_path);
+		ret = ilm_scsi_find_block_node(blk_path, &blk_str);
 		if (ret < 0)
 			continue;
 
 		snprintf(dev_node, sizeof(dev_node), "/dev/%s", blk_str);
+		free(blk_str);
 
 		ret = ilm_scsi_change_sg_folder(dev_path);
 		if (ret < 0) {
