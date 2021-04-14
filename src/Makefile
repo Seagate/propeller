@@ -28,7 +28,8 @@ SOURCE = main.c \
 	 inject_fault.c \
 	 failure.c \
 	 drive.c \
-	 scsiutils.c
+	 scsiutils.c \
+	 uuid.c
 
 LIB_SOURCE = lib_client.c
 

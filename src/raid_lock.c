@@ -21,6 +21,7 @@
 #include "raid_lock.h"
 #include "string.h"
 #include "util.h"
+#include "uuid.h"
 
 
 #define EALL				0xDEADBEAF

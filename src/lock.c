@@ -25,6 +25,7 @@
 #include "log.h"
 #include "raid_lock.h"
 #include "util.h"
+#include "uuid.h"
 
 struct ilm_drive_info {
 	char *path;
