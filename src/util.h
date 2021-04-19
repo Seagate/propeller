@@ -1,3 +1,8 @@
+/* SPDX-License-Identifier: LGPL-2.1-only */
+/*
+ * Copyright (C) 2021 Seagate Technology LLC and/or its Affiliates.
+ */
+
 #ifndef __UTIL_H__
 #define __UTIL_H__
 
@@ -14,6 +19,5 @@ static inline uint64_t ilm_read_utc_time(void) { return 0; }
 
 uint64_t ilm_curr_time(void);
 int ilm_rand(int min, int max);
-int ilm_id_write_format(const char *id, char *buffer, size_t size);
 
 #endif

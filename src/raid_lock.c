@@ -1,9 +1,6 @@
+/* SPDX-License-Identifier: LGPL-2.1-only */
 /*
- * Copyright (C) 2020-2021 Seagate
- *
- * This file is licensed under the terms of the GNU General Public
- * License version 2. This program is licensed "as is" without any
- * warranty of any kind, whether express or implied.
+ * Copyright (C) 2021 Seagate Technology LLC and/or its Affiliates.
  */
 
 #include <assert.h>
@@ -21,6 +18,7 @@
 #include "raid_lock.h"
 #include "string.h"
 #include "util.h"
+#include "uuid.h"
 
 
 #define EALL				0xDEADBEAF

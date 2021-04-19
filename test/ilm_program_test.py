@@ -1,3 +1,6 @@
+# SPDX-License-Identifier: LGPL-2.1-only
+# Copyright (C) 2021 Seagate Technology LLC and/or its Affiliates.
+
 from __future__ import absolute_import
 
 import errno

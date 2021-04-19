@@ -1,3 +1,6 @@
+# SPDX-License-Identifier: LGPL-2.1-only
+# Copyright (C) 2021 Seagate Technology LLC and/or its Affiliates.
+
 all:
 	gcc -I../src -ggdb -o smoke_test smoke_test.c -L../src -lseagate_ilm -luuid
 	gcc -I../src -ggdb -o killsignal_test killsignal_test.c -L../src -lseagate_ilm -luuid

@@ -1,3 +1,8 @@
+/* SPDX-License-Identifier: LGPL-2.1-only */
+/*
+ * Copyright (C) 2021 Seagate Technology LLC and/or its Affiliates.
+ */
+
 #ifndef __INJECT_FAULT_H__
 #define __INJECT_FAULT_H__
 

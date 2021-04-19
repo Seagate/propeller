@@ -1,5 +1,7 @@
-/* Copied from sanlock which copied from linux kernel */
-
+/* SPDX-License-Identifier: GPL-2.0-only */
+/*
+ * Derived from the Linux kernel header file include/linux/list.h.
+ */
 #ifndef _LINUX_LIST_H
 #define _LINUX_LIST_H
 
