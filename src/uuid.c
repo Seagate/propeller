@@ -9,6 +9,7 @@
 
 #include <string.h>
 
+#include "log.h"
 #include "uuid.h"
 
 int ilm_id_write_format(const char *id, char *buffer, size_t size)
