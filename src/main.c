@@ -17,6 +17,7 @@
 #include <sys/mman.h>
 #include <sys/stat.h>
 #include <sys/types.h>
+#include <sys/utsname.h>
 #include <uuid/uuid.h>
 #include <unistd.h>
 
@@ -39,6 +40,12 @@ static int ilm_read_args(int argc, char *argv[])
 	char *arg, *p;
 	mode_t old_umask;
 	int i, ret;
+
+	/* Check the building version */
+	if (!strcmp(argv[1], "--version") || !strcmp(argv[1], "-V")) {
+		printf("%s %s (%s %s)\n", argv[0], VERSION, __DATE__, __TIME__);
+		exit(EXIT_SUCCESS);
+	}
 
 	/* Skip the command name, start from argument 1 */
 	for (i = 1; i < argc;) {
@@ -111,6 +118,7 @@ static int ilm_daemon_setup(void)
 	struct sched_param sched_param;
 	int max_prio;
 #endif
+	struct utsname nodename;
 	int ret;
 
 	if (!env.debug && daemon(0, 0) < 0) {
@@ -147,7 +155,9 @@ static int ilm_daemon_setup(void)
 		return -1;
 	}
 #endif
-
+	uname(&nodename);
+	ilm_log_warn("IDM lock manager: version %s on host %s",
+		     VERSION, nodename.nodename);
 	return 0;
 }
 
