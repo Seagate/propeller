@@ -144,8 +144,7 @@ void ilm_log(int level, const char *fmt, ...)
 	 * Save messages in circular array "log_records" that a thread
 	 * writes to logfile/syslog
 	 */
-	if (level <= log_file_priority || level <= log_syslog_priority)
-		log_save_record(level, log_str, pos);
+	log_save_record(level, log_str, pos);
 
 	if (level <= log_stderr_priority)
 		fprintf(stderr, "%s", log_str);
@@ -193,8 +192,7 @@ void ilm_log_array(int level, const char *array_name, char *buf, int buf_len)
 	 * Save messages in circular array "log_records" that a thread
 	 * writes to logfile/syslog
 	 */
-	if (level <= log_file_priority || level <= log_syslog_priority)
-		log_save_record(level, log_str, pos);
+	log_save_record(level, log_str, pos);
 
 	if (level <= log_stderr_priority)
 		fprintf(stderr, "%s", log_str);
@@ -217,9 +215,7 @@ void ilm_log_array(int level, const char *array_name, char *buf, int buf_len)
 			log_str[pos++] = '\n';
 			log_str[pos++] = '\0';
 
-			if (level <= log_file_priority ||
-			    level <= log_syslog_priority)
-				log_save_record(level, log_str, pos);
+			log_save_record(level, log_str, pos);
 
 			if (level <= log_stderr_priority)
 				fprintf(stderr, "%s", log_str);
@@ -232,9 +228,7 @@ void ilm_log_array(int level, const char *array_name, char *buf, int buf_len)
 		log_str[pos++] = '\n';
 		log_str[pos++] = '\0';
 
-		if (level <= log_file_priority ||
-		    level <= log_syslog_priority)
-			log_save_record(level, log_str, pos);
+		log_save_record(level, log_str, pos);
 
 		if (level <= log_stderr_priority)
 			fprintf(stderr, "%s", log_str);
