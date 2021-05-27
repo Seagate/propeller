@@ -246,13 +246,13 @@ static int _scsi_sg_io(char *drive, uint8_t *cdb, int cdb_len,
 	status = io_hdr.masked_status;
 
 	if (status != GOOD) {
-		ilm_log_array_err("SCSI CDB:", (char *)cdb, data_len);
-		ilm_log_array_err("SCSI DATA:", (char *)data, data_len);
-		ilm_log_array_err("SCSI SENSE:", (char *)sense, sense_len);
-		ilm_log_err("SCSI status: 0x%x", io_hdr.status);
-		ilm_log_err("SCSI masked status: 0x%x", io_hdr.masked_status);
-		ilm_log_err("SCSI host status: 0x%x", io_hdr.host_status);
-		ilm_log_err("SCSI driver status: 0x%x", io_hdr.driver_status);
+		ilm_log_array_warn("SCSI CDB:", (char *)cdb, data_len);
+		ilm_log_array_warn("SCSI DATA:", (char *)data, data_len);
+		ilm_log_array_warn("SCSI SENSE:", (char *)sense, sense_len);
+		ilm_log_warn("SCSI status: 0x%x", io_hdr.status);
+		ilm_log_warn("SCSI masked status: 0x%x", io_hdr.masked_status);
+		ilm_log_warn("SCSI host status: 0x%x", io_hdr.host_status);
+		ilm_log_warn("SCSI driver status: 0x%x", io_hdr.driver_status);
 	}
 
 	switch (status) {
@@ -427,13 +427,13 @@ static int _scsi_read(struct idm_scsi_request *request, int direction)
 	status = io_hdr.masked_status;
 
 	if (status != GOOD) {
-		ilm_log_array_err("SCSI CDB:", (char *)request->cdb, SCSI_CDB_LEN);
-		ilm_log_array_err("SCSI DATA:", (char *)request->data, request->data_len);
-		ilm_log_array_err("SCSI SENSE:", (char *)request->sense, SCSI_SENSE_LEN);
-		ilm_log_err("SCSI status: 0x%x", io_hdr.status);
-		ilm_log_err("SCSI masked status: 0x%x", io_hdr.masked_status);
-		ilm_log_err("SCSI host status: 0x%x", io_hdr.host_status);
-		ilm_log_err("SCSI driver status: 0x%x", io_hdr.driver_status);
+		ilm_log_array_warn("SCSI CDB:", (char *)request->cdb, SCSI_CDB_LEN);
+		ilm_log_array_warn("SCSI DATA:", (char *)request->data, request->data_len);
+		ilm_log_array_warn("SCSI SENSE:", (char *)request->sense, SCSI_SENSE_LEN);
+		ilm_log_warn("SCSI status: 0x%x", io_hdr.status);
+		ilm_log_warn("SCSI masked status: 0x%x", io_hdr.masked_status);
+		ilm_log_warn("SCSI host status: 0x%x", io_hdr.host_status);
+		ilm_log_warn("SCSI driver status: 0x%x", io_hdr.driver_status);
 	}
 
 	switch (status) {
@@ -1285,7 +1285,7 @@ static int idm_drive_read_mutex_num(char *drive, unsigned int *num)
 	*num = ((data[1]) & 0xff);
 	*num |= ((data[0]) & 0xff) << 8;
 
-	ilm_log_err("%s: data[0]=%u data[1]=%u mutex num=%u",
+	ilm_log_dbg("%s: data[0]=%u data[1]=%u mutex num=%u",
 		    __func__, data[0], data[1], *num);
 
 out:
