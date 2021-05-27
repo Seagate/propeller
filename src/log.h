@@ -16,6 +16,7 @@ extern int log_file_priority;
 extern int log_file_use_utc;
 extern int log_syslog_priority;
 extern int log_stderr_priority;
+extern int log_replay_count;
 
 #ifndef TEST
 

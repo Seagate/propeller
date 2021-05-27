@@ -83,6 +83,9 @@ static int ilm_read_args(int argc, char *argv[])
 		case 'l':
 			env.mlock = atoi(arg);
 			break;
+		case 'R':
+			log_replay_count = atoi(arg);
+			break;
 		default:
 			fprintf(stderr, "Unknown Option '%c'", opt);
 			exit(EXIT_FAILURE);
