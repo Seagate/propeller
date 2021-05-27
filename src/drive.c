@@ -356,7 +356,7 @@ static int ilm_find_deepest_device_mapping(char *in, char *out)
 		goto failed;
 	}
 
-	snprintf(cmd, sizeof(cmd), "dmsetup deps -o devname %s", in);
+	snprintf(cmd, sizeof(cmd), "dmsetup deps -o devname %s 2>/dev/null", in);
 	ilm_log_dbg("%s: cmd=%s", __func__, cmd);
 
 	if ((fp = popen(cmd, "r")) == NULL) {
