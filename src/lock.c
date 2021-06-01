@@ -61,8 +61,8 @@ static int ilm_sort_drive_uuid(unsigned long *wwn_arr, int drive_num)
 			cmp = wwn_arr[j] -  wwn_arr[j - 1];
 
 			if (cmp == 0) {
-				ilm_log_err("Two drives have same WWN (0x%lx)?",
-					    wwn_arr[j]);
+				ilm_log_warn("Two drives have same WWN (0x%lx)?",
+					     wwn_arr[j]);
 				continue;
 			}
 
@@ -176,8 +176,8 @@ static int ilm_insert_drive_multi_paths(struct ilm_lock *lock,
 			drive->index = lock->good_drive_num;
 			lock->good_drive_num++;
 		} else {
-			ilm_log_err("Drive with WWN 0x%lx failed to parse sgs",
-				    drive->wwn);
+			ilm_log_warn("Drive with WWN 0x%lx failed to parse sgs",
+				     drive->wwn);
 			lock->fail_drive_num++;
 		}
 	}
@@ -350,35 +350,35 @@ static void ilm_lock_dump(const char *str, struct ilm_lock *lock)
 	char uuid_str[39];	/* 32 chars + 6 chars '-' + '\0' */
 	struct ilm_drive *drive;
 
-	ilm_log_err("<<<<< Lock dump: %s <<<<<", str);
-	ilm_log_err("Drive number statistics: Total=%d Good=%d Fail=%d",
-		    lock->total_drive_num, lock->good_drive_num,
-		    lock->fail_drive_num);
+	ilm_log_warn("<<<<< Lock dump: %s <<<<<", str);
+	ilm_log_warn("Drive number statistics: Total=%d Good=%d Fail=%d",
+		     lock->total_drive_num, lock->good_drive_num,
+		     lock->fail_drive_num);
 
 	for (i = 0; i < lock->good_drive_num; i++) {
 		drive = &lock->drive[i];
-		ilm_log_dbg("Drive %d WWN: 0x%lx", i, drive->wwn);
+		ilm_log_warn("Drive %d WWN: 0x%lx", i, drive->wwn);
 		for (j = 0; j < drive->path_num; j++)
-			ilm_log_dbg("  Path [%d] is %s", j, drive->path[j]);
+			ilm_log_warn("  Path [%d] is %s", j, drive->path[j]);
 	}
 
-	ilm_log_err("Lock mode=%d", lock->mode);
+	ilm_log_warn("Lock mode=%d", lock->mode);
 
-	ilm_log_array_err("Lock ID", lock->id, 64);
+	ilm_log_array_warn("Lock ID", lock->id, 64);
 
 	ilm_id_write_format(lock->id, uuid_str, sizeof(uuid_str));
 	if (strlen(uuid_str))
-		ilm_log_err("lock ID (VG): %s", uuid_str);
+		ilm_log_warn("lock ID (VG): %s", uuid_str);
 	else
-		ilm_log_err("lock ID (VG): Empty string");
+		ilm_log_warn("lock ID (VG): Empty string");
 
 	ilm_id_write_format(lock->id + 32, uuid_str, sizeof(uuid_str));
 	if (strlen(uuid_str))
-		ilm_log_err("lock ID (LV): %s", uuid_str);
+		ilm_log_warn("lock ID (LV): %s", uuid_str);
 	else
-		ilm_log_err("lock ID (LV): Empty string");
+		ilm_log_warn("lock ID (LV): Empty string");
 
-	ilm_log_err(">>>>> Lock dump: %s >>>>>", str);
+	ilm_log_warn(">>>>> Lock dump: %s >>>>>", str);
 }
 
 int ilm_lock_acquire(struct ilm_cmd *cmd, struct ilm_lockspace *ls)

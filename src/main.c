@@ -83,6 +83,9 @@ static int ilm_read_args(int argc, char *argv[])
 		case 'l':
 			env.mlock = atoi(arg);
 			break;
+		case 'R':
+			log_replay_count = atoi(arg);
+			break;
 		default:
 			fprintf(stderr, "Unknown Option '%c'", opt);
 			exit(EXIT_FAILURE);
@@ -118,7 +121,6 @@ static int ilm_daemon_setup(void)
 	struct sched_param sched_param;
 	int max_prio;
 #endif
-	struct utsname nodename;
 	int ret;
 
 	if (!env.debug && daemon(0, 0) < 0) {
@@ -155,9 +157,6 @@ static int ilm_daemon_setup(void)
 		return -1;
 	}
 #endif
-	uname(&nodename);
-	ilm_log_warn("IDM lock manager: version %s on host %s",
-		     VERSION, nodename.nodename);
 	return 0;
 }
 
@@ -220,6 +219,7 @@ static int ilm_main_loop(void)
 int main(int argc, char *argv[])
 {
 	int ret;
+	struct utsname nodename;
 
 	ret = ilm_read_args(argc, argv);
 	if (ret < 0)
@@ -232,6 +232,10 @@ int main(int argc, char *argv[])
 	ret = ilm_log_init();
 	if (ret < 0)
 		return EXIT_FAILURE;
+
+	uname(&nodename);
+	ilm_log_warn("IDM lock manager: version %s on host %s",
+		     VERSION, nodename.nodename);
 
 	ret = ilm_signal_setup();
 	if (ret < 0)

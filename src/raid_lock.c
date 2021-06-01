@@ -574,7 +574,7 @@ static int _raid_state_lockup(int state, int result)
 			return trans->next;
 	}
 
-	ilm_log_err("%s: state machine malfunction state=%d result=%d",
+	ilm_log_dbg("%s: state machine malfunction state=%d result=%d",
 		    __func__, state, result);
 	return -1;
 }
@@ -609,7 +609,7 @@ static int idm_raid_state_transition(struct _raid_request *req)
 
 	next_state = _raid_state_lockup(state, result);
 
-	ilm_log_err("raid_lock state transition: drive=%s op=%s(%d) result=%d state=%s(%d) -> next_state=%s(%d)",
+	ilm_log_dbg("raid_lock state transition: drive=%s op=%s(%d) result=%d state=%s(%d) -> next_state=%s(%d)",
 		    req->path, _raid_op_str(req->op),
 		    req->op, result,
 		    _raid_state_str(drive->state), drive->state,
@@ -642,10 +642,10 @@ static int idm_raid_add_request(struct _raid_thread *raid_th,
 	else
 		raid_th->count++;
 
-	ilm_log_err("raid_lock send request: drive=%s state=%s(%d) op=%s(%d) mode=%d renew=%d",
+	ilm_log_dbg("raid_lock send request: drive=%s state=%s(%d) op=%s(%d) mode=%d renew=%d",
 		    req->path, _raid_state_str(drive->state), drive->state,
 		    _raid_op_str(req->op), req->op, req->mode, req->renew);
-	ilm_log_err("  -> raid_thread=%p renew_count=%d count=%d",
+	ilm_log_dbg("  -> raid_thread=%p renew_count=%d count=%d",
 		    raid_th, raid_th->renew_count, raid_th->count);
 
 	return 0;
@@ -772,11 +772,13 @@ static void *idm_raid_thread(void *data)
 				         &raid_th->process_list, list) {
 			ret = _raid_dispatch_request_async(req);
 
-			ilm_log_err("[raid_thread=%p] -> (async) drive=%s op=%s(%d) ret=%d",
+			ilm_log_dbg("[raid_thread=%p] -> (async) drive=%s op=%s(%d) ret=%d",
 				    raid_th, req->path, _raid_op_str(req->op),
 				    req->op, ret);
 
 			if (ret < 0) {
+				ilm_log_err("[raid_thread=%p] dispatch failed %d",
+					    raid_th, ret);
 				req->result = ret;
 				/* Remove from process list */
 				list_del(&req->list);
@@ -842,7 +844,7 @@ static void *idm_raid_thread(void *data)
 
 				_raid_read_result_async(req);
 
-				ilm_log_err("[raid_thread=%p] <- (resp) drive=%s op=%s(%d) result=%d",
+				ilm_log_dbg("[raid_thread=%p] <- (resp) drive=%s op=%s(%d) result=%d",
 					    raid_th, req->path, _raid_op_str(req->op),
 					    req->op, req->result);
 
@@ -956,20 +958,20 @@ static void idm_raid_destroy(char *path)
 	if (!least_renew)
 		return;
 
-	ilm_log_array_err("raid_destroy: lock ID", least_renew->id, IDM_LOCK_ID_LEN);
+	ilm_log_array_dbg("raid_destroy: lock ID", least_renew->id, IDM_LOCK_ID_LEN);
 	ilm_id_write_format(least_renew->id, uuid_str, sizeof(uuid_str));
 	if (strlen(uuid_str))
-		ilm_log_err("raid_destroy: lock ID (VG): %s", uuid_str);
+		ilm_log_dbg("raid_destroy: lock ID (VG): %s", uuid_str);
 	else
-		ilm_log_err("raid_destroy: lock ID (VG): Empty string");
+		ilm_log_dbg("raid_destroy: lock ID (VG): Empty string");
 
 	ilm_id_write_format(least_renew->id + 32, uuid_str, sizeof(uuid_str));
 	if (strlen(uuid_str))
-		ilm_log_err("raid_destroy: lock ID (LV): %s", uuid_str);
+		ilm_log_dbg("raid_destroy: lock ID (LV): %s", uuid_str);
 	else
-		ilm_log_err("raid_destroy: lock ID (LV): Empty string");
+		ilm_log_dbg("raid_destroy: lock ID (LV): Empty string");
 
-	ilm_log_err("raid_destroy: state=%d mode=%d last_renew_time=%lu",
+	ilm_log_dbg("raid_destroy: state=%d mode=%d last_renew_time=%lu",
 		    least_renew->state, least_renew->mode,
 		    least_renew->last_renew_time);
 
@@ -1144,15 +1146,15 @@ static void ilm_raid_lock_dump(const char *str, struct ilm_lock *lock)
 {
 	int i, j;
 
-	ilm_log_err("<<<<< RAID lock dump: %s <<<<<", str);
+	ilm_log_dbg("<<<<< RAID lock dump: %s <<<<<", str);
 
 	for (i = 0; i < lock->good_drive_num; i++) {
-		ilm_log_err("drive[%d] state=%d", i, lock->drive[i].state);
+		ilm_log_dbg("drive[%d] state=%d", i, lock->drive[i].state);
 		for (j = 0; j < lock->drive[i].path_num; j++)
-			ilm_log_err("  path=%s", lock->drive[i].path[j]);
+			ilm_log_dbg("  path=%s", lock->drive[i].path[j]);
 	}
 
-	ilm_log_err(">>>>> RAID lock dump: %s >>>>>", str);
+	ilm_log_dbg(">>>>> RAID lock dump: %s >>>>>", str);
 }
 
 int idm_raid_lock(struct ilm_lock *lock, char *host_id)

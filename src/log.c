@@ -60,6 +60,7 @@ int log_file_priority = LOG_WARNING;
 int log_file_use_utc;
 int log_syslog_priority = LOG_WARNING;
 int log_stderr_priority = LOG_DEBUG;
+int log_replay_count = 512;
 
 static void log_save_record(int level, char *str, int len)
 {
@@ -144,8 +145,7 @@ void ilm_log(int level, const char *fmt, ...)
 	 * Save messages in circular array "log_records" that a thread
 	 * writes to logfile/syslog
 	 */
-	if (level <= log_file_priority || level <= log_syslog_priority)
-		log_save_record(level, log_str, pos);
+	log_save_record(level, log_str, pos);
 
 	if (level <= log_stderr_priority)
 		fprintf(stderr, "%s", log_str);
@@ -193,8 +193,7 @@ void ilm_log_array(int level, const char *array_name, char *buf, int buf_len)
 	 * Save messages in circular array "log_records" that a thread
 	 * writes to logfile/syslog
 	 */
-	if (level <= log_file_priority || level <= log_syslog_priority)
-		log_save_record(level, log_str, pos);
+	log_save_record(level, log_str, pos);
 
 	if (level <= log_stderr_priority)
 		fprintf(stderr, "%s", log_str);
@@ -217,9 +216,7 @@ void ilm_log_array(int level, const char *array_name, char *buf, int buf_len)
 			log_str[pos++] = '\n';
 			log_str[pos++] = '\0';
 
-			if (level <= log_file_priority ||
-			    level <= log_syslog_priority)
-				log_save_record(level, log_str, pos);
+			log_save_record(level, log_str, pos);
 
 			if (level <= log_stderr_priority)
 				fprintf(stderr, "%s", log_str);
@@ -232,9 +229,7 @@ void ilm_log_array(int level, const char *array_name, char *buf, int buf_len)
 		log_str[pos++] = '\n';
 		log_str[pos++] = '\0';
 
-		if (level <= log_file_priority ||
-		    level <= log_syslog_priority)
-			log_save_record(level, log_str, pos);
+		log_save_record(level, log_str, pos);
 
 		if (level <= log_stderr_priority)
 			fprintf(stderr, "%s", log_str);
@@ -264,6 +259,63 @@ static void log_write_dropped(int level, int num)
 	log_write_record(level, str);
 }
 
+static void log_replay_for_error_log(void)
+{
+	int first_replay;
+	struct log_entry *e;
+	int num = 1, i;
+
+	/*
+	 * Backwards search for the replay start index, it needs to meet
+	 * several conditions:
+	 *   - It should make sure the log entry is not empty;
+	 *   - It needs to dump all logs prior to the previous error, so
+	 *     can avoid to dump duplicate logs with the previous ones;
+	 *   - It should avoid the overflow.
+	 */
+	do {
+		first_replay = log_tail - num;
+
+		if (first_replay < 0)
+			first_replay = log_tail + ILM_LOG_ENTRIES - num;
+
+		e = &log_records[first_replay];
+
+		/* Detect the string is empty */
+		if (!strlen(e->str))
+			break;
+
+		/* Bail out if hit the previous error log */
+		if (e->level == LOG_ERR)
+			break;
+
+		if (num > log_replay_count || num > ILM_LOG_ENTRIES)
+			break;
+
+		num++;
+	} while (first_replay != log_tail);
+
+	/*
+	 * first_replay needs to move forward one step, so can print out the
+	 * valid entry.
+	 */
+	first_replay++;
+	first_replay = first_replay % ILM_LOG_ENTRIES;
+
+	/* If the first_replay is same with log_tail, nothing to do */
+	if (first_replay == log_tail)
+		return;
+
+	/* Force to output replaying logs with LOG_ERR level */
+	log_write_record(LOG_ERR, (char *)("===== Detect error, replay the logs =====\n"));
+	for (i = first_replay; i != log_tail;) {
+		e = &log_records[i];
+		log_write_record(LOG_ERR, e->str);
+		i = (i + 1) % ILM_LOG_ENTRIES;
+	}
+	log_write_record(LOG_ERR, (char *)("=========================================\n"));
+}
+
 static void *log_thd_fn(void *arg __maybe_unused)
 {
 	char str[ILM_LOG_STR_LEN];
@@ -280,12 +332,28 @@ static void *log_thd_fn(void *arg __maybe_unused)
 			pthread_cond_wait(&log_cond, &log_mutex);
 		}
 
-		e = &log_records[log_tail++];
+		e = &log_records[log_tail];
+		level = e->level;
+
+		/*
+		 * Detect the error, replay the log buffer so can give more
+		 * detailed information for debugging.
+		*/
+		if (level <= LOG_ERR) {
+			log_write_record(level, e->str);
+			log_replay_for_error_log();
+		/*
+		 * Otherwise, copy out the string and print the log not in
+		 * the critical condition region.
+		 */
+		} else {
+			memcpy(str, e->str, ILM_LOG_STR_LEN);
+			log_write_record(level, str);
+		}
+
+		log_tail++;
 		log_tail = log_tail % ILM_LOG_ENTRIES;
 		log_pending_ents--;
-
-		memcpy(str, e->str, ILM_LOG_STR_LEN);
-		level = e->level;
 
 		prev_dropped = log_dropped;
 		log_dropped = 0;
@@ -293,8 +361,6 @@ static void *log_thd_fn(void *arg __maybe_unused)
 
 		if (prev_dropped)
 			log_write_dropped(level, prev_dropped);
-
-		log_write_record(level, str);
 	}
 
 out:

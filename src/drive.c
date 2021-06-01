@@ -248,14 +248,15 @@ int ilm_read_device_wwn(char *dev, unsigned long *wwn)
 			continue;
 
 		*wwn = strtol(tmp1, NULL, 16);
-		ilm_log_dbg("%s: dev=%s wwn=0x%lx\n", __func__, dev, *wwn);
+		ilm_log_dbg("%s: dev=%s wwn=0x%lx", __func__, dev, *wwn);
 		break;
 	}
 
 	pclose(fp);
 
 	if (!*wwn) {
-		ilm_log_err("%s: cmd=%s", __func__, cmd);
+		ilm_log_err("%s: Failed to find wwn for dev %s",
+			    __func__, dev);
 		return -1;
 	}
 
@@ -355,7 +356,7 @@ static int ilm_find_deepest_device_mapping(char *in, char *out)
 		goto failed;
 	}
 
-	snprintf(cmd, sizeof(cmd), "dmsetup deps -o devname %s", in);
+	snprintf(cmd, sizeof(cmd), "dmsetup deps -o devname %s 2>/dev/null", in);
 	ilm_log_dbg("%s: cmd=%s", __func__, cmd);
 
 	if ((fp = popen(cmd, "r")) == NULL) {
@@ -750,15 +751,15 @@ static void *drive_thd_fn(void *arg __maybe_unused)
 			if (!strcmp(action, "add")) {
 				sg = ilm_find_sg(dev_name);
 				if (!sg) {
-					ilm_log_err("%s: Fail to find sg for %s",
-						    __func__, dev_name);
+					ilm_log_warn("%s: Fail to find sg for %s",
+						     __func__, dev_name);
 					goto free_dev_ref;
 				}
 
 				ret = ilm_read_device_wwn(dev_node, &wwn);
 				if (ret < 0) {
-					ilm_log_err("%s: Fail to read wwn for %s",
-						    __func__, dev_node);
+					ilm_log_warn("%s: Fail to read wwn for %s",
+						     __func__, dev_node);
 					goto free_dev_ref;
 				}
 
