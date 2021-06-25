@@ -1,8 +1,8 @@
 Summary: A lock manager based on Seagate In-Drive-Mutex (IDM)
 Name: seagate_ilm
 Epoch: 1
-Version: 1
-Release: 1%{?dist}
+Version: @VERSION@
+Release: @RELEASE@%{?dist}
 License: LGPL-2.1-only
 Group: System/Base
 URL: http://github.com/Seagate/propeller
