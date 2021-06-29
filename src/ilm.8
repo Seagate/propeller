@@ -1,0 +1,308 @@
+.TH IDM-Lock-Manager 8 2021-06-11
+
+.SH NAME
+idm_lock_manager \- The In-Drive-Mutex (IDM) lock manager
+
+.SH SYNOPSIS
+.B seagate_ilm
+[OPTIONS]
+
+.SH DESCRIPTION
+
+The In-Drive-Mutex (IDM) lock manager is a locking system that provides a locking scheme by relying upon drives that implement IDM SCSI commands. Drives that implement these commands allow  every host to acquire and release locks from individual drive firmwares. The role of the IDM lock manager is combine the results from multiple drives allowing drive firmwares
+To act as an arbitrator to grant or reject the mutex to a requester.
+
+The IDM lock manager runs as a daemon and it acts as a bridge between the
+applications (e.g. LVM's lvmlockd) and drive firmware, the applications can
+invoke the APIs provided by libseagate_ilm to create a lockspace and send
+requests for mutex operations.
+
+.I Lockspaces
+
+When a user creates a connection with the IDM lock manager, a lockspace is
+created.  A lockspace is a locking context that an application uses to
+manage resources in a specific group.  An application can create multiple
+lockspaces, this allows every lockspace to serve for only one group of
+resources.  For example, for LVM a lockspace can be created
+for each volume group, and all LVs belonging to the volume group will be managed
+in the same lockspace.
+
+A lockspace itself has a life cycle. When the user application doesn't want to
+use resources anymore then the application disconnects an instance and the
+corresponding lockspace will be removed from the IDM lock manager.
+
+.I Lock
+
+To use IDM lock from an application:
+
+.IP \[bu] 2
+Every lock has its own lock ID, essentially this ID is used to identify which
+resource is protected by the lock.  In the design the lock ID is combined by
+two 32-byte arrays: the low 32-byte array is for LVM's VG ID and the high
+32-byte array is for LV ID, so it can fit for LVM's VG and LV IDs.
+Users can take it as a general 64 bytes lock ID if the protected resource is
+not LVM relevant.
+
+.PP
+.in +4n
+.EX
+struct idm_lock_id {
+	char vg_uuid[32];
+	char lv_uuid[32];
+};
+.EE
+
+.IP \[bu] 2
+IDM supports two locking modes: shareable mode and exclusive mode.  For
+exclusive mode, the lock can only be granted to a single owner; for
+shareable lock mode, multiple owners can acquire the same lock simultaneously.
+If a mutex has been locked with shareable mode, then it cannot be granted to
+a new owner with exclusive mode.
+
+.IP \[bu] 2
+The IDM lock manager combines the lock state from multiple drives in order to give a verdict on whether its host does or does not own any specific lock. 
+
+The majority locking algorithm is introduced for verdict: it has no difference with the common semantics if a lock is resident on a single drive: it must acquire the mutex on the drive.  For the case with multiple drives, the majority means the lock is only granted after a user has achieved the locking majority of all drives.
+The majority calculation can be express as:
+
+.PP
+.in +4n
+.EX
+count(score_board) >= count(drive_list) / 2 + 1
+.EE
+
+.IP \[bu] 2
+Applications can pass the locking mode and drive list by using the structure
+.BR idm_lock_op ;
+the implementation can support maximum to 512 drives.
+
+.PP
+.in +4n
+.EX
+#define ILM_DRIVE_MAX_NUM	512
+
+struct idm_lock_op {
+	uint32_t mode;
+
+	uint32_t drive_num;
+	char *drives[ILM_DRIVE_MAX_NUM];
+
+	int timeout; /* -1 means unlimited timeout */
+};
+.EE
+
+.IP \[bu] 2
+When the lock is acquired with shareable mode and it has a single owner, it’s
+permitted to convert to exclusive mode by the same owner.  When the lock is
+acquired with exclusive mode, it’s allowed to demote to shareable mode by the
+same owner.
+
+.IP \[bu] 2
+At the current stage, IDM lock manager only provides the non-block operation:
+any lock operations will return immediately without waiting, whatever the
+locking operation succeeds or not.
+
+
+.IP \[bu] 2
+IDM supports Lock Value Block (LVB) up to maximum 8 bytes and the most shift
+byte of the total 8 bytes should be zero.  The LVB can be used to store the
+application specific data, e.g. an increment version number can be stored into
+LVB to indicate the resource version.
+
+.P
+
+.I Timeout
+
+Any fabric or drive failure can cause the IDM lock manager to lose connection,
+to monitor the abnormal situation for the ownership for a lock, timeout period
+can be specified with the field
+.BR idm_lock_op::timeout
+when a host acquiring.  If user set
+.BR idm_lock_op::timeout
+to -1, which means the timeout is unlimited.
+
+.P
+
+.I Fencing
+
+If the IDM lock manager detects any lock has been timed out for renewal, the
+risk is the lock can be granted to another host, so the IDM lock manager
+needs to take action immediately to stop application to avoid writing any stale
+data since the host no longer owns the lock.  The IDM lock manager provides two
+measures to deactivate applications: an user can set the kill path by invoking
+the API
+.BR ilm_set_killpath()
+or set kill signal with the interface
+.BR ilm_set_signal() ,
+the IDM lock manager can execute the kill path or kill signal based on the
+user's predefined setting.
+
+Below is an example for the IDM lock manager handling failures with LVM2.
+Since the LVM uses the device-mapper for creating Volume Group and Logical
+Volume, a straightforward way is to wipe the table for VG, the device-mapper
+will be changed to use “error” target, any writing is denied and thus it can
+prevent data corruption from the host which has lost its ownership for the VG
+and LVs in the VG.  The IDM lock manager invokes the killpath command
+"lvmlockctl --kill VG_NAME", and lvmlockctl deactivates VG based on the
+configuration in the file /etc/lvm/lvm.conf:
+
+.nf
+  global {
+    [...]
+
+    lvmlockctl_kill_command = "blkdeactivate -l forcevg"
+  }
+.fi
+
+This operation iterates all LVs in the VG and set “error” target for
+LVs, thus the device-mapper is tagged with “error” after the IDM lock
+manager deactivates VG:
+
+.nf
+  # dmsetup table
+  centos-home: 0 111214592 linear 8:2 16254976
+  TESTPV1: 0 163840 linear 8:146 0
+  TESTVG1-TESTVG1LV1: 0 155648 error 
+  centos-swap: 0 16252928 linear 8:2 2048
+  centos-root: 0 104857600 linear 8:2 127469568
+.fi
+
+After the failure occurs, the administrator can use a procedure for the
+recovery; as shown below, it needs to firstly remove the failed LVs from
+the device-mapper table, then start the lockspaces with command
+.BR vgchange
+.BR --lock-start
+to add the lockspace for the VG, at the end we can
+activate VG and LVs with
+.BR vgchange
+and
+.BR lvchange
+commands.
+
+.nf
+  dmsetup remove TESTVG1-TESTVG1LV1
+  vgchange --lock-start
+  vgchange -ay TESTVG1
+  lvchange -aey TESTVG1/TESTVG1LV1
+.fi
+
+.SH OPTIONS
+
+.SS Daemon Command
+
+.BR "seagate_ilm" " [options]"
+
+.BR -D " 0|1"
+Set to 1 for debugging without launch daemon process and print logging to stderr
+
+.BI -l " 0|1"
+use mlockall (0 none, 1 current and future)
+
+.BI -U " 0|1"
+use UTC for timestamp in the log (0 local time, 1 UTC)
+
+.BI -L " pri"
+write logging at priority level and up to logfile (-1 none)
+
+.BI -E " pri"
+write logging at priority level and up to stderr (-1 none)
+
+.BI -S " pri"
+write logging at priority level and up to syslog (-1 none)
+
+.BI -R " num"
+replay the log entries when detect error log (default is 512)
+
+.SH EXAMPLE
+
+This is an example of launching the IDM lock manager from the command line; and
+a C program to demonstrate how an application communicates with the IDM lock
+manager.
+
+.IP 1. 4
+Launch the IDM lock manager from a console.
+
+.nf
+# seagate_ilm -D 1 -l 0 -L 4 -E 4 -S 4
+.fi
+
+.IP 2. 4
+Build the C program and run it; the program will create the connection with the
+IDM lock manager and send the locking requests to the drives which are defined
+in the macros DRIVE1/DRIVE2/DRIVE3/DRIVE4.
+
+.nf
+# gcc -o idm_test idm_test.c -l seagate_ilm
+# ./idm_test
+
+/* SPDX-License-Identifier: LGPL-2.1-only */
+/*
+ * Copyright (C) 2021 Seagate Technology LLC and/or its Affiliates.
+ */
+
+#include <pthread.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <sys/time.h>
+#include <time.h>
+#include <uuid/uuid.h>
+#include <unistd.h>
+#include <string.h>
+
+#include <ilm.h>
+
+#define DRIVE1	"/dev/sdb2"
+#define DRIVE2	"/dev/sdd2"
+#define DRIVE3	"/dev/sde2"
+#define DRIVE4	"/dev/sdg2"
+
+int main(void)
+{
+	struct idm_lock_id lock_id;
+	struct idm_lock_op lock_op;
+	int ret, s;
+
+	memset(lock_id.vg_uuid, 0x1, 32);
+	memset(lock_id.lv_uuid, 0x2, 32);
+
+	ret = ilm_connect(&s);
+	if (ret) {
+		printf("[%d] ilm_connect: FAIL line %d\\n", __LINE__, ret);
+		exit(-1);
+	}
+
+	lock_op.mode = IDM_MODE_EXCLUSIVE;
+	lock_op.drive_num = 4;
+	lock_op.drives[0] = DRIVE1;
+	lock_op.drives[1] = DRIVE2;
+	lock_op.drives[2] = DRIVE3;
+	lock_op.drives[3] = DRIVE4;
+	lock_op.timeout = 3000;
+
+	ret = ilm_lock(s, &lock_id, &lock_op);
+	if (ret)
+		continue;
+
+	ret = ilm_convert(s, &lock_id, IDM_MODE_SHAREABLE);
+	if (ret) {
+		printf("[%d] ilm_convert: FAIL (EXCLUSIVE -> SHREABLE) %d\\n",
+		       __LINE__, ret);
+		exit(-1);
+	}
+
+	ret = ilm_unlock(s, &lock_id);
+	if (ret) {
+		printf("[%d] ilm_unlock: FAIL %d\\n", __LINE__, ret);
+		exit(-1);
+	}
+
+	ret = ilm_disconnect(s);
+	if (ret) {
+		printf("[%d] ilm_disconnect: FAIL %d\\n", __LINE__, ret);
+		exit(-1);
+	}
+
+	return 0;
+}
+
+.fi
