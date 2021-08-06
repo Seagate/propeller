@@ -50,7 +50,8 @@ static void *ilm_lockspace_thread(void *data)
 {
 	struct ilm_lockspace *ls = data;
 	struct ilm_lock *lock;
-	int exit, ret, now;
+	int exit, ret;
+	uint64_t now; 
 
 	while (1) {
 		pthread_mutex_lock(&ls->mutex);
@@ -91,7 +92,8 @@ static void *ilm_lockspace_thread(void *data)
 			 */
 			if (!lock->last_renewal_success)
 				continue;
-
+			
+			ilm_log_dbg("%s: now=%ld last_renewal_success=%ld\n", __func__, now, lock->last_renewal_success);
 			/*
 			 * If an IDM has been failed to renew for more than
 			 * IDM_QUIESCENT_PERIOD, the lock manager will stop
