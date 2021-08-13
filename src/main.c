@@ -42,7 +42,8 @@ static int ilm_read_args(int argc, char *argv[])
 	int i, ret;
 
 	/* Check the building version */
-	if (!strcmp(argv[1], "--version") || !strcmp(argv[1], "-V")) {
+	if (argc == 2 &&
+	    (!strcmp(argv[1], "--version") || !strcmp(argv[1], "-V"))) {
 		printf("%s %s (%s %s)\n", argv[0], VERSION, __DATE__, __TIME__);
 		exit(EXIT_SUCCESS);
 	}
