@@ -92,7 +92,6 @@ static void *ilm_lockspace_thread(void *data)
 			 */
 			if (!lock->last_renewal_success)
 				continue;
-
 			/*
 			 * If an IDM has been failed to renew for more than
 			 * IDM_QUIESCENT_PERIOD, the lock manager will stop
