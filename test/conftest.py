@@ -26,7 +26,7 @@ DRIVE8 = "/dev/sg14"
 def ilm_daemon():
     lock_id0 = "0000000000000000000000000000000000000000000000000000000000000000"
 
-    cmd = 'sg_raw -v -r 512 -o test_data.bin ' + DRIVE1 + ' 88 00 01 00 00 00 00 20 FF 01 00 00 00 01 00 00'
+    cmd = 'sg_raw -v -r 512 -o test_data.bin ' + DRIVE1 + ' 88 00 01 00 00 00 00 00 00 00 00 00 00 01 00 00'
     os.system(cmd)
 
     cmd = 'sg_raw -v -s 512 -i test_data.bin ' + DRIVE1 + ' 8E 00 FF 00 00 00 00 00 00 00 00 00 00 01 00 00'
@@ -78,7 +78,7 @@ def ilm_daemon():
 def idm_cleanup():
     lock_id0 = "0000000000000000000000000000000000000000000000000000000000000000"
 
-    cmd = 'sg_raw -v -r 512 -o test_data.bin ' + DRIVE1 + ' 88 00 01 00 00 00 00 20 FF 01 00 00 00 01 00 00'
+    cmd = 'sg_raw -v -r 512 -o test_data.bin ' + DRIVE1 + ' 88 00 01 00 00 00 00 00 00 00 00 00 00 01 00 00'
     os.system(cmd)
 
     cmd = 'sg_raw -v -s 512 -i test_data.bin ' + DRIVE1 + ' 8E 00 FF 00 00 00 00 00 00 00 00 00 00 01 00 00'
