@@ -50,7 +50,8 @@ static void *ilm_lockspace_thread(void *data)
 {
 	struct ilm_lockspace *ls = data;
 	struct ilm_lock *lock;
-	int exit, ret, now;
+	int exit, ret;
+	uint64_t now;
 
 	while (1) {
 		pthread_mutex_lock(&ls->mutex);
