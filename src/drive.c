@@ -766,6 +766,24 @@ static void *drive_thd_fn(void *arg __maybe_unused)
 				ilm_scsi_add_drive_path(dev_node, sg, wwn);
 			} else if (!strcmp(action, "remove")) {
 				ilm_scsi_del_drive_path(dev_node);
+			} else if (!strcmp(action, "change")) {
+				/* Remove block device from node */
+				ilm_scsi_del_drive_path(dev_node);
+
+				sg = ilm_find_sg(dev_name);
+				if(!sg) {
+					ilm_log_warn("%s: Fail to find sg for %s", __func__, dev_name);
+					goto free_dev_ref;
+				}
+
+				ret = ilm_read_device_wwn(dev_node, &wwn);
+				if (ret < 0) {
+					ilm_log_warn("%s: Fail to read wwn for %s", __func__, dev_node);
+					goto free_dev_ref;
+				}
+
+				/* Add the block device with updated SG and WWN */
+				ilm_scsi_add_drive_path(dev_node, sg, wwn);
 			}
 
 			ilm_scsi_dump_nodes();
