@@ -766,7 +766,12 @@ static void *drive_thd_fn(void *arg __maybe_unused)
 				ilm_scsi_add_drive_path(dev_node, sg, wwn);
 			} else if (!strcmp(action, "remove")) {
 				ilm_scsi_del_drive_path(dev_node);
+			} else if (!strcmp(action, "change")) {
+				ilm_scsi_list_exit();
+				drive_thd_done = 0;
+				ilm_scsi_list_init();
 			}
+				
 
 			ilm_scsi_dump_nodes();
 
