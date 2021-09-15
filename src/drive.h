@@ -22,7 +22,9 @@ char *ilm_scsi_get_first_sg(char *dev);
 char *ilm_scsi_convert_blk_name(char *blk_dev);
 int ilm_scsi_get_part_table_uuid(char *dev, uuid_t *id);
 int ilm_scsi_get_all_sgs(unsigned long wwn, char **sg_node, int sg_num);
+int ilm_scsi_scan_drv_list(void);
 int ilm_scsi_list_init(void);
+void ilm_scsi_list_refresh(void);
 void ilm_scsi_list_exit(void);
 int ilm_scsi_drive_version(void);
 
