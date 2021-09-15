@@ -112,6 +112,13 @@ int ilm_update_drive_multi_paths(struct ilm_lock *lock)
 
 			drive->path_num = ilm_scsi_get_all_sgs(drive->wwn,
 				drive->path, IDM_DRIVE_PATH_NUM);
+			
+			/* Failed to retrieve any SG path for drive, refresh block list and retry */
+			if (!drive->path_num) {
+				ilm_scsi_list_refresh();
+				drive->path_num = ilm_scsi_get_all_sgs(drive->wwn,
+					drive->path, IDM_DRIVE_PATH_NUM);
+			}
 		}
 
 		ilm_log_warn("Detects drive path is altered, update!");
@@ -172,6 +179,14 @@ static int ilm_insert_drive_multi_paths(struct ilm_lock *lock,
 		drive->wwn = wwn[i];
 		drive->path_num = ilm_scsi_get_all_sgs(drive->wwn, drive->path,
 						       IDM_DRIVE_PATH_NUM);
+							   
+		/* Failed to retrieve any SG path for drive, refresh block list and retry */
+		if (!drive->path_num) {
+			ilm_scsi_list_refresh();
+			drive->path_num = ilm_scsi_get_all_sgs(drive->wwn,
+				drive->path, IDM_DRIVE_PATH_NUM);
+		}
+			
 		if (drive->path_num) {
 			drive->index = lock->good_drive_num;
 			lock->good_drive_num++;
