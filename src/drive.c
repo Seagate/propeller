@@ -828,7 +828,7 @@ static int ilm_sg_mod_is_loaded(void)
 	return 0;
 }
 
-int ilm_scsi_list_init(void)
+int ilm_scsi_scan_drv_list(void)
 {
 	struct dirent **namelist;
 	char devs_path[PATH_MAX];
@@ -850,18 +850,16 @@ int ilm_scsi_list_init(void)
 			    " so system can automatically load module when booting");
 		return -1;
 	}
-
-	INIT_LIST_HEAD(&drive_list);
-
+	
 	snprintf(devs_path, sizeof(devs_path), "%s%s",
 		 SYSFS_ROOT, BUS_SCSI_DEVS);
-
+	
 	num = scandir(devs_path, &namelist, ilm_scsi_dir_select, NULL);
 	if (num < 0) {  /* scsi mid level may not be loaded */
 		ilm_log_err("Attached devices: none");
 		return -1;
 	}
-
+	
 	for (i = 0; i < num; ++i) {
 		ret = snprintf(dev_path, sizeof(dev_path), "%s/%s",
 			       devs_path, namelist[i]->d_name);
@@ -924,7 +922,25 @@ int ilm_scsi_list_init(void)
 			goto out;
 		}
 	}
+	
+out:
+	for (i = 0; i < num; i++)
+                free(namelist[i]);
+	free(namelist);
+	return ret;
+}
 
+int ilm_scsi_list_init(void)
+{
+	int ret = 0;
+	
+	INIT_LIST_HEAD(&drive_list);
+	
+	ret = ilm_scsi_scan_drv_list();
+	if (ret < 0)
+		ilm_log_err("Failed to scan drive list");
+		return ret;
+		
 	ret = pthread_create(&drive_thd, NULL, drive_thd_fn, NULL);
 	if (ret) {
 		ilm_log_err("Fail to create drive thread");
@@ -932,15 +948,17 @@ int ilm_scsi_list_init(void)
 	}
 
 	ilm_scsi_dump_nodes();
+	return 0;
+	
 out:
-        for (i = 0; i < num; i++)
-                free(namelist[i]);
-	free(namelist);
-
-	if (ret)
-		ilm_scsi_release_drv_list();
-
+	ilm_scsi_release_drv_list();
 	return ret;
+}
+
+void ilm_scsi_list_refresh(void)
+{
+	ilm_scsi_release_drv_list();
+	ilm_scsi_scan_drv_list();
 }
 
 void ilm_scsi_list_exit(void)
