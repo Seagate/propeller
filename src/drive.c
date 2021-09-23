@@ -654,6 +654,11 @@ clean_node:
 	}
 	drive->path_num--;
 
+	if (!drive->path_num) {
+		list_del(&found->list);
+		free(found);
+	}
+
 	drive_list_version++;
 	pthread_mutex_unlock(&drive_list_mutex);
 	return 0;
@@ -766,6 +771,24 @@ static void *drive_thd_fn(void *arg __maybe_unused)
 				ilm_scsi_add_drive_path(dev_node, sg, wwn);
 			} else if (!strcmp(action, "remove")) {
 				ilm_scsi_del_drive_path(dev_node);
+			} else if (!strcmp(action, "change")) {
+				/* Remove block device from node */
+				ilm_scsi_del_drive_path(dev_node);
+
+				sg = ilm_find_sg(dev_name);
+				if(!sg) {
+					ilm_log_warn("%s: Fail to find sg for %s", __func__, dev_name);
+					goto free_dev_ref;
+				}
+
+				ret = ilm_read_device_wwn(dev_node, &wwn);
+				if (ret < 0) {
+					ilm_log_warn("%s: Fail to read wwn for %s", __func__, dev_node);
+					goto free_dev_ref;
+				}
+
+				/* Add the block device with updated SG and WWN */
+				ilm_scsi_add_drive_path(dev_node, sg, wwn);
 			}
 
 			ilm_scsi_dump_nodes();
@@ -823,7 +846,7 @@ static int ilm_sg_mod_is_loaded(void)
 	return 0;
 }
 
-int ilm_scsi_list_init(void)
+int ilm_scsi_list_rescan(void)
 {
 	struct dirent **namelist;
 	char devs_path[PATH_MAX];
@@ -837,16 +860,6 @@ int ilm_scsi_list_init(void)
 	char value[64];
 	unsigned int maj, min;
 	unsigned long wwn;
-
-	if (!ilm_sg_mod_is_loaded()) {
-		ilm_log_err("Kernel module \"sg\" hasn't been loaded?!");
-		ilm_log_err("Use command \"modprobe sg\" to load it;");
-		ilm_log_err("Or use the command \"sudo echo sg >> /etc/modules-load.d/scsi.conf\";"
-			    " so system can automatically load module when booting");
-		return -1;
-	}
-
-	INIT_LIST_HEAD(&drive_list);
 
 	snprintf(devs_path, sizeof(devs_path), "%s%s",
 		 SYSFS_ROOT, BUS_SCSI_DEVS);
@@ -920,12 +933,6 @@ int ilm_scsi_list_init(void)
 		}
 	}
 
-	ret = pthread_create(&drive_thd, NULL, drive_thd_fn, NULL);
-	if (ret) {
-		ilm_log_err("Fail to create drive thread");
-		goto out;
-	}
-
 	ilm_scsi_dump_nodes();
 out:
         for (i = 0; i < num; i++)
@@ -936,6 +943,48 @@ out:
 		ilm_scsi_release_drv_list();
 
 	return ret;
+}
+
+int ilm_scsi_list_refresh(void)
+{
+	int ret;
+
+	ilm_scsi_release_drv_list();
+	ret = ilm_scsi_list_rescan();
+	if (ret)
+		ilm_log_err("Fail to scan drive list: %d", ret);
+
+	return ret;
+}
+
+int ilm_scsi_list_init(void)
+{
+	int ret;
+
+	if (!ilm_sg_mod_is_loaded()) {
+		ilm_log_err("Kernel module \"sg\" hasn't been loaded?!");
+		ilm_log_err("Use command \"modprobe sg\" to load it;");
+		ilm_log_err("Or use the command \"sudo echo sg >> /etc/modules-load.d/scsi.conf\";"
+			    " so system can automatically load module when booting");
+		return -1;
+	}
+
+	INIT_LIST_HEAD(&drive_list);
+
+	ret = ilm_scsi_list_rescan();
+	if (ret) {
+		ilm_log_err("Fail to scan drive list: %d", ret);
+		return ret;
+	}
+
+	ret = pthread_create(&drive_thd, NULL, drive_thd_fn, NULL);
+	if (ret) {
+		ilm_log_err("Fail to create drive thread");
+		ilm_scsi_release_drv_list();
+		return ret;
+	}
+
+	return 0;
 }
 
 void ilm_scsi_list_exit(void)
