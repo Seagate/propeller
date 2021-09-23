@@ -654,6 +654,11 @@ clean_node:
 	}
 	drive->path_num--;
 
+	if (!drive->path_num) {
+		list_del(&found->list);
+		free(found);
+	}
+
 	drive_list_version++;
 	pthread_mutex_unlock(&drive_list_mutex);
 	return 0;
