@@ -1321,8 +1321,13 @@ int idm_drive_read_lvb(char *lock_id, char *host_id,
 		return -EINVAL;
 
 	ret = idm_drive_read_mutex_num(drive, &num);
-	if (ret < 0 || num == 0)
+	if (ret < 0)
 		return -ENOENT;
+
+	if (!num) {
+		memset(lvb, 0x0, lvb_size);
+		return 0;
+	}
 
 	block_size = IDM_DATA_BLOCK_SIZE * num;
 
@@ -1400,8 +1405,21 @@ int idm_drive_read_lvb_async(char *lock_id, char *host_id, char *drive, uint64_t
 		return -EINVAL;
 
 	ret = idm_drive_read_mutex_num(drive, &num);
-	if (ret < 0 || num == 0)
+	if (ret < 0)
 		return -ENOENT;
+
+	/*
+	 * We know there have no any mutex entry in the drive,
+	 * the async opertion is devided into two steps: send
+	 * the async operation and get the async result.
+	 *
+	 * In this step, if we directly return success with
+	 * count '0', the raid thread will poll forever.  This
+	 * is the reason we proceed to send SCSI command to
+	 * read back 1 data block and defer to return count.
+	 */
+	if (!num)
+		num = 1;
 
 	block_size = IDM_DATA_BLOCK_SIZE * num;
 
@@ -1507,8 +1525,14 @@ int idm_drive_lock_count(char *lock_id, char *host_id,
 		return -EINVAL;
 
 	ret = idm_drive_read_mutex_num(drive, &num);
-	if (ret < 0 || num == 0)
+	if (ret < 0)
 		return -ENOENT;
+
+	if (!num) {
+		*count = 0;
+		*self = 0;
+		return 0;
+	}
 
 	block_size = IDM_DATA_BLOCK_SIZE * num;
 
@@ -1605,8 +1629,21 @@ int idm_drive_lock_count_async(char *lock_id, char *host_id,
 		return -EINVAL;
 
 	ret = idm_drive_read_mutex_num(drive, &num);
-	if (ret < 0 || num == 0)
+	if (ret < 0)
 		return -ENOENT;
+
+	/*
+	 * We know there have no any mutex entry in the drive,
+	 * the async opertion is devided into two steps: send
+	 * the async operation and get the async result.
+	 *
+	 * In this step, if we directly return success with
+	 * count '0', the raid thread will poll forever.  This
+	 * is the reason we proceed to send SCSI command to
+	 * read back 1 data block and defer to return count.
+	 */
+	if (!num)
+		num = 1;
 
 	block_size = IDM_DATA_BLOCK_SIZE * num;
 
@@ -1726,8 +1763,13 @@ int idm_drive_lock_mode(char *lock_id, int *mode, char *drive)
 		return -EINVAL;
 
 	ret = idm_drive_read_mutex_num(drive, &num);
-	if (ret < 0 || num == 0)
+	if (ret < 0)
 		return -ENOENT;
+
+	if (!num) {
+		*mode = IDM_MODE_UNLOCK;
+		return 0;
+	}
 
 	block_size = IDM_DATA_BLOCK_SIZE * num;
 
@@ -1821,8 +1863,21 @@ int idm_drive_lock_mode_async(char *lock_id, char *drive, uint64_t *handle)
 		return -EIO;
 
 	ret = idm_drive_read_mutex_num(drive, &num);
-	if (ret < 0 || num == 0)
+	if (ret < 0)
 		return -ENOENT;
+
+	/*
+	 * We know there have no any mutex entry in the drive,
+	 * the async opertion is devided into two steps: send
+	 * the async operation and get the async result.
+	 *
+	 * In this step, if we directly return success with
+	 * count '0', the raid thread will poll forever.  This
+	 * is the reason we proceed to send SCSI command to
+	 * read back 1 data block and defer to return count.
+	 */
+	if (!num)
+		num = 1;
 
 	block_size = IDM_DATA_BLOCK_SIZE * num;
 
@@ -1968,8 +2023,13 @@ int idm_drive_host_state(char *lock_id, char *host_id,
 		return -EINVAL;
 
 	ret = idm_drive_read_mutex_num(drive, &num);
-	if (ret < 0 || num == 0)
+	if (ret < 0)
 		return -ENOENT;
+
+	if (!num) {
+		*host_state = -1;
+		return 0;
+	}
 
 	block_size = IDM_DATA_BLOCK_SIZE * num;
 
@@ -2057,8 +2117,14 @@ int idm_drive_read_group(char *drive, struct idm_info **info_ptr, int *info_num)
 		return -EIO;
 
 	ret = idm_drive_read_mutex_num(drive, &num);
-	if (ret < 0 || num == 0)
+	if (ret < 0)
 		return -ENOENT;
+
+	if (!num) {
+		*info_ptr = NULL;
+		*info_num = 0;
+		return 0;
+	}
 
 	block_size = IDM_DATA_BLOCK_SIZE * num;
 
