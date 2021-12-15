@@ -1,0 +1,9 @@
+Source: seagateilm
+Maintainer: lynetteneo <lynette.sy.neo@seagate.com>
+Build-Depends: debhelper (>= 9.0.0), uuid-dev, libblkid-dev, libudev-dev, python-pytest, python-dev, swig, libsystemd-dev
+Homepage: https://github.com/Seagate/propeller
+
+Package: seagateilm
+Architecture: amd64
+Depends: ${shlibs:Depends}
+Description: The Seagate IDM Lock Manager (ILM) manages lease for the host using the mutexes that exist in the drive.
