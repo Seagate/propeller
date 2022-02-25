@@ -933,7 +933,7 @@ int ilm_scsi_list_rescan(void)
 			goto out;
 		}
 	}
-	
+	/* After scanning, reset return value so service stays operational even if some SCSI devices fail */
 	ret = 0;
 	ilm_scsi_dump_nodes();
 out:
