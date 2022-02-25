@@ -887,6 +887,8 @@ int ilm_scsi_list_rescan(void)
 
 		ret = ilm_scsi_find_block_node(blk_path, &blk_str);
 		if (ret < 0)
+			ilm_log_err("Not a block device");
+			ret = 0;
 			continue;
 
 		snprintf(dev_node, sizeof(dev_node), "/dev/%s", blk_str);
@@ -895,17 +897,20 @@ int ilm_scsi_list_rescan(void)
 		ret = ilm_scsi_change_sg_folder(dev_path);
 		if (ret < 0) {
 			ilm_log_err("fail to change sg folder");
+			ret = 0;
 			continue;
 		}
 
 		if (NULL == getcwd(blk_path, sizeof(blk_path))) {
 			ilm_log_err("generic_dev error");
+			ret = 0;
 			continue;
 		}
 
 		ret = ilm_scsi_get_value(blk_path, "dev", value, sizeof(value));
 		if (ret < 0) {
 			ilm_log_err("fail to get device value");
+			ret = 0;
 			continue;
 		}
 
@@ -914,6 +919,7 @@ int ilm_scsi_list_rescan(void)
 		ret = ilm_scsi_parse_sg_node(maj, min, sg_node);
 		if (ret < 0) {
 			ilm_log_err("fail to find blk node %d:%d", maj, min);
+			ret = 0;
 			continue;
 		}
 
@@ -923,6 +929,7 @@ int ilm_scsi_list_rescan(void)
 		ret = ilm_read_device_wwn(dev_node, &wwn);
 		if (ret < 0) {
 			ilm_log_err("fail to read parttable id");
+			ret = 0;
 			continue;
 		}
 
