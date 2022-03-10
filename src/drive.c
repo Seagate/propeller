@@ -887,6 +887,7 @@ int ilm_scsi_list_rescan(void)
 
 		ret = ilm_scsi_find_block_node(blk_path, &blk_str);
 		if (ret < 0)
+			ilm_log_err("Not a block device");
 			continue;
 
 		snprintf(dev_node, sizeof(dev_node), "/dev/%s", blk_str);
@@ -932,7 +933,8 @@ int ilm_scsi_list_rescan(void)
 			goto out;
 		}
 	}
-
+	/* After scanning, reset return value so service stays operational even if some SCSI devices fail */
+	ret = 0;
 	ilm_scsi_dump_nodes();
 out:
         for (i = 0; i < num; i++)
