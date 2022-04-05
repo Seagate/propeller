@@ -164,23 +164,6 @@ static char sense_fixed_1_mutex_host_list_is_full[18] = {
 
 static void _scsi_generate_write_cdb(uint8_t *cdb, int mutex_op)
 {
-	// cdb[0] = IDM_SCSI_WRITE;
-	// cdb[1] = 0x0;			/* WRPROTECT=000b DPO=0b, FUA=0b */
-	// cdb[2] = IDM_MUTEX_GROUP;	/* MUTEX GROUP=1 as default value */
-	// cdb[3] = 0x0;			/* cdb[3..9] are ignored */
-	// cdb[4] = 0x0;
-	// cdb[5] = 0x0;
-	// cdb[6] = 0x0;
-	// cdb[7] = 0x0;
-	// cdb[8] = 0x0;
-	// cdb[9] = 0x0;
-	// cdb[10] = 0x0;			/* Reserved */
-	// cdb[11] = 0x0;
-	// cdb[12] = 0x0;
-	// cdb[13] = 0x1;			/* Number of logical blocks = 1 */
-	// cdb[14] = mutex_op;		/* Mutex OP */
-	// cdb[15] = 0;			/* Control = 0 */
-	
 	cdb[0] = IDM_SCSI_WRITE;
 	cdb[1] = mutex_op<<4;		/* The MUTEX_OP is in the upper nibble of Byte 1 */	
 	cdb[2] = 0x00;				/* Reserved */
@@ -201,23 +184,6 @@ static void _scsi_generate_write_cdb(uint8_t *cdb, int mutex_op)
 
 static void _scsi_generate_read_cdb(uint8_t *cdb, uint8_t group, int num)
 {
-	// cdb[0] = IDM_SCSI_READ;
-	// cdb[1] = 0x0;			/* WRPROTECT=000b DPO=0b FUA=0b */
-	// cdb[2] = group;	/* MUTEX GROUP=1 as default value */
-	// cdb[3] = 0x0;			/* cdb[3..9] are ignored */
-	// cdb[4] = 0x0;
-	// cdb[5] = 0x0;
-	// cdb[6] = 0x0;
-	// cdb[7] = 0x0;
-	// cdb[8] = 0x0;
-	// cdb[9] = 0x0;
-	// cdb[10] = MBYTE3(num);
-	// cdb[11] = MBYTE2(num);
-	// cdb[12] = MBYTE1(num);
-	// cdb[13] = MBYTE0(num);
-	// cdb[14] = 0;			/* DLD1=0 DLD0=0 Group number */
-	// cdb[15] = 0;			/* Control = 0 */
-
 	cdb[0] = IDM_SCSI_READ;
 	cdb[1] = 0x01;			/* Ignore the Mutex Opcode for now */
 	cdb[2] = 0x00;			/* Reserved */	
