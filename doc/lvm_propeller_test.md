@@ -1,94 +1,88 @@
 # Introduction
 
-This document is to describe the detailed info for testing Propeller/LVM
+This document describes testing Propeller and LVM
 on Centos7.
 
 # Test for IDM SCSI wrapper and IDM lock manager
 
-Let's divide testing into two different modes: manual mode and
-automatic mode with py.test.
+Testing is divided into two different modes: manual mode and
+automatic mode using py.test.
 
-Before running test case, it's good to configure the environment so can
-allow to access log files even without root permission.  Either for
-manual mode or automatic mode, both suggest to configure the
-environment variables before run any testing:
+Before running any test cases, you will need to configure the environment. 
+Whether you are using manua; or automatic testing, 
+this will configure the environment variables:
 
     $ cd /path/to/propeller/test
-    $ . init_env.sh (or execute 'source init_env.sh')
+    $ source init_env.sh
 
-Except to set run directory variable, the script 'init_env.sh' will
-configure shell variables for lib path, python path.
+The script 'init_env.sh' will configure shell variables for the lib and python path, but not the run directory.
 
 Please be aware, if you want to launch two different shell windows to
-execute testing, two shell windows are useful for debugging IDM lock
-manager daemon with one shell window and another is dedicated for
-client.  These two shell windows should run command
-'. init_env.sh' to configure environment variables separately, the
-script can only take effect for its own shell.
+execute testing, you will need to run 'source init_env.sh' separately in both shell windows.
+Two shell windows are useful for debugging the IDM lock
+manager daemon with one for the lock manager and another for the client.  
 
-For manual testing mode, we can use below command to launch daemon:
+For manual testing, we can use the below command to launch the daemon:
 
     $ ./src/seagate_ilm -D 1 -l 0 -L 7 -E 7 -S 7
 
-In this command, the options have below meanings:
+The IDM locking manager has several options that can be modified:
 
-  '-D': Enable debugging mode and don't invoke daemon() function, this
-        allows the program to run as background process;
+  '-D': This enables debugging mode and doesn't invoke the daemon() function,
+        allowing the program to run as a background process;
 
-  '-l': If set, lockdown process's virtual address space into RAM;
+  '-l': If set to 1, this will lockdown the process's virtual address space into RAM;
 
-  '-L': Log file priority (which is written into seagate_ilm.log)
-        7 means to output all level's log (debug, warning, err);
-        4 means to output warning and error level's log;
-        3 means to output error level's log;
+  '-L': This sets the log file priority (written into seagate_ilm.log)
+        7 outputs all log levels (debug, warning, err);
+        4 outputs warning and error level logs;
+        3 outputs error log level only;
 
-  '-E': Stderr log priority, the argument value is the same with '-L'.
+  '-E': Stderr log priority, which accepts the same arguments as '-L'.
 
-  '-S': Syslog log priority, the argument value is the same with '-L'.
+  '-S': Syslog log priority, which accepts the same arguments as '-L'.
 
-Up command manually launches IDM lock manager, it specifies the
-arguments with 'enabling debugging mode, without lockdown VA, log file
-priority is 7, stderr log priority is 7, syslog log priority is 7'.
+The above command manually launches IDM lock manager, specifying the following
+arguments: 'enabling debugging mode, without lockdown virtual addressing, log file
+priority is 7, stderr log priority is 7, and syslog log priority is 7'.
 
-With manual testing mode, it's useful for us to run some C program,
-e.g. for the smoke testing:
+When manually testing the lock manager, it's useful to run the smoke test
+before running more strenuous tests:
 
     $ cd test
     $ ./smoke_test
 
-For automatic testing mode, the command is straightforward:
+When automatically testing, py.test is used.
+The below command will run all tests, the'-v' flag specifying verbose log output:
 
     $ cd test
+    $ python3 -m py.test -v
 
-Run all cases, '-v' will output verbose logs
+The option '-k' specifies testing cases, in this example it will only
+execute test cases with the prefix 'test_lock'.
 
-    $ py.test -v
-
-The option '-t' specifies testing cases, in this example it only
-executes cases with prefix 'test_lock'.
-
-    $ py.test -v -t test_lock'
+    $ python3 -m py.test -v -k test_lock'
 
 The option '--run-destroy' will enable an extra case for testing
 IDM destroy.
 
-    $ py.test -v --run-destroy
+    $ python3 -m py.test -v --run-destroy
 
-For test IDM SCSI wrapper APIs, it can use the command:
+For testing IDM SCSI wrapper APIs, you can use:
 
-    $ py.test -v -k test_idm
+    $ python3 -m py.test -v -k test_idm
 
-For test IDM SCSI wrapper APIs with sync mode, use the command:
+For testing IDM SCSI wrapper APIs in sync mode, you can use:
 
-    $ py.test -v -k test_idm__sync
+    $ python3 -m py.test -v -k test_idm__sync
 
-For test IDM SCSI wrapper APIs with async mode, use the command:
+For testing IDM SCSI wrapper APIs in async mode, you can use:
 
-    $ py.test -v -k test_idm__async
+    $ python3 -m py.test -v -k test_idm__async
 
-For test without suppressing verbose log onn the console:
+For testing without suppressing verbose console log:
 
-    $ py.test -v -k test_idm__async -s
+    $ python3 -m py.test -v -k test_idm__async -s
 
 
 # Test for LVM tool
@@ -97,10 +91,10 @@ For test without suppressing verbose log onn the console:
 
 ### Create disk partitions
 
-Let's take the an example that a system have four block devices:
+Let's use an example system that has four block devices with IDM firmware:
 /dev/sdi, /dev/sdj, /dev/sdk, /dev/sdm.
 
-The partitions can be created with below script:
+The partitions can be created with the below script:
 
 ```
   parted -s /dev/sdi mklabel gpt mkpart propeller ext4 2048s 1048576s
@@ -137,16 +131,16 @@ After running this script, the partitions will be created:
   /dev/sdm1 /dev/sdm2 /dev/sdm3 /dev/sdm4 /dev/sdm5
 ```
 
-On every disk, the first partition is labelled with 'propeller', this
-gives the indication for IDM locking that these disks will be used for
-global lock.  But there have no any specific requirement for other
-partitions, the label and partition size both are flexible.
+On every disk, the first partition must be labelled with 'propeller'. This
+shows the IDM lock manager that these disks will be used for
+global locking.  But there is no specific requirement for other
+partitions, the label and partition size are both flexible.
 
 ### LVM test configurations
 
-- After setup disk partitions, we need to change LVM's test
-  configuration file to specify multiple device in the
-  LVM's [test/lib/aux.sh file](https://github.com/Seagate/lvm2-stx-private/blob/centos7_lvm2/test/lib/aux.sh#L875)
+- After the disk partitions have been created, we need to change LVM's test
+  configuration file to specify the partitions we created. (NOTE: Only use the partitions not labelled 'propeller', as it is reserved for global locking)
+  [test/lib/aux.sh file](https://github.com/Seagate/lvm2-stx-private/blob/centos7_lvm2/test/lib/aux.sh#L875)
 
 ```
   BLK_DEVS[1]="/dev/sdi2"
@@ -167,43 +161,41 @@ partitions, the label and partition size both are flexible.
   BLK_DEVS[16]="/dev/sdm5"
 ```
 
-  As we have allocated paritions in the first configuration, we can
-  use the partitions 2 to 5 on every disk (partition 1 is reserved
-  as an indicator for global locking).
-
-- Specify sg nodes to clean up drive firmwares in the LVM's
-  [test/shell/aa-lvmlockd-idm-prepare.sh file](https://github.com/Seagate/lvm2-stx-private/blob/centos7_lvm2/test/shell/aa-lvmlockd-idm-prepare.sh#L23)
+- Specify sg nodes in LVM's [test/shell/aa-lvmlockd-idm-prepare.sh file](https://github.com/Seagate/lvm2-stx-private/blob/centos7_lvm2/test/shell/aa-lvmlockd-idm-prepare.sh#L23) file, as this cleans the In-Drive Mutex after testing:
 
 ```
-  sg_raw -v -r 512 -o test_data.bin /dev/sg2  88 00 01 00 00 00 00 20 FF 01 00 00 00 01 00 00
-  sg_raw -v -s 512 -i test_data.bin /dev/sg2  8E 00 FF 00 00 00 00 00 00 00 00 00 00 01 00 00
-  sg_raw -v -s 512 -i test_data.bin /dev/sg4  8E 00 FF 00 00 00 00 00 00 00 00 00 00 01 00 00
-  sg_raw -v -s 512 -i test_data.bin /dev/sg5  8E 00 FF 00 00 00 00 00 00 00 00 00 00 01 00 00
-  sg_raw -v -s 512 -i test_data.bin /dev/sg7  8E 00 FF 00 00 00 00 00 00 00 00 00 00 01 00 00
-  sg_raw -v -s 512 -i test_data.bin /dev/sg10 8E 00 FF 00 00 00 00 00 00 00 00 00 00 01 00 00
-  sg_raw -v -s 512 -i test_data.bin /dev/sg11 8E 00 FF 00 00 00 00 00 00 00 00 00 00 01 00 00
-  sg_raw -v -s 512 -i test_data.bin /dev/sg12 8E 00 FF 00 00 00 00 00 00 00 00 00 00 01 00 00
-  sg_raw -v -s 512 -i test_data.bin /dev/sg14 8E 00 FF 00 00 00 00 00 00 00 00 00 00 01 00 00
+  dd if=/dev/zero of=zero.bin count=1 bs=512
+  sg_raw -v -s 512 -i zero.bin /dev/sg2  F0 00 00 00 00 00 00 00 00 00 00 00 02 00 FF 00
+  sg_raw -v -s 512 -i zero.bin /dev/sg4  F0 00 00 00 00 00 00 00 00 00 00 00 02 00 FF 00
+  sg_raw -v -s 512 -i zero.bin /dev/sg5  F0 00 00 00 00 00 00 00 00 00 00 00 02 00 FF 00
+  sg_raw -v -s 512 -i zero.bin /dev/sg7  F0 00 00 00 00 00 00 00 00 00 00 00 02 00 FF 00
+  sg_raw -v -s 512 -i zero.bin /dev/sg10 F0 00 00 00 00 00 00 00 00 00 00 00 02 00 FF 00
+  sg_raw -v -s 512 -i zero.bin /dev/sg11 F0 00 00 00 00 00 00 00 00 00 00 00 02 00 FF 00
+  sg_raw -v -s 512 -i zero.bin /dev/sg12 F0 00 00 00 00 00 00 00 00 00 00 00 02 00 FF 00
+  sg_raw -v -s 512 -i zero.bin /dev/sg14 F0 00 00 00 00 00 00 00 00 00 00 00 02 00 FF 00
+```
+If you do not know the sg nodes for the partitions you created, you can check using the below command:
+```
+    $ lsscsi -g
 ```
 
 ## Check and Cleanup before run testing
 
-Please check the drive firmware has been upgraded to the expected
-version number, so far the latest firmware version is 1759:
+Check if the drive firmware has been upgraded to the latest
+version number (currently 529):
 
 ```
-  [root@target ~]# lsscsi -g
-  [0:0:8:0]    disk    SEAGATE  XS3840SE70014    1759  /dev/sdi   /dev/sg10
-  [0:0:9:0]    disk    SEAGATE  XS3840SE70014    1759  /dev/sdj   /dev/sg11
-  [0:0:10:0]   disk    SEAGATE  XS3840SE70014    1759  /dev/sdk   /dev/sg12
-  [0:0:12:0]   disk    SEAGATE  XS3840SE70014    1759  /dev/sdm   /dev/sg14
+  $ lsscsi -g
+  [0:0:8:0]    disk    SEAGATE  XS3840SE70084    B529  /dev/sdi   /dev/sg1
+  [0:0:9:0]    disk    SEAGATE  XS3840SE70084    B529  /dev/sdj   /dev/sg2
+  ....
 ```
 
-Since the LVM testing is dependent on lock manager, it's needed to
+Since the LVM testing is dependent on the IDM locking manager, you will need to
 prepare a clean enviornment for LVM testing.
 
 ```
-  # If lvmlockd contains any existed lockspace, it can only be killed with '-9'.
+  # If lvmlockd contains any existing lockspace, it can only be killed with '-9'.
   killall -9 lvmlockd
   killall seagate_ilm
   killall sanlock
@@ -211,30 +203,28 @@ prepare a clean enviornment for LVM testing.
 
 ## Run LVM test suites
 
-### Test with single drive
+### Test with a single drive
 
-Below is an example to use the partition /dev/sdj3 as backing device
-for testing, in this case the test will create device mappers as PV.
+Below is an example of using the partition /dev/sdj3 as a backing device for testing.
 
 ```
   # cd lvm2-stx-private/test
   # make check_lvmlockd_idm LVM_TEST_BACKING_DEVICE=/dev/sdj3
 ```
 
-If see many failures for the single drive testing, it's good to test
-with a simple test case and verify if the envoirnment has been prepared
-properly, e.g. we can run the test case 'activate-minor.sh' and it can
-give us the result in short time, so we can use this way to quickly
-check if the test machine is ready for mass testing or not.
+If you see a lot of failures when testing, it's good to use
+a simple test case and verify if the environment has been prepared
+properly. In this case, we can run the test case 'activate-minor.sh', which provides results 
+quickly and will indicate if any mistakes were made during the preparation process.
 
 ```
   # cd lvm2-stx-private/test
   # make check_lvmlockd_idm LVM_TEST_BACKING_DEVICE=/dev/sdj3 T=activate-minor.sh
 ```
 
-After finish run the testing, the folder lvm2-stx-private/test/results
-contains the detailed info for testing result, so it's good to package
-it for offline analysis:
+After testing has finished, the folder lvm2-stx-private/test/results
+will contain detailed info of the testing results for each individual test.
+This directory can be packaged for easy offline analysis:
 
 ```
   # cd lvm2-stx-private/test
@@ -243,22 +233,9 @@ it for offline analysis:
 
 ### Test with multiple drives
 
-As the multiple devices have been configured in the shell array 'BLK_DEVS',
-it can support maximum to 16 devices.  If any case requires more than 16
-devices, the test framework will fallback to use BLK_DEVS[1] as backing
-device and create device mapping on it.
-
-```
-  # cd lvm2-stx-private/test
-  # make check_lvmlockd_idm LVM_TEST_BACKING_MULTI_DEVICES=1
-```
-
-### Test with multiple drives
-
-As the multiple devices have been configured in the shell array 'BLK_DEVS',
-it can support maximum to 16 devices.  If any case requires more than 16
-devices, the test framework will fallback to use BLK_DEVS[1] as backing
-device and create device mapping on it.
+If multiple devices have been configured in the test/shell/aux.sh file (see beginning of LVM Test Configurations section), 
+you can test multiple IDM-enabled devices at once. The 'BLK_DEVS' array can support a maximum of 16 devices. If any case requires more than 16
+devices, the test framework will fall back to using BLK_DEVS[1] as backing device and create device mapping on it.
 
 ```
   # cd lvm2-stx-private/test
@@ -267,39 +244,35 @@ device and create device mapping on it.
 
 ### Test for fault injection
 
-There have three test cases which is used to test with fault injection:
+There are three test cases that can be used to test fault injection:
 - shell/idm_lvmlockd_failure.sh: This test case is to verify if lvmlockd
-  exits abnormally, it can relaunch and talk to IDM lock manager again;
-  it also can activate again for VG and LV by acquiring the VG/LV lock.
-- shell/idm_ilm_abnormal_exit.sh: This test case is to verify when the
-  IDM lock manager has failed, the drive firmware should remove the host
-  from its whitelist and fence out the host.
-  KNOWN ISSUE: the whitelist functionality is postponed to develop in
-  next phase.
-- shell/idm_ilm_recovery_back.sh: This test case is to inject drive
-  failure and drives recovery back without timeout, so the lvmlockd and
-  IDM lock manager can continue mutex operations and without errors.
+  exits abnormally, that it can relaunch and talk to IDM lock manager again, 
+  and activate the VG and LV again by acquiring the VG/LV lock.
+- shell/idm_ilm_abnormal_exit.sh: This test case is to verify that when the
+  IDM lock manager has failed, the drive firmware removes the host
+  from its whitelist and fences out the removed host.
+  KNOWN ISSUE: the whitelist functionality is postponed for later development.
+- shell/idm_ilm_recovery_back.sh: This test case is used to inject drive
+  failure and if drives can recover without timeout, so that lvmlockd and the
+  IDM lock manager can continue mutex operations without errors.
 - shell/idm_ilm_fabric_failure_half_brain.sh: This test case is to
-  emulate fabric failure and introduce half brain, but since the renewal
-  can keep majority by making success half of drives, so IDM lock
-  manager still can renew the lock successfully.
-  KNOWN ISSUE: After run this case, the drive might fail to recovery back
-  to system and the drive names will be altered, this might impact later's
-  testing, in some situation, need to restart the machine so can continue
-  other testing.
+  emulate a fabric failure and introduce half brain, but since the renewal
+  can keep majority by using half of the drives, the IDM lock
+  manager can still renew the lock successfully.
+  KNOWN ISSUE: After running this case, the drive might fail to recover
+  and the drive names will be altered. This might impact later
+  testing, and in some situations, you may need to restart the machine to continue testing.
 - shell/idm_ilm_fabric_failure_timeout.sh: This test case is to emulate
-  fabric failure and fail to renew the ownership, leads to timeout issue;
-  IDM lock manager will invoke kill path when detect timeout.
-  KNOWN ISSUE: After run this case, the drive might fail to recovery back
-  to system and the drive names will be altered, this might impact later's
-  testing, in some situation, need to restart the machine so can continue
-  other testing.
-- shell/idm_ilm_fabric_failure.sh: This test case is to emulate the
-  fabric issue, so the drives will disappear from system.  And after a
-  while, if the drives reconnect with system, even the drive device node
-  name and SG node name have been altered, the lock manager is expected
-  to work with these altered names.
-  NOTE: when run the test case idm_fabric_failure.sh, please ensure the
+  fabric failure and a failure to renew the ownership, which leads to a timeout issue;
+  IDM lock manager will invoke the killpath when detecting a timeout.
+  KNOWN ISSUE: After run this case, the drive might fail to recover
+  and the drive names will be altered. This might impact later
+  testing, and in some situations, you may need to restart the machine to continue testing.
+- shell/idm_ilm_fabric_failure.sh: This test case is to emulate a
+  fabric issue, making the drives disappear from the system. If the drives reconnect to the system, 
+  even with an altered drive device node name and SG node name, the lock manager is expected
+  to work.
+  NOTE: when running the test case idm_fabric_failure.sh, please ensure the
   drive names are corrected appropriately for the system.
   KNOWN ISSUE: IDM lock manager so far cannot handle properly for the
   altered device node name and SG node name, so this case fails.
