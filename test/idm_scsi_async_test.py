@@ -1,7 +1,6 @@
 # SPDX-License-Identifier: LGPL-2.1-only
 # Copyright (C) 2021 Seagate Technology LLC and/or its Affiliates.
 
-from __future__ import absolute_import
 
 import errno
 import io
@@ -14,8 +13,8 @@ import pytest
 
 import idm_scsi
 
-DRIVE1 = "/dev/sg7"
-DRIVE2 = "/dev/sg5"
+DRIVE1 = "/dev/sg1"
+DRIVE2 = "/dev/sg2"
 
 def wait_for_scsi_response(handle):
     sg_fd = idm_scsi.idm_drive_get_fd(handle)
