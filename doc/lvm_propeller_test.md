@@ -289,11 +289,10 @@ There are three test cases that can be used to test fault injection:
 
 ### Test for multi hosts
 
-There have four cases for multi hosts testing, the test case name
-contains 'hosta' and 'hostb', which means these two test script should
-run on two different hosts, usually the execution sequence is firstly
-to run 'hosta' script and then on another host to run 'hostb' script.
-These scripts we need to manually to run one by one.
+There are four cases for multi hosts testing. These LVM test cases
+contain 'hosta' and 'hostb' in their name. These are used by running 
+the 'hosta' script on one host, and the 'hostb' script on another.
+These will need to be manually run one by one. 
 
 - idm_multi_hosts_vg_hosta.sh/idm_multi_hosts_vg_hostb.sh:
   This test case is to verify VG operations on two hosts.
@@ -301,19 +300,19 @@ These scripts we need to manually to run one by one.
   This test case is to verify LV operations on two hosts, every host
   tries to lock LV with shareable mode and exclusive mode.
 - idm_multi_hosts_lv_ex_timeout_hosta.sh/idm_multi_hosts_lv_ex_timeout_hostb.sh:
-  This test case is to verify LV operations on two hosts, hosta acquires
-  mutex with exclusive mode and stop the lock manager, so it will fail
-  to renew the LV lock; on hostb, it will wait for 60s for the LV lock
-  timeout which was owned by hosta, then it check if it can be granted
+  This test case is to verify LV operations on two hosts, Host A acquires
+  mutex with exclusive mode and stops the lock manager, causing it to fail
+  renewal of the LV lock; on Host B, it will wait 60s for the LV lock
+  timeout which was owned by Host A, then it checks if it can be granted
   with exclusive lock or not.
 - idm_multi_hosts_lv_sh_timeout_hosta.sh/idm_multi_hosts_lv_sh_timeout_hostb.sh:
-  This test case is to verify LV operations on two hosts, hosta acquires
+  This test case is to verify LV operations on two hosts, Host A acquires
   mutex with shareable mode and stop the lock manager, so it will fail
-  to renew the LV lock; on hostb, it will wait for 60s for the LV lock
-  timeout which was owned by hosta, then it check if it can be granted
+  to renew the LV lock; on Host B, it will wait 60s for the LV lock
+  timeout which was owned by Host A, then it checks if it can be granted
   with exclusive lock or not.
 
-NOTE: when run the test case idm_fabric_failure.sh, please ensure the
+NOTE: when running the test case idm_fabric_failure.sh, please ensure the
 drive names are corrected appropriately for the system.
 
 The cases need to be verified on two hosts:
