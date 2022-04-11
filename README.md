@@ -1,21 +1,27 @@
-Propeller - LVM Locking scheme with Seagate IDM
+Propeller - LVM Locking scheme for Seagate In-Drive Mutex
 ===============================================
 
-This repository provides the customized locking scheme based on Seagate
-In-Drive-Mutex (IDM) and integration into lvmlockd.
+This repository provides a customized locking manager that integrates
+Seagate's In-Drive Mutex (IDM) with lvmlockd. The IDM feature present in Seagate's SSD
+enforces access at the drive level, revealing a single point of authority that connected hosts can check
+to see if they can access data on the drives. 
 
-This repository contains the IDM lock manager under 'src' folder; later
-it can be extended to add IDM wrapper APIs lib and integrate with LVM2
-for full stack releasing.
+`src/` contains the source code for the IDM lock manager and the IDM wrapper API lib.  
+`test/` contains the testing harness for the IDM lock manager. This includes smoke tests written in C and unit tests written in Python that utilize the PyTest testing framework.   
+`python/` contains SWIG files used to generate Python wrapper API in support of the test harness located in `test/`.  
+`doc/` contains the supporting documentation for the project such as building, testing, debugging, etc.  
+`debian/` contains supporting files for generating debian packages for the IDM lock manager.  
+`seagate_ilm.spec` is used to build RPM packages for the IDM lock manager.  
 
-The library and APIs is implemented in C.
+
+The IDM lock manager's library and APIs are implemented in C.
 
 Building and Installation
 -------------------------
 
 See [LVM and IDM lock manager installation](doc/lvm_propeller_install.md) for details.
 
-Enviornment Variables and Logging
+Environment Variables and Logging
 ---------------------------------
 
 See [LVM and IDM lock manager debugging](doc/lvm_propeller_debug.md) for details.
