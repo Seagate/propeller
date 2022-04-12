@@ -3,8 +3,16 @@ Propeller - LVM Locking scheme for Seagate In-Drive Mutex
 
 This repository provides a customized locking manager that integrates
 Seagate's In-Drive Mutex (IDM) with lvmlockd. The IDM feature present in Seagate's SSD
-enforces access at the drive level, revealing a single point of authority that connected hosts can check
-to see if they can access data on the drives. 
+enforces access at the drive level, revealing a single point of authority that connected hosts can use
+to check if they have access to data on the drive. 
+
+```mermaid
+flowchart LR
+A[Host] -->|vgcreate, lvcreate, etc| B[LVM2]
+B -->|--shared| C[lvmlockd]
+C --> D[IDM Lock Manager]
+D -->|mutex acquire/release/convert commands| E[STX Drive w/IDM]
+```
 
 `src/` contains the source code for the IDM lock manager and the IDM wrapper API lib.  
 `test/` contains the testing harness for the IDM lock manager. This includes smoke tests written in C and unit tests written in Python that utilize the PyTest testing framework.   
