@@ -57,8 +57,60 @@ client.c-ilm_client_handle_request() ->> client.c-ilm_client_request(): client
 client.c-ilm_client_request() ->> cmd.c-ilm_cmd_queue_add_work: client
 ```
 ## cmd.c/cmd.h
-
+During [initialization](#initialization), ilm_cmd_queue_create(void) will initialize the command queue and spin up the command handler threads. A handler thread will wait until the command queue is no longer empty, triggering the command handler:
+```mermaid
+sequenceDiagram
+Loop Until Shutdown
+  alt cmd_queue not empty
+    ilm_cmd_thread() ->> ilm_cmd_handle(): cmd
+  end
+end
+```
+The handler will check the command and send the command to the correct function in either `lock.c` or `lockspace.c`.
+```mermaid
+sequenceDiagram
+opt lock command
+  cmd.c|ilm_cmd_handle() ->> cmd.c|ilm_cmd_lock_xxx(): cmd
+  cmd.c|ilm_cmd_lock_xxx() ->> lock.c|ilm_lock_xxx(): cmd
+  Note over cmd.c|ilm_cmd_handle(), lock.c|ilm_lock_xxx(): local helper function directs command to lock.c file
+end
+opt lockspace command
+  cmd.c|ilm_cmd_handle() ->> cmd.c|ilm_cmd_lockspace_xxx(): cmd
+  cmd.c|ilm_cmd_lockspace_xxx() ->> lockspace.c|ilm_lockspace_xxx(): cmd
+  Note over cmd.c|ilm_cmd_handle(), lock.c|ilm_lockspace_xxx(): local helper function directs command to lockspace.c file
+end
+```
 ## drive.c/drive.h
+The `drive.c` code handles the heavy lifting associated with maintaining the drive list. This includes the drive thread that maintains the list, and the helper functions for tasks such as finding a drive's path, SCSI generic (sg) node, WWN, UUID. It also can rescan the drive list uses the udev library to monitor and remove dead drives from the list and return the drive list version. 
+
+```mermaid
+sequenceDiagram
+Loop Until Shutdown
+  opt udev signal
+    drive_thd_function() ->> udev_monitor_recieve_device(): monitor
+    udev_monitor_recieve_device() ->> drive_thd_function(): device
+    drive_thd_function() ->> udev_device_get_action(): device
+    udev_device_get_action() ->> drive_thd_function(): action
+    alt action = add
+      drive_thd_function() ->> ilm_find_sg(): device name
+      ilm_find_sg() ->> drive_thd_function(): SCSI generic node
+      drive_thd_function() ->> ilm_read_device_wwn(): device path
+      ilm_read_device_wwn() ->>  drive_thd_function(): WWN
+      drive_thd_function() ->> ilm_scsi_add_drive_path(): device path, SCSI generic node, WWN
+    else action = remove
+      drive_thd_function() ->> ilm_scsi_del_drive_path(): device path
+    else action = change
+      drive_thd_function() ->> ilm_scsi_del_drive_path(): device path
+      drive_thd_function() ->> ilm_find_sg(): device name
+      ilm_find_sg() ->> drive_thd_function(): SCSI generic node
+      drive_thd_function() ->> ilm_read_device_wwn(): device path
+      ilm_read_device_wwn() ->>  drive_thd_function(): WWN
+      drive_thd_function() ->> ilm_scsi_add_drive_path(): device path, SCSI generic node, WWN
+    end
+  end
+end
+      
+```
 
 ## failure.c/failure.c
 
