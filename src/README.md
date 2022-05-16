@@ -1,5 +1,5 @@
 # Propeller Source Code Documentation
-
+This documentation is meant to give a generalized view of the functionality of the code in this project. Diagrams are not a 1:1 match with the code, as they are meant to explain the functionality at a higher-level. Self-explanatory functions or instantiations are skipped over to reduce complexity. 
 ## Initialization
 ```mermaid
 sequenceDiagram
@@ -83,6 +83,7 @@ end
 ## drive.c/drive.h
 The `drive.c` code handles the heavy lifting associated with maintaining the drive list. This includes the drive thread that maintains the list, and the helper functions for tasks such as finding a drive's path, SCSI generic (sg) node, WWN, UUID. It also can rescan the drive list uses the udev library to monitor and remove dead drives from the list and return the drive list version. 
 
+The drive thread function uses a udev monitor to track actions associated with the drives, and update the drive list accordingly:
 ```mermaid
 sequenceDiagram
 Loop Until Shutdown
@@ -113,9 +114,9 @@ end
 ```
 
 ## failure.c/failure.c
-
+This file handles the killing of a failed lockspace by utilizing the lockspace's killpath element.
 ## idm_pthread_backend.c
-
+This is used for running the Seagate lock manager in an emulated state, opting to emulate the IDM instead of contacting the drive. 
 ## idm_scsi.c
 
 ## idm_wrapper.h
