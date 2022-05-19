@@ -78,6 +78,8 @@ struct idm_data {
 	char ignore1[256];
 };
 
+#define SCSI_VER_INQ_LEN		6
+#define SCSI_VER_DATA_LEN		150
 #define SCSI_CDB_LEN			16
 #define SCSI_SENSE_LEN			64
 
@@ -161,6 +163,15 @@ static char sense_fixed_1_mutex_host_list_is_full[18] = {
 	0x00, 0x00, 0x00, 0x00, 0x42, 0x00, 0x01, 0x00,
 	0x00, 0x00,
 };
+
+static void _scsi_generate_version_inquiry_cdb(uint8_t *cdb){
+	cdb[0] = 0x12;		/* Inquiry */
+	cdb[1] = 0x01;		/* EVPD bit needs to be set */
+	cdb[2] = 0xc3;		/* Located in log page C3 */
+	cdb[3] = 0x00;		/* Reserved */
+	cdb[4] = 0x70;		/* Mutex version located at 0x60 */
+	cdb[5] = 0x00;		/* Reserved */
+}
 
 static void _scsi_generate_write_cdb(uint8_t *cdb, int mutex_op)
 {
@@ -655,8 +666,20 @@ static int _scsi_get_async_result(struct idm_scsi_request *request,
  */
 int idm_drive_version(int *version, char *drive)
 {
-	/* Current version 0.1.0 */
-	*version = ((0 << 16) | (1 << 8) | (0));
+	uint8_t ver_request[SCSI_VER_INQ_LEN];
+	uint8_t sense[SCSI_SENSE_LEN]; 
+	uint8_t data[SCSI_VER_DATA_LEN]; 
+
+	_scsi_generate_version_inquiry_cdb(ver_request);
+
+	_scsi_sg_io(drive, ver_request, SCSI_VER_INQ_LEN, sense, SCSI_SENSE_LEN, data, SCSI_VER_DATA_LEN, SG_DXFER_FROM_DEV);
+
+	ilm_log_array_warn("SCSI CDB:", (char *)ver_request, SCSI_VER_INQ_LEN);
+	ilm_log_array_warn("SCSI DATA:", (char *)data, SCSI_VER_DATA_LEN);
+	ilm_log_array_warn("SCSI SENSE:", (char *)sense, SCSI_SENSE_LEN);
+	ilm_log_warn("MUTEX VERSION: %u", data[96]);
+
+	*version = ((0 << 16) | (data[96] << 8) | (0));
 	return 0;
 }
 
