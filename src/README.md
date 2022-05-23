@@ -118,15 +118,15 @@ This file handles the killing of a failed lockspace by utilizing the lockspace's
 ## idm_pthread_backend.c
 This is used for running the Seagate lock manager in an emulated state, opting to emulate the IDM instead of contacting the drive. 
 ## idm_scsi.c
-
+This provides the lock manager with SCSI API for direct communication with IDM-enabled drives. This queries the drive for things such as lock mode, lock count, IDM version, etc. Asynchronous communication is handled using the standard read/write functions, but synchronous communication requires the SG (SCSI Generic) library.
 ## idm_wrapper.h
-
+This provides the wrapper API for the SCSI mutex commands found in idm_scsi.c
 ## ilm.h
-
+This is this header file that is installed into the system's `/include/` directory that provides the prototypes for the client functions defined in lib_client.c
 ## ilm_internal.h
-
+This defines variables containing the default locations of things such as the run directory, log directory and socket file.
 ## inject_fault.c/inject_fault.h
-
+TODO
 ## lib_client.c
 This file provides the API for lvmlockd to use the IDM lock manager. This allows lvmlockd to connect to the socket, create lockspaces, check locks, etc.
 ## libseagate_ilm.pc
@@ -134,21 +134,19 @@ This is the package config file, which assists LVM in checking if the IDM lock m
 ## list.h
 This file is based on the standard Linux linked-list structure and is used by files such as `client.c` to create a client list. 
 ## lock.c/lock.h
-
+TODO
 ## lockspace.c/lockspace.h
-
+TODO
 ## log.c/log.h
-
+TODO
 ## logrotate.ilm
-
-## main.c
-
+TODO
 ## raid_lock.c/raidlock.h
-
+TODO
 ## scsiutils.c/scsiutils.h
-
+TODO
 ## seagate_ilm.service
-
+This defines the locking manager service for use with `systemd`.
 ## util.c/util.h
-
+TODO
 ## uuid.c/uuid.h
