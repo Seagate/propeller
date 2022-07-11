@@ -3,8 +3,6 @@
 # Copyright (C) 2021 Seagate Technology LLC and/or its Affiliates.
 # Derived from the sanlock file test/util.py
 
-from __future__ import absolute_import
-
 import errno
 import io
 import os

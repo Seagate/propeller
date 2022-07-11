@@ -1,9 +1,9 @@
 PYTHON_ILM_MOD=_ilm.so
 PYTHON_IDM_SCSI_MOD=_idm_scsi.so
 
-SWIG = swig
+SWIG = /usr/local/bin/swig
 SWIGFLAGS = -python
-CFLAGS = -DTEST -c -fpic -I/usr/include/python2.7 -I../src
+CFLAGS = -DTEST -c -fpic -I/usr/include/python3.6m -I../src
 LDFLAGS = -shared
 
 all: $(PYTHON_ILM_MOD) $(PYTHON_IDM_SCSI_MOD)

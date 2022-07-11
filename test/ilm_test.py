@@ -1,7 +1,6 @@
 # SPDX-License-Identifier: LGPL-2.1-only
 # Copyright (C) 2021 Seagate Technology LLC and/or its Affiliates.
 
-from __future__ import absolute_import
 
 import errno
 import io
@@ -13,8 +12,8 @@ import pytest
 
 import ilm
 
-DRIVE1 = "/dev/sdb2"
-DRIVE2 = "/dev/sdd2"
+DRIVE1 = "/dev/sdb3"
+DRIVE2 = "/dev/sdc3"
 
 LOCK1_VG_UUID = "00000000000000000000000000000001"
 LOCK1_LV_UUID = "0123456789abcdef0123456789abcdef"

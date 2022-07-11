@@ -1,7 +1,6 @@
 # SPDX-License-Identifier: LGPL-2.1-only
 # Copyright (C) 2021 Seagate Technology LLC and/or its Affiliates.
 
-from __future__ import absolute_import
 
 import errno
 import io
@@ -13,8 +12,8 @@ import pytest
 
 import idm_scsi
 
-DRIVE1 = "/dev/sg5"
-DRIVE2 = "/dev/sg7"
+DRIVE1 = "/dev/sg1"
+DRIVE2 = "/dev/sg2"
 
 def test_idm_version(idm_cleanup):
     ret, version = idm_scsi.idm_drive_version(DRIVE1)
@@ -127,7 +126,7 @@ def test_idm__sync_lock_shareable_twice(idm_cleanup):
 
     ret = idm_scsi.idm_drive_unlock(lock_id0, idm_scsi.IDM_MODE_SHAREABLE,
 		    		    host_id0, a, 8, DRIVE1)
-    assert ret == 0
+    assert ret == -2
 
 def test_idm__sync_lock_exclusive_two_hosts(idm_cleanup):
 
@@ -225,7 +224,7 @@ def test_idm__sync_break_lock_1(idm_cleanup):
 
     ret = idm_scsi.idm_drive_unlock(lock_id0, idm_scsi.IDM_MODE_EXCLUSIVE,
 		    		    host_id0, a, 8, DRIVE1)
-    assert ret == -2        # -ENOENT
+    assert ret == -16       # -EBUSY - The BreakLock() changes ownership from Host0 to Host1
 
     ret = idm_scsi.idm_drive_unlock(lock_id0, idm_scsi.IDM_MODE_EXCLUSIVE,
 		    		    host_id1, a, 8, DRIVE1)
@@ -263,7 +262,7 @@ def test_idm__sync_break_lock_2(idm_cleanup):
 
     ret = idm_scsi.idm_drive_unlock(lock_id0, idm_scsi.IDM_MODE_EXCLUSIVE,
 		    		    host_id0, a, 8, DRIVE1)
-    assert ret == -2        # -ENOENT
+    assert ret == -16       # -EBUSY - The BreakLock() changes ownership from Host0 to Host1
 
     ret = idm_scsi.idm_drive_unlock(lock_id0, idm_scsi.IDM_MODE_SHAREABLE,
 		    		    host_id1, a, 8, DRIVE1)
@@ -301,7 +300,7 @@ def test_idm__sync_break_lock_3(idm_cleanup):
 
     ret = idm_scsi.idm_drive_unlock(lock_id0, idm_scsi.IDM_MODE_SHAREABLE,
 		    		    host_id0, a, 8, DRIVE1)
-    assert ret == -2        # -ENOENT
+    assert ret == -16       # -EBUSY - The BreakLock() changes ownership from Host0 to Host1
 
     ret = idm_scsi.idm_drive_unlock(lock_id0, idm_scsi.IDM_MODE_EXCLUSIVE,
 		    		    host_id1, a, 8, DRIVE1)
@@ -377,7 +376,7 @@ def test_idm__sync_convert_3(idm_cleanup):
 
     ret = idm_scsi.idm_drive_convert_lock(lock_id0, idm_scsi.IDM_MODE_EXCLUSIVE,
                                           host_id1, DRIVE1, 10000);
-    assert ret == -1        # -EPERM
+    assert ret == -11       #Drive returns SCSI STATUS -x22
 
     a = idm_scsi.charArray(8)
     a[0] = 0
