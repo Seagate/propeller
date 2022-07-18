@@ -1,7 +1,6 @@
 # Introduction
 
-This document is to describe the detailed info for installation
-Propeller/LVM on Centos7.
+This document describes the installation process for Propeller and LVM on Centos7.
 
 # Build and Install IDM lock manager
 
@@ -13,21 +12,30 @@ Propeller/LVM on Centos7.
     $ sudo yum groupinstall 'Development Tools'
     $ sudo yum install libuuid-devel
     $ sudo yum install libblkid libblkid-devel
-    $ sudo yum install python-pytest python-devel
+    $ sudo yum install python3 python3-devel
+    $ sudo pip3 install pytest
+    $ sudo yum install pcre-devel
 ```
-
+The SWIG library must be installed from source to bypass CentOS 7 repository:
+```
+    $ sudo git clone https://github.com/swig/swig.git
+    $ cd swig-4.0.x
+    $ ./configure
+    $ make
+    $ make install
+```
 ### Load the dependency modules
 
-Since Propeller IDM lock manager is dependent on SCSI generic module,
-the loading kernel module 'sg' is the prerequisite for using IDM lock
+The Propeller IDM lock manager is dependent on the SCSI generic module,
+loading the kernel module 'sg' is a prerequisite for using IDM lock
 manager:
 
 ```
     $ sudo modprobe sg
 ```
 
-If want to load module automatically when everytime boot up the system,
-we can use the configuration file for this:
+If want to load the module automatically at boot time,
+we can use the SCSI configuration file for this:
 
 ```
     $ sudo echo sg >> /etc/modules-load.d/scsi.conf
@@ -38,13 +46,11 @@ we can use the configuration file for this:
 
 The Propeller repository has three main parts to build:
 
-- IDM lock manager and the lib which is in 'src' folder;
-- Python wrapper for pytest in 'python' folder;
-- Test cases in 'test' folder, especially, there have some C program
-  code needs to build before run the test cases.
+- The IDM lock manager and the lib which is in 'src/' folder;
+- The Python wrapper for pytest test harness in the 'python/' folder;
+- The test harness in the 'test/' folder, which has C code that must be compiled before running pytest.
 
-For simplify building steps, change to the root folder of Propeller and
-execute 'make' commands, it will build all up three parts.
+Running 'make' from the root folder of Propeller will build all three of these parts.
 
 ```
     $ cd /work/path
@@ -55,8 +61,8 @@ execute 'make' commands, it will build all up three parts.
 
 ## Install Propeller IDM lock manager
 
-On the Centos7, it's simply to use below command to install libs,
-header files and systemd service file with single one command:
+On Centos7, the 'make install' command can be used to install libs,
+header files and systemd service file:
 
 ```
     $ sudo make install
@@ -64,13 +70,13 @@ header files and systemd service file with single one command:
 
 ## Launch Propeller IDM lock manager
 
-systemctl can be used to launch Propeller IDM lock manager:
+Systemctl can be used to launch Propeller IDM lock manager:
 
 ```
     $ sudo systemctl start seagate_ilm
 ```
 
-Below command can be used to check the IDM lock manager's status:
+The 'systemctl status' command can be used to check the IDM lock manager's status:
 
 ```
     $ sudo systemctl status seagate_ilm
@@ -101,7 +107,6 @@ Install dependency libs on Centos7:
     $ sudo yum install libaio-devel dbus-devel libudev-devel
     $ sudo yum install readline readline-devel
     $ sudo yum install corosynclib corosynclib-devel
-    $ sudo yum install python3 python3-devel
     $ sudo pip3 install pyudev
 ```
 
@@ -147,19 +152,18 @@ Install dependency libs on Centos7:
 
 ## Install LVM toolkit
 
-On the Centos7, it's simply to use below command to install libs,
+On the Centos7, it's simple to use 'make install' to install libs,
 header files and systemd service file with single one command:
 
 ```
     $ sudo make install
 ```
 
-Please *note*, if the rootFS is logical volume, so the system
-booting requires to use LVM commands.  The upgradation the
-LVM toolkit might cause the serious booting failure, the
-main issue is caused by incompatible issue between LVM tools
-and libs, and it's hard to recovery back.  So at current stage,
-please ensure the experimental PC doesn't contain any useful
+*Please note*, if rootFS is the logical volume, the system
+boot process requires LVM commands.  Upgrading the
+LVM toolkit might cause a serious booting failure because of
+incompatibility between LVM tools and libs, and recovering your system will be difficult.  
+So at this stage, please ensure the experimental PC doesn't contain any useful
 data.
 
 ## Launch lvmlockd daemon
@@ -172,13 +176,13 @@ Change lvmlockd configuration to use IDM as default for global locking:
     ExecStart=/usr/sbin/lvmlockd -f -g idm
 ```
 
-systemctl can be used to launch lvmlockd:
+Systemctl can be used to launch lvmlockd:
 
 ```
     $ sudo systemctl restart lvm2-lvmlockd
 ```
 
-Below command can be used to check the lvmlockd status:
+The below command can be used to check the lvmlockd status:
 
 ```
     $ sudo systemctl status lvm2-lvmlockd

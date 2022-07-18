@@ -1,7 +1,6 @@
 # SPDX-License-Identifier: LGPL-2.1-only
 # Copyright (C) 2021 Seagate Technology LLC and/or its Affiliates.
 
-from __future__ import absolute_import
 
 import errno
 import io
@@ -13,8 +12,8 @@ import pytest
 
 import ilm
 
-DRIVE1 = "/dev/sdb2"
-DRIVE2 = "/dev/sdd2"
+DRIVE1 = "/dev/sdb3"
+DRIVE2 = "/dev/sdc3"
 
 LOCK1_VG_UUID = "00000000000000000000000000000001"
 LOCK1_LV_UUID = "0123456789abcdef0123456789abcdef"
@@ -360,15 +359,16 @@ def test_lock__lvb_read_timeout(ilm_daemon):
     a = ilm.charArray(8)
 
     ret = ilm.ilm_read_lvb(s2, lock_id, a, 8);
+
     assert ret == 0
-    assert a[0] == '\xff'
-    assert a[1] == '\xff'
-    assert a[2] == '\xff'
-    assert a[3] == '\xff'
-    assert a[4] == '\xff'
-    assert a[5] == '\xff'
-    assert a[6] == '\xff'
-    assert a[7] == '\xff'
+    assert a[0] == '\udcff'
+    assert a[1] == '\udcff'
+    assert a[2] == '\udcff'
+    assert a[3] == '\udcff'
+    assert a[4] == '\udcff'
+    assert a[5] == '\udcff'
+    assert a[6] == '\udcff'
+    assert a[7] == '\udcff'
 
     ret = ilm.ilm_unlock(s2, lock_id)
     assert ret == 0

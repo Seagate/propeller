@@ -25,37 +25,38 @@
 #include "log.h"
 #include "util.h"
 
+#define IDM_MUTEX_OP_NORMAL		0x0
 #define IDM_MUTEX_OP_INIT		0x1
-#define IDM_MUTEX_OP_TRYLOCK		0x2
+#define IDM_MUTEX_OP_TRYLOCK	0x2
 #define IDM_MUTEX_OP_LOCK		0x3
 #define IDM_MUTEX_OP_UNLOCK		0x4
-#define IDM_MUTEX_OP_REFRESH		0x5
+#define IDM_MUTEX_OP_REFRESH	0x5
 #define IDM_MUTEX_OP_BREAK		0x6
-#define IDM_MUTEX_OP_DESTROY		0x7
+#define IDM_MUTEX_OP_DESTROY	0x7
 
 #define IDM_RES_VER_NO_UPDATE_NO_VALID	0x0
-#define IDM_RES_VER_UPDATE_NO_VALID	0x1
-#define IDM_RES_VER_UPDATE_VALID	0x2
-#define IDM_RES_VER_INVALID		0x3
+#define IDM_RES_VER_UPDATE_NO_VALID		0x1
+#define IDM_RES_VER_UPDATE_VALID		0x2
+#define IDM_RES_VER_INVALID				0x3
 
 /* Now simply read out data with predefined size: 512B * 512 = 64KB */
 #define IDM_DATA_BLOCK_SIZE		512
 
-#define IDM_STATE_UNINIT		0
-#define IDM_STATE_LOCKED		0x101
-#define IDM_STATE_UNLOCKED		0x102
+#define IDM_STATE_UNINIT			0
+#define IDM_STATE_LOCKED			0x101
+#define IDM_STATE_UNLOCKED			0x102
 #define IDM_STATE_MULTIPLE_LOCKED	0x103
-#define IDM_STATE_TIMEOUT		0x104
-#define IDM_STATE_DEAD			0xdead
+#define IDM_STATE_TIMEOUT			0x104
+#define IDM_STATE_DEAD				0xdead
 
-#define IDM_CLASS_EXCLUSIVE		0x0
-#define IDM_CLASS_PROTECTED_WRITE	0x1
+#define IDM_CLASS_EXCLUSIVE				0x0
+#define IDM_CLASS_PROTECTED_WRITE		0x1
 #define IDM_CLASS_SHARED_PROTECTED_READ	0x2
 
-#define IDM_SCSI_WRITE			0x89  /* Or change to use 0x8E */
-#define IDM_SCSI_READ			0x88
+#define IDM_SCSI_WRITE			0xF0  /* Updated  to latest spec */
+#define IDM_SCSI_READ			0xF0  /* Updated  to latest spec */
 
-#define IDM_MUTEX_GROUP			0x1
+#define IDM_MUTEX_GROUP				0x1
 #define IDM_MUTEX_GROUP_INQUIRY		0xFF
 
 #define MBYTE0(val)			((char)(val & 0xff))
@@ -77,6 +78,8 @@ struct idm_data {
 	char ignore1[256];
 };
 
+#define SCSI_VER_INQ_LEN		6
+#define SCSI_VER_DATA_LEN		150
 #define SCSI_CDB_LEN			16
 #define SCSI_SENSE_LEN			64
 
@@ -161,44 +164,53 @@ static char sense_fixed_1_mutex_host_list_is_full[18] = {
 	0x00, 0x00,
 };
 
+static void _scsi_generate_version_inquiry_cdb(uint8_t *cdb){
+	cdb[0] = 0x12;		/* Inquiry */
+	cdb[1] = 0x01;		/* EVPD bit needs to be set */
+	cdb[2] = 0xc3;		/* Located in log page C3 */
+	cdb[3] = 0x00;		/* Reserved */
+	cdb[4] = 0x70;		/* Mutex version located at 0x60 */
+	cdb[5] = 0x00;		/* Reserved */
+}
+
 static void _scsi_generate_write_cdb(uint8_t *cdb, int mutex_op)
 {
 	cdb[0] = IDM_SCSI_WRITE;
-	cdb[1] = 0x0;			/* WRPROTECT=000b DPO=0b, FUA=0b */
-	cdb[2] = IDM_MUTEX_GROUP;	/* MUTEX GROUP=1 as default value */
-	cdb[3] = 0x0;			/* cdb[3..9] are ignored */
-	cdb[4] = 0x0;
-	cdb[5] = 0x0;
-	cdb[6] = 0x0;
-	cdb[7] = 0x0;
-	cdb[8] = 0x0;
-	cdb[9] = 0x0;
-	cdb[10] = 0x0;			/* Reserved */
-	cdb[11] = 0x0;
-	cdb[12] = 0x0;
-	cdb[13] = 0x1;			/* Number of logical blocks = 1 */
-	cdb[14] = mutex_op;		/* Mutex OP */
-	cdb[15] = 0;			/* Control = 0 */
+	cdb[1] = mutex_op<<4;		/* The MUTEX_OP is in the upper nibble of Byte 1 */	
+	cdb[2] = 0x00;				/* Reserved */
+	cdb[3] = 0x00;				/* Reserved */
+	cdb[4] = 0x00;				/* Reserved */
+	cdb[5] = 0x00;				/* Reserved */
+	cdb[6] = 0x00;				/* Reserved */
+	cdb[7] = 0x00;				/* Reserved */
+	cdb[8] = 0x00;				/* Reserved */
+	cdb[9] = 0x00;				/* Reserved */
+	cdb[10] = 0x00;				/* Transfer Length */
+	cdb[11] = 0x00;				/* Transfer Length */
+	cdb[12] = 0x02;				/* Transfer Length  = 512 */
+	cdb[13] = 0x00;				/* Transfer Length */
+	cdb[14] = IDM_MUTEX_GROUP;	/* Mutex Group */
+	cdb[15] = 0;				/* Reserved */
 }
 
 static void _scsi_generate_read_cdb(uint8_t *cdb, uint8_t group, int num)
 {
 	cdb[0] = IDM_SCSI_READ;
-	cdb[1] = 0x0;			/* WRPROTECT=000b DPO=0b FUA=0b */
-	cdb[2] = group;	/* MUTEX GROUP=1 as default value */
-	cdb[3] = 0x0;			/* cdb[3..9] are ignored */
-	cdb[4] = 0x0;
-	cdb[5] = 0x0;
-	cdb[6] = 0x0;
-	cdb[7] = 0x0;
-	cdb[8] = 0x0;
-	cdb[9] = 0x0;
+	cdb[1] = 0x01;			/* Ignore the Mutex Opcode for now */
+	cdb[2] = 0x00;			/* Reserved */	
+	cdb[3] = 0x00;			/* Reserved */
+	cdb[4] = 0x00;			/* Reserved */
+	cdb[5] = 0x00;			/* Reserved */
+	cdb[6] = 0x00;			/* Reserved */
+	cdb[7] = 0x00;			/* Reserved */
+	cdb[8] = 0x00;			/* Reserved */
+	cdb[9] = 0x00;			/* Reserved */
 	cdb[10] = MBYTE3(num);
 	cdb[11] = MBYTE2(num);
 	cdb[12] = MBYTE1(num);
 	cdb[13] = MBYTE0(num);
-	cdb[14] = 0;			/* DLD1=0 DLD0=0 Group number */
-	cdb[15] = 0;			/* Control = 0 */
+	cdb[14] = group;		/* MUTEX GROUP=1 as default value */
+	cdb[15] = 0;			/* Reserved */
 }
 
 static int _scsi_sg_io(char *drive, uint8_t *cdb, int cdb_len,
@@ -246,7 +258,7 @@ static int _scsi_sg_io(char *drive, uint8_t *cdb, int cdb_len,
 	status = io_hdr.masked_status;
 
 	if (status != GOOD) {
-		ilm_log_array_warn("SCSI CDB:", (char *)cdb, data_len);
+		ilm_log_array_warn("SCSI CDB:", (char *)cdb, cdb_len);
 		ilm_log_array_warn("SCSI DATA:", (char *)data, data_len);
 		ilm_log_array_warn("SCSI SENSE:", (char *)sense, sense_len);
 		ilm_log_warn("SCSI status: 0x%x", io_hdr.status);
@@ -654,8 +666,20 @@ static int _scsi_get_async_result(struct idm_scsi_request *request,
  */
 int idm_drive_version(int *version, char *drive)
 {
-	/* Current version 0.1.0 */
-	*version = ((0 << 16) | (1 << 8) | (0));
+	uint8_t ver_request[SCSI_VER_INQ_LEN];
+	uint8_t sense[SCSI_SENSE_LEN]; 
+	uint8_t data[SCSI_VER_DATA_LEN]; 
+
+	_scsi_generate_version_inquiry_cdb(ver_request);
+
+	_scsi_sg_io(drive, ver_request, SCSI_VER_INQ_LEN, sense, SCSI_SENSE_LEN, data, SCSI_VER_DATA_LEN, SG_DXFER_FROM_DEV);
+
+	ilm_log_array_warn("SCSI CDB:", (char *)ver_request, SCSI_VER_INQ_LEN);
+	ilm_log_array_warn("SCSI DATA:", (char *)data, SCSI_VER_DATA_LEN);
+	ilm_log_array_warn("SCSI SENSE:", (char *)sense, SCSI_SENSE_LEN);
+	ilm_log_warn("MUTEX VERSION: %u", data[96]);
+
+	*version = ((0 << 16) | (data[96] << 8) | (0));
 	return 0;
 }
 
@@ -1309,7 +1333,7 @@ int idm_drive_read_lvb(char *lock_id, char *host_id,
 	struct idm_scsi_request *request;
 	struct idm_data *data;
 	int ret, i, block_size;
-	unsigned int num;
+	unsigned int num = 0;
 
 	if (ilm_inject_fault_is_hit())
 		return -EIO;
@@ -1396,7 +1420,7 @@ int idm_drive_read_lvb_async(char *lock_id, char *host_id, char *drive, uint64_t
 {
 	struct idm_scsi_request *request;
 	int ret, block_size;
-	unsigned int num;
+	unsigned int num = 0;
 
 	if (ilm_inject_fault_is_hit())
 		return -EIO;
@@ -1513,7 +1537,11 @@ int idm_drive_lock_count(char *lock_id, char *host_id,
 	struct idm_data *data;
 	uint64_t state;
 	int ret, i, locked, block_size;
-	unsigned int num;
+	unsigned int num = 0;
+
+	// Initialize the output
+	*count = 0;
+	*self = 0;
 
 	if (ilm_inject_fault_is_hit())
 		return -EIO;
@@ -1528,11 +1556,8 @@ int idm_drive_lock_count(char *lock_id, char *host_id,
 	if (ret < 0)
 		return -ENOENT;
 
-	if (!num) {
-		*count = 0;
-		*self = 0;
+	if (!num) 
 		return 0;
-	}
 
 	block_size = IDM_DATA_BLOCK_SIZE * num;
 
@@ -1563,8 +1588,6 @@ int idm_drive_lock_count(char *lock_id, char *host_id,
 	_scsi_data_swap(request->lock_id, lock_id, IDM_LOCK_ID_LEN);
 	_scsi_data_swap(request->host_id, host_id, IDM_HOST_ID_LEN);
 
-	*count = 0;
-	*self = 0;
 	data = request->data;
 	for (i = 0; i < num; i++) {
 
@@ -1620,7 +1643,7 @@ int idm_drive_lock_count_async(char *lock_id, char *host_id,
 {
 	struct idm_scsi_request *request;
 	int ret, block_size;
-	unsigned int num;
+	unsigned int num = 0;
 
 	if (ilm_inject_fault_is_hit())
 		return -EIO;
@@ -1751,7 +1774,7 @@ int idm_drive_lock_mode(char *lock_id, int *mode, char *drive)
 	struct idm_data *data;
 	uint64_t state, class;
 	int ret, i, block_size;
-	unsigned int num;
+	unsigned int num = 0;
 
 	if (ilm_inject_fault_is_hit())
 		return -EIO;
@@ -1857,7 +1880,7 @@ int idm_drive_lock_mode_async(char *lock_id, char *drive, uint64_t *handle)
 {
 	struct idm_scsi_request *request;
 	int ret, block_size;
-	unsigned int num;
+	unsigned int num = 0;
 
 	if (ilm_inject_fault_is_hit())
 		return -EIO;
@@ -2014,7 +2037,7 @@ int idm_drive_host_state(char *lock_id, char *host_id,
 	struct idm_scsi_request *request;
 	struct idm_data *data;
 	int ret, i, block_size;
-	unsigned int num;
+	unsigned int num = 0;
 
 	if (ilm_inject_fault_is_hit())
 		return -EIO;
@@ -2111,7 +2134,7 @@ int idm_drive_read_group(char *drive, struct idm_info **info_ptr, int *info_num)
 	int ret, i, block_size;;
 	struct idm_info *info_list, *info;
 	uint64_t state, class;
-	unsigned int num;
+	unsigned int num = 0;
 
 	if (ilm_inject_fault_is_hit())
 		return -EIO;

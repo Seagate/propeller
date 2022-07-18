@@ -3,7 +3,6 @@
 # Copyright (C) 2021 Seagate Technology LLC and/or its Affiliates.
 # Derived from the sanlock file of the same name.
 
-from __future__ import absolute_import
 
 import os
 
@@ -13,8 +12,8 @@ from . import ilm_util
 
 import idm_scsi
 
-DRIVE1 = "/dev/sg2"
-DRIVE2 = "/dev/sg4"
+DRIVE1 = "/dev/sg1"
+DRIVE2 = "/dev/sg2"
 DRIVE3 = "/dev/sg5"
 DRIVE4 = "/dev/sg7"
 DRIVE5 = "/dev/sg10"
@@ -22,35 +21,35 @@ DRIVE6 = "/dev/sg11"
 DRIVE7 = "/dev/sg13"
 DRIVE8 = "/dev/sg14"
 
-@pytest.yield_fixture(scope="session")
+@pytest.fixture(scope="session")
 def ilm_daemon():
     lock_id0 = "0000000000000000000000000000000000000000000000000000000000000000"
 
-    cmd = 'sg_raw -v -r 512 -o test_data.bin ' + DRIVE1 + ' 88 00 01 00 00 00 00 00 00 00 00 00 00 01 00 00'
+    cmd = 'dd if=/dev/zero of=zero.bin count=1 bs=512' 
     os.system(cmd)
 
-    cmd = 'sg_raw -v -s 512 -i test_data.bin ' + DRIVE1 + ' 8E 00 FF 00 00 00 00 00 00 00 00 00 00 01 00 00'
+    cmd = 'sg_raw -v -s 512 -i zero.bin ' + DRIVE1 + ' F0 00 00 00 00 00 00 00 00 00 00 00 02 00 FF 00'
     os.system(cmd)
 
-    cmd = 'sg_raw -v -s 512 -i test_data.bin ' + DRIVE2 + ' 8E 00 FF 00 00 00 00 00 00 00 00 00 00 01 00 00'
+    cmd = 'sg_raw -v -s 512 -i zero.bin ' + DRIVE2 + ' F0 00 00 00 00 00 00 00 00 00 00 00 02 00 FF 00'
     os.system(cmd)
 
-    cmd = 'sg_raw -v -s 512 -i test_data.bin ' + DRIVE3 + ' 8E 00 FF 00 00 00 00 00 00 00 00 00 00 01 00 00'
+    cmd = 'sg_raw -v -s 512 -i zero.bin ' + DRIVE3 + ' F0 00 00 00 00 00 00 00 00 00 00 00 02 00 FF 00'
     os.system(cmd)
 
-    cmd = 'sg_raw -v -s 512 -i test_data.bin ' + DRIVE4 + ' 8E 00 FF 00 00 00 00 00 00 00 00 00 00 01 00 00'
+    cmd = 'sg_raw -v -s 512 -i zero.bin ' + DRIVE4 + ' F0 00 00 00 00 00 00 00 00 00 00 00 02 00 FF 00'
     os.system(cmd)
 
-    cmd = 'sg_raw -v -s 512 -i test_data.bin ' + DRIVE5 + ' 8E 00 FF 00 00 00 00 00 00 00 00 00 00 01 00 00'
+    cmd = 'sg_raw -v -s 512 -i zero.bin ' + DRIVE5 + ' F0 00 00 00 00 00 00 00 00 00 00 00 02 00 FF 00'
     os.system(cmd)
 
-    cmd = 'sg_raw -v -s 512 -i test_data.bin ' + DRIVE6 + ' 8E 00 FF 00 00 00 00 00 00 00 00 00 00 01 00 00'
+    cmd = 'sg_raw -v -s 512 -i zero.bin ' + DRIVE6 + ' F0 00 00 00 00 00 00 00 00 00 00 00 02 00 FF 00'
     os.system(cmd)
 
-    cmd = 'sg_raw -v -s 512 -i test_data.bin ' + DRIVE7 + ' 8E 00 FF 00 00 00 00 00 00 00 00 00 00 01 00 00'
+    cmd = 'sg_raw -v -s 512 -i zero.bin ' + DRIVE7 + ' F0 00 00 00 00 00 00 00 00 00 00 00 02 00 FF 00'
     os.system(cmd)
 
-    cmd = 'sg_raw -v -s 512 -i test_data.bin ' + DRIVE8 + ' 8E 00 FF 00 00 00 00 00 00 00 00 00 00 01 00 00'
+    cmd = 'sg_raw -v -s 512 -i zero.bin ' + DRIVE8 + ' F0 00 00 00 00 00 00 00 00 00 00 00 02 00 FF 00'
     os.system(cmd)
 
     idm_scsi.idm_drive_lock_mode(lock_id0, DRIVE1);
@@ -78,31 +77,31 @@ def ilm_daemon():
 def idm_cleanup():
     lock_id0 = "0000000000000000000000000000000000000000000000000000000000000000"
 
-    cmd = 'sg_raw -v -r 512 -o test_data.bin ' + DRIVE1 + ' 88 00 01 00 00 00 00 00 00 00 00 00 00 01 00 00'
+    cmd = 'dd if=/dev/zero of=zero.bin count=1 bs=512' 
     os.system(cmd)
 
-    cmd = 'sg_raw -v -s 512 -i test_data.bin ' + DRIVE1 + ' 8E 00 FF 00 00 00 00 00 00 00 00 00 00 01 00 00'
+    cmd = 'sg_raw -v -s 512 -i zero.bin ' + DRIVE1 + ' F0 00 00 00 00 00 00 00 00 00 00 00 02 00 FF 00'
     os.system(cmd)
 
-    cmd = 'sg_raw -v -s 512 -i test_data.bin ' + DRIVE2 + ' 8E 00 FF 00 00 00 00 00 00 00 00 00 00 01 00 00'
+    cmd = 'sg_raw -v -s 512 -i zero.bin ' + DRIVE2 + ' F0 00 00 00 00 00 00 00 00 00 00 00 02 00 FF 00'
     os.system(cmd)
 
-    cmd = 'sg_raw -v -s 512 -i test_data.bin ' + DRIVE3 + ' 8E 00 FF 00 00 00 00 00 00 00 00 00 00 01 00 00'
+    cmd = 'sg_raw -v -s 512 -i zero.bin ' + DRIVE3 + ' F0 00 00 00 00 00 00 00 00 00 00 00 02 00 FF 00'
     os.system(cmd)
 
-    cmd = 'sg_raw -v -s 512 -i test_data.bin ' + DRIVE4 + ' 8E 00 FF 00 00 00 00 00 00 00 00 00 00 01 00 00'
+    cmd = 'sg_raw -v -s 512 -i zero.bin ' + DRIVE4 + ' F0 00 00 00 00 00 00 00 00 00 00 00 02 00 FF 00'
     os.system(cmd)
 
-    cmd = 'sg_raw -v -s 512 -i test_data.bin ' + DRIVE5 + ' 8E 00 FF 00 00 00 00 00 00 00 00 00 00 01 00 00'
+    cmd = 'sg_raw -v -s 512 -i zero.bin ' + DRIVE5 + ' F0 00 00 00 00 00 00 00 00 00 00 00 02 00 FF 00'
     os.system(cmd)
 
-    cmd = 'sg_raw -v -s 512 -i test_data.bin ' + DRIVE6 + ' 8E 00 FF 00 00 00 00 00 00 00 00 00 00 01 00 00'
+    cmd = 'sg_raw -v -s 512 -i zero.bin ' + DRIVE6 + ' F0 00 00 00 00 00 00 00 00 00 00 00 02 00 FF 00'
     os.system(cmd)
 
-    cmd = 'sg_raw -v -s 512 -i test_data.bin ' + DRIVE7 + ' 8E 00 FF 00 00 00 00 00 00 00 00 00 00 01 00 00'
+    cmd = 'sg_raw -v -s 512 -i zero.bin ' + DRIVE7 + ' F0 00 00 00 00 00 00 00 00 00 00 00 02 00 FF 00'
     os.system(cmd)
 
-    cmd = 'sg_raw -v -s 512 -i test_data.bin ' + DRIVE8 + ' 8E 00 FF 00 00 00 00 00 00 00 00 00 00 01 00 00'
+    cmd = 'sg_raw -v -s 512 -i zero.bin ' + DRIVE8 + ' F0 00 00 00 00 00 00 00 00 00 00 00 02 00 FF 00'
     os.system(cmd)
 
     idm_scsi.idm_drive_lock_mode(lock_id0, DRIVE1);
