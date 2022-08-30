@@ -20,9 +20,16 @@ The SWIG library must be installed from source to bypass CentOS 7 repository:
 ```
     $ sudo git clone https://github.com/swig/swig.git
     $ cd swig-4.0.x
+    $ ./autogen.sh
     $ ./configure
     $ make
     $ make install
+```
+
+If any problems are encountered during swig installation, please refer to the
+swig website for troublesooting details.
+```
+    https://www.swig.org
 ```
 ### Load the dependency modules
 
@@ -112,10 +119,20 @@ Install dependency libs on Centos7:
 
 ## Build LVM toolkit
 
+Historically, the installation procedure below uses the LVM code located at
+https://github.com/Seagate/lvm2-idm to build the modified lvmlockd.  This was
+the Seagate development repo for LVM-specific changes related to the Propeller
+projects modifications of lvmlockd.
+
+However, the above-mentioned code has since been upstreamed to the
+primary LVM Linux repository, https://github.com/lvmteam/lvm2.
+So, pulling and building LVM from this repo should work.  However, any subsequent
+changes on this repo's master branch may introduce additional dependencies.
+
 ```
     $ cd /work/path
-    $ git clone https://github.com/Seagate/lvm2-stx-private
-    $ cd /work/path/lvm2-stx-private
+    $ git clone https://github.com/Seagate/lvm2-idm
+    $ cd /work/path/lvm2-idm
     $ git checkout -b centos7_lvm2 origin/centos7_lvm2
     $ ./configure --build=x86_64-redhat-linux-gnu --host=x86_64-redhat-linux-gnu \
       --program-prefix= \
@@ -162,7 +179,7 @@ header files and systemd service file with single one command:
 *Please note*, if rootFS is the logical volume, the system
 boot process requires LVM commands.  Upgrading the
 LVM toolkit might cause a serious booting failure because of
-incompatibility between LVM tools and libs, and recovering your system will be difficult.  
+incompatibility between LVM tools and libs, and recovering your system will be difficult.
 So at this stage, please ensure the experimental PC doesn't contain any useful
 data.
 
