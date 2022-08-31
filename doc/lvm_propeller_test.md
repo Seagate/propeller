@@ -118,11 +118,15 @@ At the top of the module, create the logger object.
 
 Then add the trace messages where desired.  Below are several example tracing options.
 ```
-  _logger.info('message')
-  _logger.debug('message')
-  _logger.warning('message')
-  _logger.error('message')
-  _logger.critical('message')
+def test_idm_version(idm_cleanup):
+    _logger.info('test_idm_version info')
+    _logger.debug('test_idm_version debug')
+    _logger.warning('test_idm_version warning')
+    _logger.error('test_idm_version error')
+    _logger.critical('test_idm_version critical')
+    ret, version = idm_scsi.idm_drive_version(DRIVE1)
+    assert ret == 0
+    assert version == 0x100
 ```
 
 However, to activate this output, the user must use the pytest --log_cli* options during
