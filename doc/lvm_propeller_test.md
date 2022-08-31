@@ -6,7 +6,9 @@ on Centos7.
 # Test for IDM SCSI wrapper and IDM lock manager
 
 Testing is divided into two different modes: manual mode and
-automatic mode using **pytest** (A.K.A.: **py.test**).
+automatic mode using **pytest** (or **py.test**).
+
+## Test setup
 
 Before running any test cases, you will need to configure the environment.
 Whether you are using manua; or automatic testing,
@@ -45,6 +47,8 @@ The IDM locking manager has several options that can be modified:
 The above command manually launches IDM lock manager, specifying the following
 arguments: 'enabling debugging mode, without lockdown virtual addressing, log file
 priority is 7, stderr log priority is 7, and syslog log priority is 7'.
+
+## Test examples
 
 When manually testing the lock manager, it's useful to run the smoke test
 before running more strenuous tests:
@@ -98,6 +102,35 @@ For testing IDM SCSI wrapper APIs in async mode, you can use:
 For testing without suppressing verbose console log:
 
     $ python3 -m pytest -v -k test_idm__async -s
+## Test debug tracing
+
+The section is about adding trace debug messages within the unit test methods themselves.
+
+Using print() does not appear to work with this unit test setup.  The location
+of the print() output could not be found.
+So, alternatively, the python logging module was used.
+
+At the top of the module, create the logger object.
+```
+  from logging import Logger
+  _logger = Logger.getLogger(__name__)
+```
+
+Then add the trace messages where desired.  Below are several example tracing options.
+```
+  _logger.info('message')
+  _logger.debug('message')
+  _logger.warning('message')
+  _logger.error('message')
+  _logger.critical('message')
+```
+
+However, to activate this output, the user must use the pytest --log_cli* options during
+ cli invocation.
+
+    $ python3 -m pytest -v -k test_idm_version --log-cli-level=0
+
+See https://docs.pytest.org/ for more details.
 
 
 # Test for LVM tool
