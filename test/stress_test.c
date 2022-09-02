@@ -1,6 +1,6 @@
 /* SPDX-License-Identifier: LGPL-2.1-only */
 /*
- * Copyright (C) 2021 Seagate Technology LLC and/or its Affiliates.
+ * Copyright (C) 2022 Seagate Technology LLC and/or its Affiliates.
  */
 
 #include <pthread.h>
@@ -13,14 +13,10 @@
 #include <string.h>
 
 #include <ilm.h>
+#include "test_conf.h"
 
 struct idm_lock_id lock_id;
 int need_exit = 0;
-
-#define DRIVE1	"/dev/sdb2"
-#define DRIVE2	"/dev/sdd2"
-#define DRIVE3	"/dev/sde2"
-#define DRIVE4	"/dev/sdg2"
 
 static void *test_thread(void *data)
 {
@@ -49,10 +45,10 @@ static void *test_thread(void *data)
 
 		lock_op.mode = IDM_MODE_EXCLUSIVE;
 		lock_op.drive_num = 4;
-		lock_op.drives[0] = DRIVE1;
-		lock_op.drives[1] = DRIVE2;
-		lock_op.drives[2] = DRIVE3;
-		lock_op.drives[3] = DRIVE4;
+		lock_op.drives[0] = BLK_DEVICE1;
+		lock_op.drives[1] = BLK_DEVICE2;
+		lock_op.drives[2] = BLK_DEVICE3;
+		lock_op.drives[3] = BLK_DEVICE4;
 		lock_op.timeout = 3000;
 
 		ret = ilm_lock(s, &lock_id, &lock_op);

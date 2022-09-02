@@ -1,6 +1,6 @@
 /* SPDX-License-Identifier: LGPL-2.1-only */
 /*
- * Copyright (C) 2021 Seagate Technology LLC and/or its Affiliates.
+ * Copyright (C) 2022 Seagate Technology LLC and/or its Affiliates.
  */
 
 #include <errno.h>
@@ -14,9 +14,7 @@
 #include <unistd.h>
 
 #include <ilm.h>
-
-#define DRIVE1	"/dev/sdb2"
-#define DRIVE2	"/dev/sdd2"
+#include "test_conf.h"
 
 static int signal_received = 0;
 
@@ -80,8 +78,8 @@ int main(void)
 
 	lock_op.mode = IDM_MODE_EXCLUSIVE;
 	lock_op.drive_num = 2;
-	lock_op.drives[0] = DRIVE1;
-	lock_op.drives[1] = DRIVE2;
+	lock_op.drives[0] = BLK_DEVICE1;
+	lock_op.drives[1] = BLK_DEVICE2;
 
 	/* Set timeout to 3s */
 	lock_op.timeout = 3000;
