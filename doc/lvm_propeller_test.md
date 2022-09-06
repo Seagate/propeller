@@ -6,10 +6,12 @@ on Centos7.
 # Test for IDM SCSI wrapper and IDM lock manager
 
 Testing is divided into two different modes: manual mode and
-automatic mode using py.test.
+automatic mode using **pytest** (or **py.test**).
 
-Before running any test cases, you will need to configure the environment. 
-Whether you are using manua; or automatic testing, 
+## Test setup
+
+Before running any test cases, you will need to configure the environment.
+Whether you are using manua; or automatic testing,
 this will configure the environment variables:
 
     $ cd /path/to/propeller/test
@@ -20,7 +22,7 @@ The script 'init_env.sh' will configure shell variables for the lib and python p
 Please be aware, if you want to launch two different shell windows to
 execute testing, you will need to run 'source init_env.sh' separately in both shell windows.
 Two shell windows are useful for debugging the IDM lock
-manager daemon with one for the lock manager and another for the client.  
+manager daemon with one for the lock manager and another for the client.
 
 For manual testing, we can use the below command to launch the daemon:
 
@@ -46,43 +48,93 @@ The above command manually launches IDM lock manager, specifying the following
 arguments: 'enabling debugging mode, without lockdown virtual addressing, log file
 priority is 7, stderr log priority is 7, and syslog log priority is 7'.
 
+## Test examples
+
 When manually testing the lock manager, it's useful to run the smoke test
 before running more strenuous tests:
 
     $ cd test
     $ ./smoke_test
 
-When automatically testing, py.test is used.
-The below command will run all tests, the'-v' flag specifying verbose log output:
+When automatically testing, pytest is used.
+The command below will run all tests, the'-v' flag specifying verbose log output:
 
     $ cd test
-    $ python3 -m py.test -v
+    $ python3 -m pytest -v
+
+For testing a single unit test python module (a single .py file) by
+itself, you can use:
+
+    $ python3 -m pytest -v ilm_inject_fault_test.py
 
 The option '-k' specifies testing cases, in this example it will only
 execute test cases with the prefix 'test_lock'.
 
-    $ python3 -m py.test -v -k test_lock'
+    $ python3 -m pytest -v -k test_lock'
+
+The option -k can also be used to ignore certain test cases.  For example, if
+you wanted to only run tests that involved 2 or less drive, we'd have to ignore
+all the tests that interact with 3+ drives.
+
+    $ python3 -m pytest -v -k "not 3_drive and not 4_drive"
+
+Further, if you only have 1 host, you'd have to also disable the 2 and 3 host unit tests
+
+    $ python3 -m pytest -v -k "not 3_drive and not 4_drive and not two_host and not three_host"
 
 The option '--run-destroy' will enable an extra case for testing
 IDM destroy.
 
-    $ python3 -m py.test -v --run-destroy
+    $ python3 -m pytest -v --run-destroy
 
 For testing IDM SCSI wrapper APIs, you can use:
 
-    $ python3 -m py.test -v -k test_idm
+    $ python3 -m pytest -v -k test_idm
 
 For testing IDM SCSI wrapper APIs in sync mode, you can use:
 
-    $ python3 -m py.test -v -k test_idm__sync
+    $ python3 -m pytest -v -k test_idm__sync
 
 For testing IDM SCSI wrapper APIs in async mode, you can use:
 
-    $ python3 -m py.test -v -k test_idm__async
+    $ python3 -m pytest -v -k test_idm__async
 
 For testing without suppressing verbose console log:
 
-    $ python3 -m py.test -v -k test_idm__async -s
+    $ python3 -m pytest -v -k test_idm__async -s
+## Test debug tracing
+
+The section is about adding trace debug messages within the unit test methods themselves.
+
+Using print() does not appear to work with this unit test setup.  The location
+of the print() output could not be found.
+So, alternatively, the python logging module was used.
+
+At the top of the module, create the logger object.
+```
+  from logging import Logger
+  _logger = Logger.getLogger(__name__)
+```
+
+Then add the trace messages where desired.  Below are several example tracing options.
+```
+def test_idm_version(idm_cleanup):
+    _logger.info('test_idm_version info')
+    _logger.debug('test_idm_version debug')
+    _logger.warning('test_idm_version warning')
+    _logger.error('test_idm_version error')
+    _logger.critical('test_idm_version critical')
+    ret, version = idm_scsi.idm_drive_version(DRIVE1)
+    assert ret == 0
+    assert version == 0x100
+```
+
+However, to activate this output, the user must use the pytest --log_cli* options during
+ cli invocation.
+
+    $ python3 -m pytest -v -k test_idm_version --log-cli-level=0
+
+See https://docs.pytest.org/ for more details.
 
 
 # Test for LVM tool
@@ -214,7 +266,7 @@ Below is an example of using the partition /dev/sdj3 as a backing device for tes
 
 If you see a lot of failures when testing, it's good to use
 a simple test case and verify if the environment has been prepared
-properly. In this case, we can run the test case 'activate-minor.sh', which provides results 
+properly. In this case, we can run the test case 'activate-minor.sh', which provides results
 quickly and will indicate if any mistakes were made during the preparation process.
 
 ```
@@ -233,7 +285,7 @@ This directory can be packaged for easy offline analysis:
 
 ### Test with multiple drives
 
-If multiple devices have been configured in the test/shell/aux.sh file (see beginning of LVM Test Configurations section), 
+If multiple devices have been configured in the test/shell/aux.sh file (see beginning of LVM Test Configurations section),
 you can test multiple IDM-enabled devices at once. The 'BLK_DEVS' array can support a maximum of 16 devices. If any case requires more than 16
 devices, the test framework will fall back to using BLK_DEVS[1] as backing device and create device mapping on it.
 
@@ -246,7 +298,7 @@ devices, the test framework will fall back to using BLK_DEVS[1] as backing devic
 
 There are three test cases that can be used to test fault injection:
 - shell/idm_lvmlockd_failure.sh: This test case is to verify if lvmlockd
-  exits abnormally, that it can relaunch and talk to IDM lock manager again, 
+  exits abnormally, that it can relaunch and talk to IDM lock manager again,
   and activate the VG and LV again by acquiring the VG/LV lock.
 - shell/idm_ilm_abnormal_exit.sh: This test case is to verify that when the
   IDM lock manager has failed, the drive firmware removes the host
@@ -269,7 +321,7 @@ There are three test cases that can be used to test fault injection:
   and the drive names will be altered. This might impact later
   testing, and in some situations, you may need to restart the machine to continue testing.
 - shell/idm_ilm_fabric_failure.sh: This test case is to emulate a
-  fabric issue, making the drives disappear from the system. If the drives reconnect to the system, 
+  fabric issue, making the drives disappear from the system. If the drives reconnect to the system,
   even with an altered drive device node name and SG node name, the lock manager is expected
   to work.
   NOTE: when running the test case idm_fabric_failure.sh, please ensure the
@@ -290,9 +342,9 @@ There are three test cases that can be used to test fault injection:
 ### Test for multi hosts
 
 There are four cases for multi hosts testing. These LVM test cases
-contain 'hosta' and 'hostb' in their name. These are used by running 
+contain 'hosta' and 'hostb' in their name. These are used by running
 the 'hosta' script on one host, and the 'hostb' script on another.
-These will need to be manually run one by one. 
+These will need to be manually run one by one.
 
 - idm_multi_hosts_vg_hosta.sh/idm_multi_hosts_vg_hostb.sh:
   This test case is to verify VG operations on two hosts.
