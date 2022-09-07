@@ -10,6 +10,7 @@ automatic mode using **pytest** (or **py.test**).
 
 ## Test setup
 
+### Environment
 Before running any test cases, you will need to configure the environment.
 Whether you are using manua; or automatic testing,
 this will configure the environment variables:
@@ -24,6 +25,7 @@ execute testing, you will need to run 'source init_env.sh' separately in both sh
 Two shell windows are useful for debugging the IDM lock
 manager daemon with one for the lock manager and another for the client.
 
+### Daemon
 For manual testing, we can use the below command to launch the daemon:
 
     $ ./src/seagate_ilm -D 1 -l 0 -L 7 -E 7 -S 7
@@ -47,6 +49,20 @@ The IDM locking manager has several options that can be modified:
 The above command manually launches IDM lock manager, specifying the following
 arguments: 'enabling debugging mode, without lockdown virtual addressing, log file
 priority is 7, stderr log priority is 7, and syslog log priority is 7'.
+
+### Unit test settings
+Currently, there are 2 files that have variable settings used throughout the unit test code.
+    - test/test_conf.h
+    - test/test_conf.py
+
+These 2 files are configuration settings used throughout the C code and the Python
+code, respectively.  (Note: These settings need to be refactored into a single JSON file)
+
+The most important settings to configure are the block device (BLK_DEVICEX) and
+scsi generic device (SG_DEVICEX) system paths.
+Make sure that these constant configuration settings are correct before running any
+unit tests.  Other drives on the system can be damaged if these setting are not configured
+correctly.
 
 ## Test examples
 

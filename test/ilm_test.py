@@ -1,5 +1,5 @@
 # SPDX-License-Identifier: LGPL-2.1-only
-# Copyright (C) 2021 Seagate Technology LLC and/or its Affiliates.
+# Copyright (C) 2022 Seagate Technology LLC and/or its Affiliates.
 
 
 import errno
@@ -11,19 +11,7 @@ import uuid
 import pytest
 
 import ilm
-
-DRIVE1 = "/dev/sdb3"
-DRIVE2 = "/dev/sdc3"
-
-LOCK1_VG_UUID = "00000000000000000000000000000001"
-LOCK1_LV_UUID = "0123456789abcdef0123456789abcdef"
-
-LOCK2_VG_UUID = "00000000000000000000000000000002"
-LOCK2_LV_UUID = "0123456789abcdef1111111111111111"
-
-HOST1 = "00000000000000000000000000000000"
-HOST2 = "00000000000000000000000000000001"
-HOST3 = "00000000000000000000000000000002"
+from test_conf import *     # Normally bad practice, but only importing 'constants' here
 
 def test_lockspace(ilm_daemon):
     ret, s = ilm.ilm_connect()
@@ -38,7 +26,7 @@ def test_version(ilm_daemon):
     assert ret == 0
     assert s > 0
 
-    ret, version = ilm.ilm_version(s, DRIVE1)
+    ret, version = ilm.ilm_version(s, BLK_DEVICE1)
     assert ret == 0
     assert version == 0x100
 
@@ -57,8 +45,8 @@ def test_lock__shareable_smoke_test(ilm_daemon):
     lock_op = ilm.idm_lock_op()
     lock_op.mode = ilm.IDM_MODE_SHAREABLE
     lock_op.drive_num = 2
-    lock_op.set_drive_names(0, DRIVE1)
-    lock_op.set_drive_names(1, DRIVE2)
+    lock_op.set_drive_names(0, BLK_DEVICE1)
+    lock_op.set_drive_names(1, BLK_DEVICE2)
     lock_op.timeout = 60000     # Timeout: 60s
 
     ret = ilm.ilm_lock(s, lock_id, lock_op)
@@ -83,8 +71,8 @@ def test_lock__shareable_100_times(ilm_daemon):
         lock_op = ilm.idm_lock_op()
         lock_op.mode = ilm.IDM_MODE_SHAREABLE
         lock_op.drive_num = 2
-        lock_op.set_drive_names(0, DRIVE1)
-        lock_op.set_drive_names(1, DRIVE2)
+        lock_op.set_drive_names(0, BLK_DEVICE1)
+        lock_op.set_drive_names(1, BLK_DEVICE2)
         lock_op.timeout = 60000     # Timeout: 60s
 
         ret = ilm.ilm_lock(s, lock_id, lock_op)
@@ -108,8 +96,8 @@ def test_lock__exclusive_smoke_test(ilm_daemon):
     lock_op = ilm.idm_lock_op()
     lock_op.mode = ilm.IDM_MODE_EXCLUSIVE
     lock_op.drive_num = 2
-    lock_op.set_drive_names(0, DRIVE1)
-    lock_op.set_drive_names(1, DRIVE2)
+    lock_op.set_drive_names(0, BLK_DEVICE1)
+    lock_op.set_drive_names(1, BLK_DEVICE2)
     lock_op.timeout = 60000     # Timeout: 60s
 
     ret = ilm.ilm_lock(s, lock_id, lock_op)
@@ -134,8 +122,8 @@ def test_lock__exclusive_100_times(ilm_daemon):
         lock_op = ilm.idm_lock_op()
         lock_op.mode = ilm.IDM_MODE_EXCLUSIVE
         lock_op.drive_num = 2
-        lock_op.set_drive_names(0, DRIVE1)
-        lock_op.set_drive_names(1, DRIVE2)
+        lock_op.set_drive_names(0, BLK_DEVICE1)
+        lock_op.set_drive_names(1, BLK_DEVICE2)
         lock_op.timeout = 60000     # Timeout: 60s
 
         ret = ilm.ilm_lock(s, lock_id, lock_op)
@@ -159,8 +147,8 @@ def test_lock__wrong_mode(ilm_daemon):
     lock_op = ilm.idm_lock_op()
     lock_op.mode = 0
     lock_op.drive_num = 2
-    lock_op.set_drive_names(0, DRIVE1)
-    lock_op.set_drive_names(1, DRIVE2)
+    lock_op.set_drive_names(0, BLK_DEVICE1)
+    lock_op.set_drive_names(1, BLK_DEVICE2)
     lock_op.timeout = 60000     # Timeout: 60s
 
     ret = ilm.ilm_lock(s, lock_id, lock_op)
@@ -181,8 +169,8 @@ def test_lock__one_host_exclusive_twice(ilm_daemon):
     lock_op = ilm.idm_lock_op()
     lock_op.mode = ilm.IDM_MODE_EXCLUSIVE
     lock_op.drive_num = 2
-    lock_op.set_drive_names(0, DRIVE1)
-    lock_op.set_drive_names(1, DRIVE2)
+    lock_op.set_drive_names(0, BLK_DEVICE1)
+    lock_op.set_drive_names(1, BLK_DEVICE2)
     lock_op.timeout = 60000     # Timeout: 60s
 
     ret = ilm.ilm_lock(s, lock_id, lock_op)
@@ -209,8 +197,8 @@ def test_lock__one_host_shareable_twice(ilm_daemon):
     lock_op = ilm.idm_lock_op()
     lock_op.mode = ilm.IDM_MODE_SHAREABLE
     lock_op.drive_num = 2
-    lock_op.set_drive_names(0, DRIVE1)
-    lock_op.set_drive_names(1, DRIVE2)
+    lock_op.set_drive_names(0, BLK_DEVICE1)
+    lock_op.set_drive_names(1, BLK_DEVICE2)
     lock_op.timeout = 60000     # Timeout: 60s
 
     ret = ilm.ilm_lock(s, lock_id, lock_op)
@@ -237,8 +225,8 @@ def test_lock__one_host_release_twice(ilm_daemon):
     lock_op = ilm.idm_lock_op()
     lock_op.mode = ilm.IDM_MODE_SHAREABLE
     lock_op.drive_num = 2
-    lock_op.set_drive_names(0, DRIVE1)
-    lock_op.set_drive_names(1, DRIVE2)
+    lock_op.set_drive_names(0, BLK_DEVICE1)
+    lock_op.set_drive_names(1, BLK_DEVICE2)
     lock_op.timeout = 60000     # Timeout: 60s
 
     ret = ilm.ilm_lock(s, lock_id, lock_op)
@@ -275,8 +263,8 @@ def test_lock__two_hosts_exclusive_success_exclusive_fail(ilm_daemon):
     lock_op = ilm.idm_lock_op()
     lock_op.mode = ilm.IDM_MODE_EXCLUSIVE
     lock_op.drive_num = 2
-    lock_op.set_drive_names(0, DRIVE1)
-    lock_op.set_drive_names(1, DRIVE2)
+    lock_op.set_drive_names(0, BLK_DEVICE1)
+    lock_op.set_drive_names(1, BLK_DEVICE2)
     lock_op.timeout = 60000     # Timeout: 60s
 
     ret = ilm.ilm_lock(s1, lock_id, lock_op)
@@ -317,8 +305,8 @@ def test_lock__two_hosts_shareable_success_shareable_success(ilm_daemon):
     lock_op = ilm.idm_lock_op()
     lock_op.mode = ilm.IDM_MODE_SHAREABLE
     lock_op.drive_num = 2
-    lock_op.set_drive_names(0, DRIVE1)
-    lock_op.set_drive_names(1, DRIVE2)
+    lock_op.set_drive_names(0, BLK_DEVICE1)
+    lock_op.set_drive_names(1, BLK_DEVICE2)
     lock_op.timeout = 60000     # Timeout: 60s
 
     ret = ilm.ilm_lock(s1, lock_id, lock_op)
@@ -361,8 +349,8 @@ def test_lock__two_hosts_shareable_success_exclusive_fail(ilm_daemon):
     lock_op = ilm.idm_lock_op()
     lock_op.mode = ilm.IDM_MODE_SHAREABLE
     lock_op.drive_num = 2
-    lock_op.set_drive_names(0, DRIVE1)
-    lock_op.set_drive_names(1, DRIVE2)
+    lock_op.set_drive_names(0, BLK_DEVICE1)
+    lock_op.set_drive_names(1, BLK_DEVICE2)
     lock_op.timeout = 60000     # Timeout: 60s
 
     ret = ilm.ilm_lock(s1, lock_id, lock_op)
@@ -371,8 +359,8 @@ def test_lock__two_hosts_shareable_success_exclusive_fail(ilm_daemon):
     lock_op = ilm.idm_lock_op()
     lock_op.mode = ilm.IDM_MODE_EXCLUSIVE
     lock_op.drive_num = 2
-    lock_op.set_drive_names(0, DRIVE1)
-    lock_op.set_drive_names(1, DRIVE2)
+    lock_op.set_drive_names(0, BLK_DEVICE1)
+    lock_op.set_drive_names(1, BLK_DEVICE2)
     lock_op.timeout = 60000     # Timeout: 60s
 
     ret = ilm.ilm_lock(s2, lock_id, lock_op)
@@ -412,8 +400,8 @@ def test_lock__two_hosts_exclusive_success_shareable_fail(ilm_daemon):
     lock_op = ilm.idm_lock_op()
     lock_op.mode = ilm.IDM_MODE_EXCLUSIVE
     lock_op.drive_num = 2
-    lock_op.set_drive_names(0, DRIVE1)
-    lock_op.set_drive_names(1, DRIVE2)
+    lock_op.set_drive_names(0, BLK_DEVICE1)
+    lock_op.set_drive_names(1, BLK_DEVICE2)
     lock_op.timeout = 60000     # Timeout: 60s
 
     ret = ilm.ilm_lock(s1, lock_id, lock_op)
@@ -422,8 +410,8 @@ def test_lock__two_hosts_exclusive_success_shareable_fail(ilm_daemon):
     lock_op = ilm.idm_lock_op()
     lock_op.mode = ilm.IDM_MODE_SHAREABLE
     lock_op.drive_num = 2
-    lock_op.set_drive_names(0, DRIVE1)
-    lock_op.set_drive_names(1, DRIVE2)
+    lock_op.set_drive_names(0, BLK_DEVICE1)
+    lock_op.set_drive_names(1, BLK_DEVICE2)
     lock_op.timeout = 60000     # Timeout: 60s
 
     ret = ilm.ilm_lock(s2, lock_id, lock_op)
@@ -463,8 +451,8 @@ def test_lock__two_hosts_exclusive_wrong_release_ahead(ilm_daemon):
     lock_op = ilm.idm_lock_op()
     lock_op.mode = ilm.IDM_MODE_EXCLUSIVE
     lock_op.drive_num = 2
-    lock_op.set_drive_names(0, DRIVE1)
-    lock_op.set_drive_names(1, DRIVE2)
+    lock_op.set_drive_names(0, BLK_DEVICE1)
+    lock_op.set_drive_names(1, BLK_DEVICE2)
     lock_op.timeout = 60000     # Timeout: 60s
 
     ret = ilm.ilm_lock(s1, lock_id, lock_op)
@@ -504,8 +492,8 @@ def test_lock__two_hosts_exclusive_wrong_release_after(ilm_daemon):
     lock_op = ilm.idm_lock_op()
     lock_op.mode = ilm.IDM_MODE_EXCLUSIVE
     lock_op.drive_num = 2
-    lock_op.set_drive_names(0, DRIVE1)
-    lock_op.set_drive_names(1, DRIVE2)
+    lock_op.set_drive_names(0, BLK_DEVICE1)
+    lock_op.set_drive_names(1, BLK_DEVICE2)
     lock_op.timeout = 60000     # Timeout: 60s
 
     ret = ilm.ilm_lock(s1, lock_id, lock_op)
@@ -535,8 +523,8 @@ def test_lock__convert_shareable_to_shareable(ilm_daemon):
     lock_op = ilm.idm_lock_op()
     lock_op.mode = ilm.IDM_MODE_SHAREABLE
     lock_op.drive_num = 2
-    lock_op.set_drive_names(0, DRIVE1)
-    lock_op.set_drive_names(1, DRIVE2)
+    lock_op.set_drive_names(0, BLK_DEVICE1)
+    lock_op.set_drive_names(1, BLK_DEVICE2)
     lock_op.timeout = 60000     # Timeout: 60s
 
     ret = ilm.ilm_lock(s, lock_id, lock_op)
@@ -563,8 +551,8 @@ def test_lock__convert_shareable_to_exclusive(ilm_daemon):
     lock_op = ilm.idm_lock_op()
     lock_op.mode = ilm.IDM_MODE_SHAREABLE
     lock_op.drive_num = 2
-    lock_op.set_drive_names(0, DRIVE1)
-    lock_op.set_drive_names(1, DRIVE2)
+    lock_op.set_drive_names(0, BLK_DEVICE1)
+    lock_op.set_drive_names(1, BLK_DEVICE2)
     lock_op.timeout = 60000     # Timeout: 60s
 
     ret = ilm.ilm_lock(s, lock_id, lock_op)
@@ -591,8 +579,8 @@ def test_lock__convert_exclusive_to_shareable(ilm_daemon):
     lock_op = ilm.idm_lock_op()
     lock_op.mode = ilm.IDM_MODE_EXCLUSIVE
     lock_op.drive_num = 2
-    lock_op.set_drive_names(0, DRIVE1)
-    lock_op.set_drive_names(1, DRIVE2)
+    lock_op.set_drive_names(0, BLK_DEVICE1)
+    lock_op.set_drive_names(1, BLK_DEVICE2)
     lock_op.timeout = 60000     # Timeout: 60s
 
     ret = ilm.ilm_lock(s, lock_id, lock_op)
@@ -619,8 +607,8 @@ def test_lock__convert_exclusive_to_exclusive(ilm_daemon):
     lock_op = ilm.idm_lock_op()
     lock_op.mode = ilm.IDM_MODE_EXCLUSIVE
     lock_op.drive_num = 2
-    lock_op.set_drive_names(0, DRIVE1)
-    lock_op.set_drive_names(1, DRIVE2)
+    lock_op.set_drive_names(0, BLK_DEVICE1)
+    lock_op.set_drive_names(1, BLK_DEVICE2)
     lock_op.timeout = 60000     # Timeout: 60s
 
     ret = ilm.ilm_lock(s, lock_id, lock_op)
@@ -657,8 +645,8 @@ def test_lock__two_hosts_convert_shareable_to_exclusive(ilm_daemon):
     lock_op = ilm.idm_lock_op()
     lock_op.mode = ilm.IDM_MODE_SHAREABLE
     lock_op.drive_num = 2
-    lock_op.set_drive_names(0, DRIVE1)
-    lock_op.set_drive_names(1, DRIVE2)
+    lock_op.set_drive_names(0, BLK_DEVICE1)
+    lock_op.set_drive_names(1, BLK_DEVICE2)
     lock_op.timeout = 60000     # Timeout: 60s
 
     ret = ilm.ilm_lock(s1, lock_id, lock_op)
@@ -707,8 +695,8 @@ def test_lock__two_hosts_convert_shareable_to_exclusive_success(ilm_daemon):
     lock_op = ilm.idm_lock_op()
     lock_op.mode = ilm.IDM_MODE_SHAREABLE
     lock_op.drive_num = 2
-    lock_op.set_drive_names(0, DRIVE1)
-    lock_op.set_drive_names(1, DRIVE2)
+    lock_op.set_drive_names(0, BLK_DEVICE1)
+    lock_op.set_drive_names(1, BLK_DEVICE2)
     lock_op.timeout = 60000     # Timeout: 60s
 
     ret = ilm.ilm_lock(s1, lock_id, lock_op)
@@ -757,8 +745,8 @@ def test_lock__two_hosts_convert_shareable_timeout_to_exclusive_success(ilm_daem
     lock_op = ilm.idm_lock_op()
     lock_op.mode = ilm.IDM_MODE_SHAREABLE
     lock_op.drive_num = 2
-    lock_op.set_drive_names(0, DRIVE1)
-    lock_op.set_drive_names(1, DRIVE2)
+    lock_op.set_drive_names(0, BLK_DEVICE1)
+    lock_op.set_drive_names(1, BLK_DEVICE2)
     lock_op.timeout = 20000     # Timeout: 20s
 
     ret = ilm.ilm_lock(s1, lock_id, lock_op)
@@ -817,8 +805,8 @@ def test_lock__two_hosts_convert_shareable_timeout_to_shareable_success(ilm_daem
     lock_op = ilm.idm_lock_op()
     lock_op.mode = ilm.IDM_MODE_SHAREABLE
     lock_op.drive_num = 2
-    lock_op.set_drive_names(0, DRIVE1)
-    lock_op.set_drive_names(1, DRIVE2)
+    lock_op.set_drive_names(0, BLK_DEVICE1)
+    lock_op.set_drive_names(1, BLK_DEVICE2)
     lock_op.timeout = 20000     # Timeout: 20s
 
     ret = ilm.ilm_lock(s1, lock_id, lock_op)
@@ -880,8 +868,8 @@ def test_lock__two_hosts_convert_exclusive_timeout_to_exclusive_success(ilm_daem
     lock_op = ilm.idm_lock_op()
     lock_op.mode = ilm.IDM_MODE_EXCLUSIVE
     lock_op.drive_num = 2
-    lock_op.set_drive_names(0, DRIVE1)
-    lock_op.set_drive_names(1, DRIVE2)
+    lock_op.set_drive_names(0, BLK_DEVICE1)
+    lock_op.set_drive_names(1, BLK_DEVICE2)
     lock_op.timeout = 20000     # Timeout: 20s
 
     ret = ilm.ilm_lock(s1, lock_id, lock_op)
@@ -933,8 +921,8 @@ def test_lock__two_hosts_convert_exclusive_timeout_to_shareable_success(ilm_daem
     lock_op = ilm.idm_lock_op()
     lock_op.mode = ilm.IDM_MODE_EXCLUSIVE
     lock_op.drive_num = 2
-    lock_op.set_drive_names(0, DRIVE1)
-    lock_op.set_drive_names(1, DRIVE2)
+    lock_op.set_drive_names(0, BLK_DEVICE1)
+    lock_op.set_drive_names(1, BLK_DEVICE2)
     lock_op.timeout = 20000     # Timeout: 20s
 
     ret = ilm.ilm_lock(s1, lock_id, lock_op)
@@ -975,8 +963,8 @@ def test_lock__timeout(ilm_daemon):
     lock_op = ilm.idm_lock_op()
     lock_op.mode = ilm.IDM_MODE_SHAREABLE
     lock_op.drive_num = 2
-    lock_op.set_drive_names(0, DRIVE1)
-    lock_op.set_drive_names(1, DRIVE2)
+    lock_op.set_drive_names(0, BLK_DEVICE1)
+    lock_op.set_drive_names(1, BLK_DEVICE2)
     lock_op.timeout = 3000     # Timeout: 3s
 
     ret = ilm.ilm_lock(s, lock_id, lock_op)
@@ -1006,8 +994,8 @@ def test_lock__timeout_convert1(ilm_daemon):
     lock_op = ilm.idm_lock_op()
     lock_op.mode = ilm.IDM_MODE_SHAREABLE
     lock_op.drive_num = 2
-    lock_op.set_drive_names(0, DRIVE1)
-    lock_op.set_drive_names(1, DRIVE2)
+    lock_op.set_drive_names(0, BLK_DEVICE1)
+    lock_op.set_drive_names(1, BLK_DEVICE2)
     lock_op.timeout = 3000     # Timeout: 3s
 
     ret = ilm.ilm_lock(s, lock_id, lock_op)
@@ -1041,8 +1029,8 @@ def test_lock__timeout_convert2(ilm_daemon):
     lock_op = ilm.idm_lock_op()
     lock_op.mode = ilm.IDM_MODE_SHAREABLE
     lock_op.drive_num = 2
-    lock_op.set_drive_names(0, DRIVE1)
-    lock_op.set_drive_names(1, DRIVE2)
+    lock_op.set_drive_names(0, BLK_DEVICE1)
+    lock_op.set_drive_names(1, BLK_DEVICE2)
     lock_op.timeout = 3000     # Timeout: 3s
 
     ret = ilm.ilm_lock(s, lock_id, lock_op)
@@ -1081,8 +1069,8 @@ def test_lock__get_mode(ilm_daemon):
     lock_op = ilm.idm_lock_op()
     lock_op.mode = ilm.IDM_MODE_SHAREABLE
     lock_op.drive_num = 2
-    lock_op.set_drive_names(0, DRIVE1)
-    lock_op.set_drive_names(1, DRIVE2)
+    lock_op.set_drive_names(0, BLK_DEVICE1)
+    lock_op.set_drive_names(1, BLK_DEVICE2)
     lock_op.timeout = 60000     # Timeout: 60s
 
     ret = ilm.ilm_lock(s, lock_id, lock_op)
@@ -1116,8 +1104,8 @@ def test_lock__get_mode_not_existed(ilm_daemon):
 
     lock_op = ilm.idm_lock_op()
     lock_op.drive_num = 2
-    lock_op.set_drive_names(0, DRIVE1)
-    lock_op.set_drive_names(1, DRIVE2)
+    lock_op.set_drive_names(0, BLK_DEVICE1)
+    lock_op.set_drive_names(1, BLK_DEVICE2)
     lock_op.timeout = 60000     # Timeout: 60s
 
     # Return unlock mode if the IDM has not been created
@@ -1150,8 +1138,8 @@ def test_lock__two_hosts_get_mode(ilm_daemon):
     lock_op = ilm.idm_lock_op()
     lock_op.mode = ilm.IDM_MODE_SHAREABLE
     lock_op.drive_num = 2
-    lock_op.set_drive_names(0, DRIVE1)
-    lock_op.set_drive_names(1, DRIVE2)
+    lock_op.set_drive_names(0, BLK_DEVICE1)
+    lock_op.set_drive_names(1, BLK_DEVICE2)
     lock_op.timeout = 60000     # Timeout: 60s
 
     ret = ilm.ilm_lock(s1, lock_id, lock_op)
@@ -1202,8 +1190,8 @@ def test_lock__get_host_count(ilm_daemon):
     lock_op = ilm.idm_lock_op()
     lock_op.mode = ilm.IDM_MODE_SHAREABLE
     lock_op.drive_num = 2
-    lock_op.set_drive_names(0, DRIVE1)
-    lock_op.set_drive_names(1, DRIVE2)
+    lock_op.set_drive_names(0, BLK_DEVICE1)
+    lock_op.set_drive_names(1, BLK_DEVICE2)
     lock_op.timeout = 60000     # Timeout: 60s
 
     ret = ilm.ilm_lock(s, lock_id, lock_op)
@@ -1247,8 +1235,8 @@ def test_lock__two_hosts_get_host_count(ilm_daemon):
     lock_op = ilm.idm_lock_op()
     lock_op.mode = ilm.IDM_MODE_SHAREABLE
     lock_op.drive_num = 2
-    lock_op.set_drive_names(0, DRIVE1)
-    lock_op.set_drive_names(1, DRIVE2)
+    lock_op.set_drive_names(0, BLK_DEVICE1)
+    lock_op.set_drive_names(1, BLK_DEVICE2)
     lock_op.timeout = 60000     # Timeout: 60s
 
     ret = ilm.ilm_lock(s1, lock_id, lock_op)
@@ -1316,8 +1304,8 @@ def test_lock__three_hosts_get_host_count(ilm_daemon):
     lock_op = ilm.idm_lock_op()
     lock_op.mode = ilm.IDM_MODE_SHAREABLE
     lock_op.drive_num = 2
-    lock_op.set_drive_names(0, DRIVE1)
-    lock_op.set_drive_names(1, DRIVE2)
+    lock_op.set_drive_names(0, BLK_DEVICE1)
+    lock_op.set_drive_names(1, BLK_DEVICE2)
     lock_op.timeout = 60000     # Timeout: 60s
 
     ret = ilm.ilm_lock(s1, lock_id, lock_op)
@@ -1411,8 +1399,8 @@ def test_lock__destroy(ilm_daemon):
     lock_op = ilm.idm_lock_op()
     lock_op.mode = ilm.IDM_MODE_SHAREABLE
     lock_op.drive_num = 2
-    lock_op.set_drive_names(0, DRIVE1)
-    lock_op.set_drive_names(1, DRIVE2)
+    lock_op.set_drive_names(0, BLK_DEVICE1)
+    lock_op.set_drive_names(1, BLK_DEVICE2)
     lock_op.timeout = 3000     # Timeout: 60s
 
     ret = ilm.ilm_lock(s1, lock_id, lock_op)

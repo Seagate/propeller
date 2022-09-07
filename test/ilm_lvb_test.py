@@ -1,5 +1,5 @@
 # SPDX-License-Identifier: LGPL-2.1-only
-# Copyright (C) 2021 Seagate Technology LLC and/or its Affiliates.
+# Copyright (C) 2022 Seagate Technology LLC and/or its Affiliates.
 
 
 import errno
@@ -11,16 +11,7 @@ import uuid
 import pytest
 
 import ilm
-
-DRIVE1 = "/dev/sdb3"
-DRIVE2 = "/dev/sdc3"
-
-LOCK1_VG_UUID = "00000000000000000000000000000001"
-LOCK1_LV_UUID = "0123456789abcdef0123456789abcdef"
-
-HOST1 = "00000000000000000000000000000000"
-HOST2 = "00000000000000000000000000000001"
-HOST3 = "00000000000000000000000000000002"
+from test_conf import *     # Normally bad practice, but only importing 'constants' here
 
 def test_lock__lvb_read(ilm_daemon):
     ret, s = ilm.ilm_connect()
@@ -34,8 +25,8 @@ def test_lock__lvb_read(ilm_daemon):
     lock_op = ilm.idm_lock_op()
     lock_op.mode = ilm.IDM_MODE_EXCLUSIVE
     lock_op.drive_num = 2
-    lock_op.set_drive_names(0, DRIVE1)
-    lock_op.set_drive_names(1, DRIVE2)
+    lock_op.set_drive_names(0, BLK_DEVICE1)
+    lock_op.set_drive_names(1, BLK_DEVICE2)
     lock_op.timeout = 60000     # Timeout: 60s
 
     ret = ilm.ilm_lock(s, lock_id, lock_op)
@@ -43,7 +34,7 @@ def test_lock__lvb_read(ilm_daemon):
 
     a = ilm.charArray(8)
 
-    ret = ilm.ilm_read_lvb(s, lock_id, a, 8);
+    ret = ilm.ilm_read_lvb(s, lock_id, a, 8)
     assert ret == 0
     assert ord(a[0]) == 0
     assert ord(a[1]) == 0
@@ -82,8 +73,8 @@ def test_lock__lvb_read_two_hosts(ilm_daemon):
     lock_op = ilm.idm_lock_op()
     lock_op.mode = ilm.IDM_MODE_EXCLUSIVE
     lock_op.drive_num = 2
-    lock_op.set_drive_names(0, DRIVE1)
-    lock_op.set_drive_names(1, DRIVE2)
+    lock_op.set_drive_names(0, BLK_DEVICE1)
+    lock_op.set_drive_names(1, BLK_DEVICE2)
     lock_op.timeout = 60000     # Timeout: 60s
 
     ret = ilm.ilm_lock(s1, lock_id, lock_op)
@@ -91,7 +82,7 @@ def test_lock__lvb_read_two_hosts(ilm_daemon):
 
     a = ilm.charArray(8)
 
-    ret = ilm.ilm_read_lvb(s1, lock_id, a, 8);
+    ret = ilm.ilm_read_lvb(s1, lock_id, a, 8)
     assert ret == 0
     assert ord(a[0]) == 0
     assert ord(a[1]) == 0
@@ -111,7 +102,7 @@ def test_lock__lvb_read_two_hosts(ilm_daemon):
     a[6] = 'g'
     a[7] = 'h'
 
-    ret = ilm.ilm_write_lvb(s1, lock_id, a, 8);
+    ret = ilm.ilm_write_lvb(s1, lock_id, a, 8)
     assert ret == 0
 
     ret = ilm.ilm_unlock(s1, lock_id)
@@ -132,7 +123,7 @@ def test_lock__lvb_read_two_hosts(ilm_daemon):
 
     b = ilm.charArray(8)
 
-    ret = ilm.ilm_read_lvb(s1, lock_id, b, 8);
+    ret = ilm.ilm_read_lvb(s1, lock_id, b, 8)
     assert ret == 0
     assert b[0] == 'a'
     assert b[1] == 'b'
@@ -151,7 +142,7 @@ def test_lock__lvb_read_two_hosts(ilm_daemon):
 
     c = ilm.charArray(8)
 
-    ret = ilm.ilm_read_lvb(s2, lock_id, c, 8);
+    ret = ilm.ilm_read_lvb(s2, lock_id, c, 8)
     assert ret == 0
     assert c[0] == 'a'
     assert c[1] == 'b'
@@ -183,8 +174,8 @@ def test_lock__lvb_write(ilm_daemon):
     lock_op = ilm.idm_lock_op()
     lock_op.mode = ilm.IDM_MODE_EXCLUSIVE
     lock_op.drive_num = 2
-    lock_op.set_drive_names(0, DRIVE1)
-    lock_op.set_drive_names(1, DRIVE2)
+    lock_op.set_drive_names(0, BLK_DEVICE1)
+    lock_op.set_drive_names(1, BLK_DEVICE2)
     lock_op.timeout = 60000     # Timeout: 60s
 
     ret = ilm.ilm_lock(s, lock_id, lock_op)
@@ -192,11 +183,11 @@ def test_lock__lvb_write(ilm_daemon):
 
     a = ilm.charArray(8)
 
-    ret = ilm.ilm_read_lvb(s, lock_id, a, 8);
+    ret = ilm.ilm_read_lvb(s, lock_id, a, 8)
     assert ret == 0
 
     a[0] = 'a'
-    ret = ilm.ilm_write_lvb(s, lock_id, a, 8);
+    ret = ilm.ilm_write_lvb(s, lock_id, a, 8)
     assert ret == 0
 
     ret = ilm.ilm_unlock(s, lock_id)
@@ -206,7 +197,7 @@ def test_lock__lvb_write(ilm_daemon):
     assert ret == 0
 
     a[0] = '0'
-    ret = ilm.ilm_read_lvb(s, lock_id, a, 8);
+    ret = ilm.ilm_read_lvb(s, lock_id, a, 8)
     assert ret == 0
     assert a[0] == 'a'
 
@@ -238,8 +229,8 @@ def test_lock__lvb_write_two_hosts(ilm_daemon):
     lock_op = ilm.idm_lock_op()
     lock_op.mode = ilm.IDM_MODE_EXCLUSIVE
     lock_op.drive_num = 2
-    lock_op.set_drive_names(0, DRIVE1)
-    lock_op.set_drive_names(1, DRIVE2)
+    lock_op.set_drive_names(0, BLK_DEVICE1)
+    lock_op.set_drive_names(1, BLK_DEVICE2)
     lock_op.timeout = 60000     # Timeout: 60s
 
     ret = ilm.ilm_lock(s1, lock_id, lock_op)
@@ -247,7 +238,7 @@ def test_lock__lvb_write_two_hosts(ilm_daemon):
 
     a = ilm.charArray(8)
 
-    ret = ilm.ilm_read_lvb(s1, lock_id, a, 8);
+    ret = ilm.ilm_read_lvb(s1, lock_id, a, 8)
     assert ret == 0
 
     a[0] = 'a'
@@ -259,7 +250,7 @@ def test_lock__lvb_write_two_hosts(ilm_daemon):
     a[6] = 'g'
     a[7] = 'h'
 
-    ret = ilm.ilm_write_lvb(s1, lock_id, a, 8);
+    ret = ilm.ilm_write_lvb(s1, lock_id, a, 8)
     assert ret == 0
 
     ret = ilm.ilm_unlock(s1, lock_id)
@@ -270,7 +261,7 @@ def test_lock__lvb_write_two_hosts(ilm_daemon):
 
     b = ilm.charArray(8)
 
-    ret = ilm.ilm_read_lvb(s2, lock_id, b, 8);
+    ret = ilm.ilm_read_lvb(s2, lock_id, b, 8)
     assert ret == 0
     assert b[0] == 'a'
     assert b[1] == 'b'
@@ -290,7 +281,7 @@ def test_lock__lvb_write_two_hosts(ilm_daemon):
     b[6] = 'U'
     b[7] = 'U'
 
-    ret = ilm.ilm_write_lvb(s2, lock_id, b, 8);
+    ret = ilm.ilm_write_lvb(s2, lock_id, b, 8)
     assert ret == 0
 
     ret = ilm.ilm_unlock(s2, lock_id)
@@ -299,7 +290,7 @@ def test_lock__lvb_write_two_hosts(ilm_daemon):
     ret = ilm.ilm_lock(s1, lock_id, lock_op)
     assert ret == 0
 
-    ret = ilm.ilm_read_lvb(s1, lock_id, a, 8);
+    ret = ilm.ilm_read_lvb(s1, lock_id, a, 8)
     assert ret == 0
     assert a[0] == 'U'
     assert a[1] == 'U'
@@ -341,8 +332,8 @@ def test_lock__lvb_read_timeout(ilm_daemon):
     lock_op = ilm.idm_lock_op()
     lock_op.mode = ilm.IDM_MODE_EXCLUSIVE
     lock_op.drive_num = 2
-    lock_op.set_drive_names(0, DRIVE1)
-    lock_op.set_drive_names(1, DRIVE2)
+    lock_op.set_drive_names(0, BLK_DEVICE1)
+    lock_op.set_drive_names(1, BLK_DEVICE2)
     lock_op.timeout = 5000     # Timeout: 5s
 
     ret = ilm.ilm_lock(s1, lock_id, lock_op)
@@ -358,7 +349,7 @@ def test_lock__lvb_read_timeout(ilm_daemon):
 
     a = ilm.charArray(8)
 
-    ret = ilm.ilm_read_lvb(s2, lock_id, a, 8);
+    ret = ilm.ilm_read_lvb(s2, lock_id, a, 8)
 
     assert ret == 0
     assert a[0] == '\udcff'

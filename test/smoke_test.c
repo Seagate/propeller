@@ -1,6 +1,6 @@
 /* SPDX-License-Identifier: LGPL-2.1-only */
 /*
- * Copyright (C) 2021 Seagate Technology LLC and/or its Affiliates.
+ * Copyright (C) 2022 Seagate Technology LLC and/or its Affiliates.
  */
 
 #include <stdio.h>
@@ -9,6 +9,7 @@
 #include <string.h>
 
 #include <ilm.h>
+#include "test_conf.h"
 
 int main(void)
 {
@@ -29,8 +30,8 @@ int main(void)
 
 	lock_op.mode = 1;
 	lock_op.drive_num = 2;
-	lock_op.drives[0] = "/dev/sda1";
-	lock_op.drives[1] = "/dev/sda2";
+	lock_op.drives[0] = BLK_DEVICE1;
+	lock_op.drives[1] = BLK_DEVICE2;
 	lock_op.timeout = 3000;
 
 	ret = ilm_lock(s, &lock_id, &lock_op);
