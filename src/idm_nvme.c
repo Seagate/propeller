@@ -25,8 +25,8 @@
 
 /**
  * gen_nvme_cmd_identify - Setup the NVMe ADmin command struct for Identify Controller (opcode=0x6)
- * @cmd_admin:		        NVMe Admin Command struct to fill
- * @data_identify_ctrl:		NVMe Admin Commmand data struct.  This is the cmd output destination.
+ * @cmd_admin:          NVMe Admin Command struct to fill
+ * @data_identify_ctrl: NVMe Admin Commmand data struct.  This is the cmd output destination.
  *
  */
 void gen_nvme_cmd_identify(struct nvme_admin_cmd *cmd_admin, nvmeIDCtrl *data_identify_ctrl) {
@@ -43,8 +43,8 @@ void gen_nvme_cmd_identify(struct nvme_admin_cmd *cmd_admin, nvmeIDCtrl *data_id
 
 /**
  * gen_nvme_cmd_idm_read - Setup the NVMe Vendor-Specific command struct for a IDM read (opcode=0xC2)
- * @cmd_idm_read:	THe NVMe command struct to fill
- * @data_idm_read:	The NVMe commmand data struct.  This is the cmd output destination.
+ * @cmd_idm_read:   The NVMe command struct to fill
+ * @data_idm_read:  The NVMe commmand data struct.  This is the cmd output destination.
  * @idm_opcode:     The specific read-related operation for the IDM firmware to execute.
  * @idm_group:
  *
@@ -69,7 +69,7 @@ void gen_nvme_cmd_idm_read(nvmeIdmVendorCmd *cmd_idm_read,
 
 /**
  * nvme_admin_identify - Send NVMe Identify Controller command to specified device.
- * @drive:		Drive path name.
+ * @drive:  Drive path name.
  *
  * Returns zero or a negative error (ie. EINVAL, ENOMEM, EBUSY, etc).
  */
@@ -97,8 +97,8 @@ int nvme_admin_identify(char *drive) {
 /**
  * nvme_idm_read - Using the NVMe Vendor Command format, send a IDM-related read request to
  *                 the drive.
- * @drive:		    Drive path name.
- * @idm_opcode:     The specific read-related operation for the IDM firmware to execute.
+ * @drive:      Drive path name.
+ * @idm_opcode: The specific read-related operation for the IDM firmware to execute.
  * @idm_group:
  *
  * Returns zero or a negative error (ie. EINVAL, ENOMEM, EBUSY, etc).
@@ -123,8 +123,8 @@ int nvme_idm_read(char *drive, uint8_t idm_opcode, uint8_t idm_group) {
 
 /**
  * send_nvme_cmd_admin - Send NVMe Admin command to specified device.
- * @drive:		Drive path name.
- * @cmd_admin:	NVMe Admin Command struct
+ * @drive:      Drive path name.
+ * @cmd_admin:  NVMe Admin Command struct
  *
   * Returns zero or a negative error (ie. EINVAL, ENOMEM, EBUSY, etc).
 */
@@ -132,16 +132,16 @@ int send_nvme_cmd_admin(char *drive, struct nvme_admin_cmd *cmd_admin) {
     int nvme_fd;
     int ret = SUCCESS;
 
-	if ((nvme_fd = open(drive, O_RDWR | O_NONBLOCK)) < 0) {
+    if ((nvme_fd = open(drive, O_RDWR | O_NONBLOCK)) < 0) {
         #ifndef NVME_STANDALONE
-		ilm_log_err("%s: error opening drive %s fd %d",
-			    __func__, drive, nvme_fd);
+        ilm_log_err("%s: error opening drive %s fd %d",
+                __func__, drive, nvme_fd);
         #else
-		printf("%s: error opening drive %s fd %d\n",
-			    __func__, drive, nvme_fd);
+        printf("%s: error opening drive %s fd %d\n",
+                __func__, drive, nvme_fd);
         #endif
-		return nvme_fd;
-	}
+        return nvme_fd;
+    }
 
     ret = ioctl(nvme_fd, NVME_IOCTL_ADMIN_CMD, cmd_admin);
     if(ret) {
@@ -168,8 +168,8 @@ out:
 
 /**
  * send_nvme_cmd_idm - Send NVMe Vendor-Specific command to specified device.
- * @drive:		Drive path name.
- * @cmd_idm:	NVMe command struct directed at the IDM firmware.
+ * @drive:      Drive path name.
+ * @cmd_idm:    NVMe command struct directed at the IDM firmware.
  *
   * Returns zero or a negative error (ie. EINVAL, ENOMEM, EBUSY, etc).
 */
@@ -178,16 +178,16 @@ int send_nvme_cmd_idm(char *drive, nvmeIdmVendorCmd *cmd_idm) {
     int nvme_fd;
     int ret = SUCCESS;
 
-	if ((nvme_fd = open(drive, O_RDWR | O_NONBLOCK)) < 0) {
+    if ((nvme_fd = open(drive, O_RDWR | O_NONBLOCK)) < 0) {
         #ifndef NVME_STANDALONE
-		ilm_log_err("%s: error opening drive %s fd %d",
-			    __func__, drive, nvme_fd);
+        ilm_log_err("%s: error opening drive %s fd %d",
+                __func__, drive, nvme_fd);
         #else
-		printf("%s: error opening drive %s fd %d\n",
-			    __func__, drive, nvme_fd);
+        printf("%s: error opening drive %s fd %d\n",
+                __func__, drive, nvme_fd);
         #endif
-		return nvme_fd;
-	}
+        return nvme_fd;
+    }
 
     ret = ioctl(nvme_fd, NVME_IOCTL_IO_CMD, cmd_idm);
     if(ret) {
@@ -236,11 +236,17 @@ int main(int argc, char *argv[])
         drive = DRIVE_DEFAULT_DEVICE;
     }
 
+    //cli usage: idm_nvme identify
     if(argc >= 2){
         if(strcmp(argv[1], "identify") == 0){
-            //cli usage: idm_nvme identify
             nvme_admin_identify(drive);
         }
+        else if(strcmp(argv[1], "read") == 0){
+            nvme_idm_read(drive, 0x0, 0x1);
+        }
+        // else if(strcmp(argv[1], "write") == 0){
+        //     nvme_idm_write(drive, 0x0, 0x1);
+        // }
 
     }
 
