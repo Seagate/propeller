@@ -53,6 +53,9 @@ typedef enum _eNvmeIdentifyCNS {
     // NVME_IDENTIFY_NS_ID_DESCRIPTOR_LIST = 3,
 } eNvmeIdentifyCNS;
 
+//////////////////////////////////////////
+// Admin Command\Data Structs for Identify
+//////////////////////////////////////////
 // From Seagate/opensea-transport/include/nvme_helper.h
 typedef struct _nvmeIDPowerState {
     uint16_t            maxPower;   /* centiwatts */
@@ -168,8 +171,187 @@ typedef struct _nvmeIDCtrl {
     uint8_t             vs[1024];
 }nvmeIDCtrl;
 
+//////////////////////////////////////////
+// Vendor Specific
+//////////////////////////////////////////
+typedef enum _eNvmeVendorCmdOpcodes {
+    NVME_IDM_VENDOR_CMD_OP_WRITE = 0xC1,
+    NVME_IDM_VENDOR_CMD_OP_READ  = 0xC2,
+} eNvmeVendorCmdOpcodes;   //CDW0 opcode
 
-void fill_cmd_identify(struct nvme_admin_cmd *admin_cmd, nvmeIDCtrl *data_identify_ctrl);
-int nvme_identify(char *drive);
-int send_nvme_admin_cmd(char *drive, struct nvme_admin_cmd *admin_cmd);
+typedef struct _nvmeIdmVendorCmd {
+        uint8_t             opcode;       //CDW0
+        uint8_t             flags;        //CDW0
+        uint16_t            commandId;    //CDW0
+        uint32_t            nsid;         //CDW1
+        uint32_t            cdw2;         //CDW2
+        uint32_t            cdw3;         //CDW3
+        uint64_t            metadata;     //CDW4 & 5
+//CDW 6 - 9: Used when talking to the kernel layer (via ioctl()).
+	    uint64_t	        addr;         //CDW6 & 7
+	    uint32_t	        metadata_len; //CDW8
+	    uint32_t	        data_len;     //CDW9
+//CDW 6 - 9: Used when talking to the drive firmware layer, I think.
+        // uint64_t            prp1;        //CDW6 & 7
+        // uint64_t            prp2;        //CDW8 & 9
+        uint32_t            ndt;          //CDW10
+        uint32_t            ndm;          //CDW11
+//TODO: Move bit fields in CDW12. (saves a bit shift, at least for me)
+//  idm_group[7:0]
+//  idm_opcode_bits11_8[11:8]
+        uint8_t             idm_opcode_bits7_4;   //CDW12   // bits[7:4].  Lower nibble reserved.
+        uint8_t             idm_group;    //CDW12
+        uint16_t            rsvd2;        //CDW12
+//        uint32_t            cdw12;        //CDW12
+        uint32_t            cdw13;        //CDW13
+        uint32_t            cdw14;        //CDW14
+        uint32_t            cdw15;        //CDW15
+        uint32_t            timeout_ms;   //Same as nvme_admin_cmd when using ioctl()??
+        uint32_t            result;       //Same as nvme_admin_cmd when using ioctl()??
+}nvmeIdmVendorCmd;
+
+
+
+// //This struct represents the pieces of the status word that is returned from ioctl()
+// // This bit field definitions of the status are defined in DWord3[31:17] of the NVMe spec's Common
+// // Completion Queue Entry (CQE).
+// //TODO: What does ioctl() return?  Just status code OR the entire DW3 status field.
+
+// //Note that bits [14:0] of ioctl()'s return status word contain bits[31/24:17] above.
+// typedef struct _eCqeStatusFields {
+//     uint8_t     dnr;        //Do Not Retry          (CQE DWord3[31])
+//     uint8_t     more;       //More                  (CQE DWord3[30])
+//     uint8_t     crd;        //Command Retry Delay   (CQE DWord3[29:28])
+//     uint8_t     sct;        //Status Code Type      (CQE DWord3[27:25])
+//     uint8_t     sc;         //Status Code           (CQE DWord3[24:17])
+// }eCqeStatusFields;
+
+
+
+
+
+////////////////////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////// COMMON ///////////////////////////////////////
+/////////////////////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////////////////////
+
+//TODO: Move EVERYTHING in this section to a idm_common.h file
+//  Use for all new NVMe code
+//  Double-check SCSI code to see if some\all of these exist already
+//      Replace as necessary
+
+
+#define IDM_VENDOR_CMD_DATA_LEN_BYTES    512            //TODO: Find where this is implemented on SCSI
+#define IDM_VENDOR_CMD_DATA_LEN_DWORDS   512 / 4
+
+typedef enum _eIdmOpcodes {
+    IDM_OPCODE_NORMAL	= 0x0,
+    IDM_OPCODE_INIT	    = 0x1,
+    IDM_OPCODE_TRYLOCK  = 0x2,
+    IDM_OPCODE_LOCK	    = 0x3,
+    IDM_OPCODE_UNLOCK	= 0x4,
+    IDM_OPCODE_REFRESH  = 0x5,
+    IDM_OPCODE_BREAK	= 0x6,
+    IDM_OPCODE_DESTROY  = 0x7,
+}eIdmOpcodes;  //NVMe CDW12 mutex opcode
+
+typedef enum _eIdmStates {
+    IDM_STATE_UNINIT			= 0,
+    IDM_STATE_LOCKED			= 0x101,
+    IDM_STATE_UNLOCKED			= 0x102,
+    IDM_STATE_MULTIPLE_LOCKED	= 0x103,
+    IDM_STATE_TIMEOUT			= 0x104,
+    IDM_STATE_DEAD				= 0xdead,
+}eIdmStates;
+
+typedef enum _eIdmClasses {
+    IDM_CLASS_EXCLUSIVE			    = 0,
+    IDM_CLASS_PROTECTED_WRITE		= 0x1,
+    IDM_CLASS_SHARED_PROTECTED_READ = 0x2,
+}eIdmClasses;
+
+typedef struct _idmReadData {
+	uint64_t    state;
+	uint64_t    modified;
+	uint64_t    countdown;
+	uint64_t    class;
+	char        resource_ver[8];
+	char        rsvd0[24];
+	char        resource_id[64];
+	char        metadata[64];
+	char        host_id[32];
+	char        rsvd1[32];
+	char        rsvd2[256];
+}idmReadData;
+
+typedef struct _idmWriteData {
+	uint64_t    ignored0;
+	uint64_t    time_now;
+	uint64_t    countdown;
+	uint64_t    class;
+	char        resource_ver[8];
+	char        rsvd0[24];
+	char        resource_id[64];
+	char        metadata[64];
+	char        host_id[32];
+	char        rsvd1[32];
+	char        ignored1[256];
+}idmWriteData;
+
+
+//TODO: Can I get this "generic" idm data struct to work??
+//          Make sure "union's" don't cause a problem.
+
+// typedef struct _idmData {
+//     union {
+//     	uint64_t    state;
+//     	uint64_t    ignored0;
+//     };
+//     union {
+//     	uint64_t    modified;
+//     	uint64_t    time_now;
+//     };
+// 	uint64_t    countdown;
+// 	uint64_t    class;
+// 	char        resource_ver[8];
+// 	char        rsvd0[24];
+// 	char        resource_id[64];
+// 	char        metadata[64];
+// 	char        host_id[32];
+// 	char        rsvd1[32];
+//     union {
+//     	uint64_t    rsvd2[256];
+//     	uint64_t    ignored1[256];
+//     };
+// }idmData;
+
+
+
+////////////////////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////// COMMON - END ///////////////////////////////////////
+/////////////////////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////////////////////
+
+
+
+
+
+
+
+//////////////////////////////////////////
+// Functions
+//////////////////////////////////////////
+void gen_nvme_cmd_identify(struct nvme_admin_cmd *cmd_admin, nvmeIDCtrl *data_identify_ctrl);
+void gen_nvme_cmd_idm_read(nvmeIdmVendorCmd *cmd_idm_read,
+                           idmReadData *data_idm_read,
+                           uint8_t idm_opcode,
+                           uint8_t idm_group);
+int nvme_admin_identify(char *drive);
+int nvme_idm_read(char *drive, uint8_t idm_opcode, uint8_t idm_group);
+int send_nvme_cmd_admin(char *drive, struct nvme_admin_cmd *cmd_admin);
+int send_nvme_cmd_idm(char *drive, nvmeIdmVendorCmd *cmd_idm_vendor);
+
+
 
