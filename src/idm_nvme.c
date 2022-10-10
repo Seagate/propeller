@@ -51,12 +51,12 @@ void gen_nvme_cmd_identify(struct nvme_admin_cmd *cmd_admin, nvmeIDCtrl *data_id
  *
  */
 void gen_nvme_cmd_idm_read(nvmeIdmVendorCmd *cmd_idm_read,
-                           idmReadData *data_idm_read,
+                           idmData *data_idm_read,
                            uint8_t idm_opcode,
                            uint8_t idm_group) {
 
     memset(cmd_idm_read,  0, sizeof(nvmeIdmVendorCmd));
-    memset(data_idm_read, 0, sizeof(idmReadData));
+    memset(data_idm_read, 0, sizeof(idmData));
 
     cmd_idm_read->opcode             = NVME_IDM_VENDOR_CMD_OP_READ;
     cmd_idm_read->addr               = C_CAST(uint64_t, C_CAST(uintptr_t, data_idm_read));
@@ -78,12 +78,12 @@ void gen_nvme_cmd_idm_read(nvmeIdmVendorCmd *cmd_idm_read,
  *
  */
 void gen_nvme_cmd_idm_write(nvmeIdmVendorCmd *cmd_idm_write,
-                            idmWriteData *data_idm_write,
+                            idmData *data_idm_write,
                             uint8_t idm_opcode,
                             uint8_t idm_group) {
 
     memset(cmd_idm_write,  0, sizeof(nvmeIdmVendorCmd));
-    memset(data_idm_write, 0, sizeof(idmWriteData));
+    memset(data_idm_write, 0, sizeof(idmData));
 
     cmd_idm_write->opcode             = NVME_IDM_VENDOR_CMD_OP_WRITE;
     cmd_idm_write->addr               = C_CAST(uint64_t, C_CAST(uintptr_t, data_idm_write));
@@ -142,7 +142,7 @@ int nvme_idm_read(char *drive, uint8_t idm_opcode, uint8_t idm_group) {
 //          Likely need to move these up a "layer"
 //          Likely need to start combining passed in params into a single common struct
     nvmeIdmVendorCmd cmd_idm_read;
-    idmReadData data_idm_read;
+    idmData data_idm_read;
     int ret = SUCCESS;
 
     gen_nvme_cmd_idm_read(&cmd_idm_read, &data_idm_read, idm_opcode, idm_group);
@@ -175,7 +175,7 @@ int nvme_idm_write(char *drive, uint8_t idm_opcode, uint8_t idm_group) {
 //          Likely need to move these up a "layer"
 //          Likely need to start combining passed in params into a single common struct
     nvmeIdmVendorCmd cmd_idm_write;
-    idmWriteData data_idm_write;
+    idmData data_idm_write;
     int ret = SUCCESS;
 
     gen_nvme_cmd_idm_write(&cmd_idm_write, &data_idm_write, idm_opcode, idm_group);

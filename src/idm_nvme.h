@@ -180,34 +180,34 @@ typedef enum _eNvmeVendorCmdOpcodes {
 } eNvmeVendorCmdOpcodes;   //CDW0 opcode
 
 typedef struct _nvmeIdmVendorCmd {
-        uint8_t             opcode;       //CDW0
-        uint8_t             flags;        //CDW0
-        uint16_t            commandId;    //CDW0
-        uint32_t            nsid;         //CDW1
-        uint32_t            cdw2;         //CDW2
-        uint32_t            cdw3;         //CDW3
-        uint64_t            metadata;     //CDW4 & 5
+    uint8_t             opcode;       //CDW0
+    uint8_t             flags;        //CDW0
+    uint16_t            commandId;    //CDW0
+    uint32_t            nsid;         //CDW1
+    uint32_t            cdw2;         //CDW2
+    uint32_t            cdw3;         //CDW3
+    uint64_t            metadata;     //CDW4 & 5
 //CDW 6 - 9: Used when talking to the kernel layer (via ioctl()).
-        uint64_t            addr;         //CDW6 & 7
-        uint32_t            metadata_len; //CDW8
-        uint32_t            data_len;     //CDW9
+    uint64_t            addr;         //CDW6 & 7
+    uint32_t            metadata_len; //CDW8
+    uint32_t            data_len;     //CDW9
 //CDW 6 - 9: Used when talking to the drive firmware layer, I think.
-        // uint64_t            prp1;        //CDW6 & 7
-        // uint64_t            prp2;        //CDW8 & 9
-        uint32_t            ndt;          //CDW10
-        uint32_t            ndm;          //CDW11
+    // uint64_t            prp1;        //CDW6 & 7
+    // uint64_t            prp2;        //CDW8 & 9
+    uint32_t            ndt;          //CDW10
+    uint32_t            ndm;          //CDW11
 //TODO: Move bit fields in CDW12. (saves a bit shift, at least for me)
 //  idm_group[7:0]
 //  idm_opcode_bits11_8[11:8]
-        uint8_t             idm_opcode_bits7_4;   //CDW12   // bits[7:4].  Lower nibble reserved.
-        uint8_t             idm_group;    //CDW12
-        uint16_t            rsvd2;        //CDW12
-//        uint32_t            cdw12;        //CDW12
-        uint32_t            cdw13;        //CDW13
-        uint32_t            cdw14;        //CDW14
-        uint32_t            cdw15;        //CDW15
-        uint32_t            timeout_ms;   //Same as nvme_admin_cmd when using ioctl()??
-        uint32_t            result;       //Same as nvme_admin_cmd when using ioctl()??
+    uint8_t             idm_opcode_bits7_4;   //CDW12   // bits[7:4].  Lower nibble reserved.
+    uint8_t             idm_group;    //CDW12
+    uint16_t            rsvd2;        //CDW12
+//    uint32_t            cdw12;        //CDW12
+    uint32_t            cdw13;        //CDW13
+    uint32_t            cdw14;        //CDW14
+    uint32_t            cdw15;        //CDW15
+    uint32_t            timeout_ms;   //Same as nvme_admin_cmd when using ioctl()??
+    uint32_t            result;       //Same as nvme_admin_cmd when using ioctl()??
 }nvmeIdmVendorCmd;
 
 
@@ -271,9 +271,15 @@ typedef enum _eIdmClasses {
     IDM_CLASS_SHARED_PROTECTED_READ = 0x2,
 }eIdmClasses;
 
-typedef struct _idmReadData {
-    uint64_t    state;
-    uint64_t    modified;
+typedef struct _idmData {
+    union {
+        uint64_t    state;           // For idm_read
+        uint64_t    ignored0;        // For idm_write
+    };
+    union {
+        uint64_t    modified;        // For idm_read
+        uint64_t    time_now;        // For idm_write
+    };
     uint64_t    countdown;
     uint64_t    class;
     char        resource_ver[8];
@@ -282,49 +288,11 @@ typedef struct _idmReadData {
     char        metadata[64];
     char        host_id[32];
     char        rsvd1[32];
-    char        rsvd2[256];
-}idmReadData;
-
-typedef struct _idmWriteData {
-    uint64_t    ignored0;
-    uint64_t    time_now;
-    uint64_t    countdown;
-    uint64_t    class;
-    char        resource_ver[8];
-    char        rsvd0[24];
-    char        resource_id[64];
-    char        metadata[64];
-    char        host_id[32];
-    char        rsvd1[32];
-    char        ignored1[256];
-}idmWriteData;
-
-
-//TODO: Can I get this "generic" idm data struct to work??
-//          Make sure "union's" don't cause a problem.
-
-// typedef struct _idmData {
-//     union {
-//         uint64_t    state;
-//         uint64_t    ignored0;
-//     };
-//     union {
-//         uint64_t    modified;
-//         uint64_t    time_now;
-//     };
-//     uint64_t    countdown;
-//     uint64_t    class;
-//     char        resource_ver[8];
-//     char        rsvd0[24];
-//     char        resource_id[64];
-//     char        metadata[64];
-//     char        host_id[32];
-//     char        rsvd1[32];
-//     union {
-//         uint64_t    rsvd2[256];
-//         uint64_t    ignored1[256];
-//     };
-// }idmData;
+    union {
+        uint64_t    rsvd2[256];      // For idm_read
+        uint64_t    ignored1[256];   // For idm_write
+    };
+}idmData;
 
 
 
@@ -344,12 +312,13 @@ typedef struct _idmWriteData {
 // Functions
 //////////////////////////////////////////
 void gen_nvme_cmd_identify(struct nvme_admin_cmd *cmd_admin, nvmeIDCtrl *data_identify_ctrl);
+//TODO: eval combining the read and write functions below.  Very similar
 void gen_nvme_cmd_idm_read(nvmeIdmVendorCmd *cmd_idm_read,
-                           idmReadData *data_idm_read,
+                           idmData *data_idm_read,
                            uint8_t idm_opcode,
                            uint8_t idm_group);
 void gen_nvme_cmd_idm_write(nvmeIdmVendorCmd *cmd_idm_write,
-                            idmWriteData *data_idm_write,
+                            idmData *data_idm_write,
                             uint8_t idm_opcode,
                             uint8_t idm_group);
 
