@@ -8,12 +8,17 @@
 
 #include <stdint.h>
 
+#include "idm_cmd_common.h"
+
 
 #define ADMIN_CMD_TIMEOUT_DEFAULT 15
 #define NVME_IDENTIFY_DATA_LEN    4096
 
 #define C_CAST(type, val) (type)(val)
 
+//////////////////////////////////////////
+// Admin Command Enums
+//////////////////////////////////////////
 // From Seagate/opensea-transport/include/nvme_helper.h
 typedef enum _eNVMeAdminOpCodes {
     // NVME_ADMIN_CMD_DELETE_SQ                    = 0x00,
@@ -182,7 +187,7 @@ typedef enum _eNvmeVendorCmdOpcodes {
 typedef struct _nvmeIdmVendorCmd {
     uint8_t             opcode;       //CDW0
     uint8_t             flags;        //CDW0
-    uint16_t            commandId;    //CDW0
+    uint16_t            command_id;    //CDW0
     uint32_t            nsid;         //CDW1
     uint32_t            cdw2;         //CDW2
     uint32_t            cdw3;         //CDW3
@@ -230,77 +235,11 @@ typedef struct _nvmeIdmVendorCmd {
 
 
 
-////////////////////////////////////////////////////////////////////////////////////
-/////////////////////////////////////////////////////////////////////////////////////
-////////////////////////////////////// COMMON ///////////////////////////////////////
-/////////////////////////////////////////////////////////////////////////////////////
-/////////////////////////////////////////////////////////////////////////////////////
-
-//TODO: Move EVERYTHING in this section to a idm_common.h file
-//  Use for all new NVMe code
-//  Double-check SCSI code to see if some\all of these exist already
-//      Replace as necessary
-
-
-#define IDM_VENDOR_CMD_DATA_LEN_BYTES   512            //TODO: Find where this is implemented on SCSI
-#define IDM_VENDOR_CMD_DATA_LEN_DWORDS  512 / 4
-
-typedef enum _eIdmOpcodes {
-    IDM_OPCODE_NORMAL   = 0x0,
-    IDM_OPCODE_INIT     = 0x1,
-    IDM_OPCODE_TRYLOCK  = 0x2,
-    IDM_OPCODE_LOCK     = 0x3,
-    IDM_OPCODE_UNLOCK   = 0x4,
-    IDM_OPCODE_REFRESH  = 0x5,
-    IDM_OPCODE_BREAK    = 0x6,
-    IDM_OPCODE_DESTROY  = 0x7,
-}eIdmOpcodes;  //NVMe CDW12 mutex opcode
-
-typedef enum _eIdmStates {
-    IDM_STATE_UNINIT            = 0,
-    IDM_STATE_LOCKED            = 0x101,
-    IDM_STATE_UNLOCKED          = 0x102,
-    IDM_STATE_MULTIPLE_LOCKED   = 0x103,
-    IDM_STATE_TIMEOUT           = 0x104,
-    IDM_STATE_DEAD              = 0xdead,
-}eIdmStates;
-
-typedef enum _eIdmClasses {
-    IDM_CLASS_EXCLUSIVE             = 0,
-    IDM_CLASS_PROTECTED_WRITE       = 0x1,
-    IDM_CLASS_SHARED_PROTECTED_READ = 0x2,
-}eIdmClasses;
-
-typedef struct _idmData {
-    union {
-        uint64_t    state;           // For idm_read
-        uint64_t    ignored0;        // For idm_write
-    };
-    union {
-        uint64_t    modified;        // For idm_read
-        uint64_t    time_now;        // For idm_write
-    };
-    uint64_t    countdown;
-    uint64_t    class;
-    char        resource_ver[8];
-    char        rsvd0[24];
-    char        resource_id[64];
-    char        metadata[64];
-    char        host_id[32];
-    char        rsvd1[32];
-    union {
-        uint64_t    rsvd2[256];      // For idm_read
-        uint64_t    ignored1[256];   // For idm_write
-    };
-}idmData;
 
 
 
-////////////////////////////////////////////////////////////////////////////////////
-/////////////////////////////////////////////////////////////////////////////////////
-////////////////////////////////////// COMMON - END ///////////////////////////////////////
-/////////////////////////////////////////////////////////////////////////////////////
-/////////////////////////////////////////////////////////////////////////////////////
+
+
 
 
 
