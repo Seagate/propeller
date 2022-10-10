@@ -348,8 +348,15 @@ void gen_nvme_cmd_idm_read(nvmeIdmVendorCmd *cmd_idm_read,
                            idmReadData *data_idm_read,
                            uint8_t idm_opcode,
                            uint8_t idm_group);
+void gen_nvme_cmd_idm_write(nvmeIdmVendorCmd *cmd_idm_write,
+                            idmWriteData *data_idm_write,
+                            uint8_t idm_opcode,
+                            uint8_t idm_group);
+
 int nvme_admin_identify(char *drive);
 int nvme_idm_read(char *drive, uint8_t idm_opcode, uint8_t idm_group);
+int nvme_idm_write(char *drive, uint8_t idm_opcode, uint8_t idm_group);
+
 int send_nvme_cmd_admin(char *drive, struct nvme_admin_cmd *cmd_admin);
 int send_nvme_cmd_idm(char *drive, nvmeIdmVendorCmd *cmd_idm_vendor);
 

@@ -42,7 +42,8 @@ void gen_nvme_cmd_identify(struct nvme_admin_cmd *cmd_admin, nvmeIDCtrl *data_id
 }
 
 /**
- * gen_nvme_cmd_idm_read - Setup the NVMe Vendor-Specific command struct for a IDM read (opcode=0xC2)
+ * gen_nvme_cmd_idm_read - Setup the NVMe Vendor-Specific command struct for
+ *                         a IDM read (opcode=0xC2)
  * @cmd_idm_read:   The NVMe command struct to fill
  * @data_idm_read:  The NVMe commmand data struct.  This is the cmd output destination.
  * @idm_opcode:     The specific read-related operation for the IDM firmware to execute.
@@ -65,6 +66,33 @@ void gen_nvme_cmd_idm_read(nvmeIdmVendorCmd *cmd_idm_read,
     cmd_idm_read->idm_opcode_bits7_4 = idm_opcode << 4;
     cmd_idm_read->idm_group          = idm_group;
     cmd_idm_read->timeout_ms         = ADMIN_CMD_TIMEOUT_DEFAULT;
+}
+
+/**
+ * gen_nvme_cmd_idm_write - Setup the NVMe Vendor-Specific command struct for
+ *                          a IDM write (opcode=0xC1)
+ * @cmd_idm_write:  The NVMe command struct to fill
+ * @data_idm_write: The NVMe commmand data struct.  This is the cmd output destination.
+ * @idm_opcode:     The specific read-related operation for the IDM firmware to execute.
+ * @idm_group:
+ *
+ */
+void gen_nvme_cmd_idm_write(nvmeIdmVendorCmd *cmd_idm_write,
+                            idmWriteData *data_idm_write,
+                            uint8_t idm_opcode,
+                            uint8_t idm_group) {
+
+    memset(cmd_idm_write,  0, sizeof(nvmeIdmVendorCmd));
+    memset(data_idm_write, 0, sizeof(idmWriteData));
+
+    cmd_idm_write->opcode             = NVME_IDM_VENDOR_CMD_OP_WRITE;
+    cmd_idm_write->addr               = C_CAST(uint64_t, C_CAST(uintptr_t, data_idm_write));
+    cmd_idm_write->data_len           = IDM_VENDOR_CMD_DATA_LEN_BYTES;
+    cmd_idm_write->ndt                = IDM_VENDOR_CMD_DATA_LEN_DWORDS;
+//TODO: Change spec so don't have to do this 4-bit shift
+    cmd_idm_write->idm_opcode_bits7_4 = idm_opcode << 4;
+    cmd_idm_write->idm_group          = idm_group;
+    cmd_idm_write->timeout_ms         = ADMIN_CMD_TIMEOUT_DEFAULT;
 }
 
 /**
@@ -105,8 +133,14 @@ int nvme_admin_identify(char *drive) {
  */
 int nvme_idm_read(char *drive, uint8_t idm_opcode, uint8_t idm_group) {
 
-    printf("%s: IN: drive=%s\n", __func__, drive);
+    printf("%s: IN: drive=%s,opcode=%d,group=%d\n", __func__, drive, idm_opcode, idm_group);
 
+//TODO: Structual problem
+//          "Layers" above this one do NOT have access to:
+//              any returned data
+//              result info in CDW17 of cmd struct
+//          Likely need to move these up a "layer"
+//          Likely need to start combining passed in params into a single common struct
     nvmeIdmVendorCmd cmd_idm_read;
     idmReadData data_idm_read;
     int ret = SUCCESS;
@@ -117,6 +151,39 @@ int nvme_idm_read(char *drive, uint8_t idm_opcode, uint8_t idm_group) {
 
     printf("%s: data_idm_read.resource_id = %s\n", __func__, data_idm_read.resource_id);
     printf("%s: data_idm_read.state = %s\n"      , __func__, data_idm_read.state);
+
+    return ret;
+}
+
+/**
+ * nvme_idm_write - Using the NVMe Vendor Command format, send a IDM-related write request to
+ *                  the drive.
+ * @drive:      Drive path name.
+ * @idm_opcode: The specific write-related operation for the IDM firmware to execute.
+ * @idm_group:
+ *
+ * Returns zero or a negative error (ie. EINVAL, ENOMEM, EBUSY, etc).
+ */
+int nvme_idm_write(char *drive, uint8_t idm_opcode, uint8_t idm_group) {
+
+    printf("%s: IN: drive=%s,opcode=%d,group=%d\n", __func__, drive, idm_opcode, idm_group);
+
+//TODO: Structual problem
+//          "Layers" above this one do NOT have access to:
+//              any returned data
+//              result info in CDW17 of cmd struct
+//          Likely need to move these up a "layer"
+//          Likely need to start combining passed in params into a single common struct
+    nvmeIdmVendorCmd cmd_idm_write;
+    idmWriteData data_idm_write;
+    int ret = SUCCESS;
+
+    gen_nvme_cmd_idm_write(&cmd_idm_write, &data_idm_write, idm_opcode, idm_group);
+
+    ret = send_nvme_cmd_idm(drive, &cmd_idm_write);
+
+    printf("%s: data_idm_write.resource_id = %s\n", __func__, data_idm_write.resource_id);
+    printf("%s: data_idm_write.time_now = %s\n"   , __func__, data_idm_write.time_now);
 
     return ret;
 }
@@ -244,9 +311,9 @@ int main(int argc, char *argv[])
         else if(strcmp(argv[1], "read") == 0){
             nvme_idm_read(drive, 0x0, 0x1);
         }
-        // else if(strcmp(argv[1], "write") == 0){
-        //     nvme_idm_write(drive, 0x0, 0x1);
-        // }
+        else if(strcmp(argv[1], "write") == 0){
+            nvme_idm_write(drive, 0x0, 0x1);
+        }
 
     }
 
