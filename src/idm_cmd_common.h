@@ -13,6 +13,13 @@
 #include <stdint.h>
 
 
+// #define C_CAST(type, val) (type)(val)
+
+#define SUCCESS 0;
+#define FAILURE -1;
+
+
+
 #define IDM_VENDOR_CMD_DATA_LEN_BYTES   512            //TODO: Find where this is implemented on SCSI
 #define IDM_VENDOR_CMD_DATA_LEN_DWORDS  512 / 4
 
@@ -36,11 +43,24 @@ typedef enum _eIdmStates {
     IDM_STATE_DEAD              = 0xdead,
 }eIdmStates;
 
-typedef enum _eIdmClasses {
+typedef enum _eIdmModes {
     IDM_CLASS_EXCLUSIVE             = 0,
     IDM_CLASS_PROTECTED_WRITE       = 0x1,
     IDM_CLASS_SHARED_PROTECTED_READ = 0x2,
+}eIdmModes;
+
+typedef enum _eIdmClasses {
+    IDM_MODE_UNLOCK    = 0,
+    IDM_MODE_EXCLUSIVE = 0x1,
+    IDM_MODE_SHAREABLE = 0x2,
 }eIdmClasses;
+
+typedef enum _eIdmResVer {
+    IDM_RES_VER_NO_UPDATE_NO_VALID = 0,
+    IDM_RES_VER_UPDATE_NO_VALID    = 0x1,
+    IDM_RES_VER_UPDATE_VALID       = 0x2,
+    IDM_RES_VER_INVALID            = 0x3,
+}eIdmResVer;
 
 typedef struct _idmData {
     union {
@@ -52,7 +72,7 @@ typedef struct _idmData {
         uint64_t    time_now;        // For idm_write
     };
     uint64_t    countdown;
-    uint64_t    class_;
+    uint64_t    class_idm;
     char        resource_ver[8];
     char        rsvd0[24];
     char        resource_id[64];
@@ -64,4 +84,3 @@ typedef struct _idmData {
         uint64_t    ignored1[256];   // For idm_write
     };
 }idmData;
-
