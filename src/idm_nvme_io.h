@@ -22,10 +22,26 @@
 // Enums
 //////////////////////////////////////////
 //Custom (vendor-specific) NVMe opcodes sent via CDW0[7:0] of nvmeIdmVendorCmd
-typedef enum _eNvmeVendorCmdOpcodes {
+typedef enum _eNvmeIdmVendorCmdOpcodes {
     NVME_IDM_VENDOR_CMD_OP_WRITE = 0xC1,
     NVME_IDM_VENDOR_CMD_OP_READ  = 0xC2,
-} eNvmeVendorCmdOpcodes;
+} eNvmeIdmVendorCmdOpcodes;
+
+typedef enum _eNvmeIdmErrorCodes {
+    NVME_IDM_ERR_MUTEX_OP_FAILURE                  = 0xC0,    //SCSI Equivalent: 0x04042200
+    NVME_IDM_ERR_MUTEX_REVERSE_OWNER_CHECK_FAILURE = 0xC1,    //SCSI Equivalent: 0x04042201
+    NVME_IDM_ERR_MUTEX_OP_FAILURE_STATE            = 0xC2,    //SCSI Equivalent: 0x04042202
+    NVME_IDM_ERR_MUTEX_OP_FAILURE_CLASS            = 0xC3,    //SCSI Equivalent: 0x04042203
+    NVME_IDM_ERR_MUTEX_OP_FAILURE_OWNER            = 0xC4,    //SCSI Equivalent: 0x04042204
+    NVME_IDM_ERR_MUTEX_OPCODE_INVALID              = 0xC5,    //SCSI Equivalent: 0x0520000A
+    NVME_IDM_ERR_MUTEX_LIMIT_EXCEEDED              = 0xC6,    //SCSI Equivalent: 0x0B550300
+    NVME_IDM_ERR_MUTEX_LIMIT_EXCEEDED_HOST         = 0xC7,    //SCSI Equivalent: 0x0B550301
+    NVME_IDM_ERR_MUTEX_LIMIT_EXCEEDED_SHARED_HOST  = 0xC8,    //SCSI Equivalent: 0x0B550302
+    NVME_IDM_ERR_MUTEX_CONFLICT                    = 0xC9,    //SCSI Equivalent: Res Conf
+    NVME_IDM_ERR_MUTEX_HELD_ALREADY                = 0xCA,    //SCSI Equivalent: Terminated
+    NVME_IDM_ERR_MUTEX_HELD_BY_ANOTHER             = 0xCB,    //SCSI Equivalent: Busy
+}eNvmeIdmErrorCodes;
+
 
 //////////////////////////////////////////
 // Structs
