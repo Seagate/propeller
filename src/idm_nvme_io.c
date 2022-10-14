@@ -7,6 +7,7 @@
  *                  to talk to the Linux kernel (via ioctl(), read() or write())
  */
 
+#include <errno.h>
 #include <fcntl.h>
 #include <linux/nvme_ioctl.h>
 #include <stdio.h>
@@ -131,7 +132,7 @@ int _nvme_idm_data_init_wrt(nvmeIdmRequest *request_idm) {
   	data_idm->time_now  = ilm_read_utc_time();
     #else
   	data_idm->time_now  = 0;
-    #endif//COMPILE_STANDALONE
+    #endif //COMPILE_STANDALONE
 	data_idm->countdown = request_idm->timeout;
 	data_idm->class_idm = request_idm->class_idm;
 
@@ -150,6 +151,7 @@ int _nvme_send_cmd_idm(nvmeIdmRequest *request_idm) {
     printf("%s: START\n", __func__);
 
     int nvme_fd;
+    int status_ioctl;
     int ret = SUCCESS;
 
     if ((nvme_fd = open(request_idm->drive, O_RDWR | O_NONBLOCK)) < 0) {
@@ -159,27 +161,39 @@ int _nvme_send_cmd_idm(nvmeIdmRequest *request_idm) {
         #else
         printf("%s: error opening drive %s fd %d\n",
                 __func__, request_idm->drive, nvme_fd);
-        #endif//COMPILE_STANDALONE
+        #endif //COMPILE_STANDALONE
         return nvme_fd;
     }
 
-    ret = ioctl(nvme_fd, NVME_IOCTL_IO_CMD, request_idm->cmd_idm);
-    if(ret) {
+    status_ioctl = ioctl(nvme_fd, NVME_IOCTL_IO_CMD, request_idm->cmd_idm);
+    if(status_ioctl) {
         #ifndef COMPILE_STANDALONE
-        ilm_log_err("%s: ioctl failed: %d", __func__, ret);
+        ilm_log_err("%s: ioctl failed: %d", __func__, status_ioctl);
         #else
-        printf("%s: ioctl failed: %d\n", __func__, ret);
-        #endif//COMPILE_STANDALONE
+        printf("%s: ioctl failed: %d\n", __func__, status_ioctl);
+        #endif //COMPILE_STANDALONE
         goto out;
     }
 
 //TODO: Keep this debug??
-    printf("%s: ioctl ret=%d\n", __func__, ret);
+    printf("%s: status_ioctl=%d\n", __func__, status_ioctl);
     printf("%s: ioctl cmd_idm->result=%d\n", __func__, request_idm->cmd_idm->result);
 
+//TODO: Delete this eventually
 //Completion Queue Entry (CQE) SIDE-NOTE:
-// CQE DW0[31:0]  == cmd_admin->result
-// CQE DW3[31:17] == ret                //?? is "ret" just [24:17]??
+//  CQE DW3[31:17] - Status Bit Field Definitions
+//      DW3[31]:    Do Not Retry (DNR)
+//      DW3[30]:    More (M)
+//      DW3[29:28]: Command Retry Delay (CRD)
+//      DW3[27:25]: Status Code Type (SCT)
+//      DW3[24:17]: Status Code (SC)
+
+//TODO: General result questions
+//  Is "cmd_idm->result" equivalent to "CQE DW0[31:0]" ?
+//  Is "status_ioctl"    equivalent to "CQE DW3[31:17]" ?        //TODO:?? is "status_ioctl" just [24:17]??
+
+//TODO: Which of the above 2 "result" params should I be using HERE??  Both??
+    ret = _nvme_status_check(status_ioctl, request_idm->opcode_idm);
 
 out:
 //TODO: Possible ASYNC flag HERE??  -OR-  do I need to use write() and read() for async?? (like scsi)
@@ -193,6 +207,72 @@ out:
     return ret;
 }
 
+int _nvme_status_check(int status, int opcode_idm) {
+
+    int ret;
+
+//TODO: These do NOT match 1-to-1 with SCSI side.
+//TODO: can NOT decipher hardcoded SCSI "Sense" data in Propeller NVMe spec
+    switch(status) {
+        // case NVME_IDM_ERR_MUTEX_OP_FAILURE:
+        //     break;
+        // case NVME_IDM_ERR_MUTEX_REVERSE_OWNER_CHECK_FAILURE:
+        //     break;
+        // case NVME_IDM_ERR_MUTEX_OP_FAILURE_STATE:
+        //     break;
+        // case NVME_IDM_ERR_MUTEX_OP_FAILURE_CLASS:
+        //     break;
+        // case NVME_IDM_ERR_MUTEX_OP_FAILURE_OWNER:
+        //     break;
+        case NVME_IDM_ERR_MUTEX_OPCODE_INVALID:
+            ret = -EINVAL;
+            break;
+        case NVME_IDM_ERR_MUTEX_LIMIT_EXCEEDED:
+            ret = -ENOMEM;
+            break;
+        case NVME_IDM_ERR_MUTEX_LIMIT_EXCEEDED_HOST:
+            ret = -ENOMEM;
+            break;
+        case NVME_IDM_ERR_MUTEX_LIMIT_EXCEEDED_SHARED_HOST:
+            ret = -ENOMEM;
+            break;
+        case NVME_IDM_ERR_MUTEX_CONFLICT:   //SCSI Equivalent: Reservation Conflict
+            switch(opcode_idm) {
+                case IDM_OPCODE_REFRESH:
+                    ret = -ETIME;
+                    break;
+                case IDM_OPCODE_UNLOCK:
+                    ret = -ENOENT;
+                    break;
+                default:
+                    ret = -EBUSY;
+            }
+            break;
+        case NVME_IDM_ERR_MUTEX_HELD_ALREADY:   //SCSI Equivalent: Terminated
+            switch(opcode_idm) {
+                case IDM_OPCODE_REFRESH:
+                    ret = -EPERM;
+                    break;
+                case IDM_OPCODE_UNLOCK:
+                    ret = -EINVAL;
+                    break;
+                default:
+                    ret = -EAGAIN;
+            }
+            break;
+        case NVME_IDM_ERR_MUTEX_HELD_BY_ANOTHER:    //SCSI Equivalent: Busy
+            ret = -EBUSY;
+        default:
+            #ifndef COMPILE_STANDALONE
+            ilm_log_err("%s: unknown status %d", __func__, status);
+            #else
+            printf("%s: unknown status %d\n", __func__, status);
+            #endif //COMPILE_STANDALONE
+            ret = -EINVAL;
+    }
+
+    return ret;
+}
 
 
 #ifdef MAIN_ACTIVATE

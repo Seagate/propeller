@@ -43,6 +43,7 @@ int idm_nvme_drive_lock(char *lock_id, int mode, char *host_id, char *drive, uin
 
     printf("%s: START\n", __func__);
 
+//TODO: Should I be using malloc() instead?
     nvmeIdmRequest   request_idm;
     nvmeIdmVendorCmd cmd_idm;
     idmData          data_idm;
@@ -52,7 +53,7 @@ int idm_nvme_drive_lock(char *lock_id, int mode, char *host_id, char *drive, uin
     #ifndef COMPILE_STANDALONE
     if (ilm_inject_fault_is_hit())
         return -EIO;
-    #endif
+    #endif //COMPILE_STANDALONE
 
     if (!lock_id || !host_id || !drive)
         return -EINVAL;
@@ -87,6 +88,12 @@ int idm_nvme_drive_lock(char *lock_id, int mode, char *host_id, char *drive, uin
     request_idm.data_len     = sizeof(idmData);         //TODO: review this.  This can happen later
 
     ret = nvme_idm_write(&request_idm);
+    if (ret < 0)
+        #ifndef COMPILE_STANDALONE
+        ilm_log_err("%s: command fail %d", __func__, ret);
+        #else
+        printf("%s: command fail %d\n", __func__, ret);
+        #endif //COMPILE_STANDALONE
 
     return ret;
 }

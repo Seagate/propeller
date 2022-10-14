@@ -137,5 +137,4 @@ int _nvme_idm_cmd_init(nvmeIdmRequest *request_idm, uint8_t opcode_nvme);
 int _nvme_idm_cmd_init_wrt(nvmeIdmRequest *request_idm);
 int _nvme_idm_data_init_wrt(nvmeIdmRequest *request_idm);
 int _nvme_send_cmd_idm(nvmeIdmRequest *request_idm);
-
-
+int _nvme_status_check(int status, int opcode_idm);
