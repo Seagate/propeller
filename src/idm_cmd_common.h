@@ -62,6 +62,14 @@ typedef enum _eIdmResVer {
     IDM_RES_VER_INVALID            = 0x3,
 }eIdmResVer;
 
+// IDM Data char array lengths
+#define IDM_DATA_RESOURCE_VER_LEN_BYTES 8
+#define IDM_DATA_RESERVED_0_LEN_BYTES   24
+#define IDM_DATA_RESOURCE_ID_LEN_BYTES  64
+#define IDM_DATA_METADATA_LEN_BYTES     64
+#define IDM_DATA_HOST_ID_LEN_BYTES      32
+#define IDM_DATA_RESERVED_1_LEN_BYTES   32
+
 typedef struct _idmData {
     union {
         uint64_t    state;           // For idm_read
@@ -73,12 +81,12 @@ typedef struct _idmData {
     };
     uint64_t    countdown;
     uint64_t    class_idm;
-    char        resource_ver[8];
-    char        rsvd0[24];
-    char        resource_id[64];
-    char        metadata[64];
-    char        host_id[32];
-    char        rsvd1[32];
+    char        resource_ver[IDM_DATA_RESOURCE_VER_LEN_BYTES];
+    char        rsvd0[IDM_DATA_RESERVED_0_LEN_BYTES];
+    char        resource_id[IDM_DATA_RESOURCE_ID_LEN_BYTES];
+    char        metadata[IDM_DATA_METADATA_LEN_BYTES];
+    char        host_id[IDM_DATA_HOST_ID_LEN_BYTES];
+    char        rsvd1[IDM_DATA_RESERVED_1_LEN_BYTES];
     union {
         uint64_t    rsvd2[256];      // For idm_read
         uint64_t    ignored1[256];   // For idm_write

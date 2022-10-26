@@ -38,18 +38,29 @@ int nvme_idm_write(nvmeIdmRequest *request_idm) {
     int ret                    = SUCCESS;
 
     ret = _nvme_idm_cmd_init_wrt(request_idm);
-    //TODO: Error handling (HERE -OR- push DOWN 1 level??)
+    if(ret < 0) {
+        goto EXIT_NVME_IDM_WRITE;
+    }
 
     ret = _nvme_idm_data_init_wrt(request_idm);
-    //TODO: Error handling (HERE -OR- push DOWN 1 level??)
+    if(ret < 0) {
+        goto EXIT_NVME_IDM_WRITE;
+    }
+
+    #ifndef COMPILE_STANDALONE
+	ilm_log_array_dbg("resource_ver", data_idm->resource_ver, IDM_DATA_RESOURCE_VER_LEN_BYTES);
+    #endif
 
     ret = _nvme_send_cmd_idm(request_idm);
-    //TODO: Error handling (HERE -OR- push DOWN 1 level??)
+    if(ret < 0) {
+        goto EXIT_NVME_IDM_WRITE;
+    }
 
 //TODO: what do with this debug code?
     printf("%s: data_idm_write.resource_id = %s\n", __func__, data_idm->resource_id);
     printf("%s: data_idm_write.time_now = %s\n"   , __func__, data_idm->time_now);
 
+EXIT_NVME_IDM_WRITE:
     return ret;
 }
 
@@ -211,19 +222,23 @@ int _nvme_status_check(int status, int opcode_idm) {
 
     int ret;
 
-//TODO: These do NOT match 1-to-1 with SCSI side.
 //TODO: can NOT decipher hardcoded SCSI "Sense" data in Propeller NVMe spec
     switch(status) {
-        // case NVME_IDM_ERR_MUTEX_OP_FAILURE:
-        //     break;
-        // case NVME_IDM_ERR_MUTEX_REVERSE_OWNER_CHECK_FAILURE:
-        //     break;
-        // case NVME_IDM_ERR_MUTEX_OP_FAILURE_STATE:
-        //     break;
-        // case NVME_IDM_ERR_MUTEX_OP_FAILURE_CLASS:
-        //     break;
-        // case NVME_IDM_ERR_MUTEX_OP_FAILURE_OWNER:
-        //     break;
+        case NVME_IDM_ERR_MUTEX_OP_FAILURE:
+            ret = -EINVAL;
+            break;
+        case NVME_IDM_ERR_MUTEX_REVERSE_OWNER_CHECK_FAILURE:
+            ret = -EINVAL;
+            break;
+        case NVME_IDM_ERR_MUTEX_OP_FAILURE_STATE:
+            ret = -EINVAL;
+            break;
+        case NVME_IDM_ERR_MUTEX_OP_FAILURE_CLASS:
+            ret = -EINVAL;
+            break;
+        case NVME_IDM_ERR_MUTEX_OP_FAILURE_OWNER:
+            ret = -EINVAL;
+            break;
         case NVME_IDM_ERR_MUTEX_OPCODE_INVALID:
             ret = -EINVAL;
             break;
