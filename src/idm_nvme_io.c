@@ -29,6 +29,15 @@
 //////////////////////////////////////////
 // FUNCTIONS
 //////////////////////////////////////////
+
+/**
+ * nvme_idm_write - Issues a custom (vendor-specific) NVMe write command to the IDM.
+ *                  Intended to be called by higher level IDM API's (i.e.: lock, unlock, etc).
+ *
+ * @request_idm:    Struct containing all NVMe-specific command info for the requested IDM action.
+ *
+ * Returns zero or a negative error (ie. EINVAL, ENOMEM, EBUSY, etc).
+ */
 int nvme_idm_write(nvmeIdmRequest *request_idm) {
 
     printf("%s: START\n", __func__);
@@ -64,6 +73,25 @@ EXIT_NVME_IDM_WRITE:
     return ret;
 }
 
+/**
+ * nvme_idm_write_init - Collects all the parameters passed to the IDM API and stores them in
+ *                       the "request_idm" data struct for use later (but before the NVMe write
+ *                       command is sent to the OS kernel).
+ *                       Intended to be called by higher level IDM API's (i.e.: lock, unlock, etc).
+ *
+ * @request_idm:    Struct containing all NVMe-specific command info for the requested IDM action.
+ * @cmd_idm:        NVMe Vendor Specific Command command word data structure
+ * @data_idm:       IDM-specific data structure
+ * @lock_id:        Lock ID (64 bytes).
+ * @mode:           Lock mode (unlock, shareable, exclusive).
+ * @host_id:        Host ID (32 bytes).
+ * @drive:          Drive path name.
+ * @timeout:        Timeout for membership (unit: millisecond).
+ * @lvb:            Lock value block pointer.
+ * @lvb_size:       Lock value block size.
+ *
+ * Returns zero or a negative error (ie. EINVAL, ENOMEM, EBUSY, etc).
+ */
 //TODO: Attempt at a "common" write initialization, with some caveats (of course).
 //TODO: KEEP THIS?????
 int nvme_idm_write_init(nvmeIdmRequest *request_idm, nvmeIdmVendorCmd *cmd_idm,
@@ -99,6 +127,14 @@ int nvme_idm_write_init(nvmeIdmRequest *request_idm, nvmeIdmVendorCmd *cmd_idm,
     return ret;
 }
 
+/**
+ * _nvme_idm_cmd_init -  Initializes the NVMe Vendor Specific Command command struct.
+ *
+ * @request_idm:    Struct containing all NVMe-specific command info for the requested IDM action.
+ * @opcode_nvme:    NVMe-specific opcode specifying the desired NVMe action to perform on the IDM.
+ *
+ * Returns zero or a negative error (ie. EINVAL, ENOMEM, EBUSY, etc).
+ */
 int _nvme_idm_cmd_init(nvmeIdmRequest *request_idm, uint8_t opcode_nvme) {
 
     printf("%s: START\n", __func__);
@@ -119,17 +155,40 @@ int _nvme_idm_cmd_init(nvmeIdmRequest *request_idm, uint8_t opcode_nvme) {
     return ret;
 }
 
+/**
+ * _nvme_idm_cmd_init_rd - Convenience function (during an NVMe read of the IDM) for initializing
+ *                         the NVMe Vendor Specific Command command struct.
+ *
+ * @request_idm:    Struct containing all NVMe-specific command info for the requested IDM action.
+ *
+ * Returns zero or a negative error (ie. EINVAL, ENOMEM, EBUSY, etc).
+ */
 //TODO: Bring this back in when doing "read" side.
 // int _nvme_idm_cmd_init_rd(nvmeIdmRequest *request_idm) {
 //     return _nvme_idm_cmd_init(request_idm, NVME_IDM_VENDOR_CMD_OP_READ);
 // }
 
+/**
+ * _nvme_idm_cmd_init_wrt - Convenience function (during an NVMe write of the IDM) for initializing
+ *                          the NVMe Vendor Specific Command command struct.
+ *
+ * @request_idm:    Struct containing all NVMe-specific command info for the requested IDM action.
+ *
+ * Returns zero or a negative error (ie. EINVAL, ENOMEM, EBUSY, etc).
+ */
 int _nvme_idm_cmd_init_wrt(nvmeIdmRequest *request_idm) {
     printf("%s: START\n", __func__);
 
     return _nvme_idm_cmd_init(request_idm, NVME_IDM_VENDOR_CMD_OP_WRITE);
 }
 
+/**
+ * _nvme_idm_data_init_wrt -  Initializes the IDM's data struct prior to an IDM write.
+ *
+ * @request_idm:    Struct containing all NVMe-specific command info for the requested IDM action.
+ *
+ * Returns zero or a negative error (ie. EINVAL, ENOMEM, EBUSY, etc).
+ */
 int _nvme_idm_data_init_wrt(nvmeIdmRequest *request_idm) {
 
     printf("%s: START\n", __func__);
@@ -157,6 +216,13 @@ int _nvme_idm_data_init_wrt(nvmeIdmRequest *request_idm) {
     return ret;
 }
 
+/**
+ * _nvme_send_cmd_idm -  Sends the completed NVMe command data structure to the OS kernel.
+ *
+ * @request_idm:    Struct containing all NVMe-specific command info for the requested IDM action.
+ *
+ * Returns zero or a negative error (ie. EINVAL, ENOMEM, EBUSY, etc).
+ */
 int _nvme_send_cmd_idm(nvmeIdmRequest *request_idm) {
 
     printf("%s: START\n", __func__);
@@ -218,6 +284,14 @@ out:
     return ret;
 }
 
+/**
+ * _nvme_status_check -  Checks the NVMe command status code returned from the OS kernel.
+ *
+ * @status:     The status code returned by the OS kernel after the completed NVMe command request.
+ * @opcode_idm: IDM-specific opcode specifying the desired IDM action performed.
+*
+ * Returns zero or a negative error (ie. EINVAL, ENOMEM, EBUSY, etc).
+ */
 int _nvme_status_check(int status, int opcode_idm) {
 
     int ret;
