@@ -8,13 +8,10 @@
 
 #include <stdint.h>
 
-#include "idm_cmd_common.h"
 
-
-#define ADMIN_CMD_TIMEOUT_DEFAULT 15
-#define NVME_IDENTIFY_DATA_LEN    4096
-
-#define C_CAST(type, val) (type)(val)
+#define ADMIN_CMD_TIMEOUT_MS_DEFAULT 15000     //TODO: Duplicated from SCSI. Uncertain behavior
+                                            //TODO: Separate timeout default for NVMe Vendor Cmds??
+#define NVME_IDENTIFY_DATA_LEN_BYTES 4096
 
 //////////////////////////////////////////
 // Admin Command Enums
@@ -52,14 +49,14 @@ typedef enum _eNVMeAdminOpCodes {
 
 // From Seagate/opensea-transport/include/nvme_helper.h
 typedef enum _eNvmeIdentifyCNS {
-    NVME_IDENTIFY_NS = 0,
-    NVME_IDENTIFY_CTRL = 1,
-    // NVME_IDENTIFY_ALL_ACTIVE_NS = 2,
-    // NVME_IDENTIFY_NS_ID_DESCRIPTOR_LIST = 3,
+    NVME_IDENTIFY_CNS_NS = 0,
+    NVME_IDENTIFY_CNS_CTRL = 1,
+    // NVME_IDENTIFY_CNS_ALL_ACTIVE_NS = 2,
+    // NVME_IDENTIFY_CNS_NS_ID_DESCRIPTOR_LIST = 3,
 } eNvmeIdentifyCNS;
 
 //////////////////////////////////////////
-// Admin Command\Data Structs for Identify
+// Structs for Admin Identify
 //////////////////////////////////////////
 // From Seagate/opensea-transport/include/nvme_helper.h
 typedef struct _nvmeIDPowerState {
@@ -177,96 +174,12 @@ typedef struct _nvmeIDCtrl {
 }nvmeIDCtrl;
 
 //////////////////////////////////////////
-// Vendor Specific
-//////////////////////////////////////////
-typedef enum _eNvmeVendorCmdOpcodes {
-    NVME_IDM_VENDOR_CMD_OP_WRITE = 0xC1,
-    NVME_IDM_VENDOR_CMD_OP_READ  = 0xC2,
-} eNvmeVendorCmdOpcodes;   //CDW0 opcode
-
-typedef struct _nvmeIdmVendorCmd {
-    uint8_t             opcode;       //CDW0
-    uint8_t             flags;        //CDW0
-    uint16_t            command_id;    //CDW0
-    uint32_t            nsid;         //CDW1
-    uint32_t            cdw2;         //CDW2
-    uint32_t            cdw3;         //CDW3
-    uint64_t            metadata;     //CDW4 & 5
-//CDW 6 - 9: Used when talking to the kernel layer (via ioctl()).
-    uint64_t            addr;         //CDW6 & 7
-    uint32_t            metadata_len; //CDW8
-    uint32_t            data_len;     //CDW9
-//CDW 6 - 9: Used when talking to the drive firmware layer, I think.
-    // uint64_t            prp1;        //CDW6 & 7
-    // uint64_t            prp2;        //CDW8 & 9
-    uint32_t            ndt;          //CDW10
-    uint32_t            ndm;          //CDW11
-//TODO: Move bit fields in CDW12. (saves a bit shift, at least for me)
-//  idm_group[7:0]
-//  idm_opcode_bits11_8[11:8]
-    uint8_t             idm_opcode_bits7_4;   //CDW12   // bits[7:4].  Lower nibble reserved.
-    uint8_t             idm_group;    //CDW12
-    uint16_t            rsvd2;        //CDW12
-//    uint32_t            cdw12;        //CDW12
-    uint32_t            cdw13;        //CDW13
-    uint32_t            cdw14;        //CDW14
-    uint32_t            cdw15;        //CDW15
-    uint32_t            timeout_ms;   //Same as nvme_admin_cmd when using ioctl()??
-    uint32_t            result;       //Same as nvme_admin_cmd when using ioctl()??
-}nvmeIdmVendorCmd;
-
-
-
-// //This struct represents the pieces of the status word that is returned from ioctl()
-// // This bit field definitions of the status are defined in DWord3[31:17] of the NVMe spec's Common
-// // Completion Queue Entry (CQE).
-// //TODO: What does ioctl() return?  Just status code OR the entire DW3 status field.
-
-// //Note that bits [14:0] of ioctl()'s return status word contain bits[31/24:17] above.
-// typedef struct _eCqeStatusFields {
-//     uint8_t     dnr;        //Do Not Retry          (CQE DWord3[31])
-//     uint8_t     more;       //More                  (CQE DWord3[30])
-//     uint8_t     crd;        //Command Retry Delay   (CQE DWord3[29:28])
-//     uint8_t     sct;        //Status Code Type      (CQE DWord3[27:25])
-//     uint8_t     sc;         //Status Code           (CQE DWord3[24:17])
-// }eCqeStatusFields;
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-//////////////////////////////////////////
 // Functions
 //////////////////////////////////////////
-void gen_nvme_cmd_identify(struct nvme_admin_cmd *cmd_admin, nvmeIDCtrl *data_identify_ctrl);
-//TODO: eval combining the read and write functions below.  Very similar
-void gen_nvme_cmd_idm_read(nvmeIdmVendorCmd *cmd_idm_read,
-                           idmData *data_idm_read,
-                           uint8_t idm_opcode,
-                           uint8_t idm_group);
-void gen_nvme_cmd_idm_write(nvmeIdmVendorCmd *cmd_idm_write,
-                            idmData *data_idm_write,
-                            uint8_t idm_opcode,
-                            uint8_t idm_group);
-
 int nvme_admin_identify(char *drive);
-int nvme_idm_read(char *drive, uint8_t idm_opcode, uint8_t idm_group);
-int nvme_idm_write(char *drive, uint8_t idm_opcode, uint8_t idm_group);
 
-int send_nvme_cmd_admin(char *drive, struct nvme_admin_cmd *cmd_admin);
-int send_nvme_cmd_idm(char *drive, nvmeIdmVendorCmd *cmd_idm_vendor);
+void _gen_nvme_cmd_identify(struct nvme_admin_cmd *cmd_admin, nvmeIDCtrl *data_identify_ctrl);
+int _send_nvme_cmd_admin(char *drive, struct nvme_admin_cmd *cmd_admin);
 
 
 
