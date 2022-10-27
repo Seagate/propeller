@@ -13,7 +13,6 @@
 
 
 #define ADMIN_CMD_TIMEOUT_MS_DEFAULT 15000     //TODO: Duplicated from SCSI. Uncertain behavior
-                                            //TODO: Separate timeout default for NVMe Vendor Cmds??
 #define NVME_IDENTIFY_DATA_LEN_BYTES 4096
 
 //////////////////////////////////////////

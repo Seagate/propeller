@@ -180,7 +180,7 @@ int _nvme_idm_cmd_init(nvmeIdmRequest *request_idm, uint8_t opcode_nvme) {
 //TODO: Change spec so don't have to do this 4-bit shift
     cmd_idm->opcode_idm_bits7_4 = request_idm->opcode_idm << 4;
     cmd_idm->group_idm          = request_idm->group_idm;       //TODO: This isn't yet getting set anywhere for lock
-    cmd_idm->timeout_ms         = VENDOR_CMD_TIMEOUT_DEFAULT;  //TODO: ??  THis vs the timout param passed in??
+    cmd_idm->timeout_ms         = VENDOR_CMD_TIMEOUT_DEFAULT;
 
     return ret;
 }
@@ -298,7 +298,7 @@ int _nvme_idm_cmd_status_check(int status, int opcode_idm) {
 
     int ret;
 
-//TODO: can NOT decipher hardcoded SCSI "Sense" data in Propeller NVMe spec
+//TODO: Unable to decipher hardcoded SCSI "Sense" data to translate to Propeller NVMe spec
     switch(status) {
         case NVME_IDM_ERR_MUTEX_OP_FAILURE:
             ret = -EINVAL;

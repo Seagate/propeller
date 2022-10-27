@@ -16,7 +16,6 @@
 
 
 #define VENDOR_CMD_TIMEOUT_DEFAULT 15000     //TODO: Duplicated from SCSI. Uncertain behavior
-                                            //TODO: Separate timeout default for NVMe Vendor Cmds??
 
 //////////////////////////////////////////
 // Enums
