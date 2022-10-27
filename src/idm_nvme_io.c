@@ -46,7 +46,7 @@ int nvme_idm_write(nvmeIdmRequest *request_idm) {
     printf("%s: START\n", __func__);
     #endif //FUNCTION_ENTRY_DEBUG
 
-    nvmeIdmVendorCmd *cmd_idm  = request_idm->cmd_idm;
+    nvmeIdmVendorCmd *cmd_nvme = request_idm->cmd_nvme;
     idmData *data_idm          = request_idm->data_idm;
     int ret                    = SUCCESS;
 
@@ -84,7 +84,7 @@ EXIT_NVME_IDM_WRITE:
  *                       Intended to be called by higher level IDM API's (i.e.: lock, unlock, etc).
  *
  * @request_idm:    Struct containing all NVMe-specific command info for the requested IDM action.
- * @cmd_idm:        NVMe Vendor Specific Command command word data structure
+ * @cmd_nvme:       NVMe Vendor Specific Command command word data structure
  * @data_idm:       IDM-specific data structure
  * @lock_id:        Lock ID (64 bytes).
  * @mode:           Lock mode (unlock, shareable, exclusive).
@@ -98,9 +98,9 @@ EXIT_NVME_IDM_WRITE:
  *
  * Returns zero or a negative error (ie. EINVAL, ENOMEM, EBUSY, etc).
  */
-int nvme_idm_write_init(nvmeIdmRequest *request_idm, nvmeIdmVendorCmd *cmd_idm,
-                         idmData *data_idm, char *lock_id, int mode, char *host_id,
-                         char *drive, uint64_t timeout, char *lvb, int lvb_size) {
+int nvme_idm_write_init(nvmeIdmRequest *request_idm, nvmeIdmVendorCmd *cmd_nvme,
+                        idmData *data_idm, char *lock_id, int mode, char *host_id,
+                        char *drive, uint64_t timeout, char *lvb, int lvb_size) {
 
     #ifdef FUNCTION_ENTRY_DEBUG
     printf("%s: START\n", __func__);
@@ -120,7 +120,7 @@ int nvme_idm_write_init(nvmeIdmRequest *request_idm, nvmeIdmVendorCmd *cmd_idm,
     }
 
     memset(request_idm, 0, sizeof(nvmeIdmRequest));
-    memset(cmd_idm,     0, sizeof(nvmeIdmVendorCmd));
+    memset(cmd_nvme,    0, sizeof(nvmeIdmVendorCmd));
     memset(data_idm,    0, sizeof(idmData));
 
     switch(mode) {
@@ -140,7 +140,7 @@ int nvme_idm_write_init(nvmeIdmRequest *request_idm, nvmeIdmVendorCmd *cmd_idm,
     request_idm->host_id  = host_id;
     request_idm->drive    = drive;
 
-    request_idm->cmd_idm  = cmd_idm;
+    request_idm->cmd_nvme = cmd_nvme;
     request_idm->data_idm = data_idm;
     request_idm->data_len = sizeof(idmData);    // Constant for NVMe writes (only) to the IDM
     request_idm->timeout  = timeout;
@@ -169,18 +169,18 @@ int _nvme_idm_cmd_init(nvmeIdmRequest *request_idm, uint8_t opcode_nvme) {
     printf("%s: START\n", __func__);
     #endif //FUNCTION_ENTRY_DEBUG
 
-    nvmeIdmVendorCmd *cmd_idm  = request_idm->cmd_idm;
+    nvmeIdmVendorCmd *cmd_nvme = request_idm->cmd_nvme;
     idmData *data_idm          = request_idm->data_idm;
     int ret                    = SUCCESS;
 
-    cmd_idm->opcode_nvme        = opcode_nvme;
-    cmd_idm->addr               = (uint64_t)(uintptr_t)data_idm;
-    cmd_idm->data_len           = IDM_VENDOR_CMD_DATA_LEN_BYTES;  //Should be: sizeof(idmData) which should always be 512
-    cmd_idm->ndt                = IDM_VENDOR_CMD_DATA_LEN_DWORDS;
+    cmd_nvme->opcode_nvme        = opcode_nvme;
+    cmd_nvme->addr               = (uint64_t)(uintptr_t)data_idm;
+    cmd_nvme->data_len           = IDM_VENDOR_CMD_DATA_LEN_BYTES;  //Should be: sizeof(idmData) which should always be 512
+    cmd_nvme->ndt                = IDM_VENDOR_CMD_DATA_LEN_DWORDS;
 //TODO: Change spec so don't have to do this 4-bit shift
-    cmd_idm->opcode_idm_bits7_4 = request_idm->opcode_idm << 4;
-    cmd_idm->group_idm          = request_idm->group_idm;       //TODO: This isn't yet getting set anywhere for lock
-    cmd_idm->timeout_ms         = VENDOR_CMD_TIMEOUT_DEFAULT;
+    cmd_nvme->opcode_idm_bits7_4 = request_idm->opcode_idm << 4;
+    cmd_nvme->group_idm          = request_idm->group_idm;       //TODO: This isn't yet getting set anywhere for lock
+    cmd_nvme->timeout_ms         = VENDOR_CMD_TIMEOUT_DEFAULT;
 
     return ret;
 }
@@ -240,7 +240,7 @@ int _nvme_idm_cmd_send(nvmeIdmRequest *request_idm) {
         return nvme_fd;
     }
 
-    status_ioctl = ioctl(nvme_fd, NVME_IOCTL_IO_CMD, request_idm->cmd_idm);
+    status_ioctl = ioctl(nvme_fd, NVME_IOCTL_IO_CMD, request_idm->cmd_nvme);
     if(status_ioctl) {
         #ifndef COMPILE_STANDALONE
         ilm_log_err("%s: ioctl failed: %d", __func__, status_ioctl);
@@ -252,7 +252,7 @@ int _nvme_idm_cmd_send(nvmeIdmRequest *request_idm) {
 
 //TODO: Keep this debug??
     printf("%s: status_ioctl=%d\n", __func__, status_ioctl);
-    printf("%s: ioctl cmd_idm->result=%d\n", __func__, request_idm->cmd_idm->result);
+    printf("%s: ioctl cmd_nvme->result=%d\n", __func__, request_idm->cmd_nvme->result);
 
 //TODO: Delete this eventually
 //Completion Queue Entry (CQE) SIDE-NOTE:
@@ -264,7 +264,7 @@ int _nvme_idm_cmd_send(nvmeIdmRequest *request_idm) {
 //      DW3[24:17]: Status Code (SC)
 
 //TODO: General result questions
-//  Is "cmd_idm->result" equivalent to "CQE DW0[31:0]" ?
+//  Is "cmd_nvme->result" equivalent to "CQE DW0[31:0]" ?
 //  Is "status_ioctl"    equivalent to "CQE DW3[31:17]" ?        //TODO:?? is "status_ioctl" just [24:17]??
 
 //TODO: Which of the above 2 "result" params should I be using HERE??  Both??
@@ -378,9 +378,9 @@ int _nvme_idm_data_init_wrt(nvmeIdmRequest *request_idm) {
     printf("%s: START\n", __func__);
     #endif //FUNCTION_ENTRY_DEBUG
 
-   nvmeIdmVendorCmd *cmd_idm = request_idm->cmd_idm;
-    idmData *data_idm         = request_idm->data_idm;
-    int ret                   = SUCCESS;
+    nvmeIdmVendorCmd *cmd_nvme = request_idm->cmd_nvme;
+    idmData *data_idm          = request_idm->data_idm;
+    int ret                    = SUCCESS;
 
 //TODO: ?? reverse bit order of next 3 destination values ??  (on scsi-side, using __bswap_64())
     #ifndef COMPILE_STANDALONE
@@ -471,11 +471,11 @@ int main(int argc, char *argv[])
 
             //Create required input structs the IDM API would normally create
             nvmeIdmRequest   request_idm;
-            nvmeIdmVendorCmd cmd_idm;
+            nvmeIdmVendorCmd cmd_nvme;
             idmData          data_idm;
             int              ret = SUCCESS;
 
-            ret = nvme_idm_write_init(&request_idm, &cmd_idm, &data_idm,
+            ret = nvme_idm_write_init(&request_idm, &cmd_nvme, &data_idm,
                                       lock_id, mode, host_id,drive, timeout, 0, 0);
             printf("%s exiting with %d\n", argv[1], ret);
 

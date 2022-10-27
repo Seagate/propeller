@@ -236,11 +236,11 @@ out:
 /**
  * send_nvme_cmd_idm - Send NVMe Vendor-Specific command to specified device.
  * @drive:      Drive path name.
- * @cmd_idm:    NVMe command struct directed at the IDM firmware.
+ * @cmd_nvme:   NVMe command struct directed at the IDM firmware.
  *
   * Returns zero or a negative error (ie. EINVAL, ENOMEM, EBUSY, etc).
 */
-int send_nvme_cmd_idm(char *drive, nvmeIdmVendorCmd *cmd_idm) {
+int send_nvme_cmd_idm(char *drive, nvmeIdmVendorCmd *cmd_nvme) {
 
     int nvme_fd;
     int ret = SUCCESS;
@@ -256,7 +256,7 @@ int send_nvme_cmd_idm(char *drive, nvmeIdmVendorCmd *cmd_idm) {
         return nvme_fd;
     }
 
-    ret = ioctl(nvme_fd, NVME_IOCTL_IO_CMD, cmd_idm);
+    ret = ioctl(nvme_fd, NVME_IOCTL_IO_CMD, cmd_nvme);
     if(ret) {
         #ifndef NVME_STANDALONE
         ilm_log_err("%s: ioctl failed: %d", __func__, ret);
@@ -268,7 +268,7 @@ int send_nvme_cmd_idm(char *drive, nvmeIdmVendorCmd *cmd_idm) {
 
 //TODO: Keep this debug??
     printf("%s: ioctl ret=%d\n", __func__, ret);
-    printf("%s: ioctl cmd_idm->result=%d\n", __func__, cmd_idm->result);
+    printf("%s: ioctl cmd_nvme->result=%d\n", __func__, cmd_nvme->result);
 
 //Completion Queue Entry (CQE) SIDE-NOTE:
 // CQE DW0[31:0]  == cmd_admin->result

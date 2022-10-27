@@ -54,11 +54,11 @@ int idm_nvme_drive_break_lock(char *lock_id, int mode, char *host_id,
     #endif //FUNCTION_ENTRY_DEBUG
 
     nvmeIdmRequest   request_idm;
-    nvmeIdmVendorCmd cmd_idm;
+    nvmeIdmVendorCmd cmd_nvme;
     idmData          data_idm;
     int              ret = SUCCESS;
 
-    ret = nvme_idm_write_init(&request_idm, &cmd_idm, &data_idm, lock_id,
+    ret = nvme_idm_write_init(&request_idm, &cmd_nvme, &data_idm, lock_id,
                               mode, host_id, drive, timeout, 0, 0);
     if(ret < 0) {
         #ifndef COMPILE_STANDALONE
@@ -119,11 +119,11 @@ int idm_nvme_drive_lock(char *lock_id, int mode, char *host_id,
     #endif //FUNCTION_ENTRY_DEBUG
 
     nvmeIdmRequest   request_idm;
-    nvmeIdmVendorCmd cmd_idm;
+    nvmeIdmVendorCmd cmd_nvme;
     idmData          data_idm;
     int              ret = SUCCESS;
 
-    ret = nvme_idm_write_init(&request_idm, &cmd_idm, &data_idm, lock_id,
+    ret = nvme_idm_write_init(&request_idm, &cmd_nvme, &data_idm, lock_id,
                               mode, host_id, drive, timeout, 0, 0);
     if(ret < 0) {
         #ifndef COMPILE_STANDALONE
@@ -159,11 +159,11 @@ static int idm_nvme_drive_refresh_lock(char *lock_id, int mode, char *host_id,
     #endif //FUNCTION_ENTRY_DEBUG
 
     nvmeIdmRequest   request_idm;
-    nvmeIdmVendorCmd cmd_idm;
+    nvmeIdmVendorCmd cmd_nvme;
     idmData          data_idm;
     int              ret = SUCCESS;
 
-    ret = nvme_idm_write_init(&request_idm, &cmd_idm, &data_idm, lock_id,
+    ret = nvme_idm_write_init(&request_idm, &cmd_nvme, &data_idm, lock_id,
                               mode, host_id, drive, timeout, 0, 0);
     if(ret < 0) {
         #ifndef COMPILE_STANDALONE
@@ -227,11 +227,11 @@ int idm_nvme_drive_unlock(char *lock_id, int mode, char *host_id,
     #endif //FUNCTION_ENTRY_DEBUG
 
     nvmeIdmRequest   request_idm;
-    nvmeIdmVendorCmd cmd_idm;
+    nvmeIdmVendorCmd cmd_nvme;
     idmData          data_idm;
     int              ret = SUCCESS;
 
-    ret = nvme_idm_write_init(&request_idm, &cmd_idm, &data_idm, lock_id,
+    ret = nvme_idm_write_init(&request_idm, &cmd_nvme, &data_idm, lock_id,
                               mode, host_id, drive, 0, lvb, lvb_size); //TODO: Why 0 timeout here?
     if(ret < 0) {
         #ifndef COMPILE_STANDALONE

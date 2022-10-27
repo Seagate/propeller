@@ -108,7 +108,7 @@ typedef struct _nvmeIdmRequest {
     int                 lvb_size;
 
     //IDM core structs
-    nvmeIdmVendorCmd    *cmd_idm;
+    nvmeIdmVendorCmd    *cmd_nvme;
     idmData             *data_idm;
 
     // Misc collection area for kludgy smuggling of parameters
@@ -127,7 +127,7 @@ typedef struct _nvmeIdmRequest {
 //////////////////////////////////////////
 
 int nvme_idm_write(nvmeIdmRequest *request_idm);
-int nvme_idm_write_init(nvmeIdmRequest *request_idm, nvmeIdmVendorCmd *cmd_idm,
+int nvme_idm_write_init(nvmeIdmRequest *request_idm, nvmeIdmVendorCmd *cmd_nvme,
                         idmData *data_idm, char *lock_id, int mode, char *host_id,
                         char *drive, uint64_t timeout, char *lvb, int lvb_size);
 
