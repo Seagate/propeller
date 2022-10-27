@@ -152,6 +152,59 @@ int idm_nvme_drive_lock(char *lock_id, int mode, char *host_id, char *drive, uin
 
 
 
+//TODO: docstring
+static int idm_nvme_drive_refresh_lock(char *lock_id, int mode, char *host_id,
+                                       char *drive, uint64_t timeout)
+{
+    printf("%s: START\n", __func__);
+
+//TODO: Should I be using malloc() instead?
+    nvmeIdmRequest   request_idm;
+    nvmeIdmVendorCmd cmd_idm;
+    idmData          data_idm;
+    int              ret = SUCCESS;
+
+    ret = nvme_idm_write_init(&request_idm, &cmd_idm, &data_idm,
+                              lock_id, mode, host_id, drive, timeout, 0, 0);
+    if(ret < 0) {
+        #ifndef COMPILE_STANDALONE
+        ilm_log_err("%s: fail %d", __func__, ret);
+        #else
+        printf("%s: fail %d\n", __func__, ret);
+        #endif //COMPILE_STANDALONE
+        return ret;
+    }
+
+    //API-specific code
+    switch(mode) {              //TODO: Can this be push down into the common init for ALL idm write sync apis??
+        case IDM_MODE_EXCLUSIVE:
+            request_idm.class_idm = IDM_CLASS_EXCLUSIVE;
+        case IDM_MODE_SHAREABLE:
+            request_idm.class_idm = IDM_CLASS_SHARED_PROTECTED_READ;
+        default:
+//TODO: This case is the resultant default behavior of the equivalent scsi code.  Does this make sense???
+//          Talk to Tom about this.
+//          Feels like this should be an error
+            request_idm.class_idm = mode;
+    }
+
+    request_idm.opcode_idm   = IDM_OPCODE_REFRESH;
+    request_idm.res_ver_type = IDM_RES_VER_NO_UPDATE_NO_VALID;  //TODO: Can this be push down into the common init for ALL idm write sync apis??
+
+    ret = nvme_idm_write(&request_idm);
+    if (ret < 0) {
+        #ifndef COMPILE_STANDALONE
+        ilm_log_err("%s: command fail %d", __func__, ret);
+        #else
+        printf("%s: command fail %d\n", __func__, ret);
+        #endif //COMPILE_STANDALONE
+    }
+
+    return ret;
+}
+
+
+
 
 
 
@@ -233,58 +286,13 @@ int idm_nvme_drive_lock(char *lock_id, int mode, char *host_id, char *drive, uin
 //     return ret;
 // }
 
-// static int idm_drive_refresh_lock(char *lock_id, int mode, char *host_id,
-//                   char *drive, uint64_t timeout)
-// {
-//     struct idm_scsi_request *request;
-//     int ret;
 
-//     if (ilm_inject_fault_is_hit())
-//         return -EIO;
 
-//     if (!lock_id || !host_id || !drive)
-//         return -EINVAL;
 
-//     if (mode != IDM_MODE_EXCLUSIVE && mode != IDM_MODE_SHAREABLE)
-//         return -EINVAL;
 
-//     request = malloc(sizeof(struct idm_scsi_request));
-//     if (!request) {
-//         ilm_log_err("%s: fail to allocat scsi request", __func__);
-//         return -ENOMEM;
-//     }
-//     memset(request, 0x0, sizeof(struct idm_scsi_request));
 
-//     request->data = malloc(sizeof(struct idm_data));
-//     if (!request->data) {
-//         free(request);
-//         ilm_log_err("%s: fail to allocat scsi data", __func__);
-//         return -ENOMEM;
-//     }
-//     memset(request->data, 0x0, sizeof(struct idm_data));
 
-//     if (mode == IDM_MODE_EXCLUSIVE)
-//         mode = IDM_CLASS_EXCLUSIVE;
-//     else if (mode == IDM_MODE_SHAREABLE)
-//         mode = IDM_CLASS_SHARED_PROTECTED_READ;
 
-//     strncpy(request->drive, drive, PATH_MAX);
-//     request->op = IDM_MUTEX_OP_REFRESH;
-//     request->mode = mode;
-//     request->timeout = timeout;
-//     request->res_ver_type = IDM_RES_VER_NO_UPDATE_NO_VALID;
-//     request->data_len = sizeof(struct idm_data);
-//     memcpy(request->lock_id, lock_id, IDM_LOCK_ID_LEN);
-//     memcpy(request->host_id, host_id, IDM_HOST_ID_LEN);
-
-//     ret = _scsi_xfer_sync(request);
-//     if (ret < 0)
-//         ilm_log_err("%s: command fail %d", __func__, ret);
-
-//     free(request->data);
-//     free(request);
-//     return ret;
-// }
 
 // /**
 //  * idm_drive_convert_lock - Convert the lock mode for an IDM
@@ -302,6 +310,8 @@ int idm_nvme_drive_lock(char *lock_id, int mode, char *host_id, char *drive, uin
 //     return idm_drive_refresh_lock(lock_id, mode, host_id,
 //                       drive, timeout);
 // }
+
+
 
 // /**
 //  * idm_drive_renew_lock - Renew host's membership for an IDM
@@ -378,6 +388,9 @@ int main(int argc, char *argv[])
         }
         else if(strcmp(argv[1], "lock") == 0){
             ret = idm_nvme_drive_lock((char*)lock_id, mode, (char*)host_id, drive, timeout);
+        }
+        else if(strcmp(argv[1], "refresh") == 0){
+            ret = idm_nvme_drive_refresh_lock((char*)lock_id, mode, (char*)host_id, drive, timeout);
         }
         printf("%s exiting with %d\n", argv[1], ret);
     }
