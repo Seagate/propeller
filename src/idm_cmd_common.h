@@ -6,22 +6,23 @@
  * idm_cmd_common.h - In-drive Mutex (IDM) related structs, enums, etc. that are common to SCSI and NVMe.
  */
 
+#ifndef __IDM_CMD_COMMON_H__
+#define __IDM_CMD_COMMON_H__
 
 //TODO: Double-check SCSI code to see if some\all of these exist already
 //      Replace as necessary
 
 #include <stdint.h>
 
-
-// #define C_CAST(type, val) (type)(val)
-
 #define SUCCESS 0;
 #define FAILURE -1;
 
-
-
 #define IDM_VENDOR_CMD_DATA_LEN_BYTES   512            //TODO: Find where this is implemented on SCSI
 #define IDM_VENDOR_CMD_DATA_LEN_DWORDS  512 / 4
+
+#define IDM_LOCK_ID_LEN_BYTES   64
+#define IDM_HOST_ID_LEN_BYTES   32
+#define IDM_LVB_SIZE_MAX        8
 
 typedef enum _eIdmOpcodes {
     IDM_OPCODE_NORMAL   = 0x0,
@@ -67,7 +68,6 @@ typedef enum _eIdmResVer {
 #define IDM_DATA_RESERVED_0_LEN_BYTES   24
 #define IDM_DATA_RESOURCE_ID_LEN_BYTES  64
 #define IDM_DATA_METADATA_LEN_BYTES     64
-#define IDM_DATA_HOST_ID_LEN_BYTES      32
 #define IDM_DATA_RESERVED_1_LEN_BYTES   32
 
 typedef struct _idmData {
@@ -85,10 +85,12 @@ typedef struct _idmData {
     char        rsvd0[IDM_DATA_RESERVED_0_LEN_BYTES];
     char        resource_id[IDM_DATA_RESOURCE_ID_LEN_BYTES];
     char        metadata[IDM_DATA_METADATA_LEN_BYTES];
-    char        host_id[IDM_DATA_HOST_ID_LEN_BYTES];
+    char        host_id[IDM_HOST_ID_LEN_BYTES];
     char        rsvd1[IDM_DATA_RESERVED_1_LEN_BYTES];
     union {
         uint64_t    rsvd2[256];      // For idm_read
         uint64_t    ignored1[256];   // For idm_write
     };
 }idmData;
+
+#endif /*__IDM_CMD_COMMON_H__ */

@@ -7,6 +7,9 @@
  *                  to talk to the Linux kernel (via ioctl(), read() or write())
 */
 
+#ifndef __IDM_NVME_IO_H__
+#define __IDM_NVME_IO_H__
+
 #include <stdint.h>
 
 #include "idm_cmd_common.h"
@@ -14,9 +17,6 @@
 
 #define VENDOR_CMD_TIMEOUT_DEFAULT 15000     //TODO: Duplicated from SCSI. Uncertain behavior
                                             //TODO: Separate timeout default for NVMe Vendor Cmds??
-#define IDM_LOCK_ID_LEN_BYTES   64
-#define IDM_HOST_ID_LEN_BYTES   32
-
 
 //////////////////////////////////////////
 // Enums
@@ -95,7 +95,7 @@ typedef struct _nvmeIdmVendorCmd {
 // }eCqeStatusFields;
 
 
-//TODO: Using a bunch of pointer here.  SCSI was using COPIES of everything.  Any issues with this?? (string lengths??, kernel vs user space memory??)
+//TODO: Using a bunch of pointers here.  SCSI was using COPIES of everything.  Any issues with this?? (string lengths??, kernel vs user space memory??)
 //TODO: Add struct description HERE
 typedef struct _nvmeIdmRequest {
     //"IDM API" input params
@@ -116,7 +116,7 @@ typedef struct _nvmeIdmRequest {
     uint8_t             opcode_idm;
     uint8_t             group_idm;
     char                res_ver_type;  //TODO: How is this being used?  What does it represent in the NVMe CDW block?  What type should this be?
-    int                 data_len;       //TODO: Needed??  Seems like this can be determined in the lower-levels.
+    int                 data_len;
     uint64_t            class_idm;
 
 }nvmeIdmRequest;
@@ -138,4 +138,6 @@ int _nvme_idm_cmd_init_wrt(nvmeIdmRequest *request_idm);
 int _nvme_idm_cmd_send(nvmeIdmRequest *request_idm);
 int _nvme_idm_cmd_status_check(int status, int opcode_idm);
 int _nvme_idm_data_init_wrt(nvmeIdmRequest *request_idm);
-int _nvme_idm_write_input_check(char *lock_id, int mode, char *host_id, char *drive);
+int _nvme_idm_write_input_check(char *lock_id, int mode, char *host_id, char *drive, int lvb_size);
+
+#endif /*__IDM_NVME_IO_H__ */

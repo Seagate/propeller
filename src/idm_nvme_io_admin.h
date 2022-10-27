@@ -6,6 +6,9 @@
  * idm_nvme.h - NVMe interface for In-drive Mutex (IDM)
  */
 
+#ifndef __IDM_NVME_IO_ADMIN_H__
+#define __IDM_NVME_IO_ADMIN_H__
+
 #include <stdint.h>
 
 
@@ -181,5 +184,4 @@ int nvme_admin_identify(char *drive);
 void _gen_nvme_cmd_identify(struct nvme_admin_cmd *cmd_admin, nvmeIDCtrl *data_identify_ctrl);
 int _send_nvme_cmd_admin(char *drive, struct nvme_admin_cmd *cmd_admin);
 
-
-
+#endif /*__IDM_NVME_IO_ADMIN_H__ */
