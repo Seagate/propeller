@@ -27,6 +27,7 @@
 
 #define FUNCTION_ENTRY_DEBUG    //TODO: Remove this entirely???
 
+//TODO: Should I be using malloc() instead of declaring the struct objects at the top of each idm api???
 
 //////////////////////////////////////////
 // FUNCTIONS
@@ -45,21 +46,20 @@
  *
  * Returns zero or a negative error (ie. EINVAL).
  */
-int idm_nvme_drive_break_lock(char *lock_id, int mode, char *host_id, char *drive,
-                              uint64_t timeout)
+int idm_nvme_drive_break_lock(char *lock_id, int mode, char *host_id,
+                              char *drive, uint64_t timeout)
 {
     #ifdef FUNCTION_ENTRY_DEBUG
     printf("%s: START\n", __func__);
     #endif //FUNCTION_ENTRY_DEBUG
 
-//TODO: Should I be using malloc() instead?
     nvmeIdmRequest   request_idm;
     nvmeIdmVendorCmd cmd_idm;
     idmData          data_idm;
     int              ret = SUCCESS;
 
-    ret = nvme_idm_write_init(&request_idm, &cmd_idm, &data_idm,
-                              lock_id, mode, host_id, drive, timeout, 0, 0);
+    ret = nvme_idm_write_init(&request_idm, &cmd_idm, &data_idm, lock_id,
+                              mode, host_id, drive, timeout, 0, 0);
     if(ret < 0) {
         #ifndef COMPILE_STANDALONE
         ilm_log_err("%s: fail %d", __func__, ret);
@@ -83,6 +83,24 @@ int idm_nvme_drive_break_lock(char *lock_id, int mode, char *host_id, char *driv
     }
 }
 
+//TODO: should this function be deprecated\removed???
+/**
+ * idm_drive_convert_lock - Convert the lock mode for an IDM
+ * @lock_id:    Lock ID (64 bytes).
+ * @mode:       Lock mode (unlock, shareable, exclusive).
+ * @host_id:    Host ID (32 bytes).
+ * @drive:      Drive path name.
+ * @timeout:    Timeout for membership (unit: millisecond).
+ *
+ * Returns zero or a negative error (ie. EINVAL, ETIME).
+ */
+int idm_nvme_drive_convert_lock(char *lock_id, int mode, char *host_id,
+                                char *drive, uint64_t timeout)
+{
+    return idm_nvme_drive_refresh_lock(lock_id, mode, host_id,
+                                       drive, timeout);
+}
+
 /**
  * idm_nvme_drive_lock - acquire an IDM on a specified NVMe drive
  * @lock_id:     Lock ID (64 bytes).
@@ -93,20 +111,20 @@ int idm_nvme_drive_break_lock(char *lock_id, int mode, char *host_id, char *driv
  *
  * Returns zero or a negative error (ie. EINVAL, ENOMEM, EBUSY, etc).
  */
-int idm_nvme_drive_lock(char *lock_id, int mode, char *host_id, char *drive, uint64_t timeout)
+int idm_nvme_drive_lock(char *lock_id, int mode, char *host_id,
+                        char *drive, uint64_t timeout)
 {
     #ifdef FUNCTION_ENTRY_DEBUG
     printf("%s: START\n", __func__);
     #endif //FUNCTION_ENTRY_DEBUG
 
-//TODO: Should I be using malloc() instead?
     nvmeIdmRequest   request_idm;
     nvmeIdmVendorCmd cmd_idm;
     idmData          data_idm;
     int              ret = SUCCESS;
 
-    ret = nvme_idm_write_init(&request_idm, &cmd_idm, &data_idm,
-                              lock_id, mode, host_id, drive, timeout, 0, 0);
+    ret = nvme_idm_write_init(&request_idm, &cmd_idm, &data_idm, lock_id,
+                              mode, host_id, drive, timeout, 0, 0);
     if(ret < 0) {
         #ifndef COMPILE_STANDALONE
         ilm_log_err("%s: fail %d", __func__, ret);
@@ -133,21 +151,20 @@ int idm_nvme_drive_lock(char *lock_id, int mode, char *host_id, char *drive, uin
 }
 
 //TODO: docstring
-static int idm_nvme_drive_refresh_lock(char *lock_id, int mode, char *host_id, char *drive,
-                                       uint64_t timeout)
+static int idm_nvme_drive_refresh_lock(char *lock_id, int mode, char *host_id,
+                                       char *drive, uint64_t timeout)
 {
     #ifdef FUNCTION_ENTRY_DEBUG
     printf("%s: START\n", __func__);
     #endif //FUNCTION_ENTRY_DEBUG
 
-//TODO: Should I be using malloc() instead?
     nvmeIdmRequest   request_idm;
     nvmeIdmVendorCmd cmd_idm;
     idmData          data_idm;
     int              ret = SUCCESS;
 
-    ret = nvme_idm_write_init(&request_idm, &cmd_idm, &data_idm,
-                              lock_id, mode, host_id, drive, timeout, 0, 0);
+    ret = nvme_idm_write_init(&request_idm, &cmd_idm, &data_idm, lock_id,
+                              mode, host_id, drive, timeout, 0, 0);
     if(ret < 0) {
         #ifndef COMPILE_STANDALONE
         ilm_log_err("%s: fail %d", __func__, ret);
@@ -173,6 +190,24 @@ static int idm_nvme_drive_refresh_lock(char *lock_id, int mode, char *host_id, c
     return ret;
 }
 
+//TODO: should this function be deprecated\removed???
+/**
+ * idm_drive_renew_lock - Renew host's membership for an IDM
+ * @lock_id:    Lock ID (64 bytes).
+ * @mode:       Lock mode (unlock, shareable, exclusive).
+ * @host_id:    Host ID (32 bytes).
+ * @drive:      Drive path name.
+ * @timeout:    Timeout for membership (unit: millisecond).
+ *
+ * Returns zero or a negative error (ie. EINVAL, ETIME).
+ */
+int idm_nvme_drive_renew_lock(char *lock_id, int mode, char *host_id,
+                              char *drive, uint64_t timeout)
+{
+    return idm_nvme_drive_refresh_lock(lock_id, mode, host_id,
+                                       drive, timeout);
+}
+
 /**
  * idm_drive_unlock - release an IDM on a specified drive
  * @lock_id:    Lock ID (64 bytes).
@@ -191,14 +226,13 @@ int idm_nvme_drive_unlock(char *lock_id, int mode, char *host_id,
     printf("%s: START\n", __func__);
     #endif //FUNCTION_ENTRY_DEBUG
 
-//TODO: Should I be using malloc() instead?
     nvmeIdmRequest   request_idm;
     nvmeIdmVendorCmd cmd_idm;
     idmData          data_idm;
     int              ret = SUCCESS;
 
-    ret = nvme_idm_write_init(&request_idm, &cmd_idm, &data_idm,
-                              lock_id, mode, host_id, drive, 0, lvb, lvb_size); //TODO: Why 0 timeout here?
+    ret = nvme_idm_write_init(&request_idm, &cmd_idm, &data_idm, lock_id,
+                              mode, host_id, drive, 0, lvb, lvb_size); //TODO: Why 0 timeout here?
     if(ret < 0) {
         #ifndef COMPILE_STANDALONE
         ilm_log_err("%s: fail %d", __func__, ret);
@@ -223,70 +257,6 @@ int idm_nvme_drive_unlock(char *lock_id, int mode, char *host_id,
 
     return ret;
 }
-
-
-
-
-
-
-
-//TODO: should "convert" and "renew" be deprecated\removed???
-
-// /**
-//  * idm_drive_convert_lock - Convert the lock mode for an IDM
-//  * @lock_id:    Lock ID (64 bytes).
-//  * @mode:       Lock mode (unlock, shareable, exclusive).
-//  * @host_id:    Host ID (32 bytes).
-//  * @drive:      Drive path name.
-//  * @timeout:    Timeout for membership (unit: millisecond).
-//  *
-//  * Returns zero or a negative error (ie. EINVAL, ETIME).
-//  */
-// int idm_drive_convert_lock(char *lock_id, int mode, char *host_id,
-//                char *drive, uint64_t timeout)
-// {
-//     return idm_drive_refresh_lock(lock_id, mode, host_id,
-//                       drive, timeout);
-// }
-
-
-
-// /**
-//  * idm_drive_renew_lock - Renew host's membership for an IDM
-//  * @lock_id:    Lock ID (64 bytes).
-//  * @mode:       Lock mode (unlock, shareable, exclusive).
-//  * @host_id:    Host ID (32 bytes).
-//  * @drive:      Drive path name.
-//  * @timeout:    Timeout for membership (unit: millisecond).
-//  *
-//  * Returns zero or a negative error (ie. EINVAL, ETIME).
-//  */
-// int idm_drive_renew_lock(char *lock_id, int mode, char *host_id,
-//              char *drive, uint64_t timeout)
-// {
-//     return idm_drive_refresh_lock(lock_id, mode, host_id,
-//                       drive, timeout);
-// }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 
