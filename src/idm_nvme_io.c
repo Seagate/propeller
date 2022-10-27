@@ -60,7 +60,7 @@ int nvme_idm_write(nvmeIdmRequest *request_idm) {
 	ilm_log_array_dbg("resource_ver", data_idm->resource_ver, IDM_DATA_RESOURCE_VER_LEN_BYTES);
     #endif
 
-    ret = _nvme_send_cmd_idm(request_idm);
+    ret = _nvme_idm_cmd_send(request_idm);
     if(ret < 0) {
         goto EXIT_NVME_IDM_WRITE;
     }
@@ -74,9 +74,9 @@ EXIT_NVME_IDM_WRITE:
 }
 
 /**
- * nvme_idm_write_init - Collects all the parameters passed to the IDM API and stores them in
- *                       the "request_idm" data struct for use later (but before the NVMe write
- *                       command is sent to the OS kernel).
+ * nvme_idm_write_init - Initializes an NVMe write to the IDM by validating and then collecting all
+*                        the IDM API input params and storing them in the "request_idm" data struct
+                         for use later (but before the NVMe write command is sent to the OS kernel).
  *                       Intended to be called by higher level IDM API's (i.e.: lock, unlock, etc).
  *
  * @request_idm:    Struct containing all NVMe-specific command info for the requested IDM action.
@@ -92,8 +92,6 @@ EXIT_NVME_IDM_WRITE:
  *
  * Returns zero or a negative error (ie. EINVAL, ENOMEM, EBUSY, etc).
  */
-//TODO: Attempt at a "common" write initialization, with some caveats (of course).
-//TODO: KEEP THIS?????
 int nvme_idm_write_init(nvmeIdmRequest *request_idm, nvmeIdmVendorCmd *cmd_idm,
                          idmData *data_idm, char *lock_id, int mode, char *host_id,
                          char *drive, uint64_t timeout, char *lvb, int lvb_size) {
@@ -102,6 +100,17 @@ int nvme_idm_write_init(nvmeIdmRequest *request_idm, nvmeIdmVendorCmd *cmd_idm,
     printf("%s: START\n", __func__);
 
     int ret = SUCCESS;
+
+    //TODO: change name to _nvme_idm_check_common_input() ??
+    ret = _nvme_idm_write_input_check(lock_id, mode, host_id, drive);
+    if (ret < 0) {
+        #ifndef COMPILE_STANDALONE
+        ilm_log_err("%s: input validation fail %d", __func__, ret);
+        #else
+        printf("%s: input validation fail %d\n", __func__, ret);
+        #endif //COMPILE_STANDALONE
+        return ret;
+    }
 
     memset(request_idm, 0, sizeof(nvmeIdmRequest));
     memset(cmd_idm,     0, sizeof(nvmeIdmVendorCmd));
@@ -114,6 +123,7 @@ int nvme_idm_write_init(nvmeIdmRequest *request_idm, nvmeIdmVendorCmd *cmd_idm,
 
     request_idm->cmd_idm  = cmd_idm;
     request_idm->data_idm = data_idm;
+    request_idm->data_len = sizeof(idmData);    // Constant for NVMe writes (only) to the IDM
 
 //TODO: Command dependent variables: Leave here -OR- move up 1 level?
     //kludge for inconsistent input params
@@ -183,47 +193,13 @@ int _nvme_idm_cmd_init_wrt(nvmeIdmRequest *request_idm) {
 }
 
 /**
- * _nvme_idm_data_init_wrt -  Initializes the IDM's data struct prior to an IDM write.
+ * _nvme_idm_cmd_send -  Sends the completed NVMe command data structure to the OS kernel.
  *
  * @request_idm:    Struct containing all NVMe-specific command info for the requested IDM action.
  *
  * Returns zero or a negative error (ie. EINVAL, ENOMEM, EBUSY, etc).
  */
-int _nvme_idm_data_init_wrt(nvmeIdmRequest *request_idm) {
-
-    printf("%s: START\n", __func__);
-
-    nvmeIdmVendorCmd *cmd_idm = request_idm->cmd_idm;
-    idmData *data_idm         = request_idm->data_idm;
-    int ret                   = SUCCESS;
-
-//TODO: ?? __bswap_64() the next 3 rhs values??
-    #ifndef COMPILE_STANDALONE
-  	data_idm->time_now  = ilm_read_utc_time();
-    #else
-  	data_idm->time_now  = 0;
-    #endif //COMPILE_STANDALONE
-	data_idm->countdown = request_idm->timeout;
-	data_idm->class_idm = request_idm->class_idm;
-
-//TODO: ?? reverse order of next 3 rhs arrays ??  (on scsi-side, using _scsi_data_swap())
-    memcpy(data_idm->resource_id,  request_idm->lock_id, IDM_LOCK_ID_LEN_BYTES);
-    memcpy(data_idm->host_id,      request_idm->host_id, IDM_HOST_ID_LEN_BYTES);
-    memcpy(data_idm->resource_ver, request_idm->lvb,     request_idm->lvb_size);  //TOO: Not always needed.  Copy anyway?  Conditional IF?
-
-	data_idm->resource_ver[0] = request_idm->res_ver_type;                     //TODO: What the heck is going on HERE?!?
-
-    return ret;
-}
-
-/**
- * _nvme_send_cmd_idm -  Sends the completed NVMe command data structure to the OS kernel.
- *
- * @request_idm:    Struct containing all NVMe-specific command info for the requested IDM action.
- *
- * Returns zero or a negative error (ie. EINVAL, ENOMEM, EBUSY, etc).
- */
-int _nvme_send_cmd_idm(nvmeIdmRequest *request_idm) {
+int _nvme_idm_cmd_send(nvmeIdmRequest *request_idm) {
 
     printf("%s: START\n", __func__);
 
@@ -270,7 +246,7 @@ int _nvme_send_cmd_idm(nvmeIdmRequest *request_idm) {
 //  Is "status_ioctl"    equivalent to "CQE DW3[31:17]" ?        //TODO:?? is "status_ioctl" just [24:17]??
 
 //TODO: Which of the above 2 "result" params should I be using HERE??  Both??
-    ret = _nvme_status_check(status_ioctl, request_idm->opcode_idm);
+    ret = _nvme_idm_cmd_status_check(status_ioctl, request_idm->opcode_idm);
 
 out:
 //TODO: Possible ASYNC flag HERE??  -OR-  do I need to use write() and read() for async?? (like scsi)
@@ -285,14 +261,14 @@ out:
 }
 
 /**
- * _nvme_status_check -  Checks the NVMe command status code returned from the OS kernel.
+ * _nvme_idm_cmd_status_check -  Checks the NVMe command status code returned from the OS kernel.
  *
  * @status:     The status code returned by the OS kernel after the completed NVMe command request.
  * @opcode_idm: IDM-specific opcode specifying the desired IDM action performed.
 *
  * Returns zero or a negative error (ie. EINVAL, ENOMEM, EBUSY, etc).
  */
-int _nvme_status_check(int status, int opcode_idm) {
+int _nvme_idm_cmd_status_check(int status, int opcode_idm) {
 
     int ret;
 
@@ -359,6 +335,73 @@ int _nvme_status_check(int status, int opcode_idm) {
             #endif //COMPILE_STANDALONE
             ret = -EINVAL;
     }
+
+    return ret;
+}
+
+/**
+ * _nvme_idm_data_init_wrt -  Initializes the IDM's data struct prior to an IDM write.
+ *
+ * @request_idm:    Struct containing all NVMe-specific command info for the requested IDM action.
+ *
+ * Returns zero or a negative error (ie. EINVAL, ENOMEM, EBUSY, etc).
+ */
+int _nvme_idm_data_init_wrt(nvmeIdmRequest *request_idm) {
+
+    printf("%s: START\n", __func__);
+
+    nvmeIdmVendorCmd *cmd_idm = request_idm->cmd_idm;
+    idmData *data_idm         = request_idm->data_idm;
+    int ret                   = SUCCESS;
+
+//TODO: ?? __bswap_64() the next 3 rhs values??
+    #ifndef COMPILE_STANDALONE
+  	data_idm->time_now  = ilm_read_utc_time();
+    #else
+  	data_idm->time_now  = 0;
+    #endif //COMPILE_STANDALONE
+	data_idm->countdown = request_idm->timeout;
+	data_idm->class_idm = request_idm->class_idm;
+
+//TODO: ?? reverse order of next 3 rhs arrays ??  (on scsi-side, using _scsi_data_swap())
+    memcpy(data_idm->resource_id,  request_idm->lock_id, IDM_LOCK_ID_LEN_BYTES);
+    memcpy(data_idm->host_id,      request_idm->host_id, IDM_HOST_ID_LEN_BYTES);
+    memcpy(data_idm->resource_ver, request_idm->lvb,     request_idm->lvb_size);  //TODO: Not always needed.  Copy anyway?  Conditional IF?
+
+	data_idm->resource_ver[0] = request_idm->res_ver_type;                     //TODO: What the heck is going on HERE?!?
+
+    return ret;
+}
+
+/**
+ * _nvme_idm_write_input_check - Common method for checking core IDM input parameters
+ *
+ * @lock_id:        Lock ID (64 bytes).
+ * @mode:           Lock mode (unlock, shareable, exclusive).
+ * @host_id:        Host ID (32 bytes).
+ * @drive:          Drive path name.
+ *
+ * Returns zero or a negative error (ie. EINVAL, ENOMEM, EBUSY, etc).
+ */
+//TODO: Attempt at a "common" input validation func
+//TODO: KEEP THIS?????
+int _nvme_idm_write_input_check(char *lock_id, int mode, char *host_id, char *drive) {
+
+//TODO: Leave these in under DEBUG flag??
+    printf("%s: START\n", __func__);
+
+    int ret = SUCCESS;
+
+    #ifndef COMPILE_STANDALONE
+    if (ilm_inject_fault_is_hit())
+        ret = -EIO;
+    else if (!lock_id || !host_id || !drive)
+    #else
+    if (!lock_id || !host_id || !drive)
+    #endif //COMPILE_STANDALONE
+        ret = -EINVAL;
+    else if (mode != IDM_MODE_EXCLUSIVE && mode != IDM_MODE_SHAREABLE)
+        ret = -EINVAL;
 
     return ret;
 }

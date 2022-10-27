@@ -9,5 +9,8 @@
 #include <stdint.h>
 
 
+int idm_nvme_drive_break_lock(char *lock_id, int mode, char *host_id, char *drive, uint64_t timeout);
+int idm_nvme_drive_convert_lock(char *lock_id, int mode, char *host_id, char *drive, uint64_t timeout);
 int idm_nvme_drive_lock(char *lock_id, int mode, char *host_id, char *drive, uint64_t timeout);
-
+int idm_nvme_drive_renew_lock(char *lock_id, int mode, char *host_id, char *drive, uint64_t timeout);
+int idm_nvme_drive_unlock(char *lock_id, int mode, char *host_id, char *lvb, int lvb_size, char *drive);
