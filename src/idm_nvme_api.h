@@ -15,6 +15,7 @@
 int idm_nvme_drive_break_lock(char *lock_id, int mode, char *host_id, char *drive, uint64_t timeout);
 int idm_nvme_drive_convert_lock(char *lock_id, int mode, char *host_id, char *drive, uint64_t timeout);
 int idm_nvme_drive_lock(char *lock_id, int mode, char *host_id, char *drive, uint64_t timeout);
+//TODO: Why is this static (as ported from scsi-side)?  Remove static?
 static int idm_nvme_drive_refresh_lock(char *lock_id, int mode, char *host_id,
                                        char *drive, uint64_t timeout);
 int idm_nvme_drive_renew_lock(char *lock_id, int mode, char *host_id, char *drive, uint64_t timeout);
