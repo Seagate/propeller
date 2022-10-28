@@ -85,8 +85,8 @@ EXIT_NVME_IDM_WRITE:
  *                       Intended to be called by higher level IDM API's (i.e.: lock, unlock, etc).
  *
  * @request_idm:    Struct containing all NVMe-specific command info for the requested IDM action.
- * @cmd_nvme:       NVMe Vendor Specific Command command word data structure.
- * @data_idm:       Data structure for sending and receiving IDM-speicifc data.
+ * @cmd_nvme:       Data structure for NVMe Vendor Specific Commands.
+ * @data_idm:       Data structure for sending and receiving IDM-specifc data.
  * @lock_id:        Lock ID (64 bytes).
  * @mode:           Lock mode (unlock, shareable, exclusive).
  * @host_id:        Host ID (32 bytes).

@@ -24,7 +24,7 @@
 
 
 /**
- * gen_nvme_cmd_identify - Setup the NVMe ADmin command struct for Identify Controller (opcode=0x6)
+ * gen_nvme_cmd_identify - Setup the NVMe Admin command struct for Identify Controller (opcode=0x6)
  * @cmd_admin:          NVMe Admin Command struct to fill
  * @data_identify_ctrl: NVMe Admin Commmand data struct.  This is the cmd output destination.
  *
@@ -235,8 +235,8 @@ out:
 
 /**
  * send_nvme_cmd_idm - Send NVMe Vendor-Specific command to specified device.
- * @drive:      Drive path name.
- * @cmd_nvme:   NVMe command struct directed at the IDM firmware.
+ * @drive:    Drive path name.
+ * @cmd_nvme: Data structure for NVMe Vendor Specific Commands.
  *
   * Returns zero or a negative error (ie. EINVAL, ENOMEM, EBUSY, etc).
 */
