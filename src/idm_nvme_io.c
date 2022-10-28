@@ -16,6 +16,7 @@
 #include <unistd.h>
 
 #include "idm_nvme_io.h"
+#include "idm_nvme_utils.h"
 
 
 //////////////////////////////////////////
@@ -84,8 +85,8 @@ EXIT_NVME_IDM_WRITE:
  *                       Intended to be called by higher level IDM API's (i.e.: lock, unlock, etc).
  *
  * @request_idm:    Struct containing all NVMe-specific command info for the requested IDM action.
- * @cmd_nvme:       NVMe Vendor Specific Command command word data structure
- * @data_idm:       IDM-specific data structure
+ * @cmd_nvme:       NVMe Vendor Specific Command command word data structure.
+ * @data_idm:       Data structure for sending and receiving IDM-speicifc data.
  * @lock_id:        Lock ID (64 bytes).
  * @mode:           Lock mode (unlock, shareable, exclusive).
  * @host_id:        Host ID (32 bytes).
@@ -239,6 +240,10 @@ int _nvme_idm_cmd_send(nvmeIdmRequest *request_idm) {
         #endif //COMPILE_STANDALONE
         return nvme_fd;
     }
+
+    //TODO: Put this under a debug flag of some kind??
+    dumpNvmeCmdStruct(request_idm->cmd_nvme, 1, 1);
+    dumpIdmDataStruct(request_idm->data_idm);
 
     status_ioctl = ioctl(nvme_fd, NVME_IOCTL_IO_CMD, request_idm->cmd_nvme);
     if(status_ioctl) {

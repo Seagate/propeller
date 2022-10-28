@@ -150,8 +150,16 @@ int idm_nvme_drive_lock(char *lock_id, int mode, char *host_id,
     return ret;
 }
 
-//TODO: docstring
-static int idm_nvme_drive_refresh_lock(char *lock_id, int mode, char *host_id,
+/**
+ * idm_nvme_drive_refresh_lock - Refreshes the host's membership for an IDM
+ * @lock_id:    Lock ID (64 bytes).
+ * @mode:       Lock mode (unlock, shareable, exclusive).
+ * @host_id:    Host ID (32 bytes).
+ * @drive:      Drive path name.
+ * @timeout:    Timeout for membership (unit: millisecond).
+ *
+ * Returns zero or a negative error (ie. EINVAL, ETIME).
+ */static int idm_nvme_drive_refresh_lock(char *lock_id, int mode, char *host_id,
                                        char *drive, uint64_t timeout)
 {
     #ifdef FUNCTION_ENTRY_DEBUG
@@ -231,8 +239,9 @@ int idm_nvme_drive_unlock(char *lock_id, int mode, char *host_id,
     idmData          data_idm;
     int              ret = SUCCESS;
 
+     //TODO: Why 0 timeout here (ported as-is from scsi-side)?
     ret = nvme_idm_write_init(&request_idm, &cmd_nvme, &data_idm, lock_id,
-                              mode, host_id, drive, 0, lvb, lvb_size); //TODO: Why 0 timeout here?
+                              mode, host_id, drive, 0, lvb, lvb_size);
     if(ret < 0) {
         #ifndef COMPILE_STANDALONE
         ilm_log_err("%s: fail %d", __func__, ret);
