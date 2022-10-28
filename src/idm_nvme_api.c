@@ -34,7 +34,7 @@
 //////////////////////////////////////////
 
 /**
- * idm_nvme_drive_break_lock - Break an IDM if before other hosts have
+ * nvme_idm_break_lock - Break an IDM if before other hosts have
  * acquired this IDM.  This function is to allow a host_id to take
  * over the ownership if other hosts of the IDM is timeout, or the
  * countdown value is -1UL.
@@ -46,8 +46,8 @@
  *
  * Returns zero or a negative error (ie. EINVAL).
  */
-int idm_nvme_drive_break_lock(char *lock_id, int mode, char *host_id,
-                              char *drive, uint64_t timeout)
+int nvme_idm_break_lock(char *lock_id, int mode, char *host_id,
+                        char *drive, uint64_t timeout)
 {
     #ifdef FUNCTION_ENTRY_DEBUG
     printf("%s: START\n", __func__);
@@ -94,15 +94,15 @@ int idm_nvme_drive_break_lock(char *lock_id, int mode, char *host_id,
  *
  * Returns zero or a negative error (ie. EINVAL, ETIME).
  */
-int idm_nvme_drive_convert_lock(char *lock_id, int mode, char *host_id,
-                                char *drive, uint64_t timeout)
+int nvme_idm_convert_lock(char *lock_id, int mode, char *host_id,
+                          char *drive, uint64_t timeout)
 {
-    return idm_nvme_drive_refresh_lock(lock_id, mode, host_id,
-                                       drive, timeout);
+    return nvme_idm_refresh_lock(lock_id, mode, host_id,
+                                 drive, timeout);
 }
 
 /**
- * idm_nvme_drive_lock - acquire an IDM on a specified NVMe drive
+ * nvme_idm_lock - acquire an IDM on a specified NVMe drive
  * @lock_id:     Lock ID (64 bytes).
  * @mode:        Lock mode (unlock, shareable, exclusive).
  * @host_id:     Host ID (32 bytes).
@@ -111,8 +111,8 @@ int idm_nvme_drive_convert_lock(char *lock_id, int mode, char *host_id,
  *
  * Returns zero or a negative error (ie. EINVAL, ENOMEM, EBUSY, etc).
  */
-int idm_nvme_drive_lock(char *lock_id, int mode, char *host_id,
-                        char *drive, uint64_t timeout)
+int nvme_idm_lock(char *lock_id, int mode, char *host_id,
+                  char *drive, uint64_t timeout)
 {
     #ifdef FUNCTION_ENTRY_DEBUG
     printf("%s: START\n", __func__);
@@ -151,7 +151,7 @@ int idm_nvme_drive_lock(char *lock_id, int mode, char *host_id,
 }
 
 /**
- * idm_nvme_drive_refresh_lock - Refreshes the host's membership for an IDM
+ * nvme_idm_refresh_lock - Refreshes the host's membership for an IDM
  * @lock_id:    Lock ID (64 bytes).
  * @mode:       Lock mode (unlock, shareable, exclusive).
  * @host_id:    Host ID (32 bytes).
@@ -159,8 +159,8 @@ int idm_nvme_drive_lock(char *lock_id, int mode, char *host_id,
  * @timeout:    Timeout for membership (unit: millisecond).
  *
  * Returns zero or a negative error (ie. EINVAL, ETIME).
- */static int idm_nvme_drive_refresh_lock(char *lock_id, int mode, char *host_id,
-                                       char *drive, uint64_t timeout)
+ */int nvme_idm_refresh_lock(char *lock_id, int mode, char *host_id,
+                             char *drive, uint64_t timeout)
 {
     #ifdef FUNCTION_ENTRY_DEBUG
     printf("%s: START\n", __func__);
@@ -209,11 +209,11 @@ int idm_nvme_drive_lock(char *lock_id, int mode, char *host_id,
  *
  * Returns zero or a negative error (ie. EINVAL, ETIME).
  */
-int idm_nvme_drive_renew_lock(char *lock_id, int mode, char *host_id,
-                              char *drive, uint64_t timeout)
+int nvme_idm_renew_lock(char *lock_id, int mode, char *host_id,
+                        char *drive, uint64_t timeout)
 {
-    return idm_nvme_drive_refresh_lock(lock_id, mode, host_id,
-                                       drive, timeout);
+    return nvme_idm_refresh_lock(lock_id, mode, host_id,
+                                 drive, timeout);
 }
 
 /**
@@ -227,8 +227,8 @@ int idm_nvme_drive_renew_lock(char *lock_id, int mode, char *host_id,
  *
  * Returns zero or a negative error (ie. EINVAL, ETIME).
  */
-int idm_nvme_drive_unlock(char *lock_id, int mode, char *host_id,
-                          char *lvb, int lvb_size, char *drive)
+int nvme_idm_unlock(char *lock_id, int mode, char *host_id,
+                    char *lvb, int lvb_size, char *drive)
 {
     #ifdef FUNCTION_ENTRY_DEBUG
     printf("%s: START\n", __func__);
@@ -304,16 +304,16 @@ int main(int argc, char *argv[])
             int         lvb_size                       = 5;
 
         if(strcmp(argv[1], "break") == 0){
-            ret = idm_nvme_drive_break_lock((char*)lock_id, mode, (char*)host_id, drive, timeout);
+            ret = nvme_idm_break_lock((char*)lock_id, mode, (char*)host_id, drive, timeout);
         }
         else if(strcmp(argv[1], "lock") == 0){
-            ret = idm_nvme_drive_lock((char*)lock_id, mode, (char*)host_id, drive, timeout);
+            ret = nvme_idm_lock((char*)lock_id, mode, (char*)host_id, drive, timeout);
         }
         else if(strcmp(argv[1], "refresh") == 0){
-            ret = idm_nvme_drive_refresh_lock((char*)lock_id, mode, (char*)host_id, drive, timeout);
+            ret = nvme_idm_refresh_lock((char*)lock_id, mode, (char*)host_id, drive, timeout);
         }
         else if(strcmp(argv[1], "unlock") == 0){
-            ret = idm_nvme_drive_unlock((char*)lock_id, mode, (char*)host_id, (char*)lvb, lvb_size, drive);
+            ret = nvme_idm_unlock((char*)lock_id, mode, (char*)host_id, (char*)lvb, lvb_size, drive);
         }
         else {
             printf("%s: invalid command option!\n", argv[1]);
