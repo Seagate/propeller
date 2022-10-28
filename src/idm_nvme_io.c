@@ -110,7 +110,7 @@ int nvme_idm_write_init(nvmeIdmRequest *request_idm, nvmeIdmVendorCmd *cmd_nvme,
     int ret = SUCCESS;
 
     //TODO: change name to _nvme_idm_check_common_input() ??
-    ret = _nvme_idm_write_input_check(lock_id, mode, host_id, drive, lvb_size);
+    ret = _nvme_idm_check_common_input(lock_id, mode, host_id, drive, lvb_size);
     if (ret < 0) {
         #ifndef COMPILE_STANDALONE
         ilm_log_err("%s: input validation fail %d", __func__, ret);
@@ -152,6 +152,126 @@ int nvme_idm_write_init(nvmeIdmRequest *request_idm, nvmeIdmVendorCmd *cmd_nvme,
         request_idm->lvb = lvb;
     if(lvb_size)
         request_idm->lvb_size  = lvb_size;
+
+    return ret;
+}
+
+//TODO: Still need to validate this this will work for synchronous reads too.
+/**
+ * _nvme_idm_check_common_input - Validates the common IDM API input parameters.
+ *
+ * @lock_id:        Lock ID (64 bytes).
+ * @mode:           Lock mode (unlock, shareable, exclusive).
+ * @host_id:        Host ID (32 bytes).
+ * @drive:          Drive path name.
+ *
+ * Returns zero or a negative error (ie. EINVAL, ENOMEM, EBUSY, etc).
+ */
+int _nvme_idm_check_common_input(char *lock_id, int mode, char *host_id,
+                                char *drive, int lvb_size) {
+
+    #ifdef FUNCTION_ENTRY_DEBUG
+    printf("%s: START\n", __func__);
+    #endif //FUNCTION_ENTRY_DEBUG
+
+    int ret = SUCCESS;
+
+    #ifndef COMPILE_STANDALONE
+    if (ilm_inject_fault_is_hit())
+        return -EIO;
+    #endif //COMPILE_STANDALONE
+
+    if (!lock_id || !host_id || !drive)
+        return -EINVAL;
+
+    if (mode != IDM_MODE_EXCLUSIVE && mode != IDM_MODE_SHAREABLE)
+        return -EINVAL;
+
+    if (lvb_size > IDM_LVB_SIZE_MAX)
+        return -EINVAL;
+
+    return ret;
+}
+
+/**
+ * _nvme_idm_cmd_check_status -  Checks the NVMe command status code returned from the OS kernel.
+ *
+ * @status:     The status code returned by the OS kernel after the completed NVMe command request.
+ * @opcode_idm: IDM-specific opcode specifying the desired IDM action performed.
+*
+ * Returns zero or a negative error (ie. EINVAL, ENOMEM, EBUSY, etc).
+ */
+int _nvme_idm_cmd_check_status(int status, int opcode_idm) {
+
+    #ifdef FUNCTION_ENTRY_DEBUG
+    printf("%s: START\n", __func__);
+    #endif //FUNCTION_ENTRY_DEBUG
+
+    int ret;
+
+//TODO: Unable to decipher hardcoded SCSI "Sense" data to translate to Propeller NVMe spec
+    switch(status) {
+        case NVME_IDM_ERR_MUTEX_OP_FAILURE:
+            ret = -EINVAL;
+            break;
+        case NVME_IDM_ERR_MUTEX_REVERSE_OWNER_CHECK_FAILURE:
+            ret = -EINVAL;
+            break;
+        case NVME_IDM_ERR_MUTEX_OP_FAILURE_STATE:
+            ret = -EINVAL;
+            break;
+        case NVME_IDM_ERR_MUTEX_OP_FAILURE_CLASS:
+            ret = -EINVAL;
+            break;
+        case NVME_IDM_ERR_MUTEX_OP_FAILURE_OWNER:
+            ret = -EINVAL;
+            break;
+        case NVME_IDM_ERR_MUTEX_OPCODE_INVALID:
+            ret = -EINVAL;
+            break;
+        case NVME_IDM_ERR_MUTEX_LIMIT_EXCEEDED:
+            ret = -ENOMEM;
+            break;
+        case NVME_IDM_ERR_MUTEX_LIMIT_EXCEEDED_HOST:
+            ret = -ENOMEM;
+            break;
+        case NVME_IDM_ERR_MUTEX_LIMIT_EXCEEDED_SHARED_HOST:
+            ret = -ENOMEM;
+            break;
+        case NVME_IDM_ERR_MUTEX_CONFLICT:   //SCSI Equivalent: Reservation Conflict
+            switch(opcode_idm) {
+                case IDM_OPCODE_REFRESH:
+                    ret = -ETIME;
+                    break;
+                case IDM_OPCODE_UNLOCK:
+                    ret = -ENOENT;
+                    break;
+                default:
+                    ret = -EBUSY;
+            }
+            break;
+        case NVME_IDM_ERR_MUTEX_HELD_ALREADY:   //SCSI Equivalent: Terminated
+            switch(opcode_idm) {
+                case IDM_OPCODE_REFRESH:
+                    ret = -EPERM;
+                    break;
+                case IDM_OPCODE_UNLOCK:
+                    ret = -EINVAL;
+                    break;
+                default:
+                    ret = -EAGAIN;
+            }
+            break;
+        case NVME_IDM_ERR_MUTEX_HELD_BY_ANOTHER:    //SCSI Equivalent: Busy
+            ret = -EBUSY;
+        default:
+            #ifndef COMPILE_STANDALONE
+            ilm_log_err("%s: unknown status %d", __func__, status);
+            #else
+            printf("%s: unknown status %d\n", __func__, status);
+            #endif //COMPILE_STANDALONE
+            ret = -EINVAL;
+    }
 
     return ret;
 }
@@ -273,7 +393,7 @@ int _nvme_idm_cmd_send(nvmeIdmRequest *request_idm) {
 //  Is "status_ioctl"    equivalent to "CQE DW3[31:17]" ?        //TODO:?? is "status_ioctl" just [24:17]??
 
 //TODO: Which of the above 2 "result" params should I be using HERE??  Both??
-    ret = _nvme_idm_cmd_status_check(status_ioctl, request_idm->opcode_idm);
+    ret = _nvme_idm_cmd_check_status(status_ioctl, request_idm->opcode_idm);
 
 out:
 //TODO: Possible ASYNC flag HERE??  -OR-  do I need to use write() and read() for async?? (like scsi)
@@ -284,89 +404,6 @@ out:
     //     close(nvme_fd);              //sunc, so done with nvme_fd.
     // }
     close(nvme_fd);
-    return ret;
-}
-
-/**
- * _nvme_idm_cmd_status_check -  Checks the NVMe command status code returned from the OS kernel.
- *
- * @status:     The status code returned by the OS kernel after the completed NVMe command request.
- * @opcode_idm: IDM-specific opcode specifying the desired IDM action performed.
-*
- * Returns zero or a negative error (ie. EINVAL, ENOMEM, EBUSY, etc).
- */
-int _nvme_idm_cmd_status_check(int status, int opcode_idm) {
-
-    #ifdef FUNCTION_ENTRY_DEBUG
-    printf("%s: START\n", __func__);
-    #endif //FUNCTION_ENTRY_DEBUG
-
-    int ret;
-
-//TODO: Unable to decipher hardcoded SCSI "Sense" data to translate to Propeller NVMe spec
-    switch(status) {
-        case NVME_IDM_ERR_MUTEX_OP_FAILURE:
-            ret = -EINVAL;
-            break;
-        case NVME_IDM_ERR_MUTEX_REVERSE_OWNER_CHECK_FAILURE:
-            ret = -EINVAL;
-            break;
-        case NVME_IDM_ERR_MUTEX_OP_FAILURE_STATE:
-            ret = -EINVAL;
-            break;
-        case NVME_IDM_ERR_MUTEX_OP_FAILURE_CLASS:
-            ret = -EINVAL;
-            break;
-        case NVME_IDM_ERR_MUTEX_OP_FAILURE_OWNER:
-            ret = -EINVAL;
-            break;
-        case NVME_IDM_ERR_MUTEX_OPCODE_INVALID:
-            ret = -EINVAL;
-            break;
-        case NVME_IDM_ERR_MUTEX_LIMIT_EXCEEDED:
-            ret = -ENOMEM;
-            break;
-        case NVME_IDM_ERR_MUTEX_LIMIT_EXCEEDED_HOST:
-            ret = -ENOMEM;
-            break;
-        case NVME_IDM_ERR_MUTEX_LIMIT_EXCEEDED_SHARED_HOST:
-            ret = -ENOMEM;
-            break;
-        case NVME_IDM_ERR_MUTEX_CONFLICT:   //SCSI Equivalent: Reservation Conflict
-            switch(opcode_idm) {
-                case IDM_OPCODE_REFRESH:
-                    ret = -ETIME;
-                    break;
-                case IDM_OPCODE_UNLOCK:
-                    ret = -ENOENT;
-                    break;
-                default:
-                    ret = -EBUSY;
-            }
-            break;
-        case NVME_IDM_ERR_MUTEX_HELD_ALREADY:   //SCSI Equivalent: Terminated
-            switch(opcode_idm) {
-                case IDM_OPCODE_REFRESH:
-                    ret = -EPERM;
-                    break;
-                case IDM_OPCODE_UNLOCK:
-                    ret = -EINVAL;
-                    break;
-                default:
-                    ret = -EAGAIN;
-            }
-            break;
-        case NVME_IDM_ERR_MUTEX_HELD_BY_ANOTHER:    //SCSI Equivalent: Busy
-            ret = -EBUSY;
-        default:
-            #ifndef COMPILE_STANDALONE
-            ilm_log_err("%s: unknown status %d", __func__, status);
-            #else
-            printf("%s: unknown status %d\n", __func__, status);
-            #endif //COMPILE_STANDALONE
-            ret = -EINVAL;
-    }
-
     return ret;
 }
 
@@ -403,42 +440,6 @@ int _nvme_idm_data_init_wrt(nvmeIdmRequest *request_idm) {
                                                                                   //TODO: Aslo, minor inefficiency. Not always needed.  Copy anyway?  Conditional IF?
 
 	data_idm->resource_ver[0] = request_idm->res_ver_type;   //TODO: On scsi-side, why are "lvb" AND "res_ver_type" going into the same char array
-
-    return ret;
-}
-
-/**
- * _nvme_idm_write_input_check - Common method for checking core IDM input parameters
- *
- * @lock_id:        Lock ID (64 bytes).
- * @mode:           Lock mode (unlock, shareable, exclusive).
- * @host_id:        Host ID (32 bytes).
- * @drive:          Drive path name.
- *
- * Returns zero or a negative error (ie. EINVAL, ENOMEM, EBUSY, etc).
- */
-int _nvme_idm_write_input_check(char *lock_id, int mode, char *host_id,
-                                char *drive, int lvb_size) {
-
-    #ifdef FUNCTION_ENTRY_DEBUG
-    printf("%s: START\n", __func__);
-    #endif //FUNCTION_ENTRY_DEBUG
-
-    int ret = SUCCESS;
-
-    #ifndef COMPILE_STANDALONE
-    if (ilm_inject_fault_is_hit())
-        return -EIO;
-    #endif //COMPILE_STANDALONE
-
-    if (!lock_id || !host_id || !drive)
-        return -EINVAL;
-
-    if (mode != IDM_MODE_EXCLUSIVE && mode != IDM_MODE_SHAREABLE)
-        return -EINVAL;
-
-    if (lvb_size > IDM_LVB_SIZE_MAX)
-        return -EINVAL;
 
     return ret;
 }
