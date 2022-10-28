@@ -372,7 +372,7 @@ int _nvme_idm_cmd_send(nvmeIdmRequest *request_idm) {
         #else
         printf("%s: ioctl failed: %d\n", __func__, status_ioctl);
         #endif //COMPILE_STANDALONE
-        goto out;
+        return status_ioctl;
     }
 
 //TODO: Keep this debug??
