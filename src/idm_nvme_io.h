@@ -127,11 +127,13 @@ typedef struct _nvmeIdmRequest {
 //////////////////////////////////////////
 
 int nvme_idm_write(nvmeIdmRequest *request_idm);
-int nvme_idm_write_init(nvmeIdmRequest *request_idm, nvmeIdmVendorCmd *cmd_nvme,
-                        idmData *data_idm, char *lock_id, int mode, char *host_id,
-                        char *drive, uint64_t timeout, char *lvb, int lvb_size);
+int nvme_idm_write_init(char *lock_id, int mode, char *host_id, char *drive,
+                        uint64_t timeout, char *lvb, int lvb_size,
+                        nvmeIdmRequest *request_idm, nvmeIdmVendorCmd *cmd_nvme,
+                        idmData *data_idm);
 
-int _nvme_idm_check_common_input(char *lock_id, int mode, char *host_id, char *drive, int lvb_size);
+int _nvme_idm_check_common_input(char *lock_id, int mode, char *host_id, char *drive,
+                                 int lvb_size);
 int _nvme_idm_cmd_check_status(int status, int opcode_idm);
 int _nvme_idm_cmd_init(nvmeIdmRequest *request_idm, uint8_t opcode_nvme);
 //int _nvme_idm_cmd_init_rd(nvmeIdmRequest *request_idm);

@@ -84,9 +84,6 @@ EXIT_NVME_IDM_WRITE:
                          for use later (but before the NVMe write command is sent to the OS kernel).
  *                       Intended to be called by higher level IDM API's (i.e.: lock, unlock, etc).
  *
- * @request_idm:    Struct containing all NVMe-specific command info for the requested IDM action.
- * @cmd_nvme:       Data structure for NVMe Vendor Specific Commands.
- * @data_idm:       Data structure for sending and receiving IDM-specifc data.
  * @lock_id:        Lock ID (64 bytes).
  * @mode:           Lock mode (unlock, shareable, exclusive).
  * @host_id:        Host ID (32 bytes).
@@ -96,12 +93,16 @@ EXIT_NVME_IDM_WRITE:
  *                  If not used, set to 0.      //kludge
  * @lvb_size:       Lock value block size.
  *                  If not used, set to 0.      //kludge
+ * @request_idm:    Struct containing all NVMe-specific command info for the requested IDM action.
+ * @cmd_nvme:       Data structure for NVMe Vendor Specific Commands.
+ * @data_idm:       Data structure for sending and receiving IDM-specifc data.
  *
  * Returns zero or a negative error (ie. EINVAL, ENOMEM, EBUSY, etc).
  */
-int nvme_idm_write_init(nvmeIdmRequest *request_idm, nvmeIdmVendorCmd *cmd_nvme,
-                        idmData *data_idm, char *lock_id, int mode, char *host_id,
-                        char *drive, uint64_t timeout, char *lvb, int lvb_size) {
+int nvme_idm_write_init(char *lock_id, int mode, char *host_id, char *drive,
+                        uint64_t timeout, char *lvb, int lvb_size,
+                        nvmeIdmRequest *request_idm, nvmeIdmVendorCmd *cmd_nvme,
+                        idmData *data_idm) {
 
     #ifdef FUNCTION_ENTRY_DEBUG
     printf("%s: START\n", __func__);
@@ -481,8 +482,8 @@ int main(int argc, char *argv[])
             idmData          data_idm;
             int              ret = SUCCESS;
 
-            ret = nvme_idm_write_init(&request_idm, &cmd_nvme, &data_idm,
-                                      lock_id, mode, host_id,drive, timeout, 0, 0);
+            ret = nvme_idm_write_init(lock_id, mode, host_id,drive, timeout, 0, 0,
+                                      &request_idm, &cmd_nvme, &data_idm);
             printf("%s exiting with %d\n", argv[1], ret);
 
             ret = nvme_idm_write(&request_idm);

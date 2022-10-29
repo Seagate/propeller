@@ -58,8 +58,8 @@ int nvme_idm_break_lock(char *lock_id, int mode, char *host_id,
     idmData          data_idm;
     int              ret = SUCCESS;
 
-    ret = nvme_idm_write_init(&request_idm, &cmd_nvme, &data_idm, lock_id,
-                              mode, host_id, drive, timeout, 0, 0);
+    ret = nvme_idm_write_init(lock_id, mode, host_id, drive, timeout, 0, 0,
+                              &request_idm, &cmd_nvme, &data_idm);
     if(ret < 0) {
         #ifndef COMPILE_STANDALONE
         ilm_log_err("%s: fail %d", __func__, ret);
@@ -123,8 +123,8 @@ int nvme_idm_lock(char *lock_id, int mode, char *host_id,
     idmData          data_idm;
     int              ret = SUCCESS;
 
-    ret = nvme_idm_write_init(&request_idm, &cmd_nvme, &data_idm, lock_id,
-                              mode, host_id, drive, timeout, 0, 0);
+    ret = nvme_idm_write_init(lock_id, mode, host_id, drive, timeout, 0, 0,
+                              &request_idm, &cmd_nvme, &data_idm);
     if(ret < 0) {
         #ifndef COMPILE_STANDALONE
         ilm_log_err("%s: fail %d", __func__, ret);
@@ -171,8 +171,8 @@ int nvme_idm_lock(char *lock_id, int mode, char *host_id,
     idmData          data_idm;
     int              ret = SUCCESS;
 
-    ret = nvme_idm_write_init(&request_idm, &cmd_nvme, &data_idm, lock_id,
-                              mode, host_id, drive, timeout, 0, 0);
+    ret = nvme_idm_write_init(lock_id, mode, host_id, drive, timeout, 0, 0,
+                              &request_idm, &cmd_nvme, &data_idm);
     if(ret < 0) {
         #ifndef COMPILE_STANDALONE
         ilm_log_err("%s: fail %d", __func__, ret);
@@ -240,8 +240,8 @@ int nvme_idm_unlock(char *lock_id, int mode, char *host_id,
     int              ret = SUCCESS;
 
      //TODO: Why 0 timeout here (ported as-is from scsi-side)?
-    ret = nvme_idm_write_init(&request_idm, &cmd_nvme, &data_idm, lock_id,
-                              mode, host_id, drive, 0, lvb, lvb_size);
+    ret = nvme_idm_write_init(lock_id, mode, host_id, drive, 0, lvb, lvb_size,
+                              &request_idm, &cmd_nvme, &data_idm);
     if(ret < 0) {
         #ifndef COMPILE_STANDALONE
         ilm_log_err("%s: fail %d", __func__, ret);
