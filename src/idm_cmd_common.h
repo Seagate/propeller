@@ -9,20 +9,47 @@
 #ifndef __IDM_CMD_COMMON_H__
 #define __IDM_CMD_COMMON_H__
 
-//TODO: Double-check SCSI code to see if some\all of these exist already
-//      Replace as necessary
+//TODO: After NVMe implementation complete, and while updating scsi
+// code to interact with new IDM API code, replace the #defines
+// at the top of the idm.scsi.c file with this files constants
 
 #include <stdint.h>
 
 #define SUCCESS 0;
 #define FAILURE -1;
 
-#define IDM_VENDOR_CMD_DATA_LEN_BYTES   512            //TODO: Find where this is implemented on SCSI
+//TODO: Delete these 2 after nvme.c\.h are deleted.
+#define IDM_VENDOR_CMD_DATA_LEN_BYTES   512
 #define IDM_VENDOR_CMD_DATA_LEN_DWORDS  512 / 4
 
-#define IDM_LOCK_ID_LEN_BYTES   64
-#define IDM_HOST_ID_LEN_BYTES   32
-#define IDM_LVB_SIZE_MAX        8
+#define DFLT_NUM_IDM_DATA_BLOCKS    1
+
+#define IDM_LOCK_ID_LEN_BYTES       64
+#define IDM_HOST_ID_LEN_BYTES       32
+#define IDM_LVB_SIZE_MAX            8
+
+// Other idmData char array lengths
+#define IDM_DATA_RESOURCE_VER_LEN_BYTES 8
+#define IDM_DATA_RESERVED_0_LEN_BYTES   24
+#define IDM_DATA_METADATA_LEN_BYTES     64
+#define IDM_DATA_RESERVED_1_LEN_BYTES   32
+
+typedef enum _eIdmClasses {
+    IDM_MODE_UNLOCK    = 0,
+    IDM_MODE_EXCLUSIVE = 0x1,
+    IDM_MODE_SHAREABLE = 0x2,
+}eIdmClasses;
+
+typedef enum _eIdmGroups {
+    IDM_GROUP_DEFAULT = 1,
+    IDM_GROUP_INQUIRY = 0xFF,
+}eIdmGroups;
+
+typedef enum _eIdmModes {
+    IDM_CLASS_EXCLUSIVE             = 0,
+    IDM_CLASS_PROTECTED_WRITE       = 0x1,
+    IDM_CLASS_SHARED_PROTECTED_READ = 0x2,
+}eIdmModes;
 
 typedef enum _eIdmOpcodes {
     IDM_OPCODE_NORMAL   = 0x0,
@@ -35,6 +62,13 @@ typedef enum _eIdmOpcodes {
     IDM_OPCODE_DESTROY  = 0x7,
 }eIdmOpcodes;  //NVMe CDW12 mutex opcode
 
+typedef enum _eIdmResVer {
+    IDM_RES_VER_NO_UPDATE_NO_VALID = 0,
+    IDM_RES_VER_UPDATE_NO_VALID    = 0x1,
+    IDM_RES_VER_UPDATE_VALID       = 0x2,
+    IDM_RES_VER_INVALID            = 0x3,
+}eIdmResVer;
+
 typedef enum _eIdmStates {
     IDM_STATE_UNINIT            = 0,
     IDM_STATE_LOCKED            = 0x101,
@@ -43,31 +77,6 @@ typedef enum _eIdmStates {
     IDM_STATE_TIMEOUT           = 0x104,
     IDM_STATE_DEAD              = 0xdead,
 }eIdmStates;
-
-typedef enum _eIdmModes {
-    IDM_CLASS_EXCLUSIVE             = 0,
-    IDM_CLASS_PROTECTED_WRITE       = 0x1,
-    IDM_CLASS_SHARED_PROTECTED_READ = 0x2,
-}eIdmModes;
-
-typedef enum _eIdmClasses {
-    IDM_MODE_UNLOCK    = 0,
-    IDM_MODE_EXCLUSIVE = 0x1,
-    IDM_MODE_SHAREABLE = 0x2,
-}eIdmClasses;
-
-typedef enum _eIdmResVer {
-    IDM_RES_VER_NO_UPDATE_NO_VALID = 0,
-    IDM_RES_VER_UPDATE_NO_VALID    = 0x1,
-    IDM_RES_VER_UPDATE_VALID       = 0x2,
-    IDM_RES_VER_INVALID            = 0x3,
-}eIdmResVer;
-
-// IDM Data char array lengths
-#define IDM_DATA_RESOURCE_VER_LEN_BYTES 8
-#define IDM_DATA_RESERVED_0_LEN_BYTES   24
-#define IDM_DATA_METADATA_LEN_BYTES     64
-#define IDM_DATA_RESERVED_1_LEN_BYTES   32
 
 typedef struct _idmData {
     union {
@@ -87,8 +96,8 @@ typedef struct _idmData {
     char        host_id[IDM_HOST_ID_LEN_BYTES];
     char        rsvd1[IDM_DATA_RESERVED_1_LEN_BYTES];
     union {
-        uint64_t    rsvd2[256];      // For idm_read
-        uint64_t    ignored1[256];   // For idm_write
+        char    rsvd2[256];      // For idm_read
+        char    ignored1[256];   // For idm_write
     };
 }idmData;
 
