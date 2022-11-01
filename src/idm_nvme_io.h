@@ -99,12 +99,12 @@ typedef struct _nvmeIdmVendorCmd {
 typedef struct _nvmeIdmRequest {
     //Cached "IDM API" input params
     char                *drive;
-	char                *lock_id;
-	char                *host_id;
+    char                *lock_id;
+    char                *host_id;
     int                 mode_idm;
-	//uint64_t            fd_async;
-	uint64_t            timeout;
-	char                *lvb;
+    //uint64_t            fd_async;
+    uint64_t            timeout;
+    char                *lvb;
     int                 lvb_size;   //TODO: should be unsigned, but public API setup with int.  size_t anyway?
 
     //IDM core structs
