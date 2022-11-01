@@ -7,16 +7,15 @@
  *                  to talk to the Linux kernel (via ioctl(), read() or write())
 */
 
+#ifndef __IDM_NVME_IO_H__
+#define __IDM_NVME_IO_H__
+
 #include <stdint.h>
 
 #include "idm_cmd_common.h"
 
 
 #define VENDOR_CMD_TIMEOUT_DEFAULT 15000     //TODO: Duplicated from SCSI. Uncertain behavior
-                                            //TODO: Separate timeout default for NVMe Vendor Cmds??
-#define IDM_LOCK_ID_LEN_BYTES   64
-#define IDM_HOST_ID_LEN_BYTES   32
-
 
 //////////////////////////////////////////
 // Enums
@@ -95,28 +94,32 @@ typedef struct _nvmeIdmVendorCmd {
 // }eCqeStatusFields;
 
 
-//TODO: Using a bunch of pointer here.  SCSI was using COPIES of everything.  Any issues with this?? (string lengths??, kernel vs user space memory??)
+//TODO: Using a bunch of pointers here.  SCSI was using COPIES of everything.  Any issues with this?? (string lengths??, kernel vs user space memory??)
 //TODO: Add struct description HERE
 typedef struct _nvmeIdmRequest {
-    //"IDM API" input params
+    //Cached "IDM API" input params
     char                *drive;
-	char                *lock_id;
-	char                *host_id;
+    char                *lock_id;
+    char                *host_id;
     int                 mode_idm;
-	//uint64_t            fd_async;
-	uint64_t            timeout;
-	char                *lvb;
-    int                 lvb_size;
+    //uint64_t            fd_async;
+    uint64_t            timeout;
+    char                *lvb;
+    int                 lvb_size;   //TODO: should be unsigned, but public API setup with int.  size_t anyway?
 
     //IDM core structs
-    nvmeIdmVendorCmd    *cmd_idm;
+    nvmeIdmVendorCmd    cmd_nvme;
     idmData             *data_idm;
 
-    // Misc collection area for kludgy smuggling of parameters
+    //Misc collection area for kludgy smuggling of parameters.
+    //These values are cached here in the API-level, and then
+    //stored in their final location in the IO-level.
+    //TODO: Convert these to function params and explictly pass around?
     uint8_t             opcode_idm;
     uint8_t             group_idm;
     char                res_ver_type;  //TODO: How is this being used?  What does it represent in the NVMe CDW block?  What type should this be?
-    int                 data_len;       //TODO: Needed??  Seems like this can be determined in the lower-levels.
+    int                 data_len;      //TODO: should be unsigned.  size_t?
+    unsigned int        data_num;       //TODO: uint64_t?
     uint64_t            class_idm;
 
 }nvmeIdmRequest;
@@ -128,13 +131,12 @@ typedef struct _nvmeIdmRequest {
 //////////////////////////////////////////
 
 int nvme_idm_write(nvmeIdmRequest *request_idm);
-int nvme_idm_write_init(nvmeIdmRequest *request_idm, nvmeIdmVendorCmd *cmd_idm,
-                        idmData *data_idm, char *lock_id, int mode, char *host_id,
-                        char *drive, uint64_t timeout, char *lvb, int lvb_size);
+int nvme_idm_write_init(char *lock_id, int mode, char *host_id, char *drive,
+                        uint64_t timeout, nvmeIdmRequest *request_idm);
 
+int _nvme_idm_cmd_check_status(int status, int opcode_idm);
 int _nvme_idm_cmd_init(nvmeIdmRequest *request_idm, uint8_t opcode_nvme);
-//int _nvme_idm_cmd_init_rd(nvmeIdmRequest *request_idm);
-int _nvme_idm_cmd_init_wrt(nvmeIdmRequest *request_idm);
+int _nvme_idm_cmd_send(nvmeIdmRequest *request_idm);
 int _nvme_idm_data_init_wrt(nvmeIdmRequest *request_idm);
-int _nvme_send_cmd_idm(nvmeIdmRequest *request_idm);
-int _nvme_status_check(int status, int opcode_idm);
+
+#endif /*__IDM_NVME_IO_H__ */
