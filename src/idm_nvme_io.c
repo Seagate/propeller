@@ -22,7 +22,7 @@
 //////////////////////////////////////////
 // COMPILE FLAGS
 //////////////////////////////////////////
-//TODO: Keep this (and the corresponding #ifdef's)???
+//TODO: DELETE THESE 2 (AND ALL CORRESPONDING CODE) AFTER NVME FILES COMPILE WITH THE REST OF PROPELLER.
 #define COMPILE_STANDALONE
 // #define MAIN_ACTIVATE
 
@@ -32,6 +32,40 @@
 //////////////////////////////////////////
 // FUNCTIONS
 //////////////////////////////////////////
+
+/**
+ * nvme_idm_read - Issues a custom (vendor-specific) NVMe read command to the IDM.
+ *                 Intended to be called by higher level read IDM API's.
+ *
+ * @request_idm:    Struct containing all NVMe-specific command info for the requested IDM action.
+ *
+ * Returns zero or a negative error (ie. EINVAL, ENOMEM, EBUSY, etc).
+ */
+int nvme_idm_read(nvmeIdmRequest *request_idm) {
+
+    #ifdef FUNCTION_ENTRY_DEBUG
+    printf("%s: START\n", __func__);
+    #endif //FUNCTION_ENTRY_DEBUG
+
+    int ret = SUCCESS;
+
+    ret = _nvme_idm_cmd_init(request_idm, NVME_IDM_VENDOR_CMD_OP_READ);
+    if(ret < 0) {
+        return ret;
+    }
+
+    // ret = _nvme_idm_data_init_rd(request_idm);   TODO: Needed?
+    // if(ret < 0) {
+    //     return ret;
+    // }
+
+    ret = _nvme_idm_cmd_send(request_idm);
+    if(ret < 0) {
+        return ret;
+    }
+
+    return ret;
+}
 
 /**
  * nvme_idm_write - Issues a custom (vendor-specific) NVMe write command to the IDM.

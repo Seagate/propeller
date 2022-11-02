@@ -22,13 +22,12 @@
 //////////////////////////////////////////
 // COMPILE FLAGS
 //////////////////////////////////////////
-//TODO: Keep this (and the corresponding #ifdef's)???
+//TODO: DELETE THESE 2 (AND ALL CORRESPONDING CODE) AFTER NVME FILES COMPILE WITH THE REST OF PROPELLER.
 #define COMPILE_STANDALONE
 #define MAIN_ACTIVATE
 
 #define FUNCTION_ENTRY_DEBUG    //TODO: Remove this entirely???
 
-//TODO: Should I be using malloc() instead of declaring the struct objects at the top of each idm api???
 
 //////////////////////////////////////////
 // FUNCTIONS
@@ -144,6 +143,68 @@ int nvme_idm_lock(char *lock_id, int mode, char *host_id,
         #endif //COMPILE_STANDALONE
     }
 
+    _memory_free_idm_request(request_idm);
+    return ret;
+}
+
+/**
+ * nvme_idm_read_mutex_num - retrieves the number of mutex's present on the drive.
+ * @drive:       Drive path name.
+ * @mutex_num:   The number of mutex's present on the drive.
+ *
+ * Returns zero or a negative error (ie. EINVAL, ENOMEM, EBUSY, etc).
+ */
+int nvme_idm_read_mutex_num(char *drive, unsigned int *mutex_num)
+{
+    #ifdef FUNCTION_ENTRY_DEBUG
+    printf("%s: START\n", __func__);
+    #endif //FUNCTION_ENTRY_DEBUG
+
+    nvmeIdmRequest *request_idm;
+    unsigned char  *data;
+    int            ret = SUCCESS;
+
+    #ifndef COMPILE_STANDALONE
+    if (ilm_inject_fault_is_hit())
+        return -EIO;
+    #endif //COMPILE_STANDALONE
+
+    ret = _memory_init_idm_request(&request_idm, DFLT_NUM_IDM_DATA_BLOCKS);
+    if (ret < 0)
+        return ret;
+
+    //Init the read
+    request_idm->drive      = drive;
+    request_idm->opcode_idm = IDM_OPCODE_INIT;  //Ignored, but default for all idm reads.
+
+    //API-specific code
+    request_idm->group_idm = IDM_GROUP_INQUIRY;
+
+    ret = nvme_idm_read(request_idm);
+    if (ret < 0) {
+        #ifndef COMPILE_STANDALONE
+        ilm_log_err("%s: command fail %d", __func__, ret);
+        #else
+        printf("%s: command fail %d\n", __func__, ret);
+        #endif //COMPILE_STANDALONE
+        goto EXIT;
+    }
+
+    //Extract value from data struct
+//TODO: Ported from scsi-side as-is.  Need to verify if this even makes sense for nvme.
+    data = (unsigned char *)request_idm->data_idm;
+    *mutex_num = ((data[1]) & 0xff);
+    *mutex_num |= ((data[0]) & 0xff) << 8;
+
+    #ifndef COMPILE_STANDALONE
+    ilm_log_dbg("%s: data[0]=%u data[1]=%u mutex num=%u",
+                __func__, data[0], data[1], *mutex_num);
+    #else
+    printf("%s: data[0]=%u data[1]=%u mutex num=%u",
+           __func__, data[0], data[1], *mutex_num);
+    #endif //COMPILE_STANDALONE
+
+EXIT:
     _memory_free_idm_request(request_idm);
     return ret;
 }
@@ -325,6 +386,7 @@ int _memory_init_idm_request(nvmeIdmRequest **request_idm, unsigned int data_num
     }
     memset((*request_idm)->data_idm, 0, data_len);
 
+//TODO: Remove these debug prints
     printf("%s: (*request_idm)=%u\n", __func__, (*request_idm));
     printf("%s: size=%u\n", __func__, sizeof(**request_idm));
     printf("%s: (*request_idm)->data_idm=%u\n", __func__, (*request_idm)->data_idm);
@@ -444,6 +506,11 @@ int main(int argc, char *argv[])
         else if(strcmp(argv[1], "lock") == 0){
             ret = nvme_idm_lock((char*)lock_id, mode, (char*)host_id, drive, timeout);
         }
+        else if(strcmp(argv[1], "read_num") == 0){
+            unsigned int mutex_num;
+            ret = nvme_idm_read_mutex_num(drive, &mutex_num);
+            printf("output: mutex_num=%u\n", mutex_num);
+        }
         else if(strcmp(argv[1], "refresh") == 0){
             ret = nvme_idm_refresh_lock((char*)lock_id, mode, (char*)host_id, drive, timeout);
         }
@@ -457,7 +524,7 @@ int main(int argc, char *argv[])
             printf("%s: invalid command option!\n", argv[1]);
             return -1;
         }
-        printf("%s exiting with %d\n", argv[1], ret);
+        printf("'%s' exiting with %d\n", argv[1], ret);
     }
     else{
         printf("No command option given\n");

@@ -130,6 +130,7 @@ typedef struct _nvmeIdmRequest {
 // Functions
 //////////////////////////////////////////
 
+int nvme_idm_read(nvmeIdmRequest *request_idm);
 int nvme_idm_write(nvmeIdmRequest *request_idm);
 int nvme_idm_write_init(char *lock_id, int mode, char *host_id, char *drive,
                         uint64_t timeout, nvmeIdmRequest *request_idm);
