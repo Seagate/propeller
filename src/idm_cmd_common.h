@@ -15,6 +15,9 @@
 
 #include <stdint.h>
 
+//////////////////////////////////////////
+// Defines
+//////////////////////////////////////////
 #define SUCCESS 0;
 #define FAILURE -1;
 
@@ -26,7 +29,7 @@
 
 #define IDM_LOCK_ID_LEN_BYTES       64
 #define IDM_HOST_ID_LEN_BYTES       32
-#define IDM_LVB_SIZE_MAX            8
+#define IDM_LVB_LEN_BYTES            8
 
 // Other idmData char array lengths
 #define IDM_DATA_RESOURCE_VER_LEN_BYTES 8
@@ -34,6 +37,9 @@
 #define IDM_DATA_METADATA_LEN_BYTES     64
 #define IDM_DATA_RESERVED_1_LEN_BYTES   32
 
+//////////////////////////////////////////
+// Enums
+//////////////////////////////////////////
 typedef enum _eIdmClasses {
     IDM_MODE_UNLOCK    = 0,
     IDM_MODE_EXCLUSIVE = 0x1,
@@ -78,6 +84,9 @@ typedef enum _eIdmStates {
     IDM_STATE_DEAD              = 0xdead,
 }eIdmStates;
 
+//////////////////////////////////////////
+// Structs
+//////////////////////////////////////////
 typedef struct _idmData {
     union {
         uint64_t    state;           // For idm_read
@@ -100,5 +109,13 @@ typedef struct _idmData {
         char    ignored1[256];   // For idm_write
     };
 }idmData;
+
+
+//////////////////////////////////////////
+// Functions
+//////////////////////////////////////////
+
+void bswap_char_arr(char *dst, char *src, int len);
+
 
 #endif /*__IDM_CMD_COMMON_H__ */

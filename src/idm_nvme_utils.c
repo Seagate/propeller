@@ -6,7 +6,8 @@
  * idm_nvme_utils.c - Contains nvme-related helper utility functions.
  */
 
-#include <stdint.h>
+#include <byteswap.h>
+#include <inttypes.h>
 #include <stdio.h>
 
 #include "idm_nvme_utils.h"
@@ -27,14 +28,19 @@ void dumpIdmDataStruct(idmData *data_idm){
 
     printf("IDM Data Struct: Fields\n");
     printf("=======================\n");
-    printf("state\\ignored0        = 0x%0.16X (%u)\n", d->state,    d->state);
-    printf("modified\\time_now     = 0x%0.16X (%u)\n", d->modified, d->modified);
-    printf("countdown             = 0x%0.16X (%u)\n", d->countdown, d->countdown);
-    printf("class_idm             = 0x%0.16X (%u)\n", d->class_idm, d->class_idm);
-    printf("resource_ver          = '%s'\n", d->resource_ver);  //TODO: first char getting stomped on by "res_ver_type"
-    printf("resource_id (lock_id) = '%s'\n", d->resource_id);
-    printf("metadata              = '%s'\n", d->metadata);
-    printf("host_id               = '%s'\n", d->host_id);
+    printf("state\\ignored0     = 0x%0.16"PRIX64" unswapped(%u)\n", d->state,    __bswap_64(d->state));
+    printf("modified\\time_now  = 0x%0.16"PRIX64" unswapped(%u)\n", d->modified, __bswap_64(d->modified));
+    printf("countdown          = 0x%0.16"PRIX64" unswapped(%u)\n", d->countdown, __bswap_64(d->countdown));
+    printf("class_idm          = 0x%0.16"PRIX64" unswapped(%u)\n", d->class_idm, __bswap_64(d->class_idm));
+    printf("resource_ver = '");
+    _print_char_arr(d->resource_ver, IDM_LVB_LEN_BYTES);
+    printf("res_ver_type = 0x%X\n", d->resource_ver[0]);
+    printf("resource_id = '");
+    _print_char_arr(d->resource_id, IDM_LOCK_ID_LEN_BYTES);
+    printf("metadata    = '");
+    _print_char_arr(d->metadata, IDM_DATA_METADATA_LEN_BYTES);
+    printf("host_id     = '");
+    _print_char_arr(d->host_id, IDM_HOST_ID_LEN_BYTES);
     printf("\n");
 }
 
@@ -56,38 +62,49 @@ void dumpNvmeCmdStruct(nvmeIdmVendorCmd *cmd_nvme, int view_fields, int view_cdw
 
         printf("NVMe Command Struct: Fields\n");
         printf("===========================\n");
-        printf("opcode_nvme       (CDW0[ 7:0])  = 0x%0.2X (%u)\n", c->opcode_nvme,  c->opcode_nvme);
-        printf("flags             (CDW0[15:8])  = 0x%0.2X (%u)\n", c->flags,        c->flags);
-        printf("command_id        (CDW0[32:16]) = 0x%0.4X (%u)\n", c->command_id,   c->command_id);
-        printf("nsid              (CDW1[32:0])  = 0x%0.8X (%u)\n", c->nsid,         c->nsid);
-        printf("cdw2              (CDW2[32:0])  = 0x%0.8X (%u)\n", c->cdw2,         c->cdw2);
-        printf("cdw3              (CDW3[32:0])  = 0x%0.8X (%u)\n", c->cdw3,         c->cdw3);
-        printf("metadata          (CDW4&5[64:0])= 0x%0.16X (%u)\n",c->metadata,     c->metadata);
-//TODO: There is a descrepency between views: specifically  "addr" and "cdw 6 & 7"
-        printf("addr              (CDW6&7[64:0])= 0x%0.16X (%u)\n",c->addr,         c->addr);
-        printf("metadata_len      (CDW8[32:0])  = 0x%0.8X (%u)\n", c->metadata_len, c->metadata_len);
-        printf("data_len          (CDW9[32:0])  = 0x%0.8X (%u)\n", c->data_len,     c->data_len);
-        printf("ndt               (CDW10[32:0]) = 0x%0.8X (%u)\n", c->ndt,          c->ndt);
-        printf("ndm               (CDW11[32:0]) = 0x%0.8X (%u)\n", c->ndm,          c->ndm);
+        printf("opcode_nvme  (CDW0[ 7:0])  = 0x%0.2X (%u)\n", c->opcode_nvme,  c->opcode_nvme);
+        printf("flags        (CDW0[15:8])  = 0x%0.2X (%u)\n", c->flags,        c->flags);
+        printf("command_id   (CDW0[32:16]) = 0x%0.4X (%u)\n", c->command_id,   c->command_id);
+        printf("nsid         (CDW1[32:0])  = 0x%0.8X (%u)\n", c->nsid,         c->nsid);
+        printf("cdw2         (CDW2[32:0])  = 0x%0.8X (%u)\n", c->cdw2,         c->cdw2);
+        printf("cdw3         (CDW3[32:0])  = 0x%0.8X (%u)\n", c->cdw3,         c->cdw3);
+        printf("metadata     (CDW5&4[64:0])= 0x%0.16"PRIX64" (%u)\n",c->metadata, c->metadata);
+        printf("addr         (CDW7&6[64:0])= 0x%0.16"PRIX64" (%u)\n",c->addr, c->addr);
+        printf("metadata_len (CDW8[32:0])  = 0x%0.8X (%u)\n", c->metadata_len, c->metadata_len);
+        printf("data_len     (CDW9[32:0])  = 0x%0.8X (%u)\n", c->data_len,     c->data_len);
+        printf("ndt          (CDW10[32:0]) = 0x%0.8X (%u)\n", c->ndt,          c->ndt);
+        printf("ndm          (CDW11[32:0]) = 0x%0.8X (%u)\n", c->ndm,          c->ndm);
         printf("opcode_idm_bits7_4(CDW12[ 7:0]) = 0x%0.2X (%u)\n", c->opcode_idm_bits7_4, c->opcode_idm_bits7_4);
-        printf("group_idm         (CDW12[15:8]) = 0x%0.2X (%u)\n", c->group_idm,    c->group_idm);
-        printf("rsvd2             (CDW12[32:16])= 0x%0.4X (%u)\n", c->rsvd2,        c->rsvd2);
-        printf("cdw13             (CDW13[32:0]) = 0x%0.8X (%u)\n", c->cdw13,        c->cdw13);
-        printf("cdw14             (CDW14[32:0]) = 0x%0.8X (%u)\n", c->cdw14,        c->cdw14);
-        printf("cdw15             (CDW15[32:0]) = 0x%0.8X (%u)\n", c->cdw15,        c->cdw15);
-        printf("timeout_ms        (CDW16[32:0]) = 0x%0.8X (%u)\n", c->timeout_ms,   c->timeout_ms);
-        printf("result            (CDW17[32:0]) = 0x%0.8X (%u)\n", c->result,       c->result);
+        printf("group_idm    (CDW12[15:8]) = 0x%0.2X (%u)\n", c->group_idm,    c->group_idm);
+        printf("rsvd2        (CDW12[32:16])= 0x%0.4X (%u)\n", c->rsvd2,        c->rsvd2);
+        printf("cdw13        (CDW13[32:0]) = 0x%0.8X (%u)\n", c->cdw13,        c->cdw13);
+        printf("cdw14        (CDW14[32:0]) = 0x%0.8X (%u)\n", c->cdw14,        c->cdw14);
+        printf("cdw15        (CDW15[32:0]) = 0x%0.8X (%u)\n", c->cdw15,        c->cdw15);
+        printf("timeout_ms   (CDW16[32:0]) = 0x%0.8X (%u)\n", c->timeout_ms,   c->timeout_ms);
+        printf("result       (CDW17[32:0]) = 0x%0.8X (%u)\n", c->result,       c->result);
         printf("\n");
     }
 
     if(view_cdws){
         uint32_t *cdw = (uint32_t*)cmd_nvme;
+        int i;
 
         printf("NVMe Command Struct: CDWs (hex)\n");
         printf("===============================\n");
-        for(int i = 0; i <= 17; i++) {
+        for(i = 0; i <= 17; i++) {
             printf("cdw%0.2d = 0x%0.8X\n", i, cdw[i]);
         }
         printf("\n");
     }
+}
+
+void _print_char_arr(char *data, unsigned int len) {
+    int i;
+    for(i=0; i<len; i++) {
+        if(data[i])
+            printf("%c", data[i]);
+        else
+            printf(" ");
+    }
+    printf("'\n");
 }

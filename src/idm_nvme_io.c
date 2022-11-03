@@ -7,8 +7,10 @@
  *                  to talk to the Linux kernel (via ioctl(), read() or write())
  */
 
+#include <byteswap.h>
 #include <errno.h>
 #include <fcntl.h>
+#include <inttypes.h>
 #include <linux/nvme_ioctl.h>
 #include <stdio.h>
 #include <string.h>
@@ -124,10 +126,10 @@ int nvme_idm_write_init(char *lock_id, int mode, char *host_id, char *drive,
     #endif //FUNCTION_ENTRY_DEBUG
 
     //Cache the input params
-    request_idm->lock_id  = lock_id;
+    memcpy(request_idm->lock_id, lock_id, IDM_LOCK_ID_LEN_BYTES);
+    memcpy(request_idm->host_id, host_id, IDM_HOST_ID_LEN_BYTES);
+    memcpy(request_idm->drive  , drive  , PATH_MAX);
     request_idm->mode_idm = mode;
-    request_idm->host_id  = host_id;
-    request_idm->drive    = drive;
     request_idm->timeout  = timeout;
 
 //TODO: This is variable for NVMe reads.  How handle?  MAY be variable for writes too (future).
@@ -350,24 +352,18 @@ int _nvme_idm_data_init_wrt(nvmeIdmRequest *request_idm) {
     idmData *data_idm          = request_idm->data_idm;
     int ret                    = SUCCESS;
 
-//TODO: ?? reverse bit order of next 3 destination values ??  (on scsi-side, using __bswap_64())
     #ifndef COMPILE_STANDALONE
-  	data_idm->time_now  = ilm_read_utc_time();
+  	data_idm->time_now  = __bswap_64(ilm_read_utc_time());
     #else
-  	data_idm->time_now  = 1234567890;
+  	data_idm->time_now  = __bswap_64(1234567890);
     #endif //COMPILE_STANDALONE
-	data_idm->countdown = request_idm->timeout;
-	data_idm->class_idm = request_idm->class_idm;
+    data_idm->countdown = __bswap_64(request_idm->timeout);
+    data_idm->class_idm = __bswap_64(request_idm->class_idm);
 
-//TODO: ?? reverse bit order of next 3 destination arrays ??  (on scsi-side, using _scsi_data_swap())
-    memcpy(data_idm->host_id,     request_idm->host_id, IDM_HOST_ID_LEN_BYTES);
-    memcpy(data_idm->resource_id, request_idm->lock_id, IDM_LOCK_ID_LEN_BYTES);
-    if(request_idm->lvb)
-        memcpy(data_idm->resource_ver, request_idm->lvb, request_idm->lvb_size);
-
-	data_idm->resource_ver[0] = request_idm->res_ver_type;   //TODO: On scsi-side, why are "lvb" AND "res_ver_type" going into the same char array
-                                                                    // NOTE HERE: this line occurs on scsi-side AFTER a data order reversal (swap),
-                                                                    //            so it's not overwriting anything. How handle?
+    bswap_char_arr(data_idm->host_id,      request_idm->host_id, IDM_HOST_ID_LEN_BYTES);
+    bswap_char_arr(data_idm->resource_id,  request_idm->lock_id, IDM_LOCK_ID_LEN_BYTES);
+    bswap_char_arr(data_idm->resource_ver, request_idm->lvb    , IDM_LVB_LEN_BYTES);
+    data_idm->resource_ver[0] = request_idm->res_ver_type;
 
     return ret;
 }

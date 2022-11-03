@@ -6,6 +6,7 @@
  * idm_nvme_api.c - Primary NVMe interface for In-drive Mutex (IDM)
  */
 
+#include <byteswap.h>
 #include <errno.h>
 #include <fcntl.h>
 #include <linux/nvme_ioctl.h>
@@ -68,7 +69,7 @@ int nvme_idm_break_lock(char *lock_id, int mode, char *host_id,
 
     //API-specific code
     request_idm->opcode_idm   = IDM_OPCODE_BREAK;
-    request_idm->res_ver_type = IDM_RES_VER_NO_UPDATE_NO_VALID;
+    request_idm->res_ver_type = (char)IDM_RES_VER_NO_UPDATE_NO_VALID;
 
     ret = nvme_idm_write(request_idm);
     if (ret < 0) {
@@ -132,7 +133,7 @@ int nvme_idm_lock(char *lock_id, int mode, char *host_id,
 
     //API-specific code
     request_idm->opcode_idm   = IDM_OPCODE_TRYLOCK;
-    request_idm->res_ver_type = IDM_RES_VER_NO_UPDATE_NO_VALID;
+    request_idm->res_ver_type = (char)IDM_RES_VER_NO_UPDATE_NO_VALID;
 
     ret = nvme_idm_write(request_idm);
     if (ret < 0) {
@@ -146,6 +147,84 @@ int nvme_idm_lock(char *lock_id, int mode, char *host_id,
     _memory_free_idm_request(request_idm);
     return ret;
 }
+
+// /**
+//  * idm_drive_host_state - Read back the host's state for an specific IDM.
+//  * @lock_id:    Lock ID (64 bytes).
+//  * @host_id:    Host ID (64 bytes).
+//  * @host_state: Returned host state's pointer.
+//  * @drive:      Drive path name.
+//  *
+//  * Returns zero or a negative error (ie. EINVAL, ENOMEM, EBUSY, etc).
+//  */
+// int nvme_idm_read_host_state(char *lock_id, char *host_id, int *host_state, char *drive)
+// {
+//     #ifdef FUNCTION_ENTRY_DEBUG
+//     printf("%s: START\n", __func__);
+//     #endif //FUNCTION_ENTRY_DEBUG
+
+//     nvmeIdmRequest *request_idm;
+//     idmData        *data_idm = request_idm->data_idm;
+//     unsigned int   mutex_num;
+//     int            ret = SUCCESS;
+
+//     ret = _validate_input_common(lock_id, host_id, drive);
+//     if (ret < 0)
+//         return ret;
+
+//     ret = nvme_idm_read_mutex_num(drive, &mutex_num);
+//     if (ret < 0)
+//         return -ENOENT;
+
+//     if (!num) {
+//         *host_state = -1;
+//         return SUCCESS;
+//     }
+
+//     ret = _memory_init_idm_request(&request_idm, mutex_num);
+//     if (ret < 0)
+//         return ret;
+
+//     //Init the read request
+//     request_idm->drive      = drive;
+//     request_idm->opcode_idm = IDM_OPCODE_INIT;  //Ignored, but default for all idm reads.
+
+//     //API-specific code
+//     request_idm->group_idm = IDM_GROUP_DEFAULT;
+
+//     ret = nvme_idm_read(request_idm);
+//     if (ret < 0) {
+//         #ifndef COMPILE_STANDALONE
+//         ilm_log_err("%s: command fail %d", __func__, ret);
+//         #else
+//         printf("%s: command fail %d\n", __func__, ret);
+//         #endif //COMPILE_STANDALONE
+//         goto EXIT;
+//     }
+
+//     //Extract value from data struct
+// //TODO: Possible bit-order swap here of these 2 params (as was done on the scsi-side)
+//         // Would need to do BEFORE the compares below.
+//     // request_idm->lock_id = lock_id;
+//     // request_idm->host_id = host_id;
+
+//     *host_state = -1;
+//     for (i = 0; i < num; i++) {
+//         /* Skip for other locks */
+//         if (memcmp(data_idm[i].resource_id, lock_id, IDM_LOCK_ID_LEN_BYTES))
+//             continue;
+
+//         if (memcmp(data_idm[i].host_id, host_id, IDM_HOST_ID_LEN_BYTES))
+//             continue;
+
+//         *host_state = data[i].state;
+//         break;
+//     }
+
+// EXIT:
+//     _memory_free_idm_request(request_idm);
+//     return ret;
+// }
 
 /**
  * nvme_idm_read_mutex_num - retrieves the number of mutex's present on the drive.
@@ -173,9 +252,9 @@ int nvme_idm_read_mutex_num(char *drive, unsigned int *mutex_num)
     if (ret < 0)
         return ret;
 
-    //Init the read
-    request_idm->drive      = drive;
+    //Init the read request
     request_idm->opcode_idm = IDM_OPCODE_INIT;  //Ignored, but default for all idm reads.
+    memcpy(request_idm->drive, drive, PATH_MAX);
 
     //API-specific code
     request_idm->group_idm = IDM_GROUP_INQUIRY;
@@ -240,7 +319,7 @@ EXIT:
 
     //API-specific code
     request_idm->opcode_idm   = IDM_OPCODE_REFRESH;
-    request_idm->res_ver_type = IDM_RES_VER_NO_UPDATE_NO_VALID;
+    request_idm->res_ver_type = (char)IDM_RES_VER_NO_UPDATE_NO_VALID;
 
     ret = nvme_idm_write(request_idm);
     if (ret < 0) {
@@ -299,7 +378,7 @@ int nvme_idm_unlock(char *lock_id, int mode, char *host_id,
 
     //TODO: The -ve check here should go away cuz lvb_size should be of unsigned type.
     //However, this requires an IDM API parameter type change.
-    if ((!lvb) || (lvb_size <= 0) || (lvb_size > IDM_LVB_SIZE_MAX))
+    if ((!lvb) || (lvb_size <= 0) || (lvb_size > IDM_LVB_LEN_BYTES))
         return -EINVAL;
 
     ret = _memory_init_idm_request(&request_idm, DFLT_NUM_IDM_DATA_BLOCKS);
@@ -310,10 +389,9 @@ int nvme_idm_unlock(char *lock_id, int mode, char *host_id,
     nvme_idm_write_init(lock_id, mode, host_id, drive, 0, request_idm);
 
     //API-specific code
-    request_idm->lvb          = lvb;
-    request_idm->lvb_size     = lvb_size;
     request_idm->opcode_idm   = IDM_OPCODE_UNLOCK;
-    request_idm->res_ver_type = IDM_RES_VER_UPDATE_NO_VALID;
+    request_idm->res_ver_type = (char)IDM_RES_VER_UPDATE_NO_VALID;
+    memcpy(request_idm->lvb, lvb, lvb_size);
 
     ret = nvme_idm_write(request_idm);
     if (ret < 0) {
@@ -387,17 +465,17 @@ int _memory_init_idm_request(nvmeIdmRequest **request_idm, unsigned int data_num
     memset((*request_idm)->data_idm, 0, data_len);
 
 //TODO: Remove these debug prints
-    printf("%s: (*request_idm)=%u\n", __func__, (*request_idm));
-    printf("%s: size=%u\n", __func__, sizeof(**request_idm));
-    printf("%s: (*request_idm)->data_idm=%u\n", __func__, (*request_idm)->data_idm);
-    printf("%s: size=%u\n", __func__, sizeof(*(*request_idm)->data_idm));
+    // printf("%s: (*request_idm)=%u\n", __func__, (*request_idm));
+    // printf("%s: size=%u\n", __func__, sizeof(**request_idm));
+    // printf("%s: (*request_idm)->data_idm=%u\n", __func__, (*request_idm)->data_idm);
+    // printf("%s: size=%u\n", __func__, sizeof(*(*request_idm)->data_idm));
     // printf("%s: (*request_idm).cmd_nvme=%u\n", __func__, (*request_idm).cmd_nvme);
     // printf("%s: size=%u\n", __func__, sizeof((*request_idm)->cmd_nvme));
 
     //Cache params.  Not really related to func, but convenient.
-    (*request_idm)->data_len = data_len;
-    (*request_idm)->data_num = data_num;
-    printf("%s: (*request_idm)->data_len=%u\n", __func__, (*request_idm)->data_len);
+    (*request_idm)->data_len = data_len;    //TODO: Fill passed-in pointer instead??
+    (*request_idm)->data_num = data_num;    //TODO: Keep this one in request struct??
+    // printf("%s: (*request_idm)->data_len=%u\n", __func__, (*request_idm)->data_len);
 
     return SUCCESS;
 }
@@ -472,29 +550,29 @@ int _validate_input_write(char *lock_id, int mode, char *host_id, char *drive) {
 /*#########################################################################################
 ########################### STAND-ALONE MAIN ##############################################
 #########################################################################################*/
-#define DRIVE_DEFAULT_DEVICE "/dev/nvme0n1";
+#define DRIVE_DEFAULT_DEVICE "/dev/nvme0n1"
 
 //To compile:
 //gcc idm_nvme_io.c idm_nvme_api.c -o idm_nvme_api
 int main(int argc, char *argv[])
 {
-    char *drive;
+    char drive[PATH_MAX];
     int  ret = 0;
 
     if(argc >= 3){
-        drive = argv[2];
+        strcpy(drive, argv[2]);
     }
     else {
-        drive = DRIVE_DEFAULT_DEVICE;
+        strcpy(drive, DRIVE_DEFAULT_DEVICE);
     }
 
     //cli usage: idm_nvme_api lock
     if(argc >= 2){
-        char        lock_id[IDM_HOST_ID_LEN_BYTES] = "lock_id";
+        char        lock_id[IDM_LOCK_ID_LEN_BYTES] = "lock_id";
         int         mode                           = IDM_MODE_EXCLUSIVE;
-        char        host_id[IDM_LOCK_ID_LEN_BYTES] = "host_id";
+        char        host_id[IDM_HOST_ID_LEN_BYTES] = "host_id_host_id";
         uint64_t    timeout                        = 10;
-        char        lvb[IDM_LVB_SIZE_MAX]          = "lvb";
+        char        lvb[IDM_LVB_LEN_BYTES]          = "lvb";
         int         lvb_size                       = 5;
 
         if(strcmp(argv[1], "break") == 0){

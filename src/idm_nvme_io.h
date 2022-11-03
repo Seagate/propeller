@@ -10,6 +10,7 @@
 #ifndef __IDM_NVME_IO_H__
 #define __IDM_NVME_IO_H__
 
+#include <limits.h>
 #include <stdint.h>
 
 #include "idm_cmd_common.h"
@@ -98,13 +99,13 @@ typedef struct _nvmeIdmVendorCmd {
 //TODO: Add struct description HERE
 typedef struct _nvmeIdmRequest {
     //Cached "IDM API" input params
-    char                *drive;
-    char                *lock_id;
-    char                *host_id;
+    char                lock_id[IDM_LOCK_ID_LEN_BYTES];
     int                 mode_idm;
+    char                host_id[IDM_HOST_ID_LEN_BYTES];
+    char                drive[PATH_MAX];
     //uint64_t            fd_async;
     uint64_t            timeout;
-    char                *lvb;
+    char                lvb[IDM_LVB_LEN_BYTES];
     int                 lvb_size;   //TODO: should be unsigned, but public API setup with int.  size_t anyway?
 
     //IDM core structs
@@ -119,7 +120,7 @@ typedef struct _nvmeIdmRequest {
     uint8_t             group_idm;
     char                res_ver_type;  //TODO: How is this being used?  What does it represent in the NVMe CDW block?  What type should this be?
     int                 data_len;      //TODO: should be unsigned.  size_t?
-    unsigned int        data_num;       //TODO: uint64_t?
+    unsigned int        data_num;      //TODO: uint64_t?
     uint64_t            class_idm;
 
 }nvmeIdmRequest;
