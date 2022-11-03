@@ -97,7 +97,7 @@ typedef struct _idmData {
         uint64_t    time_now;        // For idm_write
     };
     uint64_t    countdown;
-    uint64_t    class_idm;
+    uint64_t    class;
     char        resource_ver[IDM_DATA_RESOURCE_VER_LEN_BYTES];
     char        rsvd0[IDM_DATA_RESERVED_0_LEN_BYTES];
     char        resource_id[IDM_LOCK_ID_LEN_BYTES];

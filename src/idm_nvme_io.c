@@ -137,13 +137,13 @@ int nvme_idm_write_init(char *lock_id, int mode, char *host_id, char *drive,
 
     switch(mode) {
         case IDM_MODE_EXCLUSIVE:
-            request_idm->class_idm = IDM_CLASS_EXCLUSIVE;
+            request_idm->class = IDM_CLASS_EXCLUSIVE;
         case IDM_MODE_SHAREABLE:
-            request_idm->class_idm = IDM_CLASS_SHARED_PROTECTED_READ;
+            request_idm->class = IDM_CLASS_SHARED_PROTECTED_READ;
         default:
             return -EINVAL;
             //Below is the effective behavior of equivalent scsi code.  Seems wrong.
-            // request_idm->class_idm = mode;
+            // request_idm->class = mode;
     }
 
     return SUCCESS;
@@ -358,7 +358,7 @@ int _nvme_idm_data_init_wrt(nvmeIdmRequest *request_idm) {
   	data_idm->time_now  = __bswap_64(1234567890);
     #endif //COMPILE_STANDALONE
     data_idm->countdown = __bswap_64(request_idm->timeout);
-    data_idm->class_idm = __bswap_64(request_idm->class_idm);
+    data_idm->class     = __bswap_64(request_idm->class);
 
     bswap_char_arr(data_idm->host_id,      request_idm->host_id, IDM_HOST_ID_LEN_BYTES);
     bswap_char_arr(data_idm->resource_id,  request_idm->lock_id, IDM_LOCK_ID_LEN_BYTES);

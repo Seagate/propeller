@@ -31,7 +31,7 @@ void dumpIdmDataStruct(idmData *data_idm){
     printf("state\\ignored0     = 0x%0.16"PRIX64" unswapped(%u)\n", d->state,    __bswap_64(d->state));
     printf("modified\\time_now  = 0x%0.16"PRIX64" unswapped(%u)\n", d->modified, __bswap_64(d->modified));
     printf("countdown          = 0x%0.16"PRIX64" unswapped(%u)\n", d->countdown, __bswap_64(d->countdown));
-    printf("class_idm          = 0x%0.16"PRIX64" unswapped(%u)\n", d->class_idm, __bswap_64(d->class_idm));
+    printf("class              = 0x%0.16"PRIX64" unswapped(%u)\n", d->class, __bswap_64(d->class));
     printf("resource_ver = '");
     _print_char_arr(d->resource_ver, IDM_LVB_LEN_BYTES);
     printf("res_ver_type = 0x%X\n", d->resource_ver[0]);

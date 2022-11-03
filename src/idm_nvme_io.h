@@ -121,7 +121,7 @@ typedef struct _nvmeIdmRequest {
     char                res_ver_type;  //TODO: How is this being used?  What does it represent in the NVMe CDW block?  What type should this be?
     int                 data_len;      //TODO: should be unsigned.  size_t?
     unsigned int        data_num;      //TODO: uint64_t?
-    uint64_t            class_idm;
+    uint64_t            class;
 
 }nvmeIdmRequest;
 

@@ -74,9 +74,9 @@ int nvme_idm_break_lock(char *lock_id, int mode, char *host_id,
     ret = nvme_idm_write(request_idm);
     if (ret < 0) {
         #ifndef COMPILE_STANDALONE
-        ilm_log_err("%s: command fail %d", __func__, ret);
+        ilm_log_err("%s: nvme_idm_write fail %d", __func__, ret);
         #else
-        printf("%s: command fail %d\n", __func__, ret);
+        printf("%s: nvme_idm_write fail %d\n", __func__, ret);
         #endif //COMPILE_STANDALONE
     }
 
@@ -138,9 +138,9 @@ int nvme_idm_lock(char *lock_id, int mode, char *host_id,
     ret = nvme_idm_write(request_idm);
     if (ret < 0) {
         #ifndef COMPILE_STANDALONE
-        ilm_log_err("%s: command fail %d", __func__, ret);
+        ilm_log_err("%s: nvme_idm_write fail %d", __func__, ret);
         #else
-        printf("%s: command fail %d\n", __func__, ret);
+        printf("%s: nvme_idm_write fail %d\n", __func__, ret);
         #endif //COMPILE_STANDALONE
     }
 
@@ -148,88 +148,98 @@ int nvme_idm_lock(char *lock_id, int mode, char *host_id,
     return ret;
 }
 
-// /**
-//  * idm_drive_host_state - Read back the host's state for an specific IDM.
-//  * @lock_id:    Lock ID (64 bytes).
-//  * @host_id:    Host ID (64 bytes).
-//  * @host_state: Returned host state's pointer.
-//  * @drive:      Drive path name.
-//  *
-//  * Returns zero or a negative error (ie. EINVAL, ENOMEM, EBUSY, etc).
-//  */
-// int nvme_idm_read_host_state(char *lock_id, char *host_id, int *host_state, char *drive)
-// {
-//     #ifdef FUNCTION_ENTRY_DEBUG
-//     printf("%s: START\n", __func__);
-//     #endif //FUNCTION_ENTRY_DEBUG
+/**
+ * nvme_idm_read_host_state - Read back the host's state for an specific IDM.
+ * @lock_id:    Lock ID (64 bytes).
+ * @host_id:    Host ID (32 bytes).
+ * @host_state: Returned host state's pointer.
+//TODO: Does ALWAYS setting to -1 on failure make sense?
+ *              Set to -1 on failure.
+ * @drive:      Drive path name.
+ *
+ * Returns zero or a negative error (ie. EINVAL, ENOMEM, EBUSY, etc).
+ */
+int nvme_idm_read_host_state(char *lock_id, char *host_id, int *host_state, char *drive)
+{
+    #ifdef FUNCTION_ENTRY_DEBUG
+    printf("%s: START\n", __func__);
+    #endif //FUNCTION_ENTRY_DEBUG
 
-//     nvmeIdmRequest *request_idm;
-//     idmData        *data_idm = request_idm->data_idm;
-//     unsigned int   mutex_num;
-//     int            ret = SUCCESS;
+    nvmeIdmRequest *request_idm;
+    idmData        *data_idm;// = request_idm->data_idm;
+    unsigned int   mutex_num;
+    int            ret = SUCCESS;
 
-//     ret = _validate_input_common(lock_id, host_id, drive);
-//     if (ret < 0)
-//         return ret;
+//TODO: Does ALWAYS setting to -1 on failure make sense?
+//          Refer to scsi-side if removed.
+//          Was being set to -1 in a couple locations.
+    *host_state = -1;
 
-//     ret = nvme_idm_read_mutex_num(drive, &mutex_num);
-//     if (ret < 0)
-//         return -ENOENT;
+    ret = _validate_input_common(lock_id, host_id, drive);
+    if (ret < 0)
+        return ret;
 
-//     if (!num) {
-//         *host_state = -1;
-//         return SUCCESS;
-//     }
+    ret = nvme_idm_read_mutex_num(drive, &mutex_num);
+    if (ret < 0)
+        #ifndef COMPILE_STANDALONE
+        return -ENOENT;
+        #else
+        ret = 0;
+        #endif //COMPILE_STANDALONE
 
-//     ret = _memory_init_idm_request(&request_idm, mutex_num);
-//     if (ret < 0)
-//         return ret;
+    if (!mutex_num) {
+        return SUCCESS;
+    }
 
-//     //Init the read request
-//     request_idm->drive      = drive;
-//     request_idm->opcode_idm = IDM_OPCODE_INIT;  //Ignored, but default for all idm reads.
+    ret = _memory_init_idm_request(&request_idm, mutex_num);
+    if (ret < 0)
+        return ret;
 
-//     //API-specific code
-//     request_idm->group_idm = IDM_GROUP_DEFAULT;
+    //Init the read request
+    request_idm->opcode_idm = IDM_OPCODE_INIT;  //Ignored, but default for all idm reads.
+    memcpy(request_idm->drive, drive, PATH_MAX);
 
-//     ret = nvme_idm_read(request_idm);
-//     if (ret < 0) {
-//         #ifndef COMPILE_STANDALONE
-//         ilm_log_err("%s: command fail %d", __func__, ret);
-//         #else
-//         printf("%s: command fail %d\n", __func__, ret);
-//         #endif //COMPILE_STANDALONE
-//         goto EXIT;
-//     }
+    //API-specific code
+    request_idm->group_idm = IDM_GROUP_DEFAULT;
 
-//     //Extract value from data struct
-// //TODO: Possible bit-order swap here of these 2 params (as was done on the scsi-side)
-//         // Would need to do BEFORE the compares below.
-//     // request_idm->lock_id = lock_id;
-//     // request_idm->host_id = host_id;
+    ret = nvme_idm_read(request_idm);
+    if (ret < 0) {
+        #ifndef COMPILE_STANDALONE
+        ilm_log_err("%s: nvme_idm_read fail %d", __func__, ret);
+        #else
+        printf("%s: nvme_idm_read fail %d\n", __func__, ret);
+        #endif //COMPILE_STANDALONE
+        goto EXIT;
+    }
 
-//     *host_state = -1;
-//     for (i = 0; i < num; i++) {
-//         /* Skip for other locks */
-//         if (memcmp(data_idm[i].resource_id, lock_id, IDM_LOCK_ID_LEN_BYTES))
-//             continue;
+    //Extract value from data struct
+    bswap_char_arr(request_idm->lock_id, lock_id, IDM_LOCK_ID_LEN_BYTES);
+    bswap_char_arr(request_idm->host_id, host_id, IDM_HOST_ID_LEN_BYTES);
 
-//         if (memcmp(data_idm[i].host_id, host_id, IDM_HOST_ID_LEN_BYTES))
-//             continue;
+    data_idm = request_idm->data_idm;
+    for (int i = 0; i < mutex_num; i++) {
+        /* Skip for other locks */
+        if (memcmp(data_idm[i].resource_id, request_idm->lock_id, IDM_LOCK_ID_LEN_BYTES))
+            continue;
 
-//         *host_state = data[i].state;
-//         break;
-//     }
+        if (memcmp(data_idm[i].host_id, request_idm->host_id, IDM_HOST_ID_LEN_BYTES))
+            continue;
 
-// EXIT:
-//     _memory_free_idm_request(request_idm);
-//     return ret;
-// }
+        *host_state = data_idm[i].state;
+        break;
+    }
+
+EXIT:
+    _memory_free_idm_request(request_idm);
+    return ret;
+}
 
 /**
  * nvme_idm_read_mutex_num - retrieves the number of mutex's present on the drive.
  * @drive:       Drive path name.
  * @mutex_num:   The number of mutex's present on the drive.
+//TODO: Does ALWAYS setting to 0 on failure make sense?
+ *               Set to 0 on failure.
  *
  * Returns zero or a negative error (ie. EINVAL, ENOMEM, EBUSY, etc).
  */
@@ -248,6 +258,9 @@ int nvme_idm_read_mutex_num(char *drive, unsigned int *mutex_num)
         return -EIO;
     #endif //COMPILE_STANDALONE
 
+//TODO: Does ALWAYS setting to 0 on failure make sense?
+    *mutex_num = 0;
+
     ret = _memory_init_idm_request(&request_idm, DFLT_NUM_IDM_DATA_BLOCKS);
     if (ret < 0)
         return ret;
@@ -259,27 +272,33 @@ int nvme_idm_read_mutex_num(char *drive, unsigned int *mutex_num)
     //API-specific code
     request_idm->group_idm = IDM_GROUP_INQUIRY;
 
+    printf("\n\ntesting\n\n\n");
     ret = nvme_idm_read(request_idm);
     if (ret < 0) {
         #ifndef COMPILE_STANDALONE
-        ilm_log_err("%s: command fail %d", __func__, ret);
-        #else
-        printf("%s: command fail %d\n", __func__, ret);
-        #endif //COMPILE_STANDALONE
+        ilm_log_err("%s: nvme_idm_read fail %d", __func__, ret);
         goto EXIT;
+        #else
+        printf("%s: nvme_idm_read fail %d, Continuing\n", __func__, ret);
+        ret = SUCCESS;
+        #endif //COMPILE_STANDALONE
     }
 
     //Extract value from data struct
 //TODO: Ported from scsi-side as-is.  Need to verify if this even makes sense for nvme.
     data = (unsigned char *)request_idm->data_idm;
+    #ifndef COMPILE_STANDALONE
     *mutex_num = ((data[1]) & 0xff);
     *mutex_num |= ((data[0]) & 0xff) << 8;
+    #else
+    *mutex_num = 2;     //For debug. This func called by many others.
+    #endif //COMPILE_STANDALONE
 
     #ifndef COMPILE_STANDALONE
     ilm_log_dbg("%s: data[0]=%u data[1]=%u mutex num=%u",
                 __func__, data[0], data[1], *mutex_num);
     #else
-    printf("%s: data[0]=%u data[1]=%u mutex num=%u",
+    printf("%s: data[0]=%u data[1]=%u mutex num=%u\n",
            __func__, data[0], data[1], *mutex_num);
     #endif //COMPILE_STANDALONE
 
@@ -324,9 +343,9 @@ EXIT:
     ret = nvme_idm_write(request_idm);
     if (ret < 0) {
         #ifndef COMPILE_STANDALONE
-        ilm_log_err("%s: command fail %d", __func__, ret);
+        ilm_log_err("%s: nvme_idm_write fail %d", __func__, ret);
         #else
-        printf("%s: command fail %d\n", __func__, ret);
+        printf("%s: nvme_idm_write fail %d\n", __func__, ret);
         #endif //COMPILE_STANDALONE
     }
 
@@ -396,9 +415,9 @@ int nvme_idm_unlock(char *lock_id, int mode, char *host_id,
     ret = nvme_idm_write(request_idm);
     if (ret < 0) {
         #ifndef COMPILE_STANDALONE
-        ilm_log_err("%s: command fail %d", __func__, ret);
+        ilm_log_err("%s: nvme_idm_write fail %d", __func__, ret);
         #else
-        printf("%s: command fail %d\n", __func__, ret);
+        printf("%s: nvme_idm_write fail %d\n", __func__, ret);
         #endif //COMPILE_STANDALONE
     }
 
@@ -583,6 +602,11 @@ int main(int argc, char *argv[])
         }
         else if(strcmp(argv[1], "lock") == 0){
             ret = nvme_idm_lock((char*)lock_id, mode, (char*)host_id, drive, timeout);
+        }
+        else if(strcmp(argv[1], "read_state") == 0){
+            int host_state;
+            ret = nvme_idm_read_host_state(lock_id, host_id, &host_state, drive);
+            printf("output: host_state=%d\n", host_state);
         }
         else if(strcmp(argv[1], "read_num") == 0){
             unsigned int mutex_num;
