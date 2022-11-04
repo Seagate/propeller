@@ -149,6 +149,51 @@ int nvme_idm_lock(char *lock_id, int mode, char *host_id,
 }
 
 /**
+ * nvme_idm_lock_destroy - Destroy an IDM and release all associated resource.
+ * @lock_id:     Lock ID (64 bytes).
+ * @mode:        Lock mode (unlock, shareable, exclusive).
+ * @host_id:     Host ID (32 bytes).
+ * @drive:       Drive path name.
+ *
+ * Returns zero or a negative error (ie. EINVAL, ENOMEM, EBUSY, etc).
+ */
+int nvme_idm_lock_destroy(char *lock_id, int mode, char *host_id, char *drive)
+{
+    #ifdef FUNCTION_ENTRY_DEBUG
+    printf("%s: START\n", __func__);
+    #endif //FUNCTION_ENTRY_DEBUG
+
+    nvmeIdmRequest *request_idm;
+    int            ret = SUCCESS;
+
+    ret = _validate_input_write(lock_id, mode, host_id, drive);
+    if (ret < 0)
+        return ret;
+
+    ret = _memory_init_idm_request(&request_idm, DFLT_NUM_IDM_DATA_BLOCKS);
+    if (ret < 0)
+        return ret;
+
+    nvme_idm_write_init(lock_id, mode, host_id, drive, 0, request_idm);
+
+    //API-specific code
+    request_idm->opcode_idm   = IDM_OPCODE_DESTROY;
+    request_idm->res_ver_type = (char)IDM_RES_VER_NO_UPDATE_NO_VALID;
+
+    ret = nvme_idm_write(request_idm);
+    if (ret < 0) {
+        #ifndef COMPILE_STANDALONE
+        ilm_log_err("%s: nvme_idm_write fail %d", __func__, ret);
+        #else
+        printf("%s: nvme_idm_write fail %d\n", __func__, ret);
+        #endif //COMPILE_STANDALONE
+    }
+
+    _memory_free_idm_request(request_idm);
+    return ret;
+}
+
+/**
  * nvme_idm_read_host_state - Read back the host's state for an specific IDM.
  * @lock_id:    Lock ID (64 bytes).
  * @host_id:    Host ID (32 bytes).
@@ -794,7 +839,7 @@ EXIT:
 }
 
 /**
- * idm_drive_renew_lock - Renew host's membership for an IDM
+ * nvme_idm_renew_lock - Renew host's membership for an IDM
  * @lock_id:    Lock ID (64 bytes).
  * @mode:       Lock mode (unlock, shareable, exclusive).
  * @host_id:    Host ID (32 bytes).
@@ -811,7 +856,7 @@ int nvme_idm_renew_lock(char *lock_id, int mode, char *host_id,
 }
 
 /**
- * idm_drive_unlock - release an IDM on a specified drive
+ * nvme_idm_unlock - release an IDM on a specified drive
  * @lock_id:    Lock ID (64 bytes).
  * @mode:       Lock mode (unlock, shareable, exclusive).
  * @host_id:    Host ID (32 bytes).
@@ -1035,13 +1080,16 @@ int main(int argc, char *argv[])
         int         lvb_size                       = 5;
 
         if(strcmp(argv[1], "break") == 0){
-            ret = nvme_idm_break_lock((char*)lock_id, mode, (char*)host_id, drive, timeout);
+            ret = nvme_idm_break_lock(lock_id, mode, host_id, drive, timeout);
         }
         else if(strcmp(argv[1], "convert") == 0){
-            ret = nvme_idm_convert_lock((char*)lock_id, mode, (char*)host_id, drive, timeout);
+            ret = nvme_idm_convert_lock(lock_id, mode, host_id, drive, timeout);
         }
         else if(strcmp(argv[1], "lock") == 0){
-            ret = nvme_idm_lock((char*)lock_id, mode, (char*)host_id, drive, timeout);
+            ret = nvme_idm_lock(lock_id, mode, host_id, drive, timeout);
+        }
+        else if(strcmp(argv[1], "destroy") == 0){
+            ret = nvme_idm_lock_destroy(lock_id, mode, host_id, drive);
         }
         else if(strcmp(argv[1], "read_state") == 0){
             int host_state;
@@ -1073,13 +1121,13 @@ int main(int argc, char *argv[])
             printf("output: mutex_num=%u\n", mutex_num);
         }
         else if(strcmp(argv[1], "refresh") == 0){
-            ret = nvme_idm_refresh_lock((char*)lock_id, mode, (char*)host_id, drive, timeout);
+            ret = nvme_idm_refresh_lock(lock_id, mode, host_id, drive, timeout);
         }
         else if(strcmp(argv[1], "renew") == 0){
-            ret = nvme_idm_renew_lock((char*)lock_id, mode, (char*)host_id, drive, timeout);
+            ret = nvme_idm_renew_lock(lock_id, mode, host_id, drive, timeout);
         }
         else if(strcmp(argv[1], "unlock") == 0){
-            ret = nvme_idm_unlock((char*)lock_id, mode, (char*)host_id, (char*)lvb, lvb_size, drive);
+            ret = nvme_idm_unlock(lock_id, mode, host_id, lvb, lvb_size, drive);
         }
         else {
             printf("%s: invalid command option!\n", argv[1]);
