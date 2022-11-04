@@ -181,15 +181,10 @@ int nvme_idm_read_host_state(char *lock_id, char *host_id, int *host_state, char
 
     ret = nvme_idm_read_mutex_num(drive, &mutex_num);
     if (ret < 0)
-        #ifndef COMPILE_STANDALONE
         return -ENOENT;
-        #else
-        ret = 0;
-        #endif //COMPILE_STANDALONE
 
-    if (!mutex_num) {
+    if (!mutex_num)
         return SUCCESS;
-    }
 
     ret = _memory_init_idm_request(&request_idm, mutex_num);
     if (ret < 0)
@@ -197,7 +192,7 @@ int nvme_idm_read_host_state(char *lock_id, char *host_id, int *host_state, char
 
     //Init the read request
     request_idm->opcode_idm = IDM_OPCODE_INIT;  //Ignored, but default for all idm reads.
-    memcpy(request_idm->drive, drive, PATH_MAX);
+    strncpy(request_idm->drive, drive, PATH_MAX);
 
     //API-specific code
     request_idm->group_idm = IDM_GROUP_DEFAULT;
@@ -218,6 +213,13 @@ int nvme_idm_read_host_state(char *lock_id, char *host_id, int *host_state, char
 
     data_idm = request_idm->data_idm;
     for (int i = 0; i < mutex_num; i++) {
+        #ifndef COMPILE_STANDALONE
+        ilm_log_array_dbg("resource_id",  data_idm[i].resource_id, IDM_LOCK_ID_LEN_BYTES);
+        ilm_log_array_dbg("lock_id",      request->lock_id,        IDM_LOCK_ID_LEN_BYTES);
+        ilm_log_array_dbg("data host_id", data_idm[i].host_id,     IDM_HOST_ID_LEN_BYTES);
+        ilm_log_array_dbg("host_id",      request->host_id,        IDM_HOST_ID_LEN_BYTES);
+        #endif //COMPILE_STANDALONE
+
         /* Skip for other locks */
         if (memcmp(data_idm[i].resource_id, request_idm->lock_id, IDM_LOCK_ID_LEN_BYTES))
             continue;
@@ -227,6 +229,110 @@ int nvme_idm_read_host_state(char *lock_id, char *host_id, int *host_state, char
 
         *host_state = data_idm[i].state;
         break;
+    }
+
+EXIT:
+    _memory_free_idm_request(request_idm);
+    return ret;
+}
+
+/**
+ * nvme_idm_read_lock_count - Read the host count for an IDM.
+ * @lock_id:    Lock ID (64 bytes).
+ * @host_id:    Host ID (32 bytes).
+ * @count:      Returned lock count value's pointer.
+ * @self:       Returned self count value's pointer.
+ * @drive:      Drive path name.
+ *
+ * Returns zero or a negative error (ie. EINVAL, ENOMEM, EBUSY, etc).
+ */
+int nvme_idm_read_lock_count(char *lock_id, char *host_id, int *count, int *self, char *drive)
+{
+    #ifdef FUNCTION_ENTRY_DEBUG
+    printf("%s: START\n", __func__);
+    #endif //FUNCTION_ENTRY_DEBUG
+
+    nvmeIdmRequest *request_idm;
+    idmData        *data_idm;
+    unsigned int   mutex_num;
+    uint64_t       state, locked;
+    int            ret = SUCCESS;
+
+    // Initialize the output
+    *count = 0;
+    *self = 0;
+
+    ret = _validate_input_common(lock_id, host_id, drive);
+    if (ret < 0)
+        return ret;
+
+    ret = nvme_idm_read_mutex_num(drive, &mutex_num);
+    if (ret < 0)
+        return -ENOENT;
+
+    if (!mutex_num)
+        return SUCCESS;
+
+    ret = _memory_init_idm_request(&request_idm, mutex_num);
+    if (ret < 0)
+        return ret;
+
+    //Init the read request
+    request_idm->opcode_idm = IDM_OPCODE_INIT;  //Ignored, but default for all idm reads.
+    strncpy(request_idm->drive, drive, PATH_MAX);
+
+    //API-specific code
+    request_idm->group_idm = IDM_GROUP_DEFAULT;
+
+    ret = nvme_idm_read(request_idm);
+    if (ret < 0) {
+        #ifndef COMPILE_STANDALONE
+        ilm_log_err("%s: nvme_idm_read fail %d", __func__, ret);
+        #else
+        printf("%s: nvme_idm_read fail %d\n", __func__, ret);
+        #endif //COMPILE_STANDALONE
+        goto EXIT;
+    }
+
+    //Generate read value
+    bswap_char_arr(request_idm->lock_id, lock_id, IDM_LOCK_ID_LEN_BYTES);
+    bswap_char_arr(request_idm->host_id, host_id, IDM_HOST_ID_LEN_BYTES);
+
+    data_idm = request_idm->data_idm;
+    for (int i = 0; i < mutex_num; i++) {
+
+        state  = __bswap_64(data_idm[i].state);
+        locked = (state == IDM_STATE_LOCKED) || (state == IDM_STATE_MULTIPLE_LOCKED);
+
+        if (!locked)
+            continue;
+
+        #ifndef COMPILE_STANDALONE
+        ilm_log_array_dbg("resource_id",  data_idm[i].resource_id, IDM_LOCK_ID_LEN_BYTES);
+        ilm_log_array_dbg("lock_id",      request->lock_id,        IDM_LOCK_ID_LEN_BYTES);
+        ilm_log_array_dbg("data host_id", data_idm[i].host_id,     IDM_HOST_ID_LEN_BYTES);
+        ilm_log_array_dbg("host_id",      request->host_id,        IDM_HOST_ID_LEN_BYTES);
+        #endif //COMPILE_STANDALONE
+
+        /* Skip for other locks */
+        if (memcmp(data_idm[i].resource_id, request_idm->lock_id, IDM_LOCK_ID_LEN_BYTES))
+            continue;
+
+        if (memcmp(data_idm[i].host_id, request_idm->host_id, IDM_HOST_ID_LEN_BYTES)) {
+            /* Must be wrong if self has been accounted */
+            if (*self) {
+                #ifndef COMPILE_STANDALONE
+                ilm_log_err("%s: account self %d > 1", __func__, *self);
+                #else
+                printf("%s: account self %d > 1\n", __func__, *self);
+                #endif //COMPILE_STANDALONE
+                goto EXIT;
+            }
+            *self = 1;
+        }
+        else {
+            *count += 1;
+        }
     }
 
 EXIT:
@@ -607,6 +713,11 @@ int main(int argc, char *argv[])
             int host_state;
             ret = nvme_idm_read_host_state(lock_id, host_id, &host_state, drive);
             printf("output: host_state=%d\n", host_state);
+        }
+        else if(strcmp(argv[1], "read_count") == 0){
+            int count, self;
+            ret = nvme_idm_read_lock_count(lock_id, host_id, &count, &self, drive);
+            printf("output: lock_count=%d, self=%d\n", count, self);
         }
         else if(strcmp(argv[1], "read_num") == 0){
             unsigned int mutex_num;

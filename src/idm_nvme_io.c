@@ -126,6 +126,7 @@ int nvme_idm_write_init(char *lock_id, int mode, char *host_id, char *drive,
     #endif //FUNCTION_ENTRY_DEBUG
 
     //Cache the input params
+//TODO: memcpy() -OR- strncpy() HERE??
     memcpy(request_idm->lock_id, lock_id, IDM_LOCK_ID_LEN_BYTES);
     memcpy(request_idm->host_id, host_id, IDM_HOST_ID_LEN_BYTES);
     memcpy(request_idm->drive  , drive  , PATH_MAX);
