@@ -48,7 +48,6 @@ typedef enum _eNvmeIdmErrorCodes {
 //////////////////////////////////////////
 //TODO: Add struct description HERE
 typedef struct _nvmeIdmVendorCmd {
-//TODO: change to "opcode_nvme" (to clarify against "opcode_idm" (change below))
     uint8_t             opcode_nvme;  //CDW0
     uint8_t             flags;        //CDW0
     uint16_t            command_id;   //CDW0
@@ -95,7 +94,6 @@ typedef struct _nvmeIdmVendorCmd {
 // }eCqeStatusFields;
 
 
-//TODO: Using a bunch of pointers here.  SCSI was using COPIES of everything.  Any issues with this?? (string lengths??, kernel vs user space memory??)
 //TODO: Add struct description HERE
 typedef struct _nvmeIdmRequest {
     //Cached "IDM API" input params
@@ -118,7 +116,7 @@ typedef struct _nvmeIdmRequest {
     //TODO: Convert these to function params and explictly pass around?
     uint8_t             opcode_idm;
     uint8_t             group_idm;
-    char                res_ver_type;  //TODO: How is this being used?  What does it represent in the NVMe CDW block?  What type should this be?
+    char                res_ver_type;
     int                 data_len;      //TODO: should be unsigned.  size_t?
     unsigned int        data_num;      //TODO: uint64_t?
     uint64_t            class;

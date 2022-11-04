@@ -49,7 +49,7 @@ void dumpIdmDataStruct(idmData *data_idm){
  *                     passed in data struct.
  *                     Currently, outputs only to the CLI.
  *
- * @cmd_nvme:       Data structure for NVMe Vendor Specific Commands.
+ * @cmd_nvme:    Data structure for NVMe Vendor Specific Commands.
  * @view_fields: Boolean flag that outputs the struct's named fields.
  * @view_cdws:   Boolean flag that outputs all the struct's data as 32-bit words.
  *

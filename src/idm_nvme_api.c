@@ -764,6 +764,7 @@ int nvme_idm_read_mutex_num(char *drive, unsigned int *mutex_num)
         ilm_log_err("%s: nvme_idm_read fail %d", __func__, ret);
         goto EXIT;
         #else
+//TODO: This is temp debug hack code for the stand alone, to get the reads working.
         printf("%s: nvme_idm_read fail %d, Continuing\n", __func__, ret);
         ret = SUCCESS;
         #endif //COMPILE_STANDALONE

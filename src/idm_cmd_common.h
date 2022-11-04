@@ -21,10 +21,6 @@
 #define SUCCESS 0;
 #define FAILURE -1;
 
-//TODO: Delete these 2 after nvme.c\.h are deleted.
-#define IDM_VENDOR_CMD_DATA_LEN_BYTES   512
-#define IDM_VENDOR_CMD_DATA_LEN_DWORDS  512 / 4
-
 #define DFLT_NUM_IDM_DATA_BLOCKS    1
 
 #define IDM_LOCK_ID_LEN_BYTES       64
