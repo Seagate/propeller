@@ -173,7 +173,7 @@ int nvme_idm_read_host_state(char *lock_id, char *host_id, int *host_state, char
 //TODO: Does ALWAYS setting to -1 on failure make sense?
 //          Refer to scsi-side if removed.
 //          Was being set to -1 in a couple locations.
-    *host_state = -1;
+    *host_state = -1;    //TODO: hardcoded state. add an "error" state to the enum?
 
     ret = _validate_input_common(lock_id, host_id, drive);
     if (ret < 0)
@@ -258,8 +258,8 @@ int nvme_idm_read_lock_count(char *lock_id, char *host_id, int *count, int *self
     nvmeIdmRequest *request_idm;
     idmData        *data_idm;
     unsigned int   mutex_num = 0;
-    uint64_t       state, locked;
     int            ret = SUCCESS;
+    uint64_t       state, locked;
 
     // Initialize the output
     *count = 0;
@@ -363,11 +363,11 @@ int nvme_idm_read_lock_mode(char *lock_id, int *mode, char *drive)
     nvmeIdmRequest *request_idm;
     idmData        *data_idm;
     unsigned int   mutex_num = 0;
-    uint64_t       state, class;
     int            ret = SUCCESS;
+    uint64_t       state, class;
 
     // Initialize the output
-    *mode = -1;
+    *mode = -1;    //TODO: hardcoded state. add an "error" state to the enum?
 
     #ifndef COMPILE_STANDALONE
     if (ilm_inject_fault_is_hit())
@@ -463,6 +463,132 @@ EXIT:
     ilm_log_dbg("%s: found: lock_mode=%d", __func__, *mode);
     #endif //COMPILE_STANDALONE
     _memory_free_idm_request(request_idm);
+    return ret;
+}
+
+/**
+ * nvme_idm_read_mutex_group - Read back mutex group for all IDM in the drives
+ * @drive:      Drive path name.
+ * @info_ptr:   Returned pointer for info list.
+ * @info_num:   Returned pointer for info num.
+ *
+ * Returns zero or a negative error (ie. EINVAL, ENOMEM, EBUSY, etc).
+ */
+int nvme_idm_read_mutex_group(char *drive, idmInfo **info_ptr, int *info_num)
+{
+    #ifdef FUNCTION_ENTRY_DEBUG
+    printf("%s: START\n", __func__);
+    #endif //FUNCTION_ENTRY_DEBUG
+
+    nvmeIdmRequest *request_idm;
+    idmData        *data_idm;
+    unsigned int   mutex_num = 0;
+    int            i, ret = SUCCESS;
+    uint64_t       state, class;
+    idmInfo        *info_list, *info;
+
+    // Initialize the output
+    *info_ptr = NULL;
+    *info_num = 0;
+
+    #ifndef COMPILE_STANDALONE
+    if (ilm_inject_fault_is_hit())
+        return -EIO;
+    #endif //COMPILE_STANDALONE
+
+    if (!drive)
+        return -EINVAL;
+
+    ret = nvme_idm_read_mutex_num(drive, &mutex_num);
+    if (ret < 0)
+        return -ENOENT;
+
+    if (!mutex_num)
+        return SUCCESS;
+
+    ret = _memory_init_idm_request(&request_idm, mutex_num);
+    if (ret < 0)
+        return ret;
+
+    info_list = malloc(sizeof(idmInfo) * mutex_num);
+    if (!info_list) {
+        ret = -ENOMEM;
+        goto EXIT;
+    }
+
+    //Init the read request
+    request_idm->opcode_idm = IDM_OPCODE_INIT;  //Ignored, but default for all idm reads.
+    strncpy(request_idm->drive, drive, PATH_MAX);
+
+    //API-specific code
+    request_idm->group_idm = IDM_GROUP_DEFAULT;
+
+    ret = nvme_idm_read(request_idm);
+    if (ret < 0) {
+        #ifndef COMPILE_STANDALONE
+        ilm_log_err("%s: nvme_idm_read fail %d", __func__, ret);
+        #else
+        printf("%s: nvme_idm_read fail %d\n", __func__, ret);
+        #endif //COMPILE_STANDALONE
+        goto EXIT;
+    }
+
+    //Find info
+    data_idm = request_idm->data_idm;
+    for (i = 0; i < mutex_num; i++) {
+
+        state = __bswap_64(data_idm[i].state);
+        if (state == IDM_STATE_DEAD)
+            break;
+
+        info = info_list + i;
+
+        /* Copy host ID */
+        bswap_char_arr(info->id,      data_idm[i].resource_id, IDM_LOCK_ID_LEN_BYTES);
+        bswap_char_arr(info->host_id, data_idm[i].host_id,     IDM_HOST_ID_LEN_BYTES);
+
+        class = __bswap_64(data_idm[i].class);
+
+        switch (class) {
+            case IDM_CLASS_EXCLUSIVE:
+                info->mode = IDM_MODE_EXCLUSIVE;
+                break;
+            case IDM_CLASS_SHARED_PROTECTED_READ:
+                info->mode = IDM_MODE_SHAREABLE;
+                break;
+            default:
+                #ifndef COMPILE_STANDALONE
+                ilm_log_err("%s: IDM class is not unsupported %ld", __func__, class);
+                #endif //COMPILE_STANDALONE
+                ret = -EFAULT;
+                goto EXIT;
+        }
+
+        switch (state) {
+            case IDM_STATE_UNINIT:
+                info->state = -1;   //TODO: hardcoded state. what is this? add to enum?
+                break;
+            case IDM_STATE_UNLOCKED: //intended fall-through
+            case IDM_STATE_TIMEOUT:
+                info->state = IDM_MODE_UNLOCK;
+                break;
+            default:
+                info->state = 1;    //TODO: hardcoded state. what is this? add to enum?
+        }
+
+        info->last_renew_time = __bswap_64(data_idm[i].time_now);
+    }
+
+    *info_ptr = info_list;
+    *info_num = i;
+
+EXIT:
+    #ifndef COMPILE_STANDALONE
+    ilm_log_dbg("%s: found: info_num=%d", __func__, *info_num);
+    #endif //COMPILE_STANDALONE
+    _memory_free_idm_request(request_idm);
+    if (ret != 0 && info_list)
+        free(info_list);
     return ret;
 }
 
@@ -848,6 +974,12 @@ int main(int argc, char *argv[])
             int mode;
             ret = nvme_idm_read_lock_mode(lock_id, &mode, drive);
             printf("output: lock_mode=%d\n", mode);
+        }
+        else if(strcmp(argv[1], "read_group") == 0){
+            unsigned int info_num;
+            idmInfo *info_list;
+            ret = nvme_idm_read_mutex_group(drive, &info_list, &info_num);
+            printf("output: info_num=%u\n", info_num);
         }
         else if(strcmp(argv[1], "read_num") == 0){
             unsigned int mutex_num;

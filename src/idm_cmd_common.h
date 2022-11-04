@@ -110,6 +110,19 @@ typedef struct _idmData {
     };
 }idmData;
 
+typedef struct _idmInfo {
+    /* Lock ID */
+    char id[IDM_LOCK_ID_LEN_BYTES];
+    int state;
+    int mode;
+
+    /* Host ID */
+    char host_id[IDM_HOST_ID_LEN_BYTES];
+
+    /* Membership */
+    uint64_t last_renew_time;
+}idmInfo;
+
 
 //////////////////////////////////////////
 // Functions
