@@ -182,8 +182,7 @@ int nvme_idm_read_host_state(char *lock_id, char *host_id, int *host_state, char
     ret = nvme_idm_read_mutex_num(drive, &mutex_num);
     if (ret < 0)
         return -ENOENT;
-
-    if (!mutex_num)
+    else if (!mutex_num)
         return SUCCESS;
 
     ret = _memory_init_idm_request(&request_idm, mutex_num);
@@ -272,8 +271,7 @@ int nvme_idm_read_lock_count(char *lock_id, char *host_id, int *count, int *self
     ret = nvme_idm_read_mutex_num(drive, &mutex_num);
     if (ret < 0)
         return -ENOENT;
-
-    if (!mutex_num)
+    else if (!mutex_num)
         return SUCCESS;
 
     ret = _memory_init_idm_request(&request_idm, mutex_num);
@@ -380,8 +378,7 @@ int nvme_idm_read_lock_mode(char *lock_id, int *mode, char *drive)
     ret = nvme_idm_read_mutex_num(drive, &mutex_num);
     if (ret < 0)
         return -ENOENT;
-
-    if (!mutex_num) {
+    else if (!mutex_num) {
         *mode = IDM_MODE_UNLOCK;
         return SUCCESS;
     }
@@ -467,6 +464,92 @@ EXIT:
 }
 
 /**
+ * nvme_idm_read_lvb - Read value block which is associated to an IDM.
+ * @lock_id:    Lock ID (64 bytes).
+ * @mode:       Lock mode (unlock, shareable, exclusive).
+ * @host_id:    Host ID (32 bytes).
+ * @lvb:        Lock value block pointer.
+ * @lvb_size:   Lock value block size.
+ * @drive:      Drive path name.
+ *
+ * Returns zero or a negative error (ie. EINVAL).
+ */
+int nvme_idm_read_lvb(char *lock_id, char *host_id, char *lvb, int lvb_size, char *drive)
+{
+    #ifdef FUNCTION_ENTRY_DEBUG
+    printf("%s: START\n", __func__);
+    #endif //FUNCTION_ENTRY_DEBUG
+
+    nvmeIdmRequest *request_idm;
+    idmData        *data_idm;
+    unsigned int   mutex_num = 0;
+    int            ret = SUCCESS;
+
+    // Initialize the output ????
+    memset(lvb, 0x0, lvb_size); //TODO: Does this make sense here?? (sightly different from scsi)
+
+    ret = _validate_input_common(lock_id, host_id, drive);
+    if (ret < 0)
+        return ret;
+
+    if (!lvb)
+        return -EINVAL;
+
+    ret = nvme_idm_read_mutex_num(drive, &mutex_num);
+    if (ret < 0)
+        return -ENOENT;
+    else if (!mutex_num)
+        return SUCCESS;
+
+    ret = _memory_init_idm_request(&request_idm, mutex_num);
+    if (ret < 0)
+        return ret;
+
+    //Init the read request
+    request_idm->opcode_idm = IDM_OPCODE_INIT;  //Ignored, but default for all idm reads.
+    strncpy(request_idm->drive, drive, PATH_MAX);
+
+    //API-specific code
+    request_idm->group_idm = IDM_GROUP_DEFAULT;
+
+    ret = nvme_idm_read(request_idm);
+    if (ret < 0) {
+        #ifndef COMPILE_STANDALONE
+        ilm_log_err("%s: nvme_idm_read fail %d", __func__, ret);
+        #else
+        printf("%s: nvme_idm_read fail %d\n", __func__, ret);
+        #endif //COMPILE_STANDALONE
+        goto EXIT;
+    }
+
+    //Get lvb
+    bswap_char_arr(request_idm->lock_id, lock_id, IDM_LOCK_ID_LEN_BYTES);
+    bswap_char_arr(request_idm->host_id, host_id, IDM_HOST_ID_LEN_BYTES);
+
+    ret = -ENOENT;
+    data_idm = request_idm->data_idm;
+    for (int i = 0; i < mutex_num; i++) {
+        /* Skip for other locks */
+        if (memcmp(data_idm[i].resource_id, request_idm->lock_id, IDM_LOCK_ID_LEN_BYTES))
+            continue;
+
+        if (memcmp(data_idm[i].host_id, request_idm->host_id, IDM_HOST_ID_LEN_BYTES))
+            continue;
+
+        bswap_char_arr(lvb, data_idm[i].resource_ver, lvb_size);
+        ret = SUCCESS;
+        break;
+    }
+
+EXIT:
+    #ifndef COMPILE_STANDALONE
+    ilm_log_array_dbg("lvb", lvb, lvb_size);
+    #endif //COMPILE_STANDALONE
+    _memory_free_idm_request(request_idm);
+    return ret;
+}
+
+/**
  * nvme_idm_read_mutex_group - Read back mutex group for all IDM in the drives
  * @drive:      Drive path name.
  * @info_ptr:   Returned pointer for info list.
@@ -502,8 +585,7 @@ int nvme_idm_read_mutex_group(char *drive, idmInfo **info_ptr, int *info_num)
     ret = nvme_idm_read_mutex_num(drive, &mutex_num);
     if (ret < 0)
         return -ENOENT;
-
-    if (!mutex_num)
+    else if (!mutex_num)
         return SUCCESS;
 
     ret = _memory_init_idm_request(&request_idm, mutex_num);
@@ -584,6 +666,7 @@ int nvme_idm_read_mutex_group(char *drive, idmInfo **info_ptr, int *info_num)
 
 EXIT:
     #ifndef COMPILE_STANDALONE
+    //ilm_log_array_dbg("*info_ptr", *info_ptr, sizeof(idmInfo));
     ilm_log_dbg("%s: found: info_num=%d", __func__, *info_num);
     #endif //COMPILE_STANDALONE
     _memory_free_idm_request(request_idm);
@@ -974,6 +1057,9 @@ int main(int argc, char *argv[])
             int mode;
             ret = nvme_idm_read_lock_mode(lock_id, &mode, drive);
             printf("output: lock_mode=%d\n", mode);
+        }
+        else if(strcmp(argv[1], "read_lvb") == 0){
+            ret = nvme_idm_read_lvb(lock_id, host_id, lvb, lvb_size, drive);
         }
         else if(strcmp(argv[1], "read_group") == 0){
             unsigned int info_num;
