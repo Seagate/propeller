@@ -19,7 +19,7 @@ int nvme_idm_convert_lock(char *lock_id, int mode, char *host_id, char *drive, u
 int nvme_idm_lock(char *lock_id, int mode, char *host_id, char *drive, uint64_t timeout);
 int nvme_idm_read_host_state(char *lock_id, char *host_id, int *host_state, char *drive);
 int nvme_idm_read_lock_count(char *lock_id, char *host_id, int *count, int *self, char *drive);
-// int nvme_idm_read_lock_mode(char *lock_id, int *mode, char *drive);
+int nvme_idm_read_lock_mode(char *lock_id, int *mode, char *drive);
 // int nvme_idm_read_lvb(char *lock_id, char *host_id, char *lvb, int lvb_size, char *drive);
 // int nvme_idm_read_mutex_group(char *drive, struct idm_info **info_ptr, int *info_num);
 int nvme_idm_read_mutex_num(char *drive, unsigned int *num);
