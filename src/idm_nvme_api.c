@@ -211,7 +211,7 @@ int nvme_idm_read_host_state(char *lock_id, char *host_id, int *host_state, char
     #endif //FUNCTION_ENTRY_DEBUG
 
     nvmeIdmRequest *request_idm;
-    idmData        *data_idm;// = request_idm->data_idm;
+    idmData        *data_idm;
     unsigned int   mutex_num = 0;
     int            ret = SUCCESS;
 
@@ -777,6 +777,7 @@ int nvme_idm_read_mutex_num(char *drive, unsigned int *mutex_num)
     *mutex_num = ((data[1]) & 0xff);
     *mutex_num |= ((data[0]) & 0xff) << 8;
     #else
+//TODO: This can't stay. Necessary for stand-alone code
     *mutex_num = 2;     //For debug. This func called by many others.
     #endif //COMPILE_STANDALONE
 
@@ -1010,8 +1011,6 @@ int _validate_input_common(char *lock_id, char *host_id, char *drive) {
 
     if (!lock_id || !host_id || !drive)
         return -EINVAL;
-
-//TODO: Add general check for "mode" here? (ie: a valid enum value)
 
     return ret;
 }

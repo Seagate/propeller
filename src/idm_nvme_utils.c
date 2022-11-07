@@ -12,7 +12,7 @@
 
 #include "idm_nvme_utils.h"
 
-
+//TODO: switch all "printf" to appropriate log functions from this project's log.h
 /**
  * dumpIdmDataStruct - Convenience function for pretty printing the contends of the
  *                     passed in data struct.

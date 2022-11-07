@@ -142,9 +142,8 @@ int nvme_idm_write_init(char *lock_id, int mode, char *host_id, char *drive,
         case IDM_MODE_SHAREABLE:
             request_idm->class = IDM_CLASS_SHARED_PROTECTED_READ;
         default:
+            //Other modes note support at this time
             return -EINVAL;
-            //Below is the effective behavior of equivalent scsi code.  Seems wrong.
-            // request_idm->class = mode;
     }
 
     return SUCCESS;
@@ -304,7 +303,6 @@ int _nvme_idm_cmd_send(nvmeIdmRequest *request_idm) {
         return status_ioctl;
     }
 
-//TODO: Keep this debug??
     printf("%s: status_ioctl=%d\n", __func__, status_ioctl);
     printf("%s: ioctl cmd_nvme->result=%d\n", __func__, request_idm->cmd_nvme.result);
 
