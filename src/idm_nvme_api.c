@@ -198,8 +198,7 @@ int nvme_idm_lock_destroy(char *lock_id, int mode, char *host_id, char *drive)
  * @lock_id:    Lock ID (64 bytes).
  * @host_id:    Host ID (32 bytes).
  * @host_state: Returned host state's pointer.
-//TODO: Does ALWAYS setting to -1 on failure make sense?
- *              Set to -1 on failure.
+ *              Referenced value set to -1 on error.
  * @drive:      Drive path name.
  *
  * Returns zero or a negative error (ie. EINVAL, ENOMEM, EBUSY, etc).
@@ -215,14 +214,15 @@ int nvme_idm_read_host_state(char *lock_id, char *host_id, int *host_state, char
     unsigned int   mutex_num = 0;
     int            ret = SUCCESS;
 
+    ret = _validate_input_common(lock_id, host_id, drive);
+    if (ret < 0)
+        return ret;
+
+    // Initialize the output
 //TODO: Does ALWAYS setting to -1 on failure make sense?
 //          Refer to scsi-side if removed.
 //          Was being set to -1 in a couple locations.
     *host_state = -1;    //TODO: hardcoded state. add an "error" state to the enum?
-
-    ret = _validate_input_common(lock_id, host_id, drive);
-    if (ret < 0)
-        return ret;
 
     ret = nvme_idm_read_mutex_num(drive, &mutex_num);
     if (ret < 0)
@@ -288,7 +288,9 @@ EXIT:
  * @lock_id:    Lock ID (64 bytes).
  * @host_id:    Host ID (32 bytes).
  * @count:      Returned lock count value's pointer.
+ *              Referenced value set to 0 on error.
  * @self:       Returned self count value's pointer.
+ *              Referenced value set to 0 on error.
  * @drive:      Drive path name.
  *
  * Returns zero or a negative error (ie. EINVAL, ENOMEM, EBUSY, etc).
@@ -305,13 +307,13 @@ int nvme_idm_read_lock_count(char *lock_id, char *host_id, int *count, int *self
     int            ret = SUCCESS;
     uint64_t       state, locked;
 
-    // Initialize the output
-    *count = 0;
-    *self = 0;
-
     ret = _validate_input_common(lock_id, host_id, drive);
     if (ret < 0)
         return ret;
+
+    // Initialize the output
+    *count = 0;
+    *self = 0;
 
     ret = nvme_idm_read_mutex_num(drive, &mutex_num);
     if (ret < 0)
@@ -393,6 +395,7 @@ EXIT:
  * nvme_idm_read_lock_mode - Read back an IDM's current mode.
  * @lock_id:    Lock ID (64 bytes).
  * @mode:       Returned lock mode's pointer.
+ *              Referenced value set to -1 on error.
  * @drive:      Drive path name.
  *
  * Returns zero or a negative error (ie. EINVAL, ENOMEM, EBUSY, etc).
@@ -409,9 +412,6 @@ int nvme_idm_read_lock_mode(char *lock_id, int *mode, char *drive)
     int            ret = SUCCESS;
     uint64_t       state, class;
 
-    // Initialize the output
-    *mode = -1;    //TODO: hardcoded state. add an "error" state to the enum?
-
     #ifndef COMPILE_STANDALONE
     if (ilm_inject_fault_is_hit())
         return -EIO;
@@ -419,6 +419,9 @@ int nvme_idm_read_lock_mode(char *lock_id, int *mode, char *drive)
 
     if (!lock_id || !drive)
         return -EINVAL;
+
+    // Initialize the output
+    *mode = -1;    //TODO: hardcoded state. add an "error" state to the enum?
 
     ret = nvme_idm_read_mutex_num(drive, &mutex_num);
     if (ret < 0)
@@ -514,6 +517,7 @@ EXIT:
  * @mode:       Lock mode (unlock, shareable, exclusive).
  * @host_id:    Host ID (32 bytes).
  * @lvb:        Lock value block pointer.
+ *              Pointer's memory cleared on error.
  * @lvb_size:   Lock value block size.
  * @drive:      Drive path name.
  *
@@ -530,15 +534,17 @@ int nvme_idm_read_lvb(char *lock_id, char *host_id, char *lvb, int lvb_size, cha
     unsigned int   mutex_num = 0;
     int            ret = SUCCESS;
 
-    // Initialize the output ????
-    memset(lvb, 0x0, lvb_size); //TODO: Does this make sense here?? (sightly different from scsi)
-
     ret = _validate_input_common(lock_id, host_id, drive);
     if (ret < 0)
         return ret;
 
-    if (!lvb)
+    //TODO: The -ve check below should go away cuz lvb_size should be of unsigned type.
+    //However, this requires an IDM API parameter type change.
+    if ((!lvb) || (lvb_size <= 0) || (lvb_size > IDM_LVB_LEN_BYTES))
         return -EINVAL;
+
+    // Initialize the output
+    memset(lvb, 0x0, lvb_size); //TODO: Does this make sense here?? (sightly different from scsi)
 
     ret = nvme_idm_read_mutex_num(drive, &mutex_num);
     if (ret < 0)
@@ -598,7 +604,9 @@ EXIT:
  * nvme_idm_read_mutex_group - Read back mutex group for all IDM in the drives
  * @drive:      Drive path name.
  * @info_ptr:   Returned pointer for info list.
+ *              Referenced pointer set to NULL on error.
  * @info_num:   Returned pointer for info num.
+ *              Referenced value set to 0 on error.
  *
  * Returns zero or a negative error (ie. EINVAL, ENOMEM, EBUSY, etc).
  */
@@ -615,10 +623,6 @@ int nvme_idm_read_mutex_group(char *drive, idmInfo **info_ptr, int *info_num)
     uint64_t       state, class;
     idmInfo        *info_list, *info;
 
-    // Initialize the output
-    *info_ptr = NULL;
-    *info_num = 0;
-
     #ifndef COMPILE_STANDALONE
     if (ilm_inject_fault_is_hit())
         return -EIO;
@@ -626,6 +630,10 @@ int nvme_idm_read_mutex_group(char *drive, idmInfo **info_ptr, int *info_num)
 
     if (!drive)
         return -EINVAL;
+
+    // Initialize the output
+    *info_ptr = NULL;
+    *info_num = 0;
 
     ret = nvme_idm_read_mutex_num(drive, &mutex_num);
     if (ret < 0)
@@ -1016,8 +1024,8 @@ int _validate_input_common(char *lock_id, char *host_id, char *drive) {
 }
 
 /**
- * _validate_input_common - Convenience function for validating the most common
- *                          IDM API input parameters used during an IDM write cmd.
+ * _validate_input_write - Convenience function for validating IDM API input parameters
+ *                         used during an IDM write cmd.
  *
  * @lock_id:        Lock ID (64 bytes).
  * @mode:           Lock mode (unlock, shareable, exclusive).
