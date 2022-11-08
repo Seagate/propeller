@@ -234,9 +234,7 @@ int nvme_idm_read_host_state(char *lock_id, char *host_id, int *host_state, char
     if (ret < 0)
         return ret;
 
-    //Init the read request
-    request_idm->opcode_idm = IDM_OPCODE_INIT;  //Ignored, but default for all idm reads.
-    strncpy(request_idm->drive, drive, PATH_MAX);
+    nvme_idm_read_init(drive, request_idm);
 
     //API-specific code
     request_idm->group_idm = IDM_GROUP_DEFAULT;
@@ -325,9 +323,7 @@ int nvme_idm_read_lock_count(char *lock_id, char *host_id, int *count, int *self
     if (ret < 0)
         return ret;
 
-    //Init the read request
-    request_idm->opcode_idm = IDM_OPCODE_INIT;  //Ignored, but default for all idm reads.
-    strncpy(request_idm->drive, drive, PATH_MAX);
+    nvme_idm_read_init(drive, request_idm);
 
     //API-specific code
     request_idm->group_idm = IDM_GROUP_DEFAULT;
@@ -435,9 +431,7 @@ int nvme_idm_read_lock_mode(char *lock_id, int *mode, char *drive)
     if (ret < 0)
         return ret;
 
-    //Init the read request
-    request_idm->opcode_idm = IDM_OPCODE_INIT;  //Ignored, but default for all idm reads.
-    strncpy(request_idm->drive, drive, PATH_MAX);
+    nvme_idm_read_init(drive, request_idm);
 
     //API-specific code
     request_idm->group_idm = IDM_GROUP_DEFAULT;
@@ -556,9 +550,7 @@ int nvme_idm_read_lvb(char *lock_id, char *host_id, char *lvb, int lvb_size, cha
     if (ret < 0)
         return ret;
 
-    //Init the read request
-    request_idm->opcode_idm = IDM_OPCODE_INIT;  //Ignored, but default for all idm reads.
-    strncpy(request_idm->drive, drive, PATH_MAX);
+    nvme_idm_read_init(drive, request_idm);
 
     //API-specific code
     request_idm->group_idm = IDM_GROUP_DEFAULT;
@@ -645,15 +637,7 @@ int nvme_idm_read_mutex_group(char *drive, idmInfo **info_ptr, int *info_num)
     if (ret < 0)
         return ret;
 
-    info_list = malloc(sizeof(idmInfo) * mutex_num);
-    if (!info_list) {
-        ret = -ENOMEM;
-        goto EXIT;
-    }
-
-    //Init the read request
-    request_idm->opcode_idm = IDM_OPCODE_INIT;  //Ignored, but default for all idm reads.
-    strncpy(request_idm->drive, drive, PATH_MAX);
+    nvme_idm_read_init(drive, request_idm);
 
     //API-specific code
     request_idm->group_idm = IDM_GROUP_DEFAULT;
@@ -665,6 +649,12 @@ int nvme_idm_read_mutex_group(char *drive, idmInfo **info_ptr, int *info_num)
         #else
         printf("%s: nvme_idm_read fail %d\n", __func__, ret);
         #endif //COMPILE_STANDALONE
+        goto EXIT;
+    }
+
+    info_list = malloc(sizeof(idmInfo) * mutex_num);
+    if (!info_list) {
+        ret = -ENOMEM;
         goto EXIT;
     }
 
@@ -759,9 +749,7 @@ int nvme_idm_read_mutex_num(char *drive, unsigned int *mutex_num)
     if (ret < 0)
         return ret;
 
-    //Init the read request
-    request_idm->opcode_idm = IDM_OPCODE_INIT;  //Ignored, but default for all idm reads.
-    memcpy(request_idm->drive, drive, PATH_MAX);
+    nvme_idm_read_init(drive, request_idm);
 
     //API-specific code
     request_idm->group_idm = IDM_GROUP_INQUIRY;

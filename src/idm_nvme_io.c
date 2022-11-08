@@ -70,6 +70,25 @@ int nvme_idm_read(nvmeIdmRequest *request_idm) {
 }
 
 /**
+ * nvme_idm_read_init - Initializes an NVMe reade to the IDM by validating and then collecting all
+ *                      the IDM API input params and storing them in the "request_idm" data struct
+ *                      for use later (but before the NVMe write command is sent to the OS kernel).
+ *                      Intended to be called by higher level IDM API's (i.e.: lock, unlock, etc).
+ *
+ * @drive:          Drive path name.
+ * @request_idm:    Struct containing all NVMe-specific command info for the requested IDM action.
+ */
+void nvme_idm_read_init(char *drive, nvmeIdmRequest *request_idm) {
+
+    #ifdef FUNCTION_ENTRY_DEBUG
+    printf("%s: START\n", __func__);
+    #endif //FUNCTION_ENTRY_DEBUG
+
+    request_idm->opcode_idm = IDM_OPCODE_INIT;  //Ignored, but default for all idm reads.
+    strncpy(request_idm->drive, drive, PATH_MAX);
+}
+
+/**
  * nvme_idm_write - Issues a custom (vendor-specific) NVMe write command to the IDM.
  *                  Intended to be called by higher level IDM API's (i.e.: lock, unlock, etc).
  *
@@ -126,7 +145,7 @@ int nvme_idm_write_init(char *lock_id, int mode, char *host_id, char *drive,
     #endif //FUNCTION_ENTRY_DEBUG
 
     //Cache the input params
-//TODO: memcpy() -OR- strncpy() HERE??
+//TODO: memcpy() -OR- strncpy() HERE?? (and everywhere else for that matter)
     memcpy(request_idm->lock_id, lock_id, IDM_LOCK_ID_LEN_BYTES);
     memcpy(request_idm->host_id, host_id, IDM_HOST_ID_LEN_BYTES);
     memcpy(request_idm->drive  , drive  , PATH_MAX);
