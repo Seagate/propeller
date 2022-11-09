@@ -10,6 +10,7 @@
 #ifndef __IDM_NVME_IO_H__
 #define __IDM_NVME_IO_H__
 
+#include <limits.h>
 #include <stdint.h>
 
 #include "idm_cmd_common.h"
@@ -47,7 +48,6 @@ typedef enum _eNvmeIdmErrorCodes {
 //////////////////////////////////////////
 //TODO: Add struct description HERE
 typedef struct _nvmeIdmVendorCmd {
-//TODO: change to "opcode_nvme" (to clarify against "opcode_idm" (change below))
     uint8_t             opcode_nvme;  //CDW0
     uint8_t             flags;        //CDW0
     uint16_t            command_id;   //CDW0
@@ -94,17 +94,16 @@ typedef struct _nvmeIdmVendorCmd {
 // }eCqeStatusFields;
 
 
-//TODO: Using a bunch of pointers here.  SCSI was using COPIES of everything.  Any issues with this?? (string lengths??, kernel vs user space memory??)
 //TODO: Add struct description HERE
 typedef struct _nvmeIdmRequest {
     //Cached "IDM API" input params
-    char                *drive;
-    char                *lock_id;
-    char                *host_id;
+    char                lock_id[IDM_LOCK_ID_LEN_BYTES];
     int                 mode_idm;
+    char                host_id[IDM_HOST_ID_LEN_BYTES];
+    char                drive[PATH_MAX];
     //uint64_t            fd_async;
     uint64_t            timeout;
-    char                *lvb;
+    char                lvb[IDM_LVB_LEN_BYTES];
     int                 lvb_size;   //TODO: should be unsigned, but public API setup with int.  size_t anyway?
 
     //IDM core structs
@@ -117,10 +116,10 @@ typedef struct _nvmeIdmRequest {
     //TODO: Convert these to function params and explictly pass around?
     uint8_t             opcode_idm;
     uint8_t             group_idm;
-    char                res_ver_type;  //TODO: How is this being used?  What does it represent in the NVMe CDW block?  What type should this be?
+    char                res_ver_type;
     int                 data_len;      //TODO: should be unsigned.  size_t?
-    unsigned int        data_num;       //TODO: uint64_t?
-    uint64_t            class_idm;
+    unsigned int        data_num;      //TODO: uint64_t?
+    uint64_t            class;
 
 }nvmeIdmRequest;
 
@@ -130,6 +129,8 @@ typedef struct _nvmeIdmRequest {
 // Functions
 //////////////////////////////////////////
 
+int nvme_idm_read(nvmeIdmRequest *request_idm);
+void nvme_idm_read_init(char *drive, nvmeIdmRequest *request_idm);
 int nvme_idm_write(nvmeIdmRequest *request_idm);
 int nvme_idm_write_init(char *lock_id, int mode, char *host_id, char *drive,
                         uint64_t timeout, nvmeIdmRequest *request_idm);

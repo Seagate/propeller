@@ -7,8 +7,10 @@
  *                  to talk to the Linux kernel (via ioctl(), read() or write())
  */
 
+#include <byteswap.h>
 #include <errno.h>
 #include <fcntl.h>
+#include <inttypes.h>
 #include <linux/nvme_ioctl.h>
 #include <stdio.h>
 #include <string.h>
@@ -22,7 +24,7 @@
 //////////////////////////////////////////
 // COMPILE FLAGS
 //////////////////////////////////////////
-//TODO: Keep this (and the corresponding #ifdef's)???
+//TODO: DELETE THESE 2 (AND ALL CORRESPONDING CODE) AFTER NVME FILES COMPILE WITH THE REST OF PROPELLER.
 #define COMPILE_STANDALONE
 // #define MAIN_ACTIVATE
 
@@ -32,6 +34,59 @@
 //////////////////////////////////////////
 // FUNCTIONS
 //////////////////////////////////////////
+
+/**
+ * nvme_idm_read - Issues a custom (vendor-specific) NVMe read command to the IDM.
+ *                 Intended to be called by higher level read IDM API's.
+ *
+ * @request_idm:    Struct containing all NVMe-specific command info for the requested IDM action.
+ *
+ * Returns zero or a negative error (ie. EINVAL, ENOMEM, EBUSY, etc).
+ */
+int nvme_idm_read(nvmeIdmRequest *request_idm) {
+
+    #ifdef FUNCTION_ENTRY_DEBUG
+    printf("%s: START\n", __func__);
+    #endif //FUNCTION_ENTRY_DEBUG
+
+    int ret = SUCCESS;
+
+    ret = _nvme_idm_cmd_init(request_idm, NVME_IDM_VENDOR_CMD_OP_READ);
+    if(ret < 0) {
+        return ret;
+    }
+
+    // ret = _nvme_idm_data_init_rd(request_idm);   TODO: Needed?
+    // if(ret < 0) {
+    //     return ret;
+    // }
+
+    ret = _nvme_idm_cmd_send(request_idm);
+    if(ret < 0) {
+        return ret;
+    }
+
+    return ret;
+}
+
+/**
+ * nvme_idm_read_init - Initializes an NVMe reade to the IDM by validating and then collecting all
+ *                      the IDM API input params and storing them in the "request_idm" data struct
+ *                      for use later (but before the NVMe write command is sent to the OS kernel).
+ *                      Intended to be called by higher level IDM API's (i.e.: lock, unlock, etc).
+ *
+ * @drive:          Drive path name.
+ * @request_idm:    Struct containing all NVMe-specific command info for the requested IDM action.
+ */
+void nvme_idm_read_init(char *drive, nvmeIdmRequest *request_idm) {
+
+    #ifdef FUNCTION_ENTRY_DEBUG
+    printf("%s: START\n", __func__);
+    #endif //FUNCTION_ENTRY_DEBUG
+
+    request_idm->opcode_idm = IDM_OPCODE_INIT;  //Ignored, but default for all idm reads.
+    strncpy(request_idm->drive, drive, PATH_MAX);
+}
 
 /**
  * nvme_idm_write - Issues a custom (vendor-specific) NVMe write command to the IDM.
@@ -90,10 +145,11 @@ int nvme_idm_write_init(char *lock_id, int mode, char *host_id, char *drive,
     #endif //FUNCTION_ENTRY_DEBUG
 
     //Cache the input params
-    request_idm->lock_id  = lock_id;
+//TODO: memcpy() -OR- strncpy() HERE?? (and everywhere else for that matter)
+    memcpy(request_idm->lock_id, lock_id, IDM_LOCK_ID_LEN_BYTES);
+    memcpy(request_idm->host_id, host_id, IDM_HOST_ID_LEN_BYTES);
+    memcpy(request_idm->drive  , drive  , PATH_MAX);
     request_idm->mode_idm = mode;
-    request_idm->host_id  = host_id;
-    request_idm->drive    = drive;
     request_idm->timeout  = timeout;
 
 //TODO: This is variable for NVMe reads.  How handle?  MAY be variable for writes too (future).
@@ -101,13 +157,12 @@ int nvme_idm_write_init(char *lock_id, int mode, char *host_id, char *drive,
 
     switch(mode) {
         case IDM_MODE_EXCLUSIVE:
-            request_idm->class_idm = IDM_CLASS_EXCLUSIVE;
+            request_idm->class = IDM_CLASS_EXCLUSIVE;
         case IDM_MODE_SHAREABLE:
-            request_idm->class_idm = IDM_CLASS_SHARED_PROTECTED_READ;
+            request_idm->class = IDM_CLASS_SHARED_PROTECTED_READ;
         default:
+            //Other modes note support at this time
             return -EINVAL;
-            //Below is the effective behavior of equivalent scsi code.  Seems wrong.
-            // request_idm->class_idm = mode;
     }
 
     return SUCCESS;
@@ -267,7 +322,6 @@ int _nvme_idm_cmd_send(nvmeIdmRequest *request_idm) {
         return status_ioctl;
     }
 
-//TODO: Keep this debug??
     printf("%s: status_ioctl=%d\n", __func__, status_ioctl);
     printf("%s: ioctl cmd_nvme->result=%d\n", __func__, request_idm->cmd_nvme.result);
 
@@ -316,24 +370,18 @@ int _nvme_idm_data_init_wrt(nvmeIdmRequest *request_idm) {
     idmData *data_idm          = request_idm->data_idm;
     int ret                    = SUCCESS;
 
-//TODO: ?? reverse bit order of next 3 destination values ??  (on scsi-side, using __bswap_64())
     #ifndef COMPILE_STANDALONE
-  	data_idm->time_now  = ilm_read_utc_time();
+  	data_idm->time_now  = __bswap_64(ilm_read_utc_time());
     #else
-  	data_idm->time_now  = 1234567890;
+  	data_idm->time_now  = __bswap_64(1234567890);
     #endif //COMPILE_STANDALONE
-	data_idm->countdown = request_idm->timeout;
-	data_idm->class_idm = request_idm->class_idm;
+    data_idm->countdown = __bswap_64(request_idm->timeout);
+    data_idm->class     = __bswap_64(request_idm->class);
 
-//TODO: ?? reverse bit order of next 3 destination arrays ??  (on scsi-side, using _scsi_data_swap())
-    memcpy(data_idm->host_id,     request_idm->host_id, IDM_HOST_ID_LEN_BYTES);
-    memcpy(data_idm->resource_id, request_idm->lock_id, IDM_LOCK_ID_LEN_BYTES);
-    if(request_idm->lvb)
-        memcpy(data_idm->resource_ver, request_idm->lvb, request_idm->lvb_size);
-
-	data_idm->resource_ver[0] = request_idm->res_ver_type;   //TODO: On scsi-side, why are "lvb" AND "res_ver_type" going into the same char array
-                                                                    // NOTE HERE: this line occurs on scsi-side AFTER a data order reversal (swap),
-                                                                    //            so it's not overwriting anything. How handle?
+    bswap_char_arr(data_idm->host_id,      request_idm->host_id, IDM_HOST_ID_LEN_BYTES);
+    bswap_char_arr(data_idm->resource_id,  request_idm->lock_id, IDM_LOCK_ID_LEN_BYTES);
+    bswap_char_arr(data_idm->resource_ver, request_idm->lvb    , IDM_LVB_LEN_BYTES);
+    data_idm->resource_ver[0] = request_idm->res_ver_type;
 
     return ret;
 }

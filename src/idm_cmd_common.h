@@ -15,18 +15,17 @@
 
 #include <stdint.h>
 
+//////////////////////////////////////////
+// Defines
+//////////////////////////////////////////
 #define SUCCESS 0;
 #define FAILURE -1;
-
-//TODO: Delete these 2 after nvme.c\.h are deleted.
-#define IDM_VENDOR_CMD_DATA_LEN_BYTES   512
-#define IDM_VENDOR_CMD_DATA_LEN_DWORDS  512 / 4
 
 #define DFLT_NUM_IDM_DATA_BLOCKS    1
 
 #define IDM_LOCK_ID_LEN_BYTES       64
 #define IDM_HOST_ID_LEN_BYTES       32
-#define IDM_LVB_SIZE_MAX            8
+#define IDM_LVB_LEN_BYTES            8
 
 // Other idmData char array lengths
 #define IDM_DATA_RESOURCE_VER_LEN_BYTES 8
@@ -34,6 +33,9 @@
 #define IDM_DATA_METADATA_LEN_BYTES     64
 #define IDM_DATA_RESERVED_1_LEN_BYTES   32
 
+//////////////////////////////////////////
+// Enums
+//////////////////////////////////////////
 typedef enum _eIdmClasses {
     IDM_MODE_UNLOCK    = 0,
     IDM_MODE_EXCLUSIVE = 0x1,
@@ -78,6 +80,9 @@ typedef enum _eIdmStates {
     IDM_STATE_DEAD              = 0xdead,
 }eIdmStates;
 
+//////////////////////////////////////////
+// Structs
+//////////////////////////////////////////
 typedef struct _idmData {
     union {
         uint64_t    state;           // For idm_read
@@ -88,7 +93,7 @@ typedef struct _idmData {
         uint64_t    time_now;        // For idm_write
     };
     uint64_t    countdown;
-    uint64_t    class_idm;
+    uint64_t    class;
     char        resource_ver[IDM_DATA_RESOURCE_VER_LEN_BYTES];
     char        rsvd0[IDM_DATA_RESERVED_0_LEN_BYTES];
     char        resource_id[IDM_LOCK_ID_LEN_BYTES];
@@ -100,5 +105,26 @@ typedef struct _idmData {
         char    ignored1[256];   // For idm_write
     };
 }idmData;
+
+typedef struct _idmInfo {
+    /* Lock ID */
+    char id[IDM_LOCK_ID_LEN_BYTES];
+    int state;
+    int mode;
+
+    /* Host ID */
+    char host_id[IDM_HOST_ID_LEN_BYTES];
+
+    /* Membership */
+    uint64_t last_renew_time;
+}idmInfo;
+
+
+//////////////////////////////////////////
+// Functions
+//////////////////////////////////////////
+
+void bswap_char_arr(char *dst, char *src, int len);
+
 
 #endif /*__IDM_CMD_COMMON_H__ */
