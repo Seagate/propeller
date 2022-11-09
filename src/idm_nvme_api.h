@@ -13,19 +13,20 @@
 
 #include "idm_nvme_io.h"
 
-
-int nvme_idm_break_lock(char *lock_id, int mode, char *host_id, char *drive, uint64_t timeout);
-int nvme_idm_convert_lock(char *lock_id, int mode, char *host_id, char *drive, uint64_t timeout);
+//TODO: Refactor function params when scsi idm apis are renamed.
+//For reads, move "output" params to the end of the param list.
 int nvme_idm_lock(char *lock_id, int mode, char *host_id, char *drive, uint64_t timeout);
+int nvme_idm_lock_break(char *lock_id, int mode, char *host_id, char *drive, uint64_t timeout);
+int nvme_idm_lock_convert(char *lock_id, int mode, char *host_id, char *drive, uint64_t timeout);
 int nvme_idm_lock_destroy(char *lock_id, int mode, char *host_id, char *drive);
+int nvme_idm_lock_refresh(char *lock_id, int mode, char *host_id, char *drive, uint64_t timeout);
+int nvme_idm_lock_renew(char *lock_id, int mode, char *host_id, char *drive, uint64_t timeout);
 int nvme_idm_read_host_state(char *lock_id, char *host_id, int *host_state, char *drive);
 int nvme_idm_read_lock_count(char *lock_id, char *host_id, int *count, int *self, char *drive);
 int nvme_idm_read_lock_mode(char *lock_id, int *mode, char *drive);
 int nvme_idm_read_lvb(char *lock_id, char *host_id, char *lvb, int lvb_size, char *drive);
 int nvme_idm_read_mutex_group(char *drive, idmInfo **info_ptr, int *info_num);
 int nvme_idm_read_mutex_num(char *drive, unsigned int *num);
-int nvme_idm_refresh_lock(char *lock_id, int mode, char *host_id, char *drive, uint64_t timeout);
-int nvme_idm_renew_lock(char *lock_id, int mode, char *host_id, char *drive, uint64_t timeout);
 int nvme_idm_unlock(char *lock_id, int mode, char *host_id, char *lvb, int lvb_size, char *drive);
 
 void _memory_free_idm_request(nvmeIdmRequest *request_idm);
@@ -34,22 +35,3 @@ int _validate_input_common(char *lock_id, char *host_id, char *drive);
 int _validate_input_write(char *lock_id, int mode, char *host_id, char *drive);
 
 #endif /*__IDM_NVME_API_H__ */
-
-
-
-// int nvme_idm_lock(char *lock_id, int mode, char *host_id, char *drive, uint64_t timeout);
-// int nvme_idm_lock_break(char *lock_id, int mode, char *host_id, char *drive, uint64_t timeout);
-// int nvme_idm_lock_convert(char *lock_id, int mode, char *host_id, char *drive, uint64_t timeout);
-// int nvme_idm_lock_destroy(char *lock_id, int mode, char *host_id, char *drive);
-// int nvme_idm_lock_refresh(char *lock_id, int mode, char *host_id, char *drive, uint64_t timeout);
-// int nvme_idm_lock_renew(char *lock_id, int mode, char *host_id, char *drive, uint64_t timeout);
-// int nvme_idm_read_host_state(char *lock_id, char *host_id, int *host_state, char *drive);
-// int nvme_idm_read_lock_count(char *lock_id, char *host_id, int *count, int *self, char *drive);
-// int nvme_idm_read_lock_mode(char *lock_id, int *mode, char *drive);
-// int nvme_idm_read_lvb(char *lock_id, char *host_id, char *lvb, int lvb_size, char *drive);
-// int nvme_idm_read_mutex_group(char *drive, struct idm_info **info_ptr, int *info_num);
-// int nvme_idm_read_mutex_num(char *drive, unsigned int *num);
-// int nvme_idm_unlock(char *lock_id, int mode, char *host_id, char *lvb, int lvb_size, char *drive);
-
-
-
