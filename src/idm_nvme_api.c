@@ -1068,9 +1068,9 @@ int main(int argc, char *argv[])
 
     //cli usage: idm_nvme_api lock
     if(argc >= 2){
-        char        lock_id[IDM_LOCK_ID_LEN_BYTES] = "lock_id";
+        char        lock_id[IDM_LOCK_ID_LEN_BYTES] = "0000000000000000000000000000000000000000000000000000000000000000";
         int         mode                           = IDM_MODE_EXCLUSIVE;
-        char        host_id[IDM_HOST_ID_LEN_BYTES] = "host_id_host_id";
+        char        host_id[IDM_HOST_ID_LEN_BYTES] = "00000000000000000000000000000000";
         uint64_t    timeout                        = 10;
         char        lvb[IDM_LVB_LEN_BYTES]         = "lvb";
         int         lvb_size                       = 5;
