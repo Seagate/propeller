@@ -35,73 +35,6 @@
 //////////////////////////////////////////
 
 /**
- * nvme_idm_break_lock - Break an IDM if before other hosts have
- * acquired this IDM.  This function is to allow a host_id to take
- * over the ownership if other hosts of the IDM is timeout, or the
- * countdown value is -1UL.
- * @lock_id:    Lock ID (64 bytes).
- * @mode:       Lock mode (unlock, shareable, exclusive).
- * @host_id:    Host ID (32 bytes).
- * @drive:      Drive path name.
- * @timeout:    Timeout for membership (unit: millisecond).
- *
- * Returns zero or a negative error (ie. EINVAL).
- */
-int nvme_idm_break_lock(char *lock_id, int mode, char *host_id,
-                        char *drive, uint64_t timeout)
-{
-    #ifdef FUNCTION_ENTRY_DEBUG
-    printf("%s: START\n", __func__);
-    #endif //FUNCTION_ENTRY_DEBUG
-
-    nvmeIdmRequest *request_idm;
-    int            ret = SUCCESS;
-
-    ret = _validate_input_write(lock_id, mode, host_id, drive);
-    if (ret < 0)
-        return ret;
-
-    ret = _memory_init_idm_request(&request_idm, DFLT_NUM_IDM_DATA_BLOCKS);
-    if (ret < 0)
-        return ret;
-
-    nvme_idm_write_init(lock_id, mode, host_id, drive, timeout, request_idm);
-
-    //API-specific code
-    request_idm->opcode_idm   = IDM_OPCODE_BREAK;
-    request_idm->res_ver_type = (char)IDM_RES_VER_NO_UPDATE_NO_VALID;
-
-    ret = nvme_idm_write(request_idm);
-    if (ret < 0) {
-        #ifndef COMPILE_STANDALONE
-        ilm_log_err("%s: nvme_idm_write fail %d", __func__, ret);
-        #else
-        printf("%s: nvme_idm_write fail %d\n", __func__, ret);
-        #endif //COMPILE_STANDALONE
-    }
-
-    _memory_free_idm_request(request_idm);
-    return ret;
-}
-
-/**
- * idm_drive_convert_lock - Convert the lock mode for an IDM
- * @lock_id:    Lock ID (64 bytes).
- * @mode:       Lock mode (unlock, shareable, exclusive).
- * @host_id:    Host ID (32 bytes).
- * @drive:      Drive path name.
- * @timeout:    Timeout for membership (unit: millisecond).
- *
- * Returns zero or a negative error (ie. EINVAL, ETIME).
- */
-int nvme_idm_convert_lock(char *lock_id, int mode, char *host_id,
-                          char *drive, uint64_t timeout)
-{
-    return nvme_idm_refresh_lock(lock_id, mode, host_id,
-                                 drive, timeout);
-}
-
-/**
  * nvme_idm_lock - acquire an IDM on a specified NVMe drive
  * @lock_id:     Lock ID (64 bytes).
  * @mode:        Lock mode (unlock, shareable, exclusive).
@@ -149,6 +82,73 @@ int nvme_idm_lock(char *lock_id, int mode, char *host_id,
 }
 
 /**
+ * nvme_idm_lock_break - Break an IDM if before other hosts have
+ * acquired this IDM.  This function is to allow a host_id to take
+ * over the ownership if other hosts of the IDM is timeout, or the
+ * countdown value is -1UL.
+ * @lock_id:    Lock ID (64 bytes).
+ * @mode:       Lock mode (unlock, shareable, exclusive).
+ * @host_id:    Host ID (32 bytes).
+ * @drive:      Drive path name.
+ * @timeout:    Timeout for membership (unit: millisecond).
+ *
+ * Returns zero or a negative error (ie. EINVAL).
+ */
+int nvme_idm_lock_break(char *lock_id, int mode, char *host_id,
+                        char *drive, uint64_t timeout)
+{
+    #ifdef FUNCTION_ENTRY_DEBUG
+    printf("%s: START\n", __func__);
+    #endif //FUNCTION_ENTRY_DEBUG
+
+    nvmeIdmRequest *request_idm;
+    int            ret = SUCCESS;
+
+    ret = _validate_input_write(lock_id, mode, host_id, drive);
+    if (ret < 0)
+        return ret;
+
+    ret = _memory_init_idm_request(&request_idm, DFLT_NUM_IDM_DATA_BLOCKS);
+    if (ret < 0)
+        return ret;
+
+    nvme_idm_write_init(lock_id, mode, host_id, drive, timeout, request_idm);
+
+    //API-specific code
+    request_idm->opcode_idm   = IDM_OPCODE_BREAK;
+    request_idm->res_ver_type = (char)IDM_RES_VER_NO_UPDATE_NO_VALID;
+
+    ret = nvme_idm_write(request_idm);
+    if (ret < 0) {
+        #ifndef COMPILE_STANDALONE
+        ilm_log_err("%s: nvme_idm_write fail %d", __func__, ret);
+        #else
+        printf("%s: nvme_idm_write fail %d\n", __func__, ret);
+        #endif //COMPILE_STANDALONE
+    }
+
+    _memory_free_idm_request(request_idm);
+    return ret;
+}
+
+/**
+ * idm_drive_convert_lock - Convert the lock mode for an IDM
+ * @lock_id:    Lock ID (64 bytes).
+ * @mode:       Lock mode (unlock, shareable, exclusive).
+ * @host_id:    Host ID (32 bytes).
+ * @drive:      Drive path name.
+ * @timeout:    Timeout for membership (unit: millisecond).
+ *
+ * Returns zero or a negative error (ie. EINVAL, ETIME).
+ */
+int nvme_idm_lock_convert(char *lock_id, int mode, char *host_id,
+                          char *drive, uint64_t timeout)
+{
+    return nvme_idm_lock_refresh(lock_id, mode, host_id,
+                                 drive, timeout);
+}
+
+/**
  * nvme_idm_lock_destroy - Destroy an IDM and release all associated resource.
  * @lock_id:     Lock ID (64 bytes).
  * @mode:        Lock mode (unlock, shareable, exclusive).
@@ -191,6 +191,69 @@ int nvme_idm_lock_destroy(char *lock_id, int mode, char *host_id, char *drive)
 
     _memory_free_idm_request(request_idm);
     return ret;
+}
+
+/**
+ * nvme_idm_lock_refresh - Refreshes the host's membership for an IDM
+ * @lock_id:    Lock ID (64 bytes).
+ * @mode:       Lock mode (unlock, shareable, exclusive).
+ * @host_id:    Host ID (32 bytes).
+ * @drive:      Drive path name.
+ * @timeout:    Timeout for membership (unit: millisecond).
+ *
+ * Returns zero or a negative error (ie. EINVAL, ETIME).
+ */int nvme_idm_lock_refresh(char *lock_id, int mode, char *host_id,
+                             char *drive, uint64_t timeout)
+{
+    #ifdef FUNCTION_ENTRY_DEBUG
+    printf("%s: START\n", __func__);
+    #endif //FUNCTION_ENTRY_DEBUG
+
+    nvmeIdmRequest *request_idm;
+    int            ret = SUCCESS;
+
+    ret = _validate_input_write(lock_id, mode, host_id, drive);
+    if (ret < 0)
+        return ret;
+
+    ret = _memory_init_idm_request(&request_idm, DFLT_NUM_IDM_DATA_BLOCKS);
+    if (ret < 0)
+        return ret;
+
+    nvme_idm_write_init(lock_id, mode, host_id, drive, timeout, request_idm);
+
+    //API-specific code
+    request_idm->opcode_idm   = IDM_OPCODE_REFRESH;
+    request_idm->res_ver_type = (char)IDM_RES_VER_NO_UPDATE_NO_VALID;
+
+    ret = nvme_idm_write(request_idm);
+    if (ret < 0) {
+        #ifndef COMPILE_STANDALONE
+        ilm_log_err("%s: nvme_idm_write fail %d", __func__, ret);
+        #else
+        printf("%s: nvme_idm_write fail %d\n", __func__, ret);
+        #endif //COMPILE_STANDALONE
+    }
+
+    _memory_free_idm_request(request_idm);
+    return ret;
+}
+
+/**
+ * nvme_idm_lock_renew - Renew host's membership for an IDM
+ * @lock_id:    Lock ID (64 bytes).
+ * @mode:       Lock mode (unlock, shareable, exclusive).
+ * @host_id:    Host ID (32 bytes).
+ * @drive:      Drive path name.
+ * @timeout:    Timeout for membership (unit: millisecond).
+ *
+ * Returns zero or a negative error (ie. EINVAL, ETIME).
+ */
+int nvme_idm_lock_renew(char *lock_id, int mode, char *host_id,
+                        char *drive, uint64_t timeout)
+{
+    return nvme_idm_lock_refresh(lock_id, mode, host_id,
+                                 drive, timeout);
 }
 
 /**
@@ -791,69 +854,6 @@ EXIT:
 }
 
 /**
- * nvme_idm_refresh_lock - Refreshes the host's membership for an IDM
- * @lock_id:    Lock ID (64 bytes).
- * @mode:       Lock mode (unlock, shareable, exclusive).
- * @host_id:    Host ID (32 bytes).
- * @drive:      Drive path name.
- * @timeout:    Timeout for membership (unit: millisecond).
- *
- * Returns zero or a negative error (ie. EINVAL, ETIME).
- */int nvme_idm_refresh_lock(char *lock_id, int mode, char *host_id,
-                             char *drive, uint64_t timeout)
-{
-    #ifdef FUNCTION_ENTRY_DEBUG
-    printf("%s: START\n", __func__);
-    #endif //FUNCTION_ENTRY_DEBUG
-
-    nvmeIdmRequest *request_idm;
-    int            ret = SUCCESS;
-
-    ret = _validate_input_write(lock_id, mode, host_id, drive);
-    if (ret < 0)
-        return ret;
-
-    ret = _memory_init_idm_request(&request_idm, DFLT_NUM_IDM_DATA_BLOCKS);
-    if (ret < 0)
-        return ret;
-
-    nvme_idm_write_init(lock_id, mode, host_id, drive, timeout, request_idm);
-
-    //API-specific code
-    request_idm->opcode_idm   = IDM_OPCODE_REFRESH;
-    request_idm->res_ver_type = (char)IDM_RES_VER_NO_UPDATE_NO_VALID;
-
-    ret = nvme_idm_write(request_idm);
-    if (ret < 0) {
-        #ifndef COMPILE_STANDALONE
-        ilm_log_err("%s: nvme_idm_write fail %d", __func__, ret);
-        #else
-        printf("%s: nvme_idm_write fail %d\n", __func__, ret);
-        #endif //COMPILE_STANDALONE
-    }
-
-    _memory_free_idm_request(request_idm);
-    return ret;
-}
-
-/**
- * nvme_idm_renew_lock - Renew host's membership for an IDM
- * @lock_id:    Lock ID (64 bytes).
- * @mode:       Lock mode (unlock, shareable, exclusive).
- * @host_id:    Host ID (32 bytes).
- * @drive:      Drive path name.
- * @timeout:    Timeout for membership (unit: millisecond).
- *
- * Returns zero or a negative error (ie. EINVAL, ETIME).
- */
-int nvme_idm_renew_lock(char *lock_id, int mode, char *host_id,
-                        char *drive, uint64_t timeout)
-{
-    return nvme_idm_refresh_lock(lock_id, mode, host_id,
-                                 drive, timeout);
-}
-
-/**
  * nvme_idm_unlock - release an IDM on a specified drive
  * @lock_id:    Lock ID (64 bytes).
  * @mode:       Lock mode (unlock, shareable, exclusive).
@@ -1076,10 +1076,10 @@ int main(int argc, char *argv[])
         int         lvb_size                       = 5;
 
         if(strcmp(argv[1], "break") == 0){
-            ret = nvme_idm_break_lock(lock_id, mode, host_id, drive, timeout);
+            ret = nvme_idm_lock_break(lock_id, mode, host_id, drive, timeout);
         }
         else if(strcmp(argv[1], "convert") == 0){
-            ret = nvme_idm_convert_lock(lock_id, mode, host_id, drive, timeout);
+            ret = nvme_idm_lock_convert(lock_id, mode, host_id, drive, timeout);
         }
         else if(strcmp(argv[1], "lock") == 0){
             ret = nvme_idm_lock(lock_id, mode, host_id, drive, timeout);
@@ -1117,10 +1117,10 @@ int main(int argc, char *argv[])
             printf("output: mutex_num=%u\n", mutex_num);
         }
         else if(strcmp(argv[1], "refresh") == 0){
-            ret = nvme_idm_refresh_lock(lock_id, mode, host_id, drive, timeout);
+            ret = nvme_idm_lock_refresh(lock_id, mode, host_id, drive, timeout);
         }
         else if(strcmp(argv[1], "renew") == 0){
-            ret = nvme_idm_renew_lock(lock_id, mode, host_id, drive, timeout);
+            ret = nvme_idm_lock_renew(lock_id, mode, host_id, drive, timeout);
         }
         else if(strcmp(argv[1], "unlock") == 0){
             ret = nvme_idm_unlock(lock_id, mode, host_id, lvb, lvb_size, drive);

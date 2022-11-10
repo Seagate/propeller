@@ -161,7 +161,7 @@ int nvme_idm_write_init(char *lock_id, int mode, char *host_id, char *drive,
         case IDM_MODE_SHAREABLE:
             request_idm->class = IDM_CLASS_SHARED_PROTECTED_READ;
         default:
-            //Other modes note support at this time
+            //Other modes not supported at this time
             return -EINVAL;
     }
 
