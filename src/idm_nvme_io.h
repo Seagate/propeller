@@ -49,7 +49,7 @@ typedef enum _eNvmeIdmErrorCodes {
 //TODO: Add struct description HERE
 typedef struct _nvmeIdmVendorCmd {
     uint8_t             opcode_nvme;  //CDW0
-    uint8_t             flags;        //CDW0
+    uint8_t             flags;        //CDW0    psdt_bits7_6, rsvd0_bits5_2, fuse_bits1_0
     uint16_t            command_id;   //CDW0
     uint32_t            nsid;         //CDW1
     uint32_t            cdw2;         //CDW2

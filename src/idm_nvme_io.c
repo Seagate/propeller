@@ -297,6 +297,7 @@ int _nvme_idm_cmd_send(nvmeIdmRequest *request_idm) {
     struct nvme_passthru_cmd *c = &cmd_nvme_passthru;
     int nvme_fd;
     int status_ioctl;
+    int nsid_ioctl;
     int ret = SUCCESS;
 
     //TODO: Put this under a debug flag of some kind??
@@ -316,10 +317,19 @@ int _nvme_idm_cmd_send(nvmeIdmRequest *request_idm) {
 
     memset(&cmd_nvme_passthru, 0, sizeof(struct nvme_passthru_cmd));
 
+//TODO: Need this?  CAN NOT be 0 though (get -1 err later when nvme cmd sent)
+    nsid_ioctl = ioctl(nvme_fd, NVME_IOCTL_ID);
+    if (nsid_ioctl <= 0)
+    {
+        printf("%s: nsid ioctl fail: %d\n", __func__, nsid_ioctl);
+        return nsid_ioctl;
+    }
+
     cmd_nvme_passthru.opcode       = request_idm->cmd_nvme.opcode_nvme;
     cmd_nvme_passthru.flags        = request_idm->cmd_nvme.flags;
     cmd_nvme_passthru.rsvd1        = request_idm->cmd_nvme.command_id;
-    cmd_nvme_passthru.nsid         = request_idm->cmd_nvme.nsid;
+    // cmd_nvme_passthru.nsid         = request_idm->cmd_nvme.nsid;
+    cmd_nvme_passthru.nsid         = nsid_ioctl;
     cmd_nvme_passthru.cdw2         = request_idm->cmd_nvme.cdw2;
     cmd_nvme_passthru.cdw3         = request_idm->cmd_nvme.cdw3;
     cmd_nvme_passthru.metadata     = request_idm->cmd_nvme.metadata;
