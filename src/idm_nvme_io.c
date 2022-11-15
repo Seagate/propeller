@@ -317,7 +317,6 @@ int _nvme_idm_cmd_send(nvmeIdmRequest *request_idm) {
 
     memset(&cmd_nvme_passthru, 0, sizeof(struct nvme_passthru_cmd));
 
-//TODO: Need this?  CAN NOT be 0 though (get -1 err later when nvme cmd sent)
     nsid_ioctl = ioctl(nvme_fd, NVME_IOCTL_ID);
     if (nsid_ioctl <= 0)
     {
@@ -396,17 +395,9 @@ int _nvme_idm_cmd_send(nvmeIdmRequest *request_idm) {
 //  Is "cmd_nvme->result" equivalent to "CQE DW0[31:0]" ?
 //  Is "status_ioctl"    equivalent to "CQE DW3[31:17]" ?        //TODO:?? is "status_ioctl" just [24:17]??
 
-//TODO: Which of the above 2 "result" params should I be using HERE??  Both??
     ret = _nvme_idm_cmd_check_status(status_ioctl, request_idm->opcode_idm);
 
 out:
-//TODO: Possible ASYNC flag HERE??  -OR-  do I need to use write() and read() for async?? (like scsi)
-    // if(async) {
-    //     request_idm->fd = nvme_fd;  //async, so save nvme_fd for later
-    // }
-    // else {
-    //     close(nvme_fd);              //sunc, so done with nvme_fd.
-    // }
     close(nvme_fd);
     return ret;
 }
