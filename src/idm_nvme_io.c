@@ -293,9 +293,16 @@ int _nvme_idm_cmd_send(nvmeIdmRequest *request_idm) {
     printf("%s: START\n", __func__);
     #endif //FUNCTION_ENTRY_DEBUG
 
+    struct nvme_passthru_cmd cmd_nvme_passthru;
+    struct nvme_passthru_cmd *c = &cmd_nvme_passthru;
     int nvme_fd;
     int status_ioctl;
+    int nsid_ioctl;
     int ret = SUCCESS;
+
+    //TODO: Put this under a debug flag of some kind??
+    dumpNvmeCmdStruct(&request_idm->cmd_nvme, 1, 1);
+    dumpIdmDataStruct(request_idm->data_idm);
 
     if ((nvme_fd = open(request_idm->drive, O_RDWR | O_NONBLOCK)) < 0) {
         #ifndef COMPILE_STANDALONE
@@ -308,22 +315,72 @@ int _nvme_idm_cmd_send(nvmeIdmRequest *request_idm) {
         return nvme_fd;
     }
 
-    //TODO: Put this under a debug flag of some kind??
-    dumpNvmeCmdStruct(&request_idm->cmd_nvme, 1, 1);
-    dumpIdmDataStruct(request_idm->data_idm);
+    memset(&cmd_nvme_passthru, 0, sizeof(struct nvme_passthru_cmd));
 
-    status_ioctl = ioctl(nvme_fd, NVME_IOCTL_IO_CMD, request_idm->cmd_nvme);
+    nsid_ioctl = ioctl(nvme_fd, NVME_IOCTL_ID);
+    if (nsid_ioctl <= 0)
+    {
+        printf("%s: nsid ioctl fail: %d\n", __func__, nsid_ioctl);
+        return nsid_ioctl;
+    }
+
+    cmd_nvme_passthru.opcode       = request_idm->cmd_nvme.opcode_nvme;
+    cmd_nvme_passthru.flags        = request_idm->cmd_nvme.flags;
+    cmd_nvme_passthru.rsvd1        = request_idm->cmd_nvme.command_id;
+    // cmd_nvme_passthru.nsid         = request_idm->cmd_nvme.nsid;
+    cmd_nvme_passthru.nsid         = nsid_ioctl;
+    cmd_nvme_passthru.cdw2         = request_idm->cmd_nvme.cdw2;
+    cmd_nvme_passthru.cdw3         = request_idm->cmd_nvme.cdw3;
+    cmd_nvme_passthru.metadata     = request_idm->cmd_nvme.metadata;
+    cmd_nvme_passthru.addr         = request_idm->cmd_nvme.addr;
+    cmd_nvme_passthru.metadata_len = request_idm->cmd_nvme.metadata_len;
+    cmd_nvme_passthru.data_len     = request_idm->cmd_nvme.data_len;
+    cmd_nvme_passthru.cdw10        = request_idm->cmd_nvme.ndt;
+    cmd_nvme_passthru.cdw11        = request_idm->cmd_nvme.ndm;
+    cmd_nvme_passthru.cdw12        = ((uint32_t)request_idm->cmd_nvme.rsvd2 << 16) |
+                                     ((uint32_t)request_idm->cmd_nvme.group_idm << 8) |
+                                     (uint32_t)request_idm->cmd_nvme.opcode_idm_bits7_4;
+    cmd_nvme_passthru.cdw13        = request_idm->cmd_nvme.cdw13;
+    cmd_nvme_passthru.cdw14        = request_idm->cmd_nvme.cdw14;
+    cmd_nvme_passthru.cdw15        = request_idm->cmd_nvme.cdw15;
+    cmd_nvme_passthru.timeout_ms   = request_idm->cmd_nvme.timeout_ms;
+
+    //TODO: Keep?  Refactor into debug func?
+    printf("nvme_passthru_cmd Struct: Fields\n");
+    printf("================================\n");
+    printf("opcode_nvme  (CDW0[ 7:0])  = 0x%0.2X (%u)\n", c->opcode,       c->opcode);
+    printf("flags        (CDW0[15:8])  = 0x%0.2X (%u)\n", c->flags,        c->flags);
+    printf("rsvd1        (CDW0[32:16]) = 0x%0.4X (%u)\n", c->rsvd1,        c->rsvd1);
+    printf("nsid         (CDW1[32:0])  = 0x%0.8X (%u)\n", c->nsid,         c->nsid);
+    printf("cdw2         (CDW2[32:0])  = 0x%0.8X (%u)\n", c->cdw2,         c->cdw2);
+    printf("cdw3         (CDW3[32:0])  = 0x%0.8X (%u)\n", c->cdw3,         c->cdw3);
+    printf("metadata     (CDW5&4[64:0])= 0x%0.16"PRIX64" (%u)\n",c->metadata, c->metadata);
+    printf("addr         (CDW7&6[64:0])= 0x%0.16"PRIX64" (%u)\n",c->addr, c->addr);
+    printf("metadata_len (CDW8[32:0])  = 0x%0.8X (%u)\n", c->metadata_len, c->metadata_len);
+    printf("data_len     (CDW9[32:0])  = 0x%0.8X (%u)\n", c->data_len,     c->data_len);
+    printf("cdw10        (CDW10[32:0]) = 0x%0.8X (%u)\n", c->cdw10,        c->cdw10);
+    printf("cdw11        (CDW11[32:0]) = 0x%0.8X (%u)\n", c->cdw11,        c->cdw11);
+    printf("cdw12        (CDW12[32:0]) = 0x%0.8X (%u)\n", c->cdw12,        c->cdw12);
+    printf("cdw13        (CDW13[32:0]) = 0x%0.8X (%u)\n", c->cdw13,        c->cdw13);
+    printf("cdw14        (CDW14[32:0]) = 0x%0.8X (%u)\n", c->cdw14,        c->cdw14);
+    printf("cdw15        (CDW15[32:0]) = 0x%0.8X (%u)\n", c->cdw15,        c->cdw15);
+    printf("timeout_ms   (CDW16[32:0]) = 0x%0.8X (%u)\n", c->timeout_ms,   c->timeout_ms);
+    printf("result       (CDW17[32:0]) = 0x%0.8X (%u)\n", c->result,       c->result);
+    printf("\n");
+
+    status_ioctl = ioctl(nvme_fd, NVME_IOCTL_IO_CMD, &cmd_nvme_passthru);
     if(status_ioctl) {
         #ifndef COMPILE_STANDALONE
         ilm_log_err("%s: ioctl failed: %d", __func__, status_ioctl);
         #else
         printf("%s: ioctl failed: %d\n", __func__, status_ioctl);
+        printf("%s: ioctl cmd_nvme_passthru.result=%d\n", __func__, cmd_nvme_passthru.result);
         #endif //COMPILE_STANDALONE
         return status_ioctl;
     }
 
     printf("%s: status_ioctl=%d\n", __func__, status_ioctl);
-    printf("%s: ioctl cmd_nvme->result=%d\n", __func__, request_idm->cmd_nvme.result);
+    printf("%s: ioctl cmd_nvme_passthru.result=%d\n", __func__, cmd_nvme_passthru.result);
 
 //TODO: Delete this eventually
 //Completion Queue Entry (CQE) SIDE-NOTE:
@@ -338,17 +395,9 @@ int _nvme_idm_cmd_send(nvmeIdmRequest *request_idm) {
 //  Is "cmd_nvme->result" equivalent to "CQE DW0[31:0]" ?
 //  Is "status_ioctl"    equivalent to "CQE DW3[31:17]" ?        //TODO:?? is "status_ioctl" just [24:17]??
 
-//TODO: Which of the above 2 "result" params should I be using HERE??  Both??
     ret = _nvme_idm_cmd_check_status(status_ioctl, request_idm->opcode_idm);
 
 out:
-//TODO: Possible ASYNC flag HERE??  -OR-  do I need to use write() and read() for async?? (like scsi)
-    // if(async) {
-    //     request_idm->fd = nvme_fd;  //async, so save nvme_fd for later
-    // }
-    // else {
-    //     close(nvme_fd);              //sunc, so done with nvme_fd.
-    // }
     close(nvme_fd);
     return ret;
 }
