@@ -104,7 +104,7 @@ typedef struct _nvmeIdmRequest {
     uint64_t            timeout;
     char                lvb[IDM_LVB_LEN_BYTES];
     int                 lvb_size;   //TODO: should be unsigned, but public API setup with int.  size_t anyway?
-    uint64_t            fd_nvme;
+    int                 fd_nvme;
 
     //IDM core structs
     nvmeIdmVendorCmd    cmd_nvme;
