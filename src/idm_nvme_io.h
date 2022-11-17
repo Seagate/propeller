@@ -101,10 +101,10 @@ typedef struct _nvmeIdmRequest {
     int                 mode_idm;
     char                host_id[IDM_HOST_ID_LEN_BYTES];
     char                drive[PATH_MAX];
-    //uint64_t            fd_async;
     uint64_t            timeout;
     char                lvb[IDM_LVB_LEN_BYTES];
     int                 lvb_size;   //TODO: should be unsigned, but public API setup with int.  size_t anyway?
+    uint64_t            fd_nvme;
 
     //IDM core structs
     nvmeIdmVendorCmd    cmd_nvme;
@@ -128,10 +128,27 @@ typedef struct _nvmeIdmRequest {
 //////////////////////////////////////////
 // Functions
 //////////////////////////////////////////
+//new
+int nvme_async_idm_data_rcv(nvmeIdmRequest *request_idm, int *result);
+int nvme_async_idm_read(nvmeIdmRequest *request_idm);
+int nvme_async_idm_write(nvmeIdmRequest *request_idm);
+int nvme_sync_idm_read(nvmeIdmRequest *request_idm);
+int nvme_sync_idm_write(nvmeIdmRequest *request_idm);
 
+int _async_idm_cmd_send(nvmeIdmRequest *request_idm);  // Uses write()   (_scsi_write())
+int _async_idm_data_rcv(nvmeIdmRequest *request_idm, int *result); // Uses read()    (_scsi_read()) (ALWAYS returns status code.  MAY fill data)
+int _idm_cmd_check_status(int status, int opcode_idm);
+int _idm_cmd_init(nvmeIdmRequest *request_idm, uint8_t opcode_nvme);
+int _idm_data_init_wrt(nvmeIdmRequest *request_idm);
+int _sync_idm_cmd_send(nvmeIdmRequest *request_idm);   // Uses ioctl()
+
+
+//old
 int nvme_idm_read(nvmeIdmRequest *request_idm);
-void nvme_idm_read_init(char *drive, nvmeIdmRequest *request_idm);
 int nvme_idm_write(nvmeIdmRequest *request_idm);
+
+//unchanged //TODO: re-group these with the "new" funcs above AFTER all the "old" ones are deleted
+void nvme_idm_read_init(char *drive, nvmeIdmRequest *request_idm);
 int nvme_idm_write_init(char *lock_id, int mode, char *host_id, char *drive,
                         uint64_t timeout, nvmeIdmRequest *request_idm);
 
@@ -139,5 +156,6 @@ int _nvme_idm_cmd_check_status(int status, int opcode_idm);
 int _nvme_idm_cmd_init(nvmeIdmRequest *request_idm, uint8_t opcode_nvme);
 int _nvme_idm_cmd_send(nvmeIdmRequest *request_idm);
 int _nvme_idm_data_init_wrt(nvmeIdmRequest *request_idm);
+
 
 #endif /*__IDM_NVME_IO_H__ */
