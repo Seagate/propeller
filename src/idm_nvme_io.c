@@ -373,7 +373,9 @@ int _async_idm_cmd_send(nvmeIdmRequest *request_idm) {
     //TODO: Keep?  Add debug flag?
     dumpNvmePassthruCmd(&cmd_nvme_passthru);
 
-    ret = write(fd_nvme, &cmd_nvme_passthru, sizeof(cmd_nvme_passthru));
+    //TODO: Don't know exactly how to do this async communication yet via NVMe.
+    //      This write() call is just a duplication of ewhat scsi is doing
+    // ret = write(fd_nvme, &cmd_nvme_passthru, sizeof(cmd_nvme_passthru));
     if (ret) {
         close(fd_nvme);
         #ifndef COMPILE_STANDALONE
@@ -460,7 +462,9 @@ int _async_idm_data_rcv(nvmeIdmRequest *request_idm, int *result) {
     //TODO: Keep?  Add debug flag?
     dumpNvmePassthruCmd(&cmd_nvme_passthru);
 
-    ret = read(request_idm->fd_nvme, &cmd_nvme_passthru, sizeof(cmd_nvme_passthru));
+    //TODO: Don't know exactly how to do this async communication yet via NVMe.
+    //      This read() call is just a duplication of what scsi is doing
+    // ret = read(request_idm->fd_nvme, &cmd_nvme_passthru, sizeof(cmd_nvme_passthru));
     if (ret < 0) {
         #ifndef COMPILE_STANDALONE
         ilm_log_err("%s: read failed: %d", __func__, ret);
@@ -472,7 +476,7 @@ int _async_idm_data_rcv(nvmeIdmRequest *request_idm, int *result) {
 
     //TODO: Review _scsi_read() code for this part here
 
-    //TODO: Where does "status_async_cmd" come from in NVMe?   cmd_nvme_passthru.result?? Somewhere in data (.addr)?
+    //TODO: Where does "status_async_cmd" come from in NVMe?   cmd_nvme_passthru.result?? Somewhere in data_idm (.addr)?
     // status_async_cmd = ?????????????????????????????????????????????????????????????????????????????
 
     //TODO: Where does status_async_cmd come from within request struct?
