@@ -147,11 +147,12 @@ int _sync_idm_cmd_send(nvmeIdmRequest *request_idm);   // Uses ioctl()
 int nvme_idm_read(nvmeIdmRequest *request_idm);
 int nvme_idm_write(nvmeIdmRequest *request_idm);
 
-//unchanged //TODO: re-group these with the "new" funcs above AFTER all the "old" ones are deleted
+//unchanged but for new //TODO: re-group these with the "new" funcs above AFTER all the "old" ones are deleted
 void nvme_idm_read_init(char *drive, nvmeIdmRequest *request_idm);
 int nvme_idm_write_init(char *lock_id, int mode, char *host_id, char *drive,
                         uint64_t timeout, nvmeIdmRequest *request_idm);
 
+//unchanged but old
 int _nvme_idm_cmd_check_status(int status, int opcode_idm);
 int _nvme_idm_cmd_init(nvmeIdmRequest *request_idm, uint8_t opcode_nvme);
 int _nvme_idm_cmd_send(nvmeIdmRequest *request_idm);

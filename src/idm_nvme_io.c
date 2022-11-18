@@ -74,6 +74,13 @@ int nvme_async_idm_data_rcv(nvmeIdmRequest *request_idm, int *result) {
 
     int ret = SUCCESS;
 
+    //TODO: This is wrong.  SCSI specifies "direction" on the bus, NVMe doesn't have that.
+    //      It uses opcode_nvme to specify that.  HOWEVER, THAT is NOT getting reset here.
+    //      The SCSI code re-uses the exact same request obejct WITHOUT ANY MODIFICATIONS
+    //      to retrieve the async status code.  While the SCSI code updates sg_io_hdr_t "direction" bit,
+    //      during the result retrieval, it writes the same direction value that is already present.
+    //      Does NVMe need to reset the opcode_nvme to 0xC2 (idm read) to get status (or returned
+    //      data for that matter)???
     ret = _async_idm_data_rcv(request_idm, result);
     if (ret < 0) {
         #ifndef COMPILE_STANDALONE
@@ -307,6 +314,8 @@ int nvme_sync_idm_write(nvmeIdmRequest *request_idm) {
 /**
  * _async_idm_cmd_send - Forms and then sends an NVMe IDM command to the system device,
  * but does so asynchronously.
+ * Does so by transfering data from the "request_idm" struct to the final "nvme_passthru_cmd"
+ * struct used by the system.
  *
  * @request_idm:    Struct containing all NVMe-specific command info for the requested IDM action.
  *
@@ -374,7 +383,7 @@ int _async_idm_cmd_send(nvmeIdmRequest *request_idm) {
     dumpNvmePassthruCmd(&cmd_nvme_passthru);
 
     //TODO: Don't know exactly how to do this async communication yet via NVMe.
-    //      This write() call is just a duplication of ewhat scsi is doing
+    //      This write() call is just a duplication of what scsi is doing
     // ret = write(fd_nvme, &cmd_nvme_passthru, sizeof(cmd_nvme_passthru));
     if (ret) {
         close(fd_nvme);
@@ -427,6 +436,9 @@ int _async_idm_data_rcv(nvmeIdmRequest *request_idm, int *result) {
 
     //TODO: !!! Does anything need to be added\changed to cmd_nvme_passthru for use in read()?!!!
 
+    //TODO: This MAY be redundant, IF the async request is NOT modified (from when it was originally sent)
+    //          Although, we could use it as a check here to make sure that the fd_nvme is for the SAME device
+    //              ie - if (!nsid == request_idm->cmd_nvme.nsid) {return -1;}
     nsid = ioctl(request_idm->fd_nvme, NVME_IOCTL_ID);
     if (nsid <= 0)
     {
@@ -477,9 +489,12 @@ int _async_idm_data_rcv(nvmeIdmRequest *request_idm, int *result) {
     //TODO: Review _scsi_read() code for this part here
 
     //TODO: Where does "status_async_cmd" come from in NVMe?   cmd_nvme_passthru.result?? Somewhere in data_idm (.addr)?
+    //      There is no NVMe equivalent to:
+    //              1.) SCSI's "io_hdr.info & SG_INFO_OK_MASK" check, which determines Pass\Fail of the PREVIOUS async cmd, OR
+    //              2.) SCSI's "io_hdr.masked_status", which, on Fail, is used to determine the final "result" (ie - error\return code) from the PREVIOUS async cmd
     // status_async_cmd = ?????????????????????????????????????????????????????????????????????????????
 
-    //TODO: Where does status_async_cmd come from within request struct?
+    //TODO: Broken until it's determined how to retrieve the P\F of PREVIOUS async cmd AND where the status code is passed back.
     *result = _idm_cmd_check_status(status_async_cmd, request_idm->opcode_idm);
 
     //TODO: Review these.
@@ -637,6 +652,8 @@ int _idm_data_init_wrt(nvmeIdmRequest *request_idm) {
 
 /**
  * _sync_idm_cmd_send - Forms and then sends an NVMe IDM command to the system device.
+ * Does so by transfering data from the "request_idm" struct to the final "nvme_passthru_cmd"
+ * struct used by the system.
  *
  * @request_idm:    Struct containing all NVMe-specific command info for the requested IDM action.
  *
