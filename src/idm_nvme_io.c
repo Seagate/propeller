@@ -449,27 +449,33 @@ int _async_idm_data_rcv(nvmeIdmRequest *request_idm, int *result) {
 
     memset(&cmd_nvme_passthru, 0, sizeof(struct nvme_passthru_cmd));
 
-    // Transfer all the data in the "request" structure to the prefined system NVMe
-    // command structure used by the system commands (like ioctl())
+    //Simplified command for result\data retrieval
+    //TODO: (SCSI-side equivalent).  Does NVMe follow this??
+    //TODO: This is wrong.
+    //       Hardcode the opcode_nvme OR pass it in (if it could be a 0xC1 or 0xC2)????
     cmd_nvme_passthru.opcode       = request_idm->cmd_nvme.opcode_nvme;
-    cmd_nvme_passthru.flags        = request_idm->cmd_nvme.flags;
-    cmd_nvme_passthru.rsvd1        = request_idm->cmd_nvme.command_id;
-    cmd_nvme_passthru.nsid         = request_idm->cmd_nvme.nsid;
-    cmd_nvme_passthru.cdw2         = request_idm->cmd_nvme.cdw2;
-    cmd_nvme_passthru.cdw3         = request_idm->cmd_nvme.cdw3;
-    cmd_nvme_passthru.metadata     = request_idm->cmd_nvme.metadata;
-    cmd_nvme_passthru.addr         = request_idm->cmd_nvme.addr;
-    cmd_nvme_passthru.metadata_len = request_idm->cmd_nvme.metadata_len;
-    cmd_nvme_passthru.data_len     = request_idm->cmd_nvme.data_len;
-    cmd_nvme_passthru.cdw10        = request_idm->cmd_nvme.ndt;
-    cmd_nvme_passthru.cdw11        = request_idm->cmd_nvme.ndm;
-    cmd_nvme_passthru.cdw12        = ((uint32_t)request_idm->cmd_nvme.rsvd2 << 16) |
-                                     ((uint32_t)request_idm->cmd_nvme.group_idm << 8) |
-                                     (uint32_t)request_idm->cmd_nvme.opcode_idm_bits7_4;
-    cmd_nvme_passthru.cdw13        = request_idm->cmd_nvme.cdw13;
-    cmd_nvme_passthru.cdw14        = request_idm->cmd_nvme.cdw14;
-    cmd_nvme_passthru.cdw15        = request_idm->cmd_nvme.cdw15;
-    cmd_nvme_passthru.timeout_ms   = request_idm->cmd_nvme.timeout_ms;
+
+
+    //TODO: If emulate what SCSI-side is doing, none of this is necessary.
+    //          ONLY the opcode_nvme needs to be updated (to indicate the concept of "direction" (like SCSI-side))
+    // cmd_nvme_passthru.flags        = request_idm->cmd_nvme.flags;
+    // cmd_nvme_passthru.rsvd1        = request_idm->cmd_nvme.command_id;
+    // cmd_nvme_passthru.nsid         = request_idm->cmd_nvme.nsid;
+    // cmd_nvme_passthru.cdw2         = request_idm->cmd_nvme.cdw2;
+    // cmd_nvme_passthru.cdw3         = request_idm->cmd_nvme.cdw3;
+    // cmd_nvme_passthru.metadata     = request_idm->cmd_nvme.metadata;
+    // cmd_nvme_passthru.addr         = request_idm->cmd_nvme.addr;
+    // cmd_nvme_passthru.metadata_len = request_idm->cmd_nvme.metadata_len;
+    // cmd_nvme_passthru.data_len     = request_idm->cmd_nvme.data_len;
+    // cmd_nvme_passthru.cdw10        = request_idm->cmd_nvme.ndt;
+    // cmd_nvme_passthru.cdw11        = request_idm->cmd_nvme.ndm;
+    // cmd_nvme_passthru.cdw12        = ((uint32_t)request_idm->cmd_nvme.rsvd2 << 16) |
+    //                                  ((uint32_t)request_idm->cmd_nvme.group_idm << 8) |
+    //                                  (uint32_t)request_idm->cmd_nvme.opcode_idm_bits7_4;
+    // cmd_nvme_passthru.cdw13        = request_idm->cmd_nvme.cdw13;
+    // cmd_nvme_passthru.cdw14        = request_idm->cmd_nvme.cdw14;
+    // cmd_nvme_passthru.cdw15        = request_idm->cmd_nvme.cdw15;
+    // cmd_nvme_passthru.timeout_ms   = request_idm->cmd_nvme.timeout_ms;
 
     //TODO: Keep?  Add debug flag?
     dumpNvmePassthruCmd(&cmd_nvme_passthru);
