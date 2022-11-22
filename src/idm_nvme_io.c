@@ -74,13 +74,6 @@ int nvme_async_idm_data_rcv(nvmeIdmRequest *request_idm, int *result) {
 
     int ret = SUCCESS;
 
-    //TODO: This is wrong.  SCSI specifies "direction" on the bus, NVMe doesn't have that.
-    //      It uses opcode_nvme to specify that.  HOWEVER, THAT is NOT getting reset here.
-    //      The SCSI code re-uses the exact same request obejct WITHOUT ANY MODIFICATIONS
-    //      to retrieve the async status code.  While the SCSI code updates sg_io_hdr_t "direction" bit,
-    //      during the result retrieval, it writes the same direction value that is already present.
-    //      Does NVMe need to reset the opcode_nvme to 0xC2 (idm read) to get status (or returned
-    //      data for that matter)???
     ret = _async_idm_data_rcv(request_idm, result);
     if (ret < 0) {
         #ifndef COMPILE_STANDALONE
@@ -483,6 +476,7 @@ int _async_idm_data_rcv(nvmeIdmRequest *request_idm, int *result) {
 
     //TODO: Don't know exactly how to do this async communication yet via NVMe.
     //      This read() call is just a duplication of what scsi is doing
+    printf("%s: CORE NVME ASYNC IO FUNCTION DISABLED!\n", __func__);
     // ret = read(request_idm->fd_nvme, &cmd_nvme_passthru, sizeof(cmd_nvme_passthru));
     if (ret < 0) {
         #ifndef COMPILE_STANDALONE
