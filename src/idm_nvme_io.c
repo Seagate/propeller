@@ -40,7 +40,7 @@
 #include <linux/nvme_ioctl.h>
 #include <stdio.h>
 #include <string.h>
-#include <sys/ioctl.h>       //TODO: Do I need BOTH ioctl includes?
+#include <sys/ioctl.h>
 #include <unistd.h>
 
 #include "idm_nvme_io.h"

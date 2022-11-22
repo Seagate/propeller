@@ -10,7 +10,6 @@
 #define __IDM_NVME_UTILS_H__
 
 #include <linux/nvme_ioctl.h>
-#include <sys/ioctl.h>       //TODO: Do I need BOTH ioctl includes?
 
 #include "idm_cmd_common.h"
 #include "idm_nvme_io.h"

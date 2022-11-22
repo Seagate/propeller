@@ -15,11 +15,9 @@
 #include <byteswap.h>
 #include <errno.h>
 #include <fcntl.h>
-#include <linux/nvme_ioctl.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <sys/ioctl.h>       //TODO: Do I need BOTH ioctl includes?
 #include <unistd.h>
 
 #include "idm_nvme_api.h"
@@ -70,7 +68,6 @@ int nvme_async_idm_get_result(uint64_t handle, int *result) {
  * @handle:     Returned NVMe request handle.
  *
  * Returns zero or a negative error (ie. EINVAL, ENOMEM, EBUSY, etc).
- * //TODO: Note that an error can be positive as well (from ioctl()).  Reword all these?
  */
 int nvme_async_idm_lock(char *lock_id, int mode, char *host_id,
                         char *drive, uint64_t timeout, uint64_t *handle) {
@@ -1544,18 +1541,9 @@ int _memory_init_idm_request(nvmeIdmRequest **request_idm, unsigned int data_num
     }
     memset((*request_idm)->data_idm, 0, data_len);
 
-//TODO: Remove these debug prints
-    // printf("%s: (*request_idm)=%u\n", __func__, (*request_idm));
-    // printf("%s: size=%u\n", __func__, sizeof(**request_idm));
-    // printf("%s: (*request_idm)->data_idm=%u\n", __func__, (*request_idm)->data_idm);
-    // printf("%s: size=%u\n", __func__, sizeof(*(*request_idm)->data_idm));
-    // printf("%s: (*request_idm).cmd_nvme=%u\n", __func__, (*request_idm).cmd_nvme);
-    // printf("%s: size=%u\n", __func__, sizeof((*request_idm)->cmd_nvme));
-
     //Cache params.  Not really related to func, but convenient.
-    (*request_idm)->data_len = data_len;    //TODO: Fill passed-in pointer instead??
-    (*request_idm)->data_num = data_num;    //TODO: Keep this one in request struct??
-    // printf("%s: (*request_idm)->data_len=%u\n", __func__, (*request_idm)->data_len);
+    (*request_idm)->data_len = data_len;
+    (*request_idm)->data_num = data_num;
 
     return SUCCESS;
 }
