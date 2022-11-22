@@ -384,6 +384,7 @@ int _async_idm_cmd_send(nvmeIdmRequest *request_idm) {
 
     //TODO: Don't know exactly how to do this async communication yet via NVMe.
     //      This write() call is just a duplication of what scsi is doing
+    printf("%s: CORE NVME ASYNC IO FUNCTION DISABLED!\n", __func__);
     // ret = write(fd_nvme, &cmd_nvme_passthru, sizeof(cmd_nvme_passthru));
     if (ret) {
         close(fd_nvme);
