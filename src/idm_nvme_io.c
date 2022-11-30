@@ -368,7 +368,7 @@ int _nvme_idm_cmd_send(nvmeIdmRequest *request_idm) {
     printf("result       (CDW17[32:0]) = 0x%0.8X (%u)\n", c->result,       c->result);
     printf("\n");
 
-    status_ioctl = ioctl(nvme_fd, NVME_IOCTL_IO_CMD, &cmd_nvme_passthru);
+    status_ioctl = ioctl(nvme_fd, NVME_IOCTL_ADMIN_CMD, &cmd_nvme_passthru);
     if(status_ioctl) {
         #ifndef COMPILE_STANDALONE
         ilm_log_err("%s: ioctl failed: %d", __func__, status_ioctl);
