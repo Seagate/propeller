@@ -137,7 +137,7 @@ int nvme_sync_idm_write(nvmeIdmRequest *request_idm);
 
 int _async_idm_cmd_send(nvmeIdmRequest *request_idm);  // Uses write()   (_scsi_write())
 int _async_idm_data_rcv(nvmeIdmRequest *request_idm, int *result); // Uses read()    (_scsi_read()) (ALWAYS returns status code.  MAY fill data)
-int _idm_cmd_check_status(int status, int opcode_idm);
+int _idm_cmd_check_status(int status, uint8_t opcode_idm);
 int _idm_cmd_init(nvmeIdmRequest *request_idm, uint8_t opcode_nvme);
 int _idm_data_init_wrt(nvmeIdmRequest *request_idm);
 int _sync_idm_cmd_send(nvmeIdmRequest *request_idm);   // Uses ioctl()
@@ -153,7 +153,7 @@ int nvme_idm_write_init(char *lock_id, int mode, char *host_id, char *drive,
                         uint64_t timeout, nvmeIdmRequest *request_idm);
 
 //unchanged but old //TODO: delete after other old cmd are deleted.
-int _nvme_idm_cmd_check_status(int status, int opcode_idm);
+int _nvme_idm_cmd_check_status(int status, uint8_t opcode_idm);
 int _nvme_idm_cmd_init(nvmeIdmRequest *request_idm, uint8_t opcode_nvme);
 int _nvme_idm_cmd_send(nvmeIdmRequest *request_idm);
 int _nvme_idm_data_init_wrt(nvmeIdmRequest *request_idm);

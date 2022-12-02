@@ -1516,7 +1516,11 @@ int _memory_init_idm_request(nvmeIdmRequest **request_idm, unsigned int data_num
     #endif //FUNCTION_ENTRY_DEBUG
 
     int data_len;
+    int ret = SUCCESS;
 
+//TODO: Temp code for aligned memory allocation.  Remove if not needed.
+    // ret = posix_memalign((void **)request_idm, 4096, sizeof(nvmeIdmRequest));
+    // if (ret) {
     *request_idm = malloc(sizeof(nvmeIdmRequest));
     if (!request_idm) {
         #ifndef COMPILE_STANDALONE
@@ -1529,6 +1533,9 @@ int _memory_init_idm_request(nvmeIdmRequest **request_idm, unsigned int data_num
     memset((*request_idm), 0, sizeof(**request_idm));
 
     data_len                 = sizeof(idmData) * data_num;
+//TODO: Temp code for aligned memory allocation.  Remove if not needed.
+    // ret = posix_memalign((void **)&((*request_idm)->data_idm), 4096, data_len);
+    // if (ret) {
     (*request_idm)->data_idm = malloc(data_len);
     if (!(*request_idm)->data_idm) {
         free((*request_idm));
@@ -1541,11 +1548,19 @@ int _memory_init_idm_request(nvmeIdmRequest **request_idm, unsigned int data_num
     }
     memset((*request_idm)->data_idm, 0, data_len);
 
+//TODO: Remove these debug prints
+    // printf("%s: nvmeIdmRequest size\n", __func__);
+    // printf("%s: size=%lu\n", __func__, sizeof(nvmeIdmRequest));
+    // printf("%s: (*request_idm)=%p\n", __func__, (*request_idm));
+    // printf("%s: size=%lu\n", __func__, sizeof(**request_idm));
+    // printf("%s: (*request_idm)->data_idm=%p\n", __func__, (*request_idm)->data_idm);
+    // printf("%s: size=%lu\n", __func__, sizeof(*(*request_idm)->data_idm));
+
     //Cache params.  Not really related to func, but convenient.
     (*request_idm)->data_len = data_len;
     (*request_idm)->data_num = data_num;
 
-    return SUCCESS;
+    return ret;
 }
 
 /**
