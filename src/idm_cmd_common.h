@@ -33,6 +33,9 @@
 #define IDM_DATA_METADATA_LEN_BYTES     64
 #define IDM_DATA_RESERVED_1_LEN_BYTES   32
 
+#define STATUS_CODE_MASK      0xFF
+#define STATUS_CODE_TYPE_MASK 0x700
+
 //////////////////////////////////////////
 // Enums
 //////////////////////////////////////////
@@ -96,7 +99,7 @@ typedef struct _idmData {
     uint64_t    class;
     char        resource_ver[IDM_DATA_RESOURCE_VER_LEN_BYTES];
     char        rsvd0[IDM_DATA_RESERVED_0_LEN_BYTES];
-    char        resource_id[IDM_LOCK_ID_LEN_BYTES];
+    char        resource_id[IDM_LOCK_ID_LEN_BYTES]; // resource_id == lock_id
     char        metadata[IDM_DATA_METADATA_LEN_BYTES];
     char        host_id[IDM_HOST_ID_LEN_BYTES];
     char        rsvd1[IDM_DATA_RESERVED_1_LEN_BYTES];

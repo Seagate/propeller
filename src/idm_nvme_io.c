@@ -176,74 +176,105 @@ int nvme_idm_write_init(char *lock_id, int mode, char *host_id, char *drive,
 *
  * Returns zero or a negative error (ie. EINVAL, ENOMEM, EBUSY, etc).
  */
-int _nvme_idm_cmd_check_status(int status, int opcode_idm) {
+int _nvme_idm_cmd_check_status(int status, uint8_t opcode_idm) {
 
     #ifdef FUNCTION_ENTRY_DEBUG
     printf("%s: START\n", __func__);
     #endif //FUNCTION_ENTRY_DEBUG
 
+    uint16_t sct, sc;   // status code type, status code
     int ret;
 
-//TODO: Unable to decipher hardcoded SCSI "Sense" data to translate to Propeller NVMe spec
-    switch(status) {
+    sc  = status & STATUS_CODE_MASK;
+    sct = (status & STATUS_CODE_TYPE_MASK) >> 8;
+    #ifndef COMPILE_STANDALONE
+    ilm_log_dbg("%s: for opcode_idm=0x%X: sct=0x%X, sc=0x%X", __func__, opcode_idm, sct, sc);
+    #else
+    printf("%s: for opcode_idm=0x%X: sct=0x%X, sc=0x%X\n", __func__, opcode_idm, sct, sc);
+    #endif //COMPILE_STANDALONE
+
+    if (!sc)
+        return sc;  // Just return a success status code.
+
+    switch(sc) {
         case NVME_IDM_ERR_MUTEX_OP_FAILURE:
+//TODO: Replace all these with ilm_log_dbg() calls????? (If so, remove the "\n")
+            printf("NVME_IDM_ERR_MUTEX_OP_FAILURE\n");
             ret = -EINVAL;
             break;
         case NVME_IDM_ERR_MUTEX_REVERSE_OWNER_CHECK_FAILURE:
+            printf("NVME_IDM_ERR_MUTEX_REVERSE_OWNER_CHECK_FAILURE\n");
             ret = -EINVAL;
             break;
         case NVME_IDM_ERR_MUTEX_OP_FAILURE_STATE:
+            printf("NVME_IDM_ERR_MUTEX_OP_FAILURE_STATE\n");
             ret = -EINVAL;
             break;
         case NVME_IDM_ERR_MUTEX_OP_FAILURE_CLASS:
+            printf("NVME_IDM_ERR_MUTEX_OP_FAILURE_CLASS\n");
             ret = -EINVAL;
             break;
         case NVME_IDM_ERR_MUTEX_OP_FAILURE_OWNER:
+            printf("NVME_IDM_ERR_MUTEX_OP_FAILURE_OWNER\n");
             ret = -EINVAL;
             break;
         case NVME_IDM_ERR_MUTEX_OPCODE_INVALID:
+            printf("NVME_IDM_ERR_MUTEX_OPCODE_INVALID\n");
             ret = -EINVAL;
             break;
         case NVME_IDM_ERR_MUTEX_LIMIT_EXCEEDED:
+            printf("NVME_IDM_ERR_MUTEX_LIMIT_EXCEEDED\n");
             ret = -ENOMEM;
             break;
         case NVME_IDM_ERR_MUTEX_LIMIT_EXCEEDED_HOST:
+            printf("NVME_IDM_ERR_MUTEX_LIMIT_EXCEEDED_HOST\n");
             ret = -ENOMEM;
             break;
         case NVME_IDM_ERR_MUTEX_LIMIT_EXCEEDED_SHARED_HOST:
+            printf("NVME_IDM_ERR_MUTEX_LIMIT_EXCEEDED_SHARED_HOST\n");
             ret = -ENOMEM;
             break;
         case NVME_IDM_ERR_MUTEX_CONFLICT:   //SCSI Equivalent: Reservation Conflict
+            printf("NVME_IDM_ERR_MUTEX_CONFLICT\n");
             switch(opcode_idm) {
                 case IDM_OPCODE_REFRESH:
+                    printf("Bad refresh: timeout\n");
                     ret = -ETIME;
                     break;
                 case IDM_OPCODE_UNLOCK:
+                    printf("Bad unlock\n");
                     ret = -ENOENT;
                     break;
                 default:
+                    printf("Busy\n");
                     ret = -EBUSY;
             }
             break;
         case NVME_IDM_ERR_MUTEX_HELD_ALREADY:   //SCSI Equivalent: Terminated
+            printf("NVME_IDM_ERR_MUTEX_HELD_ALREADY\n");
             switch(opcode_idm) {
                 case IDM_OPCODE_REFRESH:
+                    printf("Bad refresh: timeout\n");
                     ret = -EPERM;
                     break;
                 case IDM_OPCODE_UNLOCK:
+                    printf("Bad unlock\n");
                     ret = -EINVAL;
                     break;
                 default:
+                    printf("Try again\n");
                     ret = -EAGAIN;
             }
             break;
         case NVME_IDM_ERR_MUTEX_HELD_BY_ANOTHER:    //SCSI Equivalent: Busy
+            printf("NVME_IDM_ERR_MUTEX_HELD_BY_ANOTHER\n");
             ret = -EBUSY;
+            break;
         default:
             #ifndef COMPILE_STANDALONE
-            ilm_log_err("%s: unknown status %d", __func__, status);
+            ilm_log_err("%s: unknown status code %d(0x%X)", __func__, sc, sc);
             #else
-            printf("%s: unknown status %d\n", __func__, status);
+            printf("%s: unknown status code %d(0x%X)\n", __func__, sc, sc);
             #endif //COMPILE_STANDALONE
             ret = -EINVAL;
     }
@@ -296,7 +327,6 @@ int _nvme_idm_cmd_send(nvmeIdmRequest *request_idm) {
     struct nvme_passthru_cmd cmd_nvme_passthru;
     struct nvme_passthru_cmd *c = &cmd_nvme_passthru;
     int nvme_fd;
-    int status_ioctl;
     int ret = SUCCESS;
 
     //TODO: Put this under a debug flag of some kind??
@@ -316,12 +346,13 @@ int _nvme_idm_cmd_send(nvmeIdmRequest *request_idm) {
 
     memset(&cmd_nvme_passthru, 0, sizeof(struct nvme_passthru_cmd));
 
-    //TODO: Leave this commentted out section for nsid in-place for now.  May be needed in near future.
+    //TODO: Leave this commented out section for nsid in-place for now.  May be needed in near future.
     // nsid_ioctl = ioctl(nvme_fd, NVME_IOCTL_ID);
     // if (nsid_ioctl <= 0)
     // {
     //     printf("%s: nsid ioctl fail: %d\n", __func__, nsid_ioctl);
-    //     return nsid_ioctl;
+    //     ret = nsid_ioctl;
+    //     goto EXIT;
     // }
 
     cmd_nvme_passthru.opcode       = request_idm->cmd_nvme.opcode_nvme;
@@ -347,7 +378,7 @@ int _nvme_idm_cmd_send(nvmeIdmRequest *request_idm) {
     //TODO: Keep?  Refactor into debug func?
     printf("nvme_passthru_cmd Struct: Fields\n");
     printf("================================\n");
-    printf("opcode_nvme  (CDW0[ 7:0])  = 0x%.2X (%u)\n", c->opcode,       c->opcode);
+    printf("opcode       (CDW0[ 7:0])  = 0x%.2X (%u)\n", c->opcode,       c->opcode);
     printf("flags        (CDW0[15:8])  = 0x%.2X (%u)\n", c->flags,        c->flags);
     printf("rsvd1        (CDW0[32:16]) = 0x%.4X (%u)\n", c->rsvd1,        c->rsvd1);
     printf("nsid         (CDW1[32:0])  = 0x%.8X (%u)\n", c->nsid,         c->nsid);
@@ -367,36 +398,36 @@ int _nvme_idm_cmd_send(nvmeIdmRequest *request_idm) {
     printf("result       (CDW17[32:0]) = 0x%.8X (%u)\n", c->result,       c->result);
     printf("\n");
 
-    status_ioctl = ioctl(nvme_fd, NVME_IOCTL_ADMIN_CMD, &cmd_nvme_passthru);
-    if(status_ioctl) {
+    //ioctl()'s return value comes from:
+    //  NVMe Completion Queue Entry (CQE) DWORD3:
+    //    DW3[31:17] - Status Bit Field Definitions
+    //      DW3[31]:    Do Not Retry (DNR)
+    //      DW3[30]:    More (M)
+    //      DW3[29:28]: Command Retry Delay (CRD)
+    //      DW3[27:25]: Status Code Type (SCT)
+    //      DW3[24:17]: Status Code (SC)
+    //Refer to the NVMe spec for more details.
+    //
+    //So, here, ioctl()'s return value is defined as:
+    //  ret[14]:    Do Not Retry (DNR)
+    //  ret[13]:    More (M)
+    //  ret[12:11]: Command Retry Delay (CRD)
+    //  ret[10:8]:  Status Code Type (SCT)
+    //  ret[7:0]:   Status Code (SC)
+    //NOTE: Only SC and SCT are actively used by the IDM firmware.
+    //          The rest are "normally" 0.  However, the system can use them.
+    ret = ioctl(nvme_fd, NVME_IOCTL_ADMIN_CMD, &cmd_nvme_passthru);
+    if(ret) {
         #ifndef COMPILE_STANDALONE
-        ilm_log_err("%s: ioctl failed: %d", __func__, status_ioctl);
+        ilm_log_err("%s: ioctl failed: %d(0x%X)\n", __func__, ret, ret);
         #else
-        printf("%s: ioctl failed: %d\n", __func__, status_ioctl);
-        printf("%s: ioctl cmd_nvme_passthru.result=%d\n", __func__, cmd_nvme_passthru.result);
+        printf("%s: ioctl failed: %d(0x%X)\n", __func__, ret, ret);
         #endif //COMPILE_STANDALONE
-        return status_ioctl;
     }
 
-    printf("%s: status_ioctl=%d\n", __func__, status_ioctl);
-    printf("%s: ioctl cmd_nvme_passthru.result=%d\n", __func__, cmd_nvme_passthru.result);
+    ret = _nvme_idm_cmd_check_status(ret, request_idm->opcode_idm);
 
-//TODO: Delete this eventually
-//Completion Queue Entry (CQE) SIDE-NOTE:
-//  CQE DW3[31:17] - Status Bit Field Definitions
-//      DW3[31]:    Do Not Retry (DNR)
-//      DW3[30]:    More (M)
-//      DW3[29:28]: Command Retry Delay (CRD)
-//      DW3[27:25]: Status Code Type (SCT)
-//      DW3[24:17]: Status Code (SC)
-
-//TODO: General result questions
-//  Is "cmd_nvme->result" equivalent to "CQE DW0[31:0]" ?
-//  Is "status_ioctl"    equivalent to "CQE DW3[31:17]" ?        //TODO:?? is "status_ioctl" just [24:17]??
-
-    ret = _nvme_idm_cmd_check_status(status_ioctl, request_idm->opcode_idm);
-
-out:
+EXIT:
     close(nvme_fd);
     return ret;
 }
@@ -414,9 +445,8 @@ int _nvme_idm_data_init_wrt(nvmeIdmRequest *request_idm) {
     printf("%s: START\n", __func__);
     #endif //FUNCTION_ENTRY_DEBUG
 
-    nvmeIdmVendorCmd *cmd_nvme = &request_idm->cmd_nvme;
-    idmData *data_idm          = request_idm->data_idm;
-    int ret                    = SUCCESS;
+    idmData *data_idm = request_idm->data_idm;
+    int ret           = SUCCESS;
 
     #ifndef COMPILE_STANDALONE
   	data_idm->time_now  = __bswap_64(ilm_read_utc_time());
@@ -430,6 +460,30 @@ int _nvme_idm_data_init_wrt(nvmeIdmRequest *request_idm) {
     bswap_char_arr(data_idm->resource_id,  request_idm->lock_id, IDM_LOCK_ID_LEN_BYTES);
     bswap_char_arr(data_idm->resource_ver, request_idm->lvb    , IDM_LVB_LEN_BYTES);
     data_idm->resource_ver[0] = request_idm->res_ver_type;
+
+//TODO: DELETE.  Frederick's exact data payload used during firmware debug
+  	// data_idm->state           = 0x1111111111111111;
+  	// data_idm->time_now        = 0x1111111111111111;
+    // data_idm->countdown       = 0x6666666666777777;
+    // data_idm->class           = 0x0;
+    // data_idm->resource_ver[0] = (char)0x01;
+    // data_idm->resource_ver[1] = (char)0x00;
+    // data_idm->resource_ver[2] = (char)0x11;
+    // data_idm->resource_ver[3] = (char)0x11;
+    // data_idm->resource_ver[4] = (char)0x33;
+    // data_idm->resource_ver[5] = (char)0x21;
+    // data_idm->resource_ver[6] = (char)0x2E;
+    // data_idm->resource_ver[7] = (char)0xEE;
+    // memset(data_idm->rsvd0, 0x0, IDM_DATA_RESERVED_0_LEN_BYTES);
+    // data_idm->resource_id[60] = (char)0x11;
+    // data_idm->resource_id[61] = (char)0x11;
+    // data_idm->resource_id[62] = (char)0x11;
+    // data_idm->resource_id[63] = (char)0x11;
+    // data_idm->metadata[62]    = (char)0xFE;
+    // data_idm->metadata[63]    = (char)0xED;
+    // memset(data_idm->host_id, 0x31, IDM_HOST_ID_LEN_BYTES);
+    // data_idm->rsvd1[30]       = (char)0xCC;
+    // data_idm->rsvd1[31]       = (char)0xCC;
 
     return ret;
 }
