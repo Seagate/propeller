@@ -352,27 +352,7 @@ int _async_idm_cmd_send(nvmeIdmRequest *request_idm) {
     // }
     // request_idm->cmd_nvme.nsid = nsid_ioctl;
 
-    // Transfer all the data in the "request" structure to the prefined system NVMe
-    // command structure used by the system commands (like ioctl())
-    cmd_nvme_passthru.opcode       = request_idm->cmd_nvme.opcode_nvme;
-    cmd_nvme_passthru.flags        = request_idm->cmd_nvme.flags;
-    cmd_nvme_passthru.rsvd1        = request_idm->cmd_nvme.command_id;
-    cmd_nvme_passthru.nsid         = request_idm->cmd_nvme.nsid;
-    cmd_nvme_passthru.cdw2         = request_idm->cmd_nvme.cdw2;
-    cmd_nvme_passthru.cdw3         = request_idm->cmd_nvme.cdw3;
-    cmd_nvme_passthru.metadata     = request_idm->cmd_nvme.metadata;
-    cmd_nvme_passthru.addr         = request_idm->cmd_nvme.addr;
-    cmd_nvme_passthru.metadata_len = request_idm->cmd_nvme.metadata_len;
-    cmd_nvme_passthru.data_len     = request_idm->cmd_nvme.data_len;
-    cmd_nvme_passthru.cdw10        = request_idm->cmd_nvme.ndt;
-    cmd_nvme_passthru.cdw11        = request_idm->cmd_nvme.ndm;
-    cmd_nvme_passthru.cdw12        = ((uint32_t)request_idm->cmd_nvme.rsvd2 << 16) |
-                                     ((uint32_t)request_idm->cmd_nvme.group_idm << 8) |
-                                     (uint32_t)request_idm->cmd_nvme.opcode_idm_bits7_4;
-    cmd_nvme_passthru.cdw13        = request_idm->cmd_nvme.cdw13;
-    cmd_nvme_passthru.cdw14        = request_idm->cmd_nvme.cdw14;
-    cmd_nvme_passthru.cdw15        = request_idm->cmd_nvme.cdw15;
-    cmd_nvme_passthru.timeout_ms   = request_idm->cmd_nvme.timeout_ms;
+    _fill_nvme_cmd(request_idm, &cmd_nvme_passthru);
 
     //TODO: Keep?  Add debug flag?
     dumpNvmePassthruCmd(&cmd_nvme_passthru);
@@ -507,6 +487,37 @@ int _async_idm_data_rcv(nvmeIdmRequest *request_idm, int *result) {
 
 EXIT:
     return ret;
+}
+
+/**
+ * _fill_nvme_cmd -  Transfer all the data in the "request" structure to the prefined system NVMe
+ * command structure used by the system commands (like ioctl()).
+ *
+ * @request_idm:        Struct containing all NVMe-specific command info for the requested IDM action.
+ * @cmd_nvme_passthru:  Predefined NVMe command struct to be filled.
+ *
+ * Returns zero or a negative error (ie. EINVAL, ENOMEM, EBUSY, etc).
+ */
+void _fill_nvme_cmd(nvmeIdmRequest *request_idm, struct nvme_admin_cmd *cmd_nvme_passthru) {
+    cmd_nvme_passthru->opcode       = request_idm->cmd_nvme.opcode_nvme;
+    cmd_nvme_passthru->flags        = request_idm->cmd_nvme.flags;
+    cmd_nvme_passthru->rsvd1        = request_idm->cmd_nvme.command_id;
+    cmd_nvme_passthru->nsid         = request_idm->cmd_nvme.nsid;
+    cmd_nvme_passthru->cdw2         = request_idm->cmd_nvme.cdw2;
+    cmd_nvme_passthru->cdw3         = request_idm->cmd_nvme.cdw3;
+    cmd_nvme_passthru->metadata     = request_idm->cmd_nvme.metadata;
+    cmd_nvme_passthru->addr         = request_idm->cmd_nvme.addr;
+    cmd_nvme_passthru->metadata_len = request_idm->cmd_nvme.metadata_len;
+    cmd_nvme_passthru->data_len     = request_idm->cmd_nvme.data_len;
+    cmd_nvme_passthru->cdw10        = request_idm->cmd_nvme.ndt;
+    cmd_nvme_passthru->cdw11        = request_idm->cmd_nvme.ndm;
+    cmd_nvme_passthru->cdw12        = ((uint32_t)request_idm->cmd_nvme.rsvd2 << 16) |
+                                      ((uint32_t)request_idm->cmd_nvme.group_idm << 8) |
+                                      (uint32_t)request_idm->cmd_nvme.opcode_idm_bits7_4;
+    cmd_nvme_passthru->cdw13        = request_idm->cmd_nvme.cdw13;
+    cmd_nvme_passthru->cdw14        = request_idm->cmd_nvme.cdw14;
+    cmd_nvme_passthru->cdw15        = request_idm->cmd_nvme.cdw15;
+    cmd_nvme_passthru->timeout_ms   = request_idm->cmd_nvme.timeout_ms;
 }
 
 /**
@@ -752,27 +763,7 @@ int _sync_idm_cmd_send(nvmeIdmRequest *request_idm) {
     //     goto EXIT;
     // }
 
-    // Transfer all the data in the "request" structure to the prefined system NVMe
-    // command structure used by the system commands (like ioctl())
-    cmd_nvme_passthru.opcode       = request_idm->cmd_nvme.opcode_nvme;
-    cmd_nvme_passthru.flags        = request_idm->cmd_nvme.flags;
-    cmd_nvme_passthru.rsvd1        = request_idm->cmd_nvme.command_id;
-    cmd_nvme_passthru.nsid         = request_idm->cmd_nvme.nsid;
-    cmd_nvme_passthru.cdw2         = request_idm->cmd_nvme.cdw2;
-    cmd_nvme_passthru.cdw3         = request_idm->cmd_nvme.cdw3;
-    cmd_nvme_passthru.metadata     = request_idm->cmd_nvme.metadata;
-    cmd_nvme_passthru.addr         = request_idm->cmd_nvme.addr;
-    cmd_nvme_passthru.metadata_len = request_idm->cmd_nvme.metadata_len;
-    cmd_nvme_passthru.data_len     = request_idm->cmd_nvme.data_len;
-    cmd_nvme_passthru.cdw10        = request_idm->cmd_nvme.ndt;
-    cmd_nvme_passthru.cdw11        = request_idm->cmd_nvme.ndm;
-    cmd_nvme_passthru.cdw12        = ((uint32_t)request_idm->cmd_nvme.rsvd2 << 16) |
-                                     ((uint32_t)request_idm->cmd_nvme.group_idm << 8) |
-                                     (uint32_t)request_idm->cmd_nvme.opcode_idm_bits7_4;
-    cmd_nvme_passthru.cdw13        = request_idm->cmd_nvme.cdw13;
-    cmd_nvme_passthru.cdw14        = request_idm->cmd_nvme.cdw14;
-    cmd_nvme_passthru.cdw15        = request_idm->cmd_nvme.cdw15;
-    cmd_nvme_passthru.timeout_ms   = request_idm->cmd_nvme.timeout_ms;
+    _fill_nvme_cmd(request_idm, &cmd_nvme_passthru);
 
     //TODO: Keep?  Add debug flag?
     dumpNvmePassthruCmd(&cmd_nvme_passthru);

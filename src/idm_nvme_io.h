@@ -12,6 +12,8 @@
 
 #include <limits.h>
 #include <stdint.h>
+#include <linux/nvme_ioctl.h>
+#include <sys/ioctl.h>
 
 #include "idm_cmd_common.h"
 
@@ -137,6 +139,7 @@ int nvme_sync_idm_write(nvmeIdmRequest *request_idm);
 
 int _async_idm_cmd_send(nvmeIdmRequest *request_idm);  // Uses write()   (_scsi_write())
 int _async_idm_data_rcv(nvmeIdmRequest *request_idm, int *result); // Uses read()    (_scsi_read()) (ALWAYS returns status code.  MAY fill data)
+void _fill_nvme_cmd(nvmeIdmRequest *request_idm, struct nvme_passthru_cmd *cmd_nvme_passthru);
 int _idm_cmd_check_status(int status, uint8_t opcode_idm);
 int _idm_cmd_init(nvmeIdmRequest *request_idm, uint8_t opcode_nvme);
 int _idm_data_init_wrt(nvmeIdmRequest *request_idm);
