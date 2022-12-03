@@ -331,7 +331,8 @@ int _async_idm_cmd_send(nvmeIdmRequest *request_idm) {
 
     memset(&cmd_nvme_passthru, 0, sizeof(struct nvme_passthru_cmd));
 
-    if ((fd_nvme = open(request_idm->drive, O_RDWR | O_NONBLOCK)) < 0) {
+    fd_nvme = open(request_idm->drive, O_RDWR | O_NONBLOCK);
+    if (fd_nvme < 0) {
         #ifndef COMPILE_STANDALONE
         ilm_log_err("%s: error opening drive %s fd %d", __func__, request_idm->drive, fd_nvme);
         #else
@@ -341,16 +342,6 @@ int _async_idm_cmd_send(nvmeIdmRequest *request_idm) {
     }
 
     //TODO: !!! Does anything need to be added\changed to cmd_nvme_passthru for use in write()?!!!
-
-    //TODO: Leave this commented out section for nsid in-place for now.  May be needed in near future.
-    // nsid_ioctl = ioctl(fd_nvme, NVME_IOCTL_ID);
-    // if (nsid_ioctl <= 0)
-    // {
-    //     printf("%s: nsid ioctl fail: %d\n", __func__, nsid_ioctl);
-    //     ret = nsid_ioctl;
-    //     goto EXIT;
-    // }
-    // request_idm->cmd_nvme.nsid = nsid_ioctl;
 
     _fill_nvme_cmd(request_idm, &cmd_nvme_passthru);
 
@@ -499,6 +490,16 @@ EXIT:
  * Returns zero or a negative error (ie. EINVAL, ENOMEM, EBUSY, etc).
  */
 void _fill_nvme_cmd(nvmeIdmRequest *request_idm, struct nvme_admin_cmd *cmd_nvme_passthru) {
+
+    //TODO: Leave this commented out section for nsid in-place for now.  May be needed in near future.
+    // request_idm->cmd_nvme.nsid = ioctl(fd_nvme, NVME_IOCTL_ID);
+    // if (request_idm->cmd_nvme.nsid <= 0)
+    // {
+    //     printf("%s: nsid ioctl fail: %d\n", __func__, request_idm->cmd_nvme.nsid);
+    //     ret = request_idm->cmd_nvme.nsid;
+    //     goto EXIT;
+    // }
+
     cmd_nvme_passthru->opcode       = request_idm->cmd_nvme.opcode_nvme;
     cmd_nvme_passthru->flags        = request_idm->cmd_nvme.flags;
     cmd_nvme_passthru->rsvd1        = request_idm->cmd_nvme.command_id;
@@ -753,15 +754,6 @@ int _sync_idm_cmd_send(nvmeIdmRequest *request_idm) {
         #endif //COMPILE_STANDALONE
         return fd_nvme;
     }
-
-    //TODO: Leave this commented out section for nsid in-place for now.  May be needed in near future.
-    // nsid_ioctl = ioctl(nvme_fd, NVME_IOCTL_ID);
-    // if (nsid_ioctl <= 0)
-    // {
-    //     printf("%s: nsid ioctl fail: %d\n", __func__, nsid_ioctl);
-    //     ret = nsid_ioctl;
-    //     goto EXIT;
-    // }
 
     _fill_nvme_cmd(request_idm, &cmd_nvme_passthru);
 
