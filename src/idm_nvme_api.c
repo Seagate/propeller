@@ -82,8 +82,7 @@ int nvme_async_idm_lock(char *lock_id, int mode, char *host_id,
         #else
         printf("%s: _init_lock fail %d\n", __func__, ret);
         #endif //COMPILE_STANDALONE
-        _memory_free_idm_request(request_idm);
-        return ret;
+        goto EXIT_FAIL;
     }
 
     ret = nvme_async_idm_write(request_idm);
@@ -93,11 +92,14 @@ int nvme_async_idm_lock(char *lock_id, int mode, char *host_id,
         #else
         printf("%s: nvme_async_idm_write fail %d\n", __func__, ret);
         #endif //COMPILE_STANDALONE
-        _memory_free_idm_request(request_idm);
-        return ret;
+        goto EXIT_FAIL;
     }
 
     *handle = (uint64_t)request_idm;
+    goto EXIT;
+EXIT_FAIL:
+    _memory_free_idm_request(request_idm);
+EXIT:
     return ret;
 }
 
@@ -128,8 +130,7 @@ int nvme_async_idm_lock_break(char *lock_id, int mode, char *host_id,
         #else
         printf("%s: _init_lock_break fail %d\n", __func__, ret);
         #endif //COMPILE_STANDALONE
-        _memory_free_idm_request(request_idm);
-        return ret;
+        goto EXIT_FAIL;
     }
 
     ret = nvme_async_idm_write(request_idm);
@@ -139,11 +140,14 @@ int nvme_async_idm_lock_break(char *lock_id, int mode, char *host_id,
         #else
         printf("%s: nvme_async_idm_write fail %d\n", __func__, ret);
         #endif //COMPILE_STANDALONE
-        _memory_free_idm_request(request_idm);
-        return ret;
+        goto EXIT_FAIL;
     }
 
     *handle = (uint64_t)request_idm;
+    goto EXIT;
+EXIT_FAIL:
+    _memory_free_idm_request(request_idm);
+EXIT:
     return ret;
 }
 
@@ -191,8 +195,7 @@ int nvme_async_idm_lock_destroy(char *lock_id, int mode, char *host_id,
         #else
         printf("%s: _init_lock_destroy fail %d\n", __func__, ret);
         #endif //COMPILE_STANDALONE
-        _memory_free_idm_request(request_idm);
-        return ret;
+        goto EXIT_FAIL;
     }
 
     ret = nvme_async_idm_write(request_idm);
@@ -202,9 +205,14 @@ int nvme_async_idm_lock_destroy(char *lock_id, int mode, char *host_id,
         #else
         printf("%s: nvme_async_idm_write fail %d\n", __func__, ret);
         #endif //COMPILE_STANDALONE
+        goto EXIT_FAIL;
     }
 
     *handle = (uint64_t)request_idm;
+    goto EXIT;
+EXIT_FAIL:
+    _memory_free_idm_request(request_idm);
+EXIT:
     return ret;
 }
 
@@ -236,8 +244,7 @@ int nvme_async_idm_lock_refresh(char *lock_id, int mode, char *host_id,
         #else
         printf("%s: _init_lock_refresh fail %d\n", __func__, ret);
         #endif //COMPILE_STANDALONE
-        _memory_free_idm_request(request_idm);
-        return ret;
+        goto EXIT_FAIL;
     }
 
     ret = nvme_async_idm_write(request_idm);
@@ -247,11 +254,14 @@ int nvme_async_idm_lock_refresh(char *lock_id, int mode, char *host_id,
         #else
         printf("%s: nvme_async_idm_write fail %d\n", __func__, ret);
         #endif //COMPILE_STANDALONE
-        _memory_free_idm_request(request_idm);
-        return ret;
+        goto EXIT_FAIL;
     }
 
     *handle = (uint64_t)request_idm;
+    goto EXIT;
+EXIT_FAIL:
+    _memory_free_idm_request(request_idm);
+EXIT:
     return ret;
 }
 
@@ -300,8 +310,7 @@ int nvme_async_idm_unlock(char *lock_id, int mode, char *host_id,
         #else
         printf("%s: _init_unlock fail %d\n", __func__, ret);
         #endif //COMPILE_STANDALONE
-        _memory_free_idm_request(request_idm);
-        return ret;
+        goto EXIT_FAIL;
     }
 
     ret = nvme_async_idm_write(request_idm);
@@ -311,9 +320,14 @@ int nvme_async_idm_unlock(char *lock_id, int mode, char *host_id,
         #else
         printf("%s: nvme_async_idm_write fail %d\n", __func__, ret);
         #endif //COMPILE_STANDALONE
+        goto EXIT_FAIL;
     }
 
     *handle = (uint64_t)request_idm;
+    goto EXIT;
+EXIT_FAIL:
+    _memory_free_idm_request(request_idm);
+EXIT:
     return ret;
 }
 
@@ -364,7 +378,6 @@ int nvme_sync_idm_lock(char *lock_id, int mode, char *host_id,
         #else
         printf("%s: nvme_sync_idm_write fail %d\n", __func__, ret);
         #endif //COMPILE_STANDALONE
-        goto EXIT;
     }
 
 EXIT:
@@ -402,8 +415,7 @@ int nvme_sync_idm_lock_break(char *lock_id, int mode, char *host_id,
         #else
         printf("%s: _init_lock_break fail %d\n", __func__, ret);
         #endif //COMPILE_STANDALONE
-        _memory_free_idm_request(request_idm);
-        return ret;
+        goto EXIT;
     }
 
     ret = nvme_sync_idm_write(request_idm);
@@ -415,12 +427,13 @@ int nvme_sync_idm_lock_break(char *lock_id, int mode, char *host_id,
         #endif //COMPILE_STANDALONE
     }
 
+EXIT:
     _memory_free_idm_request(request_idm);
     return ret;
 }
 
 /**
- * idm_drive_convert_lock - Synchronously convert the lock mode for an IDM.
+ * nvme_sync_idm_lock_convert - Synchronously convert the lock mode for an IDM.
  * @lock_id:    Lock ID (64 bytes).
  * @mode:       Lock mode (unlock, shareable, exclusive).
  * @host_id:    Host ID (32 bytes).
@@ -461,8 +474,7 @@ int nvme_sync_idm_lock_destroy(char *lock_id, int mode, char *host_id, char *dri
         #else
         printf("%s: _init_lock_destroy fail %d\n", __func__, ret);
         #endif //COMPILE_STANDALONE
-        _memory_free_idm_request(request_idm);
-        return ret;
+        goto EXIT;
     }
 
     ret = nvme_sync_idm_write(request_idm);
@@ -474,6 +486,7 @@ int nvme_sync_idm_lock_destroy(char *lock_id, int mode, char *host_id, char *dri
         #endif //COMPILE_STANDALONE
     }
 
+EXIT:
     _memory_free_idm_request(request_idm);
     return ret;
 }
@@ -505,8 +518,7 @@ int nvme_sync_idm_lock_refresh(char *lock_id, int mode, char *host_id,
         #else
         printf("%s: _init_lock_refresh fail %d\n", __func__, ret);
         #endif //COMPILE_STANDALONE
-        _memory_free_idm_request(request_idm);
-        return ret;
+        goto EXIT;
     }
 
     ret = nvme_sync_idm_write(request_idm);
@@ -518,6 +530,7 @@ int nvme_sync_idm_lock_refresh(char *lock_id, int mode, char *host_id,
         #endif //COMPILE_STANDALONE
     }
 
+EXIT:
     _memory_free_idm_request(request_idm);
     return ret;
 }
@@ -1164,8 +1177,7 @@ int nvme_sync_idm_unlock(char *lock_id, int mode, char *host_id,
         #else
         printf("%s: _init_unlock fail %d\n", __func__, ret);
         #endif //COMPILE_STANDALONE
-        _memory_free_idm_request(request_idm);
-        return ret;
+        goto EXIT;
     }
 
     ret = nvme_sync_idm_write(request_idm);
@@ -1177,6 +1189,7 @@ int nvme_sync_idm_unlock(char *lock_id, int mode, char *host_id,
         #endif //COMPILE_STANDALONE
     }
 
+EXIT:
     _memory_free_idm_request(request_idm);
     return ret;
 }

@@ -87,9 +87,7 @@ int nvme_async_idm_data_rcv(nvmeIdmRequest *request_idm, int *result) {
         #endif //COMPILE_STANDALONE
     }
 
-    if (request_idm->fd_nvme)
-        close(request_idm->fd_nvme);
-
+    close(request_idm->fd_nvme);
     return ret;
 }
 
