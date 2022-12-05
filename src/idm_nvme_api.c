@@ -583,7 +583,7 @@ int nvme_idm_read_host_state(char *lock_id, char *host_id, int *host_state, char
 //          Was being set to -1 in a couple locations.
     *host_state = -1;    //TODO: hardcoded state. add an "error" state to the enum?
 
-    ret = nvme_idm_read_mutex_num(drive, &mutex_num);
+    ret = nvme_sync_idm_read_mutex_num(drive, &mutex_num);
     if (ret < 0)
         return -ENOENT;
     else if (!mutex_num)
@@ -672,7 +672,7 @@ int nvme_idm_read_lock_count(char *lock_id, char *host_id, int *count, int *self
     *count = 0;
     *self = 0;
 
-    ret = nvme_idm_read_mutex_num(drive, &mutex_num);
+    ret = nvme_sync_idm_read_mutex_num(drive, &mutex_num);
     if (ret < 0)
         return -ENOENT;
     else if (!mutex_num)
@@ -778,7 +778,7 @@ int nvme_idm_read_lock_mode(char *lock_id, int *mode, char *drive)
     // Initialize the output
     *mode = -1;    //TODO: hardcoded state. add an "error" state to the enum?
 
-    ret = nvme_idm_read_mutex_num(drive, &mutex_num);
+    ret = nvme_sync_idm_read_mutex_num(drive, &mutex_num);
     if (ret < 0)
         return -ENOENT;
     else if (!mutex_num) {
@@ -899,7 +899,7 @@ int nvme_idm_read_lvb(char *lock_id, char *host_id, char *lvb, int lvb_size, cha
     // Initialize the output
     memset(lvb, 0x0, lvb_size); //TODO: Does this make sense here?? (sightly different from scsi)
 
-    ret = nvme_idm_read_mutex_num(drive, &mutex_num);
+    ret = nvme_sync_idm_read_mutex_num(drive, &mutex_num);
     if (ret < 0)
         return -ENOENT;
     else if (!mutex_num)
@@ -986,7 +986,7 @@ int nvme_idm_read_mutex_group(char *drive, idmInfo **info_ptr, int *info_num)
     *info_ptr = NULL;
     *info_num = 0;
 
-    ret = nvme_idm_read_mutex_num(drive, &mutex_num);
+    ret = nvme_sync_idm_read_mutex_num(drive, &mutex_num);
     if (ret < 0)
         return -ENOENT;
     else if (!mutex_num)
@@ -1078,71 +1078,48 @@ EXIT:
 }
 
 /**
- * nvme_idm_read_mutex_num - retrieves the number of mutex's present on the drive.
+ * nvme_sync_idm_read_mutex_num - Synchronously retrieves the number of mutexes
+ * present on the drive.
  * @drive:       Drive path name.
- * @mutex_num:   The number of mutex's present on the drive.
+ * @mutex_num:   Returned number of mutexes present on the drive.
 //TODO: Does ALWAYS setting to 0 on failure make sense?
  *               Set to 0 on failure.
  *
  * Returns zero or a negative error (ie. EINVAL, ENOMEM, EBUSY, etc).
  */
-int nvme_idm_read_mutex_num(char *drive, unsigned int *mutex_num)
+int nvme_sync_idm_read_mutex_num(char *drive, unsigned int *mutex_num)
 {
     #ifdef FUNCTION_ENTRY_DEBUG
     printf("%s: START\n", __func__);
     #endif //FUNCTION_ENTRY_DEBUG
 
     nvmeIdmRequest *request_idm;
-    unsigned char  *data;
     int            ret = SUCCESS;
 
-    #ifndef COMPILE_STANDALONE
-    if (ilm_inject_fault_is_hit())
-        return -EIO;
-    #endif //COMPILE_STANDALONE
-
-//TODO: Does ALWAYS setting to 0 on failure make sense?
-    *mutex_num = 0;
-
-    ret = _memory_init_idm_request(&request_idm, DFLT_NUM_IDM_DATA_BLOCKS);
-    if (ret < 0)
-        return ret;
-
-    nvme_idm_read_init(drive, request_idm);
-
-    //API-specific code
-    request_idm->group_idm = IDM_GROUP_INQUIRY;
-
-    ret = nvme_idm_read(request_idm);
+    ret = _init_read_mutex_num(drive, mutex_num, &request_idm);
     if (ret < 0) {
         #ifndef COMPILE_STANDALONE
-        ilm_log_err("%s: nvme_idm_read fail %d", __func__, ret);
+        ilm_log_err("%s: _init_read_mutex_num fail %d", __func__, ret);
+        #else
+        printf("%s: _init_read_mutex_num fail %d\n", __func__, ret);
+        #endif //COMPILE_STANDALONE
+        _memory_free_idm_request(request_idm);
+        return ret;
+    }
+
+    ret = nvme_sync_idm_read(request_idm);
+    if (ret < 0) {
+        #ifndef COMPILE_STANDALONE
+        ilm_log_err("%s: nvme_sync_idm_read fail %d", __func__, ret);
         goto EXIT;
         #else
 //TODO: This is temp debug hack code for the stand alone, to get the reads working.
-        printf("%s: nvme_idm_read fail %d, Continuing\n", __func__, ret);
+        printf("%s: nvme_sync_idm_read fail %d, Continuing\n", __func__, ret);
         ret = SUCCESS;
         #endif //COMPILE_STANDALONE
     }
 
-    //Extract value from data struct
-//TODO: Ported from scsi-side as-is.  Need to verify if this even makes sense for nvme.
-    data = (unsigned char *)request_idm->data_idm;
-    #ifndef COMPILE_STANDALONE
-    *mutex_num = ((data[1]) & 0xff);
-    *mutex_num |= ((data[0]) & 0xff) << 8;
-    #else
-//TODO: This can't stay. Necessary for stand-alone code
-    *mutex_num = 2;     //For debug. This func called by many others.
-    #endif //COMPILE_STANDALONE
-
-    #ifndef COMPILE_STANDALONE
-    ilm_log_dbg("%s: data[0]=%u data[1]=%u mutex num=%u",
-                __func__, data[0], data[1], *mutex_num);
-    #else
-    printf("%s: data[0]=%u data[1]=%u mutex num=%u\n",
-           __func__, data[0], data[1], *mutex_num);
-    #endif //COMPILE_STANDALONE
+    _parse_mutex_num(request_idm, mutex_num);
 
 EXIT:
     _memory_free_idm_request(request_idm);
@@ -1429,6 +1406,47 @@ int _init_lock_refresh(char *lock_id, int mode, char *host_id, char *drive,
 }
 
 /**
+ * _init_read_mutex_num - Convenience function containing common code for the retrieval
+ * of the number of lock mutexes available on the device.
+ * @drive:       Drive path name.
+ * @mutex_num:   Final destination of number of lock mutexes available on the device.
+ * @request_idm: Returned struct containing all NVMe-specific command info for the
+ *               requested IDM action.
+ *
+ * Returns zero or a negative error (ie. EINVAL, ENOMEM, EBUSY, etc).
+ */
+int _init_read_mutex_num(char *drive, unsigned int *mutex_num, nvmeIdmRequest **request_idm)
+{
+    int ret = SUCCESS;
+
+    #ifndef COMPILE_STANDALONE
+    if (ilm_inject_fault_is_hit())
+        return -EIO;
+    #endif //COMPILE_STANDALONE
+
+//TODO: The SCSI-side code tends to set this to 0 on certain failures.
+//          Does ALWAYS setting to 0 on failure HERE make sense (this is a bit different from scsi-side?
+    *mutex_num = 0;
+
+    ret = _memory_init_idm_request(request_idm, DFLT_NUM_IDM_DATA_BLOCKS);
+    if (ret < 0) {
+        #ifndef COMPILE_STANDALONE
+        ilm_log_err("%s: _memory_init_idm_request fail %d", __func__, ret);
+        #else
+        printf("%s: _memory_init_idm_request fail %d\n", __func__, ret);
+        #endif //COMPILE_STANDALONE
+        return ret;
+    }
+
+    nvme_idm_read_init(drive, *request_idm);
+
+    //API-specific code
+    (*request_idm)->group_idm = IDM_GROUP_INQUIRY;
+
+    return ret;
+}
+
+/**
  * _init_unlock - Convenience function containing common code for the
  * IDM unlock action.
  * @lock_id:    Lock ID (64 bytes).
@@ -1574,6 +1592,38 @@ int _memory_init_idm_request(nvmeIdmRequest **request_idm, unsigned int data_num
     (*request_idm)->data_num = data_num;
 
     return ret;
+}
+
+/**
+ * _parse_mutex_num - Convenience function for parsing the number of mutexes out of the
+ * returned data payload.
+ *
+ * @request_idm:    Struct containing all NVMe-specific command info for the requested IDM action.
+ * @mutex_num:      Returned number of mutexes present on the drive.
+ */
+void _parse_mutex_num(nvmeIdmRequest *request_idm, int *mutex_num) {
+
+    unsigned char  *data;
+
+    //Extract value from data struct
+//TODO: Ported from scsi-side as-is.  Need to verify if this even makes sense for nvme.
+//TODO: Why is "unsigned char" being used here??
+    data = (unsigned char *)request_idm->data_idm;
+    #ifndef COMPILE_STANDALONE
+    *mutex_num = ((data[1]) & 0xff);
+    *mutex_num |= ((data[0]) & 0xff) << 8;
+    #else
+//TODO: This can't stay. Necessary for stand-alone code
+    *mutex_num = 2;     //For debug. This func called by many others.
+    #endif //COMPILE_STANDALONE
+
+    #ifndef COMPILE_STANDALONE
+    ilm_log_dbg("%s: data[0]=%u data[1]=%u mutex mutex_num=%u",
+                __func__, data[0], data[1], *mutex_num);
+    #else
+    printf("%s: data[0]=%u data[1]=%u mutex mutex_num=%u\n",
+           __func__, data[0], data[1], *mutex_num);
+    #endif //COMPILE_STANDALONE
 }
 
 /**
@@ -1741,7 +1791,7 @@ int main(int argc, char *argv[])
         }
         else if(strcmp(argv[1], "read_num") == 0){
             unsigned int mutex_num;
-            ret = nvme_idm_read_mutex_num(drive, &mutex_num);
+            ret = nvme_sync_idm_read_mutex_num(drive, &mutex_num);
             printf("output: mutex_num=%u\n", mutex_num);
         }
         else if(strcmp(argv[1], "sync_unlock") == 0){
