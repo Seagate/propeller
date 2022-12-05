@@ -108,3 +108,29 @@ void _print_char_arr(char *data, unsigned int len) {
     }
     printf("'\n");
 }
+
+void dumpNvmePassthruCmd(struct nvme_passthru_cmd *cmd) {
+
+    printf("\n");
+    printf("nvme_passthru_cmd Struct: Fields\n");
+    printf("================================\n");
+    printf("opcode_nvme  (CDW0[ 7:0])  = 0x%.2X (%u)\n", cmd->opcode,       cmd->opcode);
+    printf("flags        (CDW0[15:8])  = 0x%.2X (%u)\n", cmd->flags,        cmd->flags);
+    printf("rsvd1        (CDW0[32:16]) = 0x%.4X (%u)\n", cmd->rsvd1,        cmd->rsvd1);
+    printf("nsid         (CDW1[32:0])  = 0x%.8X (%u)\n", cmd->nsid,         cmd->nsid);
+    printf("cdw2         (CDW2[32:0])  = 0x%.8X (%u)\n", cmd->cdw2,         cmd->cdw2);
+    printf("cdw3         (CDW3[32:0])  = 0x%.8X (%u)\n", cmd->cdw3,         cmd->cdw3);
+    printf("metadata     (CDW5&4[64:0])= 0x%.16llX (%llu)\n",cmd->metadata, cmd->metadata);
+    printf("addr         (CDW7&6[64:0])= 0x%.16llX (%llu)\n",cmd->addr,     cmd->addr);
+    printf("metadata_len (CDW8[32:0])  = 0x%.8X (%u)\n", cmd->metadata_len, cmd->metadata_len);
+    printf("data_len     (CDW9[32:0])  = 0x%.8X (%u)\n", cmd->data_len,     cmd->data_len);
+    printf("cdw10        (CDW10[32:0]) = 0x%.8X (%u)\n", cmd->cdw10,        cmd->cdw10);
+    printf("cdw11        (CDW11[32:0]) = 0x%.8X (%u)\n", cmd->cdw11,        cmd->cdw11);
+    printf("cdw12        (CDW12[32:0]) = 0x%.8X (%u)\n", cmd->cdw12,        cmd->cdw12);
+    printf("cdw13        (CDW13[32:0]) = 0x%.8X (%u)\n", cmd->cdw13,        cmd->cdw13);
+    printf("cdw14        (CDW14[32:0]) = 0x%.8X (%u)\n", cmd->cdw14,        cmd->cdw14);
+    printf("cdw15        (CDW15[32:0]) = 0x%.8X (%u)\n", cmd->cdw15,        cmd->cdw15);
+    printf("timeout_ms   (CDW16[32:0]) = 0x%.8X (%u)\n", cmd->timeout_ms,   cmd->timeout_ms);
+    printf("result       (CDW17[32:0]) = 0x%.8X (%u)\n", cmd->result,       cmd->result);
+    printf("\n");
+}

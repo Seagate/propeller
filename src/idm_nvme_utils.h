@@ -9,12 +9,15 @@
 #ifndef __IDM_NVME_UTILS_H__
 #define __IDM_NVME_UTILS_H__
 
+#include <linux/nvme_ioctl.h>
+
 #include "idm_cmd_common.h"
 #include "idm_nvme_io.h"
 
 
 void dumpIdmDataStruct(idmData *data_idm);
 void dumpNvmeCmdStruct(nvmeIdmVendorCmd *cmd_nvme, int view_fields, int view_cdws);
+void dumpNvmePassthruCmd(struct nvme_passthru_cmd *cmd);
 
 void _print_char_arr(char *data, unsigned int len);
 #endif /*__IDM_NVME_UTILS_H__ */
