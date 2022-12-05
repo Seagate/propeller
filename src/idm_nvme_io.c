@@ -87,6 +87,9 @@ int nvme_async_idm_data_rcv(nvmeIdmRequest *request_idm, int *result) {
         #endif //COMPILE_STANDALONE
     }
 
+//TODO: This command does NOT free memory for the previous async idm request (ie - "handle").
+//          Should it?
+//          Especially since fd_nvme is being closed here(with no current way to reopen it).
     close(request_idm->fd_nvme);
     return ret;
 }
@@ -390,6 +393,8 @@ int _async_idm_data_rcv(nvmeIdmRequest *request_idm, int *result) {
     dumpNvmeCmdStruct(&request_idm->cmd_nvme, 1, 1);
     dumpIdmDataStruct(request_idm->data_idm);
 
+    memset(&cmd_nvme_passthru, 0, sizeof(struct nvme_passthru_cmd));
+
     if (!request_idm->fd_nvme) {
         #ifndef COMPILE_STANDALONE
         ilm_log_err("%s: invalid device handle", __func__);
@@ -402,48 +407,15 @@ int _async_idm_data_rcv(nvmeIdmRequest *request_idm, int *result) {
 
     //TODO: !!! Does anything need to be added\changed to cmd_nvme_passthru for use in read()?!!!
 
-    //TODO: This MAY be redundant, IF the async request is NOT modified (from when it was originally sent)
-    //          Although, we could use it as a check here to make sure that the fd_nvme is for the SAME device
-    //              ie - if (!nsid == request_idm->cmd_nvme.nsid) {return -1;}
-    //TODO: Leave this commented out section for nsid in-place for now.  May be needed in near future.
-    // nsid_ioctl = ioctl(request_idm->fd_nvme, NVME_IOCTL_ID);
-    // if (nsid_ioctl <= 0)
-    // {
-    //     printf("%s: nsid ioctl fail: %d\n", __func__, nsid_ioctl);
-    //     ret = nsid_ioctl;
-    //     goto EXIT;
-    // }
-    // request_idm->cmd_nvme.nsid = nsid_ioctl;
-
-    memset(&cmd_nvme_passthru, 0, sizeof(struct nvme_passthru_cmd));
+    //TODO: If emulate what SCSI-side is doing, this fill is NOT necessary.
+    //          ?? Does ONLY the opcode_nvme needs to be updated (to indicate the concept of "direction" (like SCSI-side))?????
+    // _fill_nvme_cmd(request_idm, &cmd_nvme_passthru);
 
     //Simplified command for result\data retrieval
     //TODO: (SCSI-side equivalent).  Does NVMe follow this??
     //TODO: This is wrong.
     //       Hardcode the opcode_nvme OR pass it in (if it could be a 0xC1 or 0xC2)????
     cmd_nvme_passthru.opcode       = request_idm->cmd_nvme.opcode_nvme;
-
-
-    //TODO: If emulate what SCSI-side is doing, none of this is necessary.
-    //          ONLY the opcode_nvme needs to be updated (to indicate the concept of "direction" (like SCSI-side))
-    // cmd_nvme_passthru.flags        = request_idm->cmd_nvme.flags;
-    // cmd_nvme_passthru.rsvd1        = request_idm->cmd_nvme.command_id;
-    // cmd_nvme_passthru.nsid         = request_idm->cmd_nvme.nsid;
-    // cmd_nvme_passthru.cdw2         = request_idm->cmd_nvme.cdw2;
-    // cmd_nvme_passthru.cdw3         = request_idm->cmd_nvme.cdw3;
-    // cmd_nvme_passthru.metadata     = request_idm->cmd_nvme.metadata;
-    // cmd_nvme_passthru.addr         = request_idm->cmd_nvme.addr;
-    // cmd_nvme_passthru.metadata_len = request_idm->cmd_nvme.metadata_len;
-    // cmd_nvme_passthru.data_len     = request_idm->cmd_nvme.data_len;
-    // cmd_nvme_passthru.cdw10        = request_idm->cmd_nvme.ndt;
-    // cmd_nvme_passthru.cdw11        = request_idm->cmd_nvme.ndm;
-    // cmd_nvme_passthru.cdw12        = ((uint32_t)request_idm->cmd_nvme.rsvd2 << 16) |
-    //                                  ((uint32_t)request_idm->cmd_nvme.group_idm << 8) |
-    //                                  (uint32_t)request_idm->cmd_nvme.opcode_idm_bits7_4;
-    // cmd_nvme_passthru.cdw13        = request_idm->cmd_nvme.cdw13;
-    // cmd_nvme_passthru.cdw14        = request_idm->cmd_nvme.cdw14;
-    // cmd_nvme_passthru.cdw15        = request_idm->cmd_nvme.cdw15;
-    // cmd_nvme_passthru.timeout_ms   = request_idm->cmd_nvme.timeout_ms;
 
     //TODO: Keep?  Add debug flag?
     dumpNvmePassthruCmd(&cmd_nvme_passthru);
@@ -463,7 +435,9 @@ int _async_idm_data_rcv(nvmeIdmRequest *request_idm, int *result) {
 
     //TODO: Review _scsi_read() code for this part here
 
-    //TODO: Where does "status_async_cmd" come from in NVMe?   cmd_nvme_passthru.result?? Somewhere in data_idm (.addr)?
+    //TODO: Where does "status_async_cmd" come from in NVMe?
+    //              ?? cmd_nvme_passthru.result?
+    //              ?? Somewhere in data_idm (.addr)?
     //      There is no NVMe equivalent to:
     //              1.) SCSI's "io_hdr.info & SG_INFO_OK_MASK" check, which determines Pass\Fail of the PREVIOUS async cmd, OR
     //              2.) SCSI's "io_hdr.masked_status", which, on Fail, is used to determine the final "result" (ie - error\return code) from the PREVIOUS async cmd
@@ -472,9 +446,8 @@ int _async_idm_data_rcv(nvmeIdmRequest *request_idm, int *result) {
     //TODO: Broken until it's determined how to retrieve the P\F of PREVIOUS async cmd AND where the status code is passed back.
     *result = _idm_cmd_check_status(status_async_cmd, request_idm->opcode_idm);
 
-    //TODO: Review these.
-    printf("%s: async result=%d\n", __func__, *result);
-    printf("%s: write cmd_nvme_passthru.result=%d\n", __func__, cmd_nvme_passthru.result);
+    //TODO: Keep this printf()?  Switch to ilm_log_dbg??
+    printf("%s: found previous async result=%d\n", __func__, *result);
 
 EXIT:
     return ret;
