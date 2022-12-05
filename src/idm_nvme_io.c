@@ -511,6 +511,9 @@ int _idm_cmd_check_status(int status, uint8_t opcode_idm) {
     uint16_t sct, sc;   // status code type, status code
     int ret;
 
+    if (status <= 0)
+        return status;  // Just return the status code on success or pre-existing negative error.
+
     sc  = status & STATUS_CODE_MASK;
     sct = (status & STATUS_CODE_TYPE_MASK) >> 8;
     #ifndef COMPILE_STANDALONE
@@ -518,9 +521,6 @@ int _idm_cmd_check_status(int status, uint8_t opcode_idm) {
     #else
     printf("%s: for opcode_idm=0x%X: sct=0x%X, sc=0x%X\n", __func__, opcode_idm, sct, sc);
     #endif //COMPILE_STANDALONE
-
-    if (!sc)
-        return sc;  // Just return a success status code.
 
     switch(sc) {
         case NVME_IDM_ERR_MUTEX_OP_FAILURE:
