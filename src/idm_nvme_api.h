@@ -109,3 +109,5 @@ void _memory_free_idm_request(nvmeIdmRequest *request_idm);
 int _memory_init_idm_request(nvmeIdmRequest **request_idm, unsigned int data_num);
 int _validate_input_common(char *lock_id, char *host_id, char *drive);
 int _validate_input_write(char *lock_id, int mode, char *host_id, char *drive);
+
+#endif /*__IDM_NVME_API_H__ */
