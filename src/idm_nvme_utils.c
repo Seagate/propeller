@@ -13,20 +13,16 @@
 #include "idm_nvme_utils.h"
 
 //TODO: switch all "printf" to appropriate log functions from this project's log.h
+
 /**
  * dumpIdmDataStruct - Convenience function for pretty printing the contends of the
  *                     passed in data struct.
- *                     Currently, outputs only to the CLI.
  *
- * @data_idm: Data structure for sending and receiving IDM-specifc data.
- *
- * No return value
+ * @d: Data structure for sending and receiving IDM-specifc data.
  */
-void dumpIdmDataStruct(idmData *data_idm){
+void dumpIdmDataStruct(idmData *d){
 
-    idmData *d = data_idm;
-
-    printf("IDM Data Struct: Fields\n");
+    printf("idmData struct: fields\n");
     printf("=======================\n");
     printf("state\\ignored0     = 0x%.16"PRIX64" unswapped(%lu)\n", d->state,    __bswap_64(d->state));
     printf("modified\\time_now  = 0x%.16"PRIX64" unswapped(%lu)\n", d->modified, __bswap_64(d->modified));
@@ -45,22 +41,38 @@ void dumpIdmDataStruct(idmData *data_idm){
 }
 
 /**
+ * dumpIdmInfoStruct - Convenience function for pretty printing the contends of the
+ *                     passed in data struct.
+ *
+ * @info: Data structure containing IDM-specific info.
+ */
+void dumpIdmInfoStruct(idmInfo *info){
+
+    printf("idmInfo struct: fields\n");
+    printf("=======================\n");
+    printf("id      = '");
+    _print_char_arr(info->id, IDM_LOCK_ID_LEN_BYTES);
+    printf("state   = 0x%X (%d)\n", info->state, info->state);
+    printf("mode    = 0x%X (%d)\n", info->mode, info->mode);
+    printf("host_id = '");
+    _print_char_arr(info->host_id, IDM_HOST_ID_LEN_BYTES);
+    printf("\n");
+}
+
+/**
  * dumpNvmeCmdStruct - Convenience function for pretty printing the contends of the
  *                     passed in data struct.
- *                     Currently, outputs only to the CLI.
  *
  * @cmd_nvme:    Data structure for NVMe Vendor Specific Commands.
  * @view_fields: Boolean flag that outputs the struct's named fields.
  * @view_cdws:   Boolean flag that outputs all the struct's data as 32-bit words.
- *
- * No return value
  */
 void dumpNvmeCmdStruct(nvmeIdmVendorCmd *cmd_nvme, int view_fields, int view_cdws) {
 
     if(view_fields){
         nvmeIdmVendorCmd *c = cmd_nvme;
 
-        printf("NVMe Command Struct: Fields\n");
+        printf("nvmeIdmVendorCmd struct: fields\n");
         printf("===========================\n");
         printf("opcode_nvme  (CDW0[ 7:0])  = 0x%.2X (%u)\n", c->opcode_nvme,  c->opcode_nvme);
         printf("flags        (CDW0[15:8])  = 0x%.2X (%u)\n", c->flags,        c->flags);
@@ -89,7 +101,7 @@ void dumpNvmeCmdStruct(nvmeIdmVendorCmd *cmd_nvme, int view_fields, int view_cdw
         uint32_t *cdw = (uint32_t*)cmd_nvme;
         int i;
 
-        printf("NVMe Command Struct: CDWs (hex)\n");
+        printf("nvmeIdmVendorCmd struct: CDWs (hex)\n");
         printf("===============================\n");
         for(i = 0; i <= 17; i++) {
             printf("cdw%.2d = 0x%.8X\n", i, cdw[i]);
@@ -98,21 +110,10 @@ void dumpNvmeCmdStruct(nvmeIdmVendorCmd *cmd_nvme, int view_fields, int view_cdw
     }
 }
 
-void _print_char_arr(char *data, unsigned int len) {
-    int i;
-    for(i=0; i<len; i++) {
-        if(data[i])
-            printf("%c", data[i]);
-        else
-            printf(" ");
-    }
-    printf("'\n");
-}
-
 void dumpNvmePassthruCmd(struct nvme_passthru_cmd *cmd) {
 
     printf("\n");
-    printf("nvme_passthru_cmd Struct: Fields\n");
+    printf("nvme_passthru_cmd struct: fields\n");
     printf("================================\n");
     printf("opcode_nvme  (CDW0[ 7:0])  = 0x%.2X (%u)\n", cmd->opcode,       cmd->opcode);
     printf("flags        (CDW0[15:8])  = 0x%.2X (%u)\n", cmd->flags,        cmd->flags);
@@ -133,4 +134,15 @@ void dumpNvmePassthruCmd(struct nvme_passthru_cmd *cmd) {
     printf("timeout_ms   (CDW16[32:0]) = 0x%.8X (%u)\n", cmd->timeout_ms,   cmd->timeout_ms);
     printf("result       (CDW17[32:0]) = 0x%.8X (%u)\n", cmd->result,       cmd->result);
     printf("\n");
+}
+
+void _print_char_arr(char *data, unsigned int len) {
+    int i;
+    for(i=0; i<len; i++) {
+        if(data[i])
+            printf("%c", data[i]);
+        else
+            printf(" ");
+    }
+    printf("'\n");
 }
