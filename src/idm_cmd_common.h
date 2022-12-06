@@ -88,12 +88,12 @@ typedef enum _eIdmStates {
 //////////////////////////////////////////
 typedef struct _idmData {
     union {
-        uint64_t    state;           // For idm_read
-        uint64_t    ignored0;        // For idm_write
+        uint64_t    state;      // For idm_read //NOTE:uint32_t in firmware, upper 32bit ignored
+        uint64_t    ignored0;   // For idm_write
     };
     union {
-        uint64_t    modified;        // For idm_read
-        uint64_t    time_now;        // For idm_write
+        uint64_t    modified;    // For idm_read
+        uint64_t    time_now;    // For idm_write
     };
     uint64_t    countdown;
     uint64_t    class;
