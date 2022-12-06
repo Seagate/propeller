@@ -106,22 +106,22 @@ typedef struct _nvmeIdmRequest {
     uint64_t            timeout;
     char                lvb[IDM_LVB_LEN_BYTES];
     int                 lvb_size;   //TODO: should be unsigned, but public API setup with int.  size_t anyway?
-    int                 fd_nvme;
 
     //IDM core structs
     nvmeIdmVendorCmd    cmd_nvme;
     idmData             *data_idm;
 
-    //Misc collection area for kludgy smuggling of parameters.
-    //These values are cached here in the API-level, and then
+    //Misc collection area for kludgy smuggling of request-related parameters.
+    //GEnerally, these values are cached here in the API-level, and then
     //stored in their final location in the IO-level.
     //TODO: Convert these to function params and explictly pass around?
     uint8_t             opcode_idm;
     uint8_t             group_idm;
     char                res_ver_type;
     int                 data_len;      //TODO: should be unsigned.  size_t?
-    unsigned int        data_num;      //TODO: uint64_t?
+    unsigned int        data_num;      //Note: Currently, this also corresponds to # of mutexes (ie: mutex_num).  //TODO: uint64_t?
     uint64_t            class;
+    int                 fd_nvme;
 
 }nvmeIdmRequest;
 

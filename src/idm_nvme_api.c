@@ -31,7 +31,7 @@
 //TODO: DELETE THESE 2 (AND ALL CORRESPONDING CODE) AFTER NVME FILES COMPILE WITH THE REST OF PROPELLER.
 #define COMPILE_STANDALONE
 #define MAIN_ACTIVATE
-#define FORCE_MUTEX_NUM_OF_1    //TODO: HACK!!  This MUST be remove!!
+#define FORCE_MUTEX_NUM    //TODO: HACK!!  This MUST be remove!!
 
 #define FUNCTION_ENTRY_DEBUG    //TODO: Remove this entirely???
 
@@ -955,8 +955,6 @@ EXIT:
     return ret;
 }
 
-
-
 /**
  * nvme_sync_idm_read_mutex_group - Read back mutex group for all IDM in the drives
  *
@@ -975,10 +973,9 @@ int nvme_sync_idm_read_mutex_group(char *drive, idmInfo **info_ptr, int *info_nu
     #endif //FUNCTION_ENTRY_DEBUG
 
     nvmeIdmRequest *request_idm;
-    unsigned int   mutex_num = 0;
-    int            i, ret    = SUCCESS;
+    int            i, ret = SUCCESS;
 
-    ret = _init_read_mutex_group(drive, info_ptr, info_num, &request_idm, &mutex_num);
+    ret = _init_read_mutex_group(drive, info_ptr, info_num, &request_idm);
     if (ret < 0) {
         #ifndef COMPILE_STANDALONE
         ilm_log_err("%s: _init_read_mutex_group fail %d", __func__, ret);
@@ -998,7 +995,7 @@ int nvme_sync_idm_read_mutex_group(char *drive, idmInfo **info_ptr, int *info_nu
         goto EXIT;
     }
 
-    ret = _parse_mutex_group(request_idm, mutex_num, info_ptr, info_num);
+    ret = _parse_mutex_group(request_idm, info_ptr, info_num);
     if (ret < 0) {
         #ifndef COMPILE_STANDALONE
         ilm_log_err("%s: _parse_mutex_group fail %d", __func__, ret);
@@ -1368,19 +1365,17 @@ int _init_lock_refresh(char *lock_id, int mode, char *host_id, char *drive,
  *              Referenced value set to 0 on error.
  * @request_idm: Returned struct containing all NVMe-specific command info for the
  *               requested IDM action.
- * @mutex_num:   Returned number of mutexes present on the drive.
  *
  * Returns zero or a negative error (ie. EINVAL, ENOMEM, EBUSY, etc).
  */
 int _init_read_mutex_group(char *drive, idmInfo **info_ptr, int *info_num,
-                           nvmeIdmRequest **request_idm, unsigned int *mutex_num) {
+                           nvmeIdmRequest **request_idm) {
     #ifdef FUNCTION_ENTRY_DEBUG
     printf("%s: START\n", __func__);
     #endif //FUNCTION_ENTRY_DEBUG
 
-    int ret = SUCCESS;
-
-    *mutex_num = 0;
+    unsigned int mutex_num = 0;
+    int          ret       = SUCCESS;
 
     #ifndef COMPILE_STANDALONE
     if (ilm_inject_fault_is_hit())
@@ -1394,13 +1389,13 @@ int _init_read_mutex_group(char *drive, idmInfo **info_ptr, int *info_num,
     *info_ptr = NULL;
     *info_num = 0;
 
-    ret = nvme_sync_idm_read_mutex_num(drive, mutex_num);
+    ret = nvme_sync_idm_read_mutex_num(drive, &mutex_num);
     if (ret < 0)
         return -ENOENT;
     else if (!mutex_num)
         return SUCCESS;
 
-    ret = _memory_init_idm_request(request_idm, *mutex_num);
+    ret = _memory_init_idm_request(request_idm, mutex_num);
     if (ret < 0)
         return ret;
 
@@ -1552,6 +1547,8 @@ void _memory_free_idm_request(nvmeIdmRequest *request_idm) {
  *
  * @request_idm: Struct containing all NVMe-specific command info for the requested IDM action.
  *               Note: **request_idm is due to malloc() needing access to the original pointer.
+ * @data_num:    Number of data payload instances that need memory allocation.
+ *               Also corresponds to the number of mutexes on the drive.
  *
  * Returns zero or a negative error (ie. EINVAL, ENOMEM, EBUSY, etc).
  */
@@ -1602,7 +1599,7 @@ int _memory_init_idm_request(nvmeIdmRequest **request_idm, unsigned int data_num
     // printf("%s: (*request_idm)->data_idm=%p\n", __func__, (*request_idm)->data_idm);
     // printf("%s: size=%lu\n", __func__, sizeof(*(*request_idm)->data_idm));
 
-    //Cache params.  Not really related to func, but convenient.
+    //Cache memory-specifc info.
     (*request_idm)->data_len = data_len;
     (*request_idm)->data_num = data_num;
 
@@ -1615,7 +1612,6 @@ int _memory_init_idm_request(nvmeIdmRequest **request_idm, unsigned int data_num
  *
  * @request_idm: Struct containing all NVMe-specific command info for the
  *               requested IDM action.
- * @mutex_num:   Number of mutexes present on the drive.
  * @info_ptr:    Returned pointer for info list.
  *               Referenced pointer set to NULL on error.
  * @info_num:    Returned pointer for info num.
@@ -1623,11 +1619,11 @@ int _memory_init_idm_request(nvmeIdmRequest **request_idm, unsigned int data_num
  *
  * Returns zero or a negative error (ie. EINVAL, ENOMEM, EBUSY, etc).
  */
-int _parse_mutex_group(nvmeIdmRequest *request_idm, unsigned int mutex_num,
-                       idmInfo **info_ptr, int *info_num) {
+int _parse_mutex_group(nvmeIdmRequest *request_idm, idmInfo **info_ptr, int *info_num) {
 
     idmData        *data_idm;
-    int            i, ret = SUCCESS;
+    unsigned int   mutex_num = request_idm->data_num;
+    int            i, ret    = SUCCESS;
     uint64_t       state, class;
     idmInfo        *info_list, *info;
 
@@ -1707,13 +1703,13 @@ void _parse_mutex_num(nvmeIdmRequest *request_idm, int *mutex_num) {
 //TODO: Ported from scsi-side as-is.  Need to verify if this even makes sense for nvme.
 //TODO: Why is "unsigned char" being used here??
     data = (unsigned char *)request_idm->data_idm;
-    #ifdef FORCE_MUTEX_NUM_OF_1
+    #ifdef FORCE_MUTEX_NUM
 //TODO: This can't stay. Necessary for stand-alone code
     *mutex_num = 1;     //For debug. This func called by many others.
     #else
     *mutex_num = ((data[1]) & 0xff);
     *mutex_num |= ((data[0]) & 0xff) << 8;
-    #endif //FORCE_MUTEX_NUM_OF_1
+    #endif //FORCE_MUTEX_NUM
 
     #ifndef COMPILE_STANDALONE
     ilm_log_dbg("%s: data[0]=%u data[1]=%u mutex mutex_num=%u",

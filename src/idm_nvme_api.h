@@ -82,7 +82,7 @@ int _init_lock_refresh(char *lock_id, int mode, char *host_id, char *drive,
 // int _init_read_lvb(char *lock_id, char *host_id, char *lvb, int lvb_size,
 //                    char *drive, nvmeIdmRequest **request_idm);
 int _init_read_mutex_group(char *drive, idmInfo **info_ptr, int *info_num,
-                           nvmeIdmRequest **request_idm, unsigned int *mutex_num);
+                           nvmeIdmRequest **request_idm);
 int _init_read_mutex_num(char *drive, unsigned int *mutex_num, nvmeIdmRequest **request_idm);
 int _init_unlock(char *lock_id, int mode, char *host_id, char *lvb, int lvb_size,
                  char *drive, nvmeIdmRequest **request_idm);
@@ -91,8 +91,7 @@ int _init_unlock(char *lock_id, int mode, char *host_id, char *lvb, int lvb_size
 // int _parse_lock_count(nvmeIdmRequest *request_idm, int *count);
 // int _parse_lock_mode(nvmeIdmRequest *request_idm, int *mode);
 // int _parse_lvb(nvmeIdmRequest *request_idm, char *lvb);
-int _parse_mutex_group(nvmeIdmRequest *request_idm, unsigned int mutex_num,
-                       idmInfo **info_ptr, int *info_num);
+int _parse_mutex_group(nvmeIdmRequest *request_idm, idmInfo **info_ptr, int *info_num);
 void _parse_mutex_num(nvmeIdmRequest *request_idm, int *mutex_num);
 
 
