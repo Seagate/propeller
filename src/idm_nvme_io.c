@@ -515,7 +515,7 @@ int _idm_cmd_check_status(int status, uint8_t opcode_idm) {
         return status;  // Just return the status code on success or pre-existing negative error.
 
     sc  = status & STATUS_CODE_MASK;
-    sct = (status & STATUS_CODE_TYPE_MASK) >> 8;
+    sct = (status & STATUS_CODE_TYPE_MASK) >> STATUS_CODE_TYPE_RSHIFT;
     #ifndef COMPILE_STANDALONE
     ilm_log_dbg("%s: for opcode_idm=0x%X: sct=0x%X, sc=0x%X", __func__, opcode_idm, sct, sc);
     #else

@@ -33,8 +33,9 @@
 #define IDM_DATA_METADATA_LEN_BYTES     64
 #define IDM_DATA_RESERVED_1_LEN_BYTES   32
 
-#define STATUS_CODE_MASK      0xFF
-#define STATUS_CODE_TYPE_MASK 0x700
+#define STATUS_CODE_MASK        0xFF
+#define STATUS_CODE_TYPE_MASK   0x700
+#define STATUS_CODE_TYPE_RSHIFT 8
 
 //////////////////////////////////////////
 // Enums
