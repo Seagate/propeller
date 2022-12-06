@@ -31,6 +31,7 @@
 //TODO: DELETE THESE 2 (AND ALL CORRESPONDING CODE) AFTER NVME FILES COMPILE WITH THE REST OF PROPELLER.
 #define COMPILE_STANDALONE
 #define MAIN_ACTIVATE
+#define FORCE_MUTEX_NUM_OF_1    //TODO: HACK!!  This MUST be remove!!
 
 #define FUNCTION_ENTRY_DEBUG    //TODO: Remove this entirely???
 
@@ -1706,13 +1707,13 @@ void _parse_mutex_num(nvmeIdmRequest *request_idm, int *mutex_num) {
 //TODO: Ported from scsi-side as-is.  Need to verify if this even makes sense for nvme.
 //TODO: Why is "unsigned char" being used here??
     data = (unsigned char *)request_idm->data_idm;
-    #ifndef COMPILE_STANDALONE
+    #ifdef FORCE_MUTEX_NUM_OF_1
+//TODO: This can't stay. Necessary for stand-alone code
+    *mutex_num = 1;     //For debug. This func called by many others.
+    #else
     *mutex_num = ((data[1]) & 0xff);
     *mutex_num |= ((data[0]) & 0xff) << 8;
-    #else
-//TODO: This can't stay. Necessary for stand-alone code
-    *mutex_num = 2;     //For debug. This func called by many others.
-    #endif //COMPILE_STANDALONE
+    #endif //FORCE_MUTEX_NUM_OF_1
 
     #ifndef COMPILE_STANDALONE
     ilm_log_dbg("%s: data[0]=%u data[1]=%u mutex mutex_num=%u",
