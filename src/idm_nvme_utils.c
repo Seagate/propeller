@@ -117,7 +117,7 @@ void dumpNvmePassthruCmd(struct nvme_passthru_cmd *cmd) {
     printf("\n");
     printf("nvme_passthru_cmd struct: fields\n");
     printf("================================\n");
-    printf("opcode_nvme  (CDW0[ 7:0])  = 0x%.2X (%u)\n", cmd->opcode,       cmd->opcode);
+    printf("opcode       (CDW0[ 7:0])  = 0x%.2X (%u)\n", cmd->opcode,       cmd->opcode);
     printf("flags        (CDW0[15:8])  = 0x%.2X (%u)\n", cmd->flags,        cmd->flags);
     printf("rsvd1        (CDW0[32:16]) = 0x%.4X (%u)\n", cmd->rsvd1,        cmd->rsvd1);
     printf("nsid         (CDW1[32:0])  = 0x%.8X (%u)\n", cmd->nsid,         cmd->nsid);
