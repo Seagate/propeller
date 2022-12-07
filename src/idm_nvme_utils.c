@@ -24,10 +24,10 @@ void dumpIdmDataStruct(idmData *d){
 
     printf("idmData struct: fields\n");
     printf("=======================\n");
-    printf("state\\ignored0     = 0x%.16"PRIX64" unswapped(%lu)\n", d->state,    __bswap_64(d->state));
-    printf("modified\\time_now  = 0x%.16"PRIX64" unswapped(%lu)\n", d->modified, __bswap_64(d->modified));
-    printf("countdown          = 0x%.16"PRIX64" unswapped(%lu)\n", d->countdown, __bswap_64(d->countdown));
-    printf("class              = 0x%.16"PRIX64" unswapped(%lu)\n", d->class, __bswap_64(d->class));
+    printf("state\\ignored0     = 0x%.16"PRIX64" (%lu)\n", d->state,    d->state);
+    printf("modified\\time_now  = 0x%.16"PRIX64" (%lu)\n", d->modified, d->modified);
+    printf("countdown          = 0x%.16"PRIX64" (%lu)\n", d->countdown, d->countdown);
+    printf("class              = 0x%.16"PRIX64" (%lu)\n", d->class,     d->class);
     printf("resource_ver = '");
     _print_char_arr(d->resource_ver, IDM_LVB_LEN_BYTES);
     printf("res_ver_type = 0x%X\n", d->resource_ver[0]);
@@ -56,7 +56,9 @@ void dumpIdmInfoStruct(idmInfo *info){
     printf("mode    = 0x%X (%d)\n", info->mode, info->mode);
     printf("host_id = '");
     _print_char_arr(info->host_id, IDM_HOST_ID_LEN_BYTES);
-    printf("\n");
+    printf("last_renew_time  = 0x%.16"PRIX64" (%lu)\n", info->last_renew_time,
+                                                        info->last_renew_time);
+   printf("\n");
 }
 
 /**
