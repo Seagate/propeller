@@ -87,9 +87,9 @@ EXIT:
  * asynchronous read lock count request.
  *
  * @handle:     NVMe request handle for the previously sent NVMe cmd.
- * @count:      Returned lock count value's pointer.
+ * @count:      Returned lock count.
  *              Referenced value set to 0 on error.
- * @self:       Returned self count value's pointer.
+ * @self:       Returned self count.
  *              Referenced value set to 0 on error.
  * @result:     Returned result (0 or -ve value) for the previously sent NVMe command.
  *
@@ -104,6 +104,7 @@ int nvme_async_idm_get_result_lock_count(uint64_t handle, int *count, int *self,
     nvmeIdmRequest *request_idm = (nvmeIdmRequest *)handle;
     int            ret          = SUCCESS;
 
+    // Initialize the return parameters
     *count = 0;
     *self  = 0;
 
@@ -119,9 +120,9 @@ int nvme_async_idm_get_result_lock_count(uint64_t handle, int *count, int *self,
 
     if (*result < 0) {
         #ifndef COMPILE_STANDALONE
-        ilm_log_err("%s: previous async lock count cmd fail: result=%d", __func__, *result);
+        ilm_log_err("%s: previous async cmd fail: result=%d", __func__, *result);
         #else
-        printf("%s: previous async lock count cmd fail: result=%d\n", __func__, *result);
+        printf("%s: previous async cmd fail: result=%d\n", __func__, *result);
         #endif //COMPILE_STANDALONE
         goto EXIT_FAIL;
     }
@@ -140,6 +141,68 @@ int nvme_async_idm_get_result_lock_count(uint64_t handle, int *count, int *self,
     ilm_log_dbg("%s: found: lock_count=%d, self_count=%d", __func__, *count, *self);
     #else
     printf("%s: found: lock_count=%d, self_count=%d\n", __func__, *count, *self);
+    #endif //COMPILE_STANDALONE
+EXIT_FAIL:
+    _memory_free_idm_request(request_idm);
+    return ret;
+}
+
+/**
+ * nvme_async_idm_get_result_lock_mode - Asynchronously retreive the result for a previous
+ * asynchronous read lock mode request.
+ *
+ * @handle:     NVMe request handle for the previously sent NVMe cmd.
+ * @mode:       Returned lock mode (unlock, shareable, exclusive).
+ *              Referenced value set to -1 on error.
+ * @result:     Returned result (0 or -ve value) for the previously sent NVMe command.
+ *
+ * Returns zero or a negative error (ie. EINVAL, ENOMEM, EBUSY, etc).
+ */
+int nvme_async_idm_get_result_lock_mode(uint64_t handle, int *mode, int *result) {
+
+    #ifdef FUNCTION_ENTRY_DEBUG
+    printf("%s: START\n", __func__);
+    #endif //FUNCTION_ENTRY_DEBUG
+
+    nvmeIdmRequest *request_idm = (nvmeIdmRequest *)handle;
+    int            ret          = SUCCESS;
+
+    // Initialize the return parameter
+    *mode = -1;    //TODO: hardcoded state. add an "error" state to the enum?
+
+    ret = nvme_async_idm_data_rcv(request_idm, result);
+    if (ret < 0) {
+        #ifndef COMPILE_STANDALONE
+        ilm_log_err("%s: nvme_async_idm_data_rcv fail %d", __func__, ret);
+        #else
+        printf("%s: nvme_async_idm_data_rcv fail %d\n", __func__, ret);
+        #endif //COMPILE_STANDALONE
+        goto EXIT_FAIL;
+    }
+
+    if (*result < 0) {
+        #ifndef COMPILE_STANDALONE
+        ilm_log_err("%s: previous async cmd fail: result=%d", __func__, *result);
+        #else
+        printf("%s: previous async cmd fail: result=%d\n", __func__, *result);
+        #endif //COMPILE_STANDALONE
+        goto EXIT_FAIL;
+    }
+
+    ret = _parse_lock_mode(request_idm, mode);
+    if (ret < 0) {
+        #ifndef COMPILE_STANDALONE
+        ilm_log_err("%s: _parse_lock_mode fail %d", __func__, ret);
+        #else
+        printf("%s: _parse_lock_mode fail %d\n", __func__, ret);
+        #endif //COMPILE_STANDALONE
+        goto EXIT_FAIL;
+    }
+
+    #ifndef COMPILE_STANDALONE
+    ilm_log_dbg("%s: found: mode=%d", __func__, *mode);
+    #else
+    printf("%s: found: mode=%d\n", __func__, *mode);
     #endif //COMPILE_STANDALONE
 EXIT_FAIL:
     _memory_free_idm_request(request_idm);
@@ -393,9 +456,9 @@ int nvme_async_idm_lock_renew(char *lock_id, int mode, char *host_id,
  *
  * @lock_id:    Lock ID (64 bytes).
  * @host_id:    Host ID (32 bytes).
- * @count:      Returned lock count value's pointer.
+ * @count:      Returned lock count.
  *              Referenced value set to 0 on error.
- * @self:       Returned self count value's pointer.
+ * @self:       Returned self count.
  *              Referenced value set to 0 on error.
  * @drive:      Drive path name.
  * @handle:     Returned NVMe request handle.
@@ -419,7 +482,7 @@ int nvme_async_idm_read_lock_count(char *lock_id, char *host_id, int *count, int
         #else
         printf("%s: _init_read_lock_count fail %d\n", __func__, ret);
         #endif //COMPILE_STANDALONE
-        goto EXIT;
+        goto EXIT_FAIL;
     }
 
     ret = nvme_async_idm_read(request_idm);
@@ -429,7 +492,7 @@ int nvme_async_idm_read_lock_count(char *lock_id, char *host_id, int *count, int
         #else
         printf("%s: nvme_async_idm_read fail %d\n", __func__, ret);
         #endif //COMPILE_STANDALONE
-        goto EXIT;
+        goto EXIT_FAIL;
     }
 
     *handle = (uint64_t)request_idm;
@@ -440,7 +503,73 @@ EXIT:
     return ret;
 }
 
+/**
+ * nvme_async_idm_read_lock_mode - Asynchronously read back an IDM's current mode.
+ *
+ * @lock_id:    Lock ID (64 bytes).
+ * @drive:      Drive path name.
+ * @handle:     Returned NVMe request handle.
+ *
+ * Returns zero or a negative error (ie. EINVAL, ENOMEM, EBUSY, etc).
+ */
+int nvme_async_idm_read_lock_mode(char *lock_id, char *drive, uint64_t *handle) {
 
+    #ifdef FUNCTION_ENTRY_DEBUG
+    printf("%s: START\n", __func__);
+    #endif //FUNCTION_ENTRY_DEBUG
+
+    nvmeIdmRequest *request_idm;
+    int            ret = SUCCESS;
+
+    ret = _init_read_lock_mode(lock_id, drive, &request_idm);
+    if (ret < 0) {
+        #ifndef COMPILE_STANDALONE
+        ilm_log_err("%s: _init_read_lock_mode fail %d", __func__, ret);
+        #else
+        printf("%s: _init_read_lock_mode fail %d\n", __func__, ret);
+        #endif //COMPILE_STANDALONE
+        goto EXIT_FAIL;
+    }
+
+    /*
+    * We know there have no any mutex entry in the drive,
+    * the async opertion is devided into two steps: send
+    * the async operation and get the async result.
+    *
+    * In this step, if we directly return success with
+    * count '0', the raid thread will poll forever.  This
+    * is the reason we proceed to send NVMe command to
+    * read back 1 data block and defer to return count.
+    */
+    if (!request_idm->data_num) {       // if mutex_num=0
+        ret = _memory_init_idm_data(request_idm, 1);
+        if (ret < 0) {
+            #ifndef COMPILE_STANDALONE
+            ilm_log_err("%s: _memory_init_idm_data fail %d", __func__, ret);
+            #else
+            printf("%s: _memory_init_idm_data fail %d\n", __func__, ret);
+            #endif //COMPILE_STANDALONE
+            goto EXIT_FAIL;
+        }
+    }
+
+    ret = nvme_async_idm_read(request_idm);
+    if (ret < 0) {
+        #ifndef COMPILE_STANDALONE
+        ilm_log_err("%s: nvme_async_idm_read fail %d", __func__, ret);
+        #else
+        printf("%s: nvme_async_idm_read fail %d\n", __func__, ret);
+        #endif //COMPILE_STANDALONE
+        goto EXIT_FAIL;
+    }
+
+    *handle = (uint64_t)request_idm;
+    goto EXIT;
+EXIT_FAIL:
+    _memory_free_idm_request(request_idm);
+EXIT:
+    return ret;
+}
 
 /**
  * nvme_async_idm_unlock - Asynchronously release an IDM on a specified drive.
@@ -715,7 +844,7 @@ int nvme_sync_idm_lock_renew(char *lock_id, int mode, char *host_id,
  *
  * @lock_id:    Lock ID (64 bytes).
  * @host_id:    Host ID (32 bytes).
- * @host_state: Returned host state's pointer.
+ * @host_state: Returned host state.
  *              Referenced value set to -1 on error.
  * @drive:      Drive path name.
  *
@@ -775,9 +904,9 @@ EXIT_FAIL:
  *
  * @lock_id:    Lock ID (64 bytes).
  * @host_id:    Host ID (32 bytes).
- * @count:      Returned lock count value's pointer.
+ * @count:      Returned lock count.
  *              Referenced value set to 0 on error.
- * @self:       Returned self count value's pointer.
+ * @self:       Returned self count.
  *              Referenced value set to 0 on error.
  * @drive:      Drive path name.
  *
@@ -833,119 +962,66 @@ EXIT_FAIL:
 }
 
 /**
- * nvme_idm_read_lock_mode - Read back an IDM's current mode.
+ * nvme_sync_idm_read_lock_mode - Synchronously read back an IDM's current mode.
  *
  * @lock_id:    Lock ID (64 bytes).
- * @mode:       Returned lock mode's pointer.
+ * @mode:       Returned lock mode (unlock, shareable, exclusive).
  *              Referenced value set to -1 on error.
  * @drive:      Drive path name.
  *
  * Returns zero or a negative error (ie. EINVAL, ENOMEM, EBUSY, etc).
  */
-int nvme_idm_read_lock_mode(char *lock_id, int *mode, char *drive)
+int nvme_sync_idm_read_lock_mode(char *lock_id, int *mode, char *drive)
 {
     #ifdef FUNCTION_ENTRY_DEBUG
     printf("%s: START\n", __func__);
     #endif //FUNCTION_ENTRY_DEBUG
 
     nvmeIdmRequest *request_idm;
-    idmData        *data_idm;
-    unsigned int   mutex_num = 0;
     int            ret = SUCCESS;
-    uint64_t       state, class;
-
-    #ifndef COMPILE_STANDALONE
-    if (ilm_inject_fault_is_hit())
-        return -EIO;
-    #endif //COMPILE_STANDALONE
-
-    if (!lock_id || !drive)
-        return -EINVAL;
 
     // Initialize the output
     *mode = -1;    //TODO: hardcoded state. add an "error" state to the enum?
 
-    ret = nvme_sync_idm_read_mutex_num(drive, &mutex_num);
-    if (ret < 0)
-        return -ENOENT;
-    else if (!mutex_num) {
-        *mode = IDM_MODE_UNLOCK;
-        return SUCCESS;
-    }
-
-    ret = _memory_init_idm_request(&request_idm, mutex_num);
-    if (ret < 0)
-        return ret;
-
-    nvme_idm_read_init(drive, request_idm);
-
-    //API-specific code
-    request_idm->group_idm = IDM_GROUP_DEFAULT;
-    memcpy(request_idm->lock_id, lock_id, IDM_LOCK_ID_LEN_BYTES);
-
-    ret = nvme_idm_read(request_idm);
+    ret = _init_read_lock_mode(lock_id, drive, &request_idm);
     if (ret < 0) {
         #ifndef COMPILE_STANDALONE
-        ilm_log_err("%s: nvme_idm_read fail %d", __func__, ret);
+        ilm_log_err("%s: _init_read_lock_mode fail %d", __func__, ret);
         #else
-        printf("%s: nvme_idm_read fail %d\n", __func__, ret);
+        printf("%s: _init_read_lock_mode fail %d\n", __func__, ret);
         #endif //COMPILE_STANDALONE
         goto EXIT_FAIL;
     }
 
-    //Find mode
-    bswap_char_arr(request_idm->lock_id, lock_id, IDM_LOCK_ID_LEN_BYTES);
-
-    data_idm = request_idm->data_idm;
-    for (int i = 0; i < mutex_num; i++) {
-
-        state = __bswap_64(data_idm[i].state);
-        class = __bswap_64(data_idm[i].class);
-
-        #ifndef COMPILE_STANDALONE
-        ilm_log_dbg("%s: state=%lx class=%lx", __func__, state, class);
-        #endif //COMPILE_STANDALONE
-
-        #ifndef COMPILE_STANDALONE
-        ilm_log_array_dbg("resource_id",  data_idm[i].resource_id, IDM_LOCK_ID_LEN_BYTES);
-        ilm_log_array_dbg("lock_id",      request_idm->lock_id,    IDM_LOCK_ID_LEN_BYTES);
-        ilm_log_array_dbg("data host_id", data_idm[i].host_id,     IDM_HOST_ID_LEN_BYTES);
-        ilm_log_array_dbg("host_id",      request_idm->host_id,    IDM_HOST_ID_LEN_BYTES);
-        #endif //COMPILE_STANDALONE
-
-        /* Skip for other locks */
-        if (memcmp(data_idm[i].resource_id, request_idm->lock_id, IDM_LOCK_ID_LEN_BYTES))
-            continue;
-
-        if (state == IDM_STATE_UNINIT ||
-            state == IDM_STATE_UNLOCKED ||
-            state == IDM_STATE_TIMEOUT) {
-            *mode = IDM_MODE_UNLOCK;
-        } else if (class == IDM_CLASS_EXCLUSIVE) {
-            *mode = IDM_MODE_EXCLUSIVE;
-        } else if (class == IDM_CLASS_SHARED_PROTECTED_READ) {
-            *mode = IDM_MODE_SHAREABLE;
-        } else if (class == IDM_CLASS_PROTECTED_WRITE) {
-            #ifndef COMPILE_STANDALONE
-            ilm_log_err("%s: PROTECTED_WRITE is not unsupported", __func__);
-            #endif //COMPILE_STANDALONE
-            ret = -EFAULT;
-        }
-
-        #ifndef COMPILE_STANDALONE
-        ilm_log_dbg("%s: mode=%d", __func__, *mode);
-        #endif //COMPILE_STANDALONE
-
-        if (*mode == IDM_MODE_EXCLUSIVE || *mode == IDM_MODE_SHAREABLE)
-            break;
+    if (!request_idm->data_num) {       // if mutex_num=0
+        *mode = IDM_MODE_UNLOCK;
+        return SUCCESS;
     }
 
-    //If the mutex is not found in drive fimware, simply return success and mode is unlocked.
-    if (*mode == -1)
-        *mode = IDM_MODE_UNLOCK;
+    ret = nvme_sync_idm_read(request_idm);
+    if (ret < 0) {
+        #ifndef COMPILE_STANDALONE
+        ilm_log_err("%s: nvme_sync_idm_read fail %d", __func__, ret);
+        #else
+        printf("%s: nvme_sync_idm_read fail %d\n", __func__, ret);
+        #endif //COMPILE_STANDALONE
+        goto EXIT_FAIL;
+    }
+
+    ret = _parse_lock_mode(request_idm, mode);
+    if (ret < 0) {
+        #ifndef COMPILE_STANDALONE
+        ilm_log_err("%s: _parse_lock_mode fail %d", __func__, ret);
+        #else
+        printf("%s: _parse_lock_mode fail %d\n", __func__, ret);
+        #endif //COMPILE_STANDALONE
+        goto EXIT_FAIL;
+    }
 
     #ifndef COMPILE_STANDALONE
-    ilm_log_dbg("%s: found: lock_mode=%d", __func__, *mode);
+    ilm_log_dbg("%s: found: mode=%d", __func__, *mode);
+    #else
+    printf("%s: found: mode=%d\n", __func__, *mode);
     #endif //COMPILE_STANDALONE
 EXIT_FAIL:
     _memory_free_idm_request(request_idm);
@@ -1553,6 +1629,51 @@ int _init_read_lock_count(char *lock_id, char *host_id, int *count, int *self,
 }
 
 /**
+ * _init_read_lock_mode - Convenience function containing common code for the retrieval
+ * of the IDM lock mode from the drive.
+ *
+ * @lock_id:     Lock ID (64 bytes).
+ * @drive:       Drive path name.
+ * @request_idm: Returned struct containing all NVMe-specific command info for the
+ *               requested IDM action.
+ *
+ * Returns zero or a negative error (ie. EINVAL, ENOMEM, EBUSY, etc).
+ */
+int _init_read_lock_mode(char *lock_id, char *drive, nvmeIdmRequest **request_idm) {
+
+    #ifdef FUNCTION_ENTRY_DEBUG
+    printf("%s: START\n", __func__);
+    #endif //FUNCTION_ENTRY_DEBUG
+
+    unsigned int   mutex_num = 0;
+    int            ret       = SUCCESS;
+
+    #ifndef COMPILE_STANDALONE
+    if (ilm_inject_fault_is_hit())
+        return -EIO;
+    #endif //COMPILE_STANDALONE
+
+    if (!lock_id || !drive)
+        return -EINVAL;
+
+    ret = nvme_sync_idm_read_mutex_num(drive, &mutex_num);
+    if (ret < 0)
+        return -ENOENT;
+
+    ret = _memory_init_idm_request(request_idm, mutex_num);
+    if (ret < 0)
+        return ret;
+
+    nvme_idm_read_init(drive, *request_idm);
+
+    //API-specific code
+    (*request_idm)->group_idm = IDM_GROUP_DEFAULT;
+    memcpy((*request_idm)->lock_id, lock_id, IDM_LOCK_ID_LEN_BYTES);
+
+    return ret;
+}
+
+/**
  * _init_read_mutex_group - Convenience function containing common code for the retrieval
  * of IDM group information from the drive.
  *
@@ -1744,6 +1865,50 @@ void _memory_free_idm_request(nvmeIdmRequest *request_idm) {
 }
 
 /**
+ * _memory_init_idm_data - Convenience function for allocating memory for the
+ *  data payload ONLY, which resides in the NVMe command structure.
+ *
+ * @request_idm: Struct containing all NVMe-specific command info for the requested IDM action.
+ *               Note: **request_idm is due to malloc() needing access to the original pointer.
+ * @data_num:    Number of data payload instances that need memory allocation.
+ *               Also corresponds to the number of mutexes on the drive.
+ *
+ * Returns zero or a negative error (ie. EINVAL, ENOMEM, EBUSY, etc).
+ */
+int _memory_init_idm_data(nvmeIdmRequest *request_idm, unsigned int data_num) {
+
+    int data_len;
+    int ret = SUCCESS;
+
+    if (data_len == 0)
+        goto SKIP;  //0 can be intentional.  Inconsistent malloc() response to 0.
+                    //See async read lock mode code.
+
+    data_len              = sizeof(idmData) * data_num;
+    request_idm->data_idm = malloc(data_len);
+    if (!request_idm->data_idm) {
+        _memory_free_idm_request(request_idm);
+        #ifndef COMPILE_STANDALONE
+        ilm_log_err("%s: request data memory allocate fail", __func__);
+        #else
+        printf("%s: request data memory allocate fail\n", __func__);
+        #endif //COMPILE_STANDALONE
+        ret = -ENOMEM;
+        goto EXIT_FAIL;
+    }
+    memset(request_idm->data_idm, 0, data_len);
+
+SKIP:
+    //Cache memory-specifc info.
+    request_idm->data_len = data_len;
+    request_idm->data_num = data_num;
+
+EXIT_FAIL:
+
+    return ret;
+}
+
+/**
  * _memory_init_idm_request - Convenience function for allocating memory for all the
  *  data structures used during the NVMe command sequence.
  *
@@ -1760,12 +1925,8 @@ int _memory_init_idm_request(nvmeIdmRequest **request_idm, unsigned int data_num
     printf("%s: START\n", __func__);
     #endif //FUNCTION_ENTRY_DEBUG
 
-    int data_len;
     int ret = SUCCESS;
 
-//TODO: Temp code for aligned memory allocation.  Remove if not needed.
-    // ret = posix_memalign((void **)request_idm, 4096, sizeof(nvmeIdmRequest));
-    // if (ret) {
     *request_idm = malloc(sizeof(nvmeIdmRequest));
     if (!request_idm) {
         #ifndef COMPILE_STANDALONE
@@ -1773,38 +1934,22 @@ int _memory_init_idm_request(nvmeIdmRequest **request_idm, unsigned int data_num
         #else
         printf("%s: request memory allocate fail\n", __func__);
         #endif //COMPILE_STANDALONE
-        return -ENOMEM;
+        ret = -ENOMEM;
+        goto EXIT_FAIL;
     }
     memset((*request_idm), 0, sizeof(**request_idm));
 
-    data_len                 = sizeof(idmData) * data_num;
-//TODO: Temp code for aligned memory allocation.  Remove if not needed.
-    // ret = posix_memalign((void **)&((*request_idm)->data_idm), 4096, data_len);
-    // if (ret) {
-    (*request_idm)->data_idm = malloc(data_len);
-    if (!(*request_idm)->data_idm) {
-        _memory_free_idm_request((*request_idm));
+    ret = _memory_init_idm_data(*request_idm, data_num);
+    if (ret < 0) {
         #ifndef COMPILE_STANDALONE
-        ilm_log_err("%s: request data memory allocate fail", __func__);
+        ilm_log_err("%s: _memory_init_data_idm fail %d", __func__, ret);
         #else
-        printf("%s: request data memory allocate fail\n", __func__);
+        printf("%s: _memory_init_data_idm fail %d\n", __func__, ret);
         #endif //COMPILE_STANDALONE
-        return -ENOMEM;
+        goto EXIT_FAIL;
     }
-    memset((*request_idm)->data_idm, 0, data_len);
 
-//TODO: Remove these debug prints
-    // printf("%s: nvmeIdmRequest size\n", __func__);
-    // printf("%s: size=%lu\n", __func__, sizeof(nvmeIdmRequest));
-    // printf("%s: (*request_idm)=%p\n", __func__, (*request_idm));
-    // printf("%s: size=%lu\n", __func__, sizeof(**request_idm));
-    // printf("%s: (*request_idm)->data_idm=%p\n", __func__, (*request_idm)->data_idm);
-    // printf("%s: size=%lu\n", __func__, sizeof(*(*request_idm)->data_idm));
-
-    //Cache memory-specifc info.
-    (*request_idm)->data_len = data_len;
-    (*request_idm)->data_num = data_num;
-
+EXIT_FAIL:
     return ret;
 }
 
@@ -1814,8 +1959,8 @@ int _memory_init_idm_request(nvmeIdmRequest **request_idm, unsigned int data_num
  *
  * @request_idm: Struct containing all NVMe-specific command info for the
  *               requested IDM action.
- * @host_state: Returned host state's pointer.
- *              Referenced value set to -1 on error.
+ * @host_state:  Returned host state.
+ *               Referenced value set to -1 on error.
  *
  * Returns zero or a negative error (ie. EINVAL, ENOMEM, EBUSY, etc).
  */
@@ -1831,9 +1976,6 @@ int _parse_host_state(nvmeIdmRequest *request_idm, int *host_state) {
     unsigned int   mutex_num = request_idm->data_num;
     int            ret       = SUCCESS;
 
-//TODO: Put on debug flag OR remove??
-    dumpIdmDataStruct(request_idm->data_idm);
-
     bswap_char_arr(bswap_lock_id, request_idm->lock_id, IDM_LOCK_ID_LEN_BYTES);
     bswap_char_arr(bswap_host_id, request_idm->host_id, IDM_HOST_ID_LEN_BYTES);
 
@@ -1841,9 +1983,9 @@ int _parse_host_state(nvmeIdmRequest *request_idm, int *host_state) {
     for (int i = 0; i < mutex_num; i++) {
         #ifndef COMPILE_STANDALONE
         ilm_log_array_dbg("resource_id",  data_idm[i].resource_id, IDM_LOCK_ID_LEN_BYTES);
-        ilm_log_array_dbg("lock_id",      request->lock_id,        IDM_LOCK_ID_LEN_BYTES);
+        ilm_log_array_dbg("lock_id",      bswap_lock_id,           IDM_LOCK_ID_LEN_BYTES);
         ilm_log_array_dbg("data host_id", data_idm[i].host_id,     IDM_HOST_ID_LEN_BYTES);
-        ilm_log_array_dbg("host_id",      request->host_id,        IDM_HOST_ID_LEN_BYTES);
+        ilm_log_array_dbg("host_id",      bswap_host_id,           IDM_HOST_ID_LEN_BYTES);
         #else
         printf("bswap_lock_id    = '");
         _print_char_arr(bswap_lock_id, IDM_LOCK_ID_LEN_BYTES);
@@ -1875,9 +2017,9 @@ int _parse_host_state(nvmeIdmRequest *request_idm, int *host_state) {
  *
  * @request_idm: Struct containing all NVMe-specific command info for the
  *               requested IDM action.
- * @count:       Returned lock count value's pointer.
+ * @count:       Returned lock count.
  *               Referenced value set to 0 on error.
- * @self:        Returned self count value's pointer.
+ * @self:        Returned self count.
  *               Referenced value set to 0 on error.
  *
  * Returns zero or a negative error (ie. EINVAL, ENOMEM, EBUSY, etc).
@@ -1909,16 +2051,25 @@ int _parse_lock_count(nvmeIdmRequest *request_idm, int *count, int *self) {
 
         #ifndef COMPILE_STANDALONE
         ilm_log_array_dbg("resource_id",  data_idm[i].resource_id, IDM_LOCK_ID_LEN_BYTES);
-        ilm_log_array_dbg("lock_id",      request->lock_id,        IDM_LOCK_ID_LEN_BYTES);
+        ilm_log_array_dbg("lock_id",      bswap_lock_id,           IDM_LOCK_ID_LEN_BYTES);
         ilm_log_array_dbg("data host_id", data_idm[i].host_id,     IDM_HOST_ID_LEN_BYTES);
-        ilm_log_array_dbg("host_id",      request->host_id,        IDM_HOST_ID_LEN_BYTES);
+        ilm_log_array_dbg("host_id",      bswap_host_id,           IDM_HOST_ID_LEN_BYTES);
+        #else
+        printf("bswap_lock_id    = '");
+        _print_char_arr(bswap_lock_id, IDM_LOCK_ID_LEN_BYTES);
+        printf("data resource_id = '");
+        _print_char_arr(data_idm[i].resource_id, IDM_LOCK_ID_LEN_BYTES);
+        printf("bswap_host_id = '");
+        _print_char_arr(bswap_host_id, IDM_HOST_ID_LEN_BYTES);
+        printf("data host_id  = '");
+        _print_char_arr(data_idm[i].host_id, IDM_HOST_ID_LEN_BYTES);
         #endif //COMPILE_STANDALONE
 
         /* Skip for other locks */
-        if (memcmp(data_idm[i].resource_id, request_idm->lock_id, IDM_LOCK_ID_LEN_BYTES))
+        if (memcmp(data_idm[i].resource_id, bswap_lock_id, IDM_LOCK_ID_LEN_BYTES))
             continue;
 
-        if (memcmp(data_idm[i].host_id, request_idm->host_id, IDM_HOST_ID_LEN_BYTES)) {
+        if (memcmp(data_idm[i].host_id, bswap_host_id, IDM_HOST_ID_LEN_BYTES)) {
             /* Must be wrong if self has been accounted */
             if (*self) {
                 #ifndef COMPILE_STANDALONE
@@ -1939,7 +2090,87 @@ EXIT:
     return ret;
 }
 
+/**
+ * _parse_lock_mode - Convenience function for parsing the lock mode out of the
+ * returned data payload.
+ *
+ * @request_idm: Struct containing all NVMe-specific command info for the
+ *               requested IDM action.
+ * @mode:        Returned lock mode (unlock, shareable, exclusive).
+ *               Referenced value set to -1 on error.
+ *
+ * Returns zero or a negative error (ie. EINVAL, ENOMEM, EBUSY, etc).
+ */
+int _parse_lock_mode(nvmeIdmRequest *request_idm, int *mode) {
 
+    #ifdef FUNCTION_ENTRY_DEBUG
+    printf("%s: START\n", __func__);
+    #endif //FUNCTION_ENTRY_DEBUG
+
+    idmData        *data_idm;
+    char           bswap_lock_id[IDM_LOCK_ID_LEN_BYTES];
+    unsigned int   mutex_num = request_idm->data_num;
+    int            ret       = SUCCESS;
+    uint64_t       state, class;
+
+    bswap_char_arr(bswap_lock_id, request_idm->lock_id, IDM_LOCK_ID_LEN_BYTES);
+
+    data_idm = request_idm->data_idm;
+    for (int i = 0; i < mutex_num; i++) {
+
+        #ifndef COMPILE_STANDALONE
+        ilm_log_array_dbg("resource_id",   data_idm[i].resource_id, IDM_LOCK_ID_LEN_BYTES);
+        ilm_log_array_dbg("lock_id(bswap)", bswap_lock_id,           IDM_LOCK_ID_LEN_BYTES);
+        #else
+        printf("lock_id(bswap) = '");
+        _print_char_arr(bswap_lock_id, IDM_LOCK_ID_LEN_BYTES);
+        printf("resource_id    = '");
+        _print_char_arr(data_idm[i].resource_id, IDM_LOCK_ID_LEN_BYTES);
+        #endif //COMPILE_STANDALONE
+
+        /* Skip for other locks */
+        if (memcmp(data_idm[i].resource_id, bswap_lock_id, IDM_LOCK_ID_LEN_BYTES))
+            continue;
+
+        state = __bswap_64(data_idm[i].state);
+        class = __bswap_64(data_idm[i].class);
+
+        #ifndef COMPILE_STANDALONE
+        ilm_log_dbg("%s: state=%lx class=%lx", __func__, state, class);
+        #else
+        printf("%s: state=%lx class=%lx\n", __func__, state, class);
+        #endif //COMPILE_STANDALONE
+
+        if (state == IDM_STATE_UNINIT ||
+            state == IDM_STATE_UNLOCKED ||
+            state == IDM_STATE_TIMEOUT) {
+            *mode = IDM_MODE_UNLOCK;
+        } else if (class == IDM_CLASS_EXCLUSIVE) {
+            *mode = IDM_MODE_EXCLUSIVE;
+        } else if (class == IDM_CLASS_SHARED_PROTECTED_READ) {
+            *mode = IDM_MODE_SHAREABLE;
+        } else if (class == IDM_CLASS_PROTECTED_WRITE) {
+            #ifndef COMPILE_STANDALONE
+            ilm_log_err("%s: PROTECTED_WRITE is not unsupported", __func__);
+            #endif //COMPILE_STANDALONE
+            ret = -EFAULT;
+        }
+
+        #ifndef COMPILE_STANDALONE
+        ilm_log_dbg("%s: mode=%d", __func__, *mode);
+        #endif //COMPILE_STANDALONE
+
+        if (*mode == IDM_MODE_EXCLUSIVE || *mode == IDM_MODE_SHAREABLE)
+            break;
+    }
+
+    //If the mutex is not found in drive fimware,
+    // simply return success and mode is unlocked.
+    if (*mode == -1)
+        *mode = IDM_MODE_UNLOCK;
+
+    return ret;
+}
 
 /**
  * _parse_mutex_group - Convenience function for parsing idmInfo data out of the
@@ -1965,9 +2196,6 @@ int _parse_mutex_group(nvmeIdmRequest *request_idm, idmInfo **info_ptr, int *inf
     int            i, ret    = SUCCESS;
     uint64_t       state, class;
     idmInfo        *info_list, *info;
-
-//TODO: Put on debug flag OR remove??
-    dumpIdmDataStruct(request_idm->data_idm);
 
     info_list = malloc(sizeof(idmInfo) * mutex_num);
     if (!info_list) {
@@ -2044,9 +2272,6 @@ void _parse_mutex_num(nvmeIdmRequest *request_idm, int *mutex_num) {
     #endif //FUNCTION_ENTRY_DEBUG
 
     unsigned char  *data;
-
-//TODO: Put on debug flag OR remove??
-    dumpIdmDataStruct(request_idm->data_idm);
 
 //TODO: Ported from scsi-side as-is.  Need to verify if this even makes sense for nvme.
 //TODO: Why is "unsigned char" being used here??
@@ -2161,7 +2386,7 @@ int main(int argc, char *argv[])
         char            lvb[IDM_LVB_LEN_BYTES]         = "lvb";
         int             lvb_size                       = 5;
         uint64_t        handle;
-        int             result;
+        int             result=0;
         unsigned int    mutex_num;
         unsigned int    info_num;
         idmInfo         *info_list;
@@ -2171,15 +2396,21 @@ int main(int argc, char *argv[])
 
         if(strcmp(argv[1], "async_get") == 0){
             ret = nvme_async_idm_lock(lock_id, mode, host_id, drive, timeout, &handle); // dummy call, ignore error.
-            printf("'%s' ret=%d\n", argv[1], ret);
+            printf("'inserted lock' ret=%d\n", ret);
             ret = nvme_async_idm_get_result(handle, &result);
-            printf("'%s' ret=%d, result=%d\n", argv[1], ret, result);
+            printf("'%s' ret=%d, result=0x%X\n", argv[1], ret, result);
         }
         else if(strcmp(argv[1], "async_get_lock_count") == 0){
             ret = nvme_async_idm_read_lock_count(lock_id, host_id, &count, &self, drive, &handle); // dummy call, ignore error.
-            printf("'%s' ret=%d\n", argv[1], ret);
+            printf("'inserted read lock count' ret=%d\n", ret);
             ret = nvme_async_idm_get_result_lock_count(handle, &count, &self, &result);
-            printf("'%s' ret=%d, result=%d\n", argv[1], ret, result);
+            printf("'%s' ret=%d, result=0x%X\n", argv[1], ret, result);
+        }
+        else if(strcmp(argv[1], "async_get_lock_mode") == 0){
+            ret = nvme_async_idm_read_lock_mode(lock_id, drive, &handle); // dummy call, ignore error.
+            printf("'inserted read lock mode' ret=%d\n", ret);
+            ret = nvme_async_idm_get_result_lock_mode(handle, &mode, &result);
+            printf("'%s' ret=%d, result=0x%X\n", argv[1], ret, result);
         }
         else if(strcmp(argv[1], "async_lock") == 0){
             ret = nvme_async_idm_lock(lock_id, mode, host_id, drive, timeout, &handle);
@@ -2201,6 +2432,9 @@ int main(int argc, char *argv[])
         }
         else if(strcmp(argv[1], "async_read_count") == 0){
             ret = nvme_async_idm_read_lock_count(lock_id, host_id, &count, &self, drive, &handle);
+        }
+        else if(strcmp(argv[1], "async_read_mode") == 0){
+            ret = nvme_async_idm_read_lock_mode(lock_id, drive, &handle);
         }
         else if(strcmp(argv[1], "async_unlock") == 0){
             ret = nvme_async_idm_unlock(lock_id, mode, host_id, lvb, lvb_size, drive, &handle);
@@ -2231,8 +2465,8 @@ int main(int argc, char *argv[])
             ret = nvme_sync_idm_read_lock_count(lock_id, host_id, &count, &self, drive);
             printf("output: lock_count=%d, self=%d\n", count, self);
         }
-        else if(strcmp(argv[1], "read_mode") == 0){
-            ret = nvme_idm_read_lock_mode(lock_id, &mode, drive);
+        else if(strcmp(argv[1], "sync_read_mode") == 0){
+            ret = nvme_sync_idm_read_lock_mode(lock_id, &mode, drive);
             printf("output: lock_mode=%d\n", mode);
         }
         else if(strcmp(argv[1], "read_lvb") == 0){
