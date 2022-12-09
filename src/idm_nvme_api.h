@@ -34,12 +34,10 @@ int nvme_async_idm_lock_destroy(char *lock_id, int mode, char *host_id,
 int nvme_async_idm_lock_refresh(char *lock_id, int mode, char *host_id,
                                 char *drive, uint64_t timeout, uint64_t *handle);
 int nvme_async_idm_lock_renew(char *lock_id, int mode, char *host_id,
-                                char *drive, uint64_t timeout, uint64_t *handle);
-int nvme_async_idm_read_lock_count(char *lock_id, char *host_id, int *count, int *self,
-                                  char *drive, uint64_t *handle);
+                              char *drive, uint64_t timeout, uint64_t *handle);
+int nvme_async_idm_read_lock_count(char *lock_id, char *host_id, char *drive, uint64_t *handle);
 int nvme_async_idm_read_lock_mode(char *lock_id, char *drive, uint64_t *handle);
-// int nvme_async_idm_read_lvb(char *lock_id, char *host_id, char *lvb, int lvb_size, char *drive,
-//                             uint64_t *handle);
+// int nvme_async_idm_read_lvb(char *lock_id, char *host_id, char *drive, uint64_t *handle);
 int nvme_async_idm_unlock(char *lock_id, int mode, char *host_id,
                           char *lvb, int lvb_size, char *drive, uint64_t *handle);
 
@@ -73,16 +71,15 @@ int _init_lock_destroy(char *lock_id, int mode, char *host_id, char *drive,
                        nvmeIdmRequest **request_idm);
 int _init_lock_refresh(char *lock_id, int mode, char *host_id, char *drive,
                        uint64_t timeout, nvmeIdmRequest **request_idm);
-int _init_read_host_state(char *lock_id, char *host_id, int *host_state,
-                          char *drive, nvmeIdmRequest **request_idm);
-int _init_read_lock_count(char *lock_id, char *host_id, int *count, int *self,
-                          char *drive, nvmeIdmRequest **request_idm);
+int _init_read_host_state(char *lock_id, char *host_id, char *drive,
+                          nvmeIdmRequest **request_idm);
+int _init_read_lock_count(char *lock_id, char *host_id, char *drive,
+                          nvmeIdmRequest **request_idm);
 int _init_read_lock_mode(char *lock_id, char *drive, nvmeIdmRequest **request_idm);
-// int _init_read_lvb(char *lock_id, char *host_id, char *lvb, int lvb_size,
-//                    char *drive, nvmeIdmRequest **request_idm);
-int _init_read_mutex_group(char *drive, idmInfo **info_ptr, int *info_num,
-                           nvmeIdmRequest **request_idm);
-int _init_read_mutex_num(char *drive, unsigned int *mutex_num, nvmeIdmRequest **request_idm);
+// int _init_read_lvb(char *lock_id, char *host_id, char *drive,
+//                    nvmeIdmRequest **request_idm);
+int _init_read_mutex_group(char *drive, nvmeIdmRequest **request_idm);
+int _init_read_mutex_num(char *drive, nvmeIdmRequest **request_idm);
 int _init_unlock(char *lock_id, int mode, char *host_id, char *lvb, int lvb_size,
                  char *drive, nvmeIdmRequest **request_idm);
 

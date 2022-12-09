@@ -456,17 +456,12 @@ int nvme_async_idm_lock_renew(char *lock_id, int mode, char *host_id,
  *
  * @lock_id:    Lock ID (64 bytes).
  * @host_id:    Host ID (32 bytes).
- * @count:      Returned lock count.
- *              Referenced value set to 0 on error.
- * @self:       Returned self count.
- *              Referenced value set to 0 on error.
  * @drive:      Drive path name.
  * @handle:     Returned NVMe request handle.
  *
  * Returns zero or a negative error (ie. EINVAL, ENOMEM, EBUSY, etc).
  */
-int nvme_async_idm_read_lock_count(char *lock_id, char *host_id, int *count, int *self,
-                                  char *drive, uint64_t *handle) {
+int nvme_async_idm_read_lock_count(char *lock_id, char *host_id, char *drive, uint64_t *handle) {
 
     #ifdef FUNCTION_ENTRY_DEBUG
     printf("%s: START\n", __func__);
@@ -475,7 +470,7 @@ int nvme_async_idm_read_lock_count(char *lock_id, char *host_id, int *count, int
     nvmeIdmRequest *request_idm;
     int            ret = SUCCESS;
 
-    ret = _init_read_lock_count(lock_id, host_id, count, self, drive, &request_idm);
+    ret = _init_read_lock_count(lock_id, host_id, drive, &request_idm);
     if (ret < 0) {
         #ifndef COMPILE_STANDALONE
         ilm_log_err("%s: _init_read_lock_count fail %d", __func__, ret);
@@ -859,7 +854,13 @@ int nvme_sync_idm_read_host_state(char *lock_id, char *host_id, int *host_state,
     nvmeIdmRequest *request_idm;
     int            ret = SUCCESS;
 
-    ret = _init_read_host_state(lock_id, host_id, host_state, drive, &request_idm);
+    // Initialize the output
+//TODO: Does ALWAYS setting to -1 on failure make sense?
+//          Refer to scsi-side if removed.
+//          Was being set to -1 in a couple locations.
+    *host_state = -1;    //TODO: hardcoded state. add an "error" state to the enum?
+
+    ret = _init_read_host_state(lock_id, host_id, drive, &request_idm);
     if (ret < 0) {
         #ifndef COMPILE_STANDALONE
         ilm_log_err("%s: _init_read_host_state fail %d", __func__, ret);
@@ -921,7 +922,11 @@ int nvme_sync_idm_read_lock_count(char *lock_id, char *host_id, int *count, int 
     nvmeIdmRequest *request_idm;
     int            ret = SUCCESS;
 
-    ret = _init_read_lock_count(lock_id, host_id, count, self, drive, &request_idm);
+    // Initialize the output
+    *count = 0;
+    *self  = 0;
+
+    ret = _init_read_lock_count(lock_id, host_id, drive, &request_idm);
     if (ret < 0) {
         #ifndef COMPILE_STANDALONE
         ilm_log_err("%s: _init_read_lock_count fail %d", __func__, ret);
@@ -1139,7 +1144,11 @@ int nvme_sync_idm_read_mutex_group(char *drive, idmInfo **info_ptr, int *info_nu
     nvmeIdmRequest *request_idm;
     int            i, ret = SUCCESS;
 
-    ret = _init_read_mutex_group(drive, info_ptr, info_num, &request_idm);
+    // Initialize the output
+    *info_ptr = NULL;
+    *info_num = 0;
+
+    ret = _init_read_mutex_group(drive, &request_idm);
     if (ret < 0) {
         #ifndef COMPILE_STANDALONE
         ilm_log_err("%s: _init_read_mutex_group fail %d", __func__, ret);
@@ -1202,7 +1211,11 @@ int nvme_sync_idm_read_mutex_num(char *drive, unsigned int *mutex_num)
     nvmeIdmRequest *request_idm;
     int            ret = SUCCESS;
 
-    ret = _init_read_mutex_num(drive, mutex_num, &request_idm);
+//TODO: The SCSI-side code tends to set this to 0 on certain failures.
+//          Does ALWAYS setting to 0 on failure HERE make sense (this is a bit different from scsi-side?
+    *mutex_num = 0;
+
+    ret = _init_read_mutex_num(drive, &request_idm);
     if (ret < 0) {
         #ifndef COMPILE_STANDALONE
         ilm_log_err("%s: _init_read_mutex_num fail %d", __func__, ret);
@@ -1526,16 +1539,14 @@ int _init_lock_refresh(char *lock_id, int mode, char *host_id, char *drive,
  *
  * @lock_id:     Lock ID (64 bytes).
  * @host_id:     Host ID (32 bytes).
- * @host_state:  Returned host state's pointer.
- *               Referenced value set to -1 on error.
  * @drive:       Drive path name.
  * @request_idm: Returned struct containing all NVMe-specific command info for the
  *               requested IDM action.
  *
  * Returns zero or a negative error (ie. EINVAL, ENOMEM, EBUSY, etc).
  */
-int _init_read_host_state(char *lock_id, char *host_id, int *host_state,
-                          char *drive, nvmeIdmRequest **request_idm) {
+int _init_read_host_state(char *lock_id, char *host_id, char *drive,
+                          nvmeIdmRequest **request_idm) {
 
     #ifdef FUNCTION_ENTRY_DEBUG
     printf("%s: START\n", __func__);
@@ -1547,12 +1558,6 @@ int _init_read_host_state(char *lock_id, char *host_id, int *host_state,
     ret = _validate_input_common(lock_id, host_id, drive);
     if (ret < 0)
         return ret;
-
-    // Initialize the output
-//TODO: Does ALWAYS setting to -1 on failure make sense?
-//          Refer to scsi-side if removed.
-//          Was being set to -1 in a couple locations.
-    *host_state = -1;    //TODO: hardcoded state. add an "error" state to the enum?
 
     ret = nvme_sync_idm_read_mutex_num(drive, &mutex_num);
     if (ret < 0)
@@ -1580,18 +1585,14 @@ int _init_read_host_state(char *lock_id, char *host_id, int *host_state,
  *
  * @lock_id:     Lock ID (64 bytes).
  * @host_id:     Host ID (32 bytes).
- * @count:       Returned lock count value's pointer.
- *               Referenced value set to 0 on error.
- * @self:        Returned self count value's pointer.
- *               Referenced value set to 0 on error.
  * @drive:       Drive path name.
  * @request_idm: Returned struct containing all NVMe-specific command info for the
  *               requested IDM action.
  *
  * Returns zero or a negative error (ie. EINVAL, ENOMEM, EBUSY, etc).
  */
-int _init_read_lock_count(char *lock_id, char *host_id, int *count, int *self,
-                          char *drive, nvmeIdmRequest **request_idm) {
+int _init_read_lock_count(char *lock_id, char *host_id, char *drive,
+                          nvmeIdmRequest **request_idm) {
 
     #ifdef FUNCTION_ENTRY_DEBUG
     printf("%s: START\n", __func__);
@@ -1603,10 +1604,6 @@ int _init_read_lock_count(char *lock_id, char *host_id, int *count, int *self,
     ret = _validate_input_common(lock_id, host_id, drive);
     if (ret < 0)
         return ret;
-
-    // Initialize the output
-    *count = 0;
-    *self = 0;
 
     ret = nvme_sync_idm_read_mutex_num(drive, &mutex_num);
     if (ret < 0)
@@ -1678,17 +1675,13 @@ int _init_read_lock_mode(char *lock_id, char *drive, nvmeIdmRequest **request_id
  * of IDM group information from the drive.
  *
  * @drive:       Drive path name.
- * @info_ptr:   Returned pointer for info list.
- *              Referenced pointer set to NULL on error.
- * @info_num:   Returned pointer for info num.
- *              Referenced value set to 0 on error.
  * @request_idm: Returned struct containing all NVMe-specific command info for the
  *               requested IDM action.
  *
  * Returns zero or a negative error (ie. EINVAL, ENOMEM, EBUSY, etc).
  */
-int _init_read_mutex_group(char *drive, idmInfo **info_ptr, int *info_num,
-                           nvmeIdmRequest **request_idm) {
+int _init_read_mutex_group(char *drive, nvmeIdmRequest **request_idm) {
+
     #ifdef FUNCTION_ENTRY_DEBUG
     printf("%s: START\n", __func__);
     #endif //FUNCTION_ENTRY_DEBUG
@@ -1703,10 +1696,6 @@ int _init_read_mutex_group(char *drive, idmInfo **info_ptr, int *info_num,
 
     if (!drive)
         return -EINVAL;
-
-    // Initialize the output
-    *info_ptr = NULL;
-    *info_num = 0;
 
     ret = nvme_sync_idm_read_mutex_num(drive, &mutex_num);
     if (ret < 0)
@@ -1731,13 +1720,12 @@ int _init_read_mutex_group(char *drive, idmInfo **info_ptr, int *info_num,
  * of the number of lock mutexes available on the device.
  *
  * @drive:       Drive path name.
- * @mutex_num:   Final destination of number of lock mutexes available on the device.
  * @request_idm: Returned struct containing all NVMe-specific command info for the
  *               requested IDM action.
  *
  * Returns zero or a negative error (ie. EINVAL, ENOMEM, EBUSY, etc).
  */
-int _init_read_mutex_num(char *drive, unsigned int *mutex_num, nvmeIdmRequest **request_idm)
+int _init_read_mutex_num(char *drive, nvmeIdmRequest **request_idm)
 {
     #ifdef FUNCTION_ENTRY_DEBUG
     printf("%s: START\n", __func__);
@@ -1749,10 +1737,6 @@ int _init_read_mutex_num(char *drive, unsigned int *mutex_num, nvmeIdmRequest **
     if (ilm_inject_fault_is_hit())
         return -EIO;
     #endif //COMPILE_STANDALONE
-
-//TODO: The SCSI-side code tends to set this to 0 on certain failures.
-//          Does ALWAYS setting to 0 on failure HERE make sense (this is a bit different from scsi-side?
-    *mutex_num = 0;
 
     ret = _memory_init_idm_request(request_idm, DFLT_NUM_IDM_DATA_BLOCKS);
     if (ret < 0) {
@@ -2401,7 +2385,7 @@ int main(int argc, char *argv[])
             printf("'%s' ret=%d, result=0x%X\n", argv[1], ret, result);
         }
         else if(strcmp(argv[1], "async_get_lock_count") == 0){
-            ret = nvme_async_idm_read_lock_count(lock_id, host_id, &count, &self, drive, &handle); // dummy call, ignore error.
+            ret = nvme_async_idm_read_lock_count(lock_id, host_id, drive, &handle); // dummy call, ignore error.
             printf("'inserted read lock count' ret=%d\n", ret);
             ret = nvme_async_idm_get_result_lock_count(handle, &count, &self, &result);
             printf("'%s' ret=%d, result=0x%X\n", argv[1], ret, result);
@@ -2431,7 +2415,7 @@ int main(int argc, char *argv[])
             ret = nvme_async_idm_lock_renew(lock_id, mode, host_id, drive, timeout, &handle);
         }
         else if(strcmp(argv[1], "async_read_count") == 0){
-            ret = nvme_async_idm_read_lock_count(lock_id, host_id, &count, &self, drive, &handle);
+            ret = nvme_async_idm_read_lock_count(lock_id, host_id, drive, &handle);
         }
         else if(strcmp(argv[1], "async_read_mode") == 0){
             ret = nvme_async_idm_read_lock_mode(lock_id, drive, &handle);
