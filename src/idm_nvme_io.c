@@ -269,6 +269,14 @@ int nvme_sync_idm_read(nvmeIdmRequest *request_idm) {
         return ret;
     }
 
+//TODO: Put on debug flag OR remove??
+    #ifndef COMPILE_STANDALONE
+    ilm_log_dbg("%s: retrieved idmData", __func__);
+    #else
+    printf("%s: retrieved idmData\n", __func__);
+    #endif //COMPILE_STANDALONE
+    dumpIdmDataStruct(request_idm->data_idm);
+
     return ret;
 }
 
@@ -353,7 +361,7 @@ int _async_idm_cmd_send(nvmeIdmRequest *request_idm) {
 
     //TODO: Don't know exactly how to do this async communication yet via NVMe.
     //      This write() call is just a duplication of what scsi is doing
-    printf("%s: CORE NVME ASYNC IO FUNCTION DISABLED!\n", __func__);
+    printf("%s: CORE NVME ASYNC WRITE IO NOT YET FUNCTIONAL!\n", __func__);
     // ret = write(fd_nvme, &cmd_nvme_passthru, sizeof(cmd_nvme_passthru));
     if (ret) {
         close(fd_nvme);
@@ -422,7 +430,7 @@ int _async_idm_data_rcv(nvmeIdmRequest *request_idm, int *result) {
 
     //TODO: Don't know exactly how to do this async communication yet via NVMe.
     //      This read() call is just a duplication of what scsi is doing
-    printf("%s: CORE NVME ASYNC IO FUNCTION DISABLED!\n", __func__);
+    printf("%s: CORE NVME ASYNC READ IO NOT YET FUNCTIONAL!\n", __func__);
     // ret = read(request_idm->fd_nvme, &cmd_nvme_passthru, sizeof(cmd_nvme_passthru));
     if (ret < 0) {
         #ifndef COMPILE_STANDALONE
