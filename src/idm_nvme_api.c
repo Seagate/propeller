@@ -1968,6 +1968,11 @@ int _init_unlock(char *lock_id, int mode, char *host_id, char *lvb, int lvb_size
 
     int ret = SUCCESS;
 
+    //TODO: The -ve check here should go away cuz lvb_size should be of unsigned type.
+    //However, this requires an IDM API parameter type change.
+    if ((!lvb) || (lvb_size <= 0) || (lvb_size > IDM_LVB_LEN_BYTES))
+        return -EINVAL;
+
     ret = _validate_input_write(lock_id, mode, host_id, drive);
     if (ret < 0) {
         #ifndef COMPILE_STANDALONE
@@ -1977,11 +1982,6 @@ int _init_unlock(char *lock_id, int mode, char *host_id, char *lvb, int lvb_size
         #endif //COMPILE_STANDALONE
         return ret;
     }
-
-    //TODO: The -ve check here should go away cuz lvb_size should be of unsigned type.
-    //However, this requires an IDM API parameter type change.
-    if ((!lvb) || (lvb_size <= 0) || (lvb_size > IDM_LVB_LEN_BYTES))
-        return -EINVAL;
 
     ret = _memory_init_idm_request(request_idm, DFLT_NUM_IDM_DATA_BLOCKS);
     if (ret < 0) {
