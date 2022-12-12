@@ -37,6 +37,9 @@
 #define STATUS_CODE_TYPE_MASK   0x700
 #define STATUS_CODE_TYPE_RSHIFT 8
 
+#define ASYNC_OFF   0
+#define ASYNC_ON    1
+
 //////////////////////////////////////////
 // Enums
 //////////////////////////////////////////
