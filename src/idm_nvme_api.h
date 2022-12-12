@@ -90,7 +90,6 @@ int _parse_lock_mode(nvmeIdmRequest *request_idm, int *mode);
 int _parse_lvb(nvmeIdmRequest *request_idm, char *lvb, int lvb_size);
 int _parse_mutex_group(nvmeIdmRequest *request_idm, idmInfo **info_ptr, int *info_num);
 void _parse_mutex_num(nvmeIdmRequest *request_idm, int *mutex_num);
-int _memory_init_idm_data(nvmeIdmRequest *request_idm, unsigned int data_num);
 
 //old
 // int nvme_idm_read_host_state(char *lock_id, char *host_id, int *host_state, char *drive);

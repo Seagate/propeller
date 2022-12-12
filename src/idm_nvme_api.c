@@ -2037,50 +2037,6 @@ void _memory_free_idm_request(nvmeIdmRequest *request_idm) {
 }
 
 /**
- * _memory_init_idm_data - Convenience function for allocating memory for the
- *  data payload ONLY, which resides in the NVMe command structure.
- *
- * @request_idm: Struct containing all NVMe-specific command info for the requested IDM action.
- *               Note: **request_idm is due to malloc() needing access to the original pointer.
- * @data_num:    Number of data payload instances that need memory allocation.
- *               Also corresponds to the number of mutexes on the drive.
- *
- * Returns zero or a negative error (ie. EINVAL, ENOMEM, EBUSY, etc).
- */
-int _memory_init_idm_data(nvmeIdmRequest *request_idm, unsigned int data_num) {
-
-    int data_len;
-    int ret = SUCCESS;
-
-    if (data_len == 0)
-        goto SKIP;  //0 can be intentional.  Inconsistent malloc() response to 0.
-                    //See async read lock mode code.
-
-    data_len              = sizeof(idmData) * data_num;
-    request_idm->data_idm = malloc(data_len);
-    if (!request_idm->data_idm) {
-        _memory_free_idm_request(request_idm);
-        #ifndef COMPILE_STANDALONE
-        ilm_log_err("%s: request data memory allocate fail", __func__);
-        #else
-        printf("%s: request data memory allocate fail\n", __func__);
-        #endif //COMPILE_STANDALONE
-        ret = -ENOMEM;
-        goto EXIT_FAIL;
-    }
-    memset(request_idm->data_idm, 0, data_len);
-
-SKIP:
-    //Cache memory-specifc info.
-    request_idm->data_len = data_len;
-    request_idm->data_num = data_num;
-
-EXIT_FAIL:
-
-    return ret;
-}
-
-/**
  * _memory_init_idm_request - Convenience function for allocating memory for all the
  *  data structures used during the NVMe command sequence.
  *
@@ -2097,6 +2053,7 @@ int _memory_init_idm_request(nvmeIdmRequest **request_idm, unsigned int data_num
     printf("%s: START\n", __func__);
     #endif //FUNCTION_ENTRY_DEBUG
 
+    int data_len;
     int ret = SUCCESS;
 
     *request_idm = malloc(sizeof(nvmeIdmRequest));
@@ -2106,22 +2063,27 @@ int _memory_init_idm_request(nvmeIdmRequest **request_idm, unsigned int data_num
         #else
         printf("%s: request memory allocate fail\n", __func__);
         #endif //COMPILE_STANDALONE
-        ret = -ENOMEM;
-        goto EXIT_FAIL;
+        return -ENOMEM;
     }
     memset((*request_idm), 0, sizeof(**request_idm));
 
-    ret = _memory_init_idm_data(*request_idm, data_num);
-    if (ret < 0) {
+    data_len                 = sizeof(idmData) * data_num;
+    (*request_idm)->data_idm = malloc(data_len);
+    if (!(*request_idm)->data_idm) {
+        _memory_free_idm_request((*request_idm));
         #ifndef COMPILE_STANDALONE
-        ilm_log_err("%s: _memory_init_data_idm fail %d", __func__, ret);
+        ilm_log_err("%s: request data memory allocate fail", __func__);
         #else
-        printf("%s: _memory_init_data_idm fail %d\n", __func__, ret);
+        printf("%s: request data memory allocate fail\n", __func__);
         #endif //COMPILE_STANDALONE
-        goto EXIT_FAIL;
+        return -ENOMEM;
     }
+    memset((*request_idm)->data_idm, 0, data_len);
 
-EXIT_FAIL:
+    //Cache memory-specifc info.
+    (*request_idm)->data_len = data_len;
+    (*request_idm)->data_num = data_num;
+
     return ret;
 }
 
