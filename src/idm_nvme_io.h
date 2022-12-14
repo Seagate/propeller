@@ -106,34 +106,35 @@ typedef struct _nvmeIdmRequest {
     uint64_t            timeout;
     char                lvb[IDM_LVB_LEN_BYTES];
     int                 lvb_size;   //TODO: should be unsigned, but public API setup with int.  size_t anyway?
-    int                 fd_nvme;
 
     //IDM core structs
     nvmeIdmVendorCmd    cmd_nvme;
     idmData             *data_idm;
 
-    //Misc collection area for kludgy smuggling of parameters.
-    //These values are cached here in the API-level, and then
+    //Misc collection area for kludgy smuggling of request-related parameters.
+    //GEnerally, these values are cached here in the API-level, and then
     //stored in their final location in the IO-level.
     //TODO: Convert these to function params and explictly pass around?
     uint8_t             opcode_idm;
     uint8_t             group_idm;
     char                res_ver_type;
     int                 data_len;      //TODO: should be unsigned.  size_t?
-    unsigned int        data_num;      //TODO: uint64_t?
+    unsigned int        data_num;      //Note: Currently, this also corresponds to # of mutexes (ie: mutex_num).  //TODO: uint64_t?
     uint64_t            class;
+    int                 fd_nvme;
 
 }nvmeIdmRequest;
-
 
 
 //////////////////////////////////////////
 // Functions
 //////////////////////////////////////////
-//new
 int nvme_async_idm_data_rcv(nvmeIdmRequest *request_idm, int *result);
 int nvme_async_idm_read(nvmeIdmRequest *request_idm);
 int nvme_async_idm_write(nvmeIdmRequest *request_idm);
+void nvme_idm_read_init(char *drive, nvmeIdmRequest *request_idm);
+int nvme_idm_write_init(char *lock_id, int mode, char *host_id, char *drive,
+                        uint64_t timeout, nvmeIdmRequest *request_idm);
 int nvme_sync_idm_read(nvmeIdmRequest *request_idm);
 int nvme_sync_idm_write(nvmeIdmRequest *request_idm);
 
@@ -144,22 +145,5 @@ int _idm_cmd_check_status(int status, uint8_t opcode_idm);
 int _idm_cmd_init(nvmeIdmRequest *request_idm, uint8_t opcode_nvme);
 int _idm_data_init_wrt(nvmeIdmRequest *request_idm);
 int _sync_idm_cmd_send(nvmeIdmRequest *request_idm);   // Uses ioctl()
-
-
-//old
-int nvme_idm_read(nvmeIdmRequest *request_idm);
-int nvme_idm_write(nvmeIdmRequest *request_idm);
-
-//unchanged but for new //TODO: re-group these with the "new" funcs above AFTER all the "old" ones are deleted
-void nvme_idm_read_init(char *drive, nvmeIdmRequest *request_idm);
-int nvme_idm_write_init(char *lock_id, int mode, char *host_id, char *drive,
-                        uint64_t timeout, nvmeIdmRequest *request_idm);
-
-//unchanged but old //TODO: delete after other old cmd are deleted.
-int _nvme_idm_cmd_check_status(int status, uint8_t opcode_idm);
-int _nvme_idm_cmd_init(nvmeIdmRequest *request_idm, uint8_t opcode_nvme);
-int _nvme_idm_cmd_send(nvmeIdmRequest *request_idm);
-int _nvme_idm_data_init_wrt(nvmeIdmRequest *request_idm);
-
 
 #endif /*__IDM_NVME_IO_H__ */
