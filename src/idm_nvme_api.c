@@ -40,8 +40,22 @@
 //////////////////////////////////////////
 
 /**
- * nvme_async_idm_get_result - Retreive the result for normal async operations.
+ * nvme_async_idm_free_result - Free the async result
+ *
+ * @handle:      NVMe request handle for the previously sent NVMe cmd.
+ *
+ * No return value
+ */
+void nvme_async_idm_free_result(uint64_t handle)
+{
+    nvmeIdmRequest *request_idm = (nvmeIdmRequest *)request_idm;
 
+    _memory_free_idm_request(request_idm);
+}
+
+/**
+ * nvme_async_idm_get_result - Retreive the result for normal async operations.
+ *
  * @handle:      NVMe request handle for the previously sent NVMe cmd.
  * @result:      Returned result (0 or -ve value) for the previously sent NVMe command.
  *
@@ -705,6 +719,36 @@ EXIT_FAIL:
     _memory_free_idm_request(request_idm);
 EXIT:
     return ret;
+}
+
+/**
+ * nvme_idm_get_fd - Retrieve the Linux device file descriptor from the
+ * specified request handle.
+ *
+ * @handle:     Returned NVMe request handle.
+ */
+int nvme_idm_get_fd(uint64_t handle)
+{
+    nvmeIdmRequest *request_idm = (nvmeIdmRequest *)handle;
+
+    return request_idm->fd_nvme;
+}
+
+/**
+ * nvme_idm_read_version - Read out IDM version
+ * @version:    Lock mode (unlock, shareable, exclusive).
+ * @drive:      Drive path name.
+ *
+ * Returns zero or a negative error (ie. EINVAL, ENOMEM, EBUSY, etc).
+ */
+int nvme_idm_read_version(int *version, char *drive)
+{
+    #ifndef COMPILE_STANDALONE
+    ilm_log_dbg("%s: NOT IMPLEMENTED!!", __func__,);
+    #else
+    printf("%s: NOT IMPLEMENTED!!\n", __func__);
+    #endif //COMPILE_STANDALONE
+    return FAILURE;
 }
 
 /**

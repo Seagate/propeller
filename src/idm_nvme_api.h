@@ -17,6 +17,7 @@
 //TODO: Refactor function params when scsi idm apis are renamed.
 //For reads, move "output" params to the end of the param list.
 
+void nvme_async_idm_free_result(uint64_t handle);
 int nvme_async_idm_get_result(uint64_t handle, int *result);
 int nvme_async_idm_get_result_lock_count(uint64_t handle, int *count, int *self, int *result);
 int nvme_async_idm_get_result_lock_mode(uint64_t handle, int *mode, int *result);
@@ -39,6 +40,9 @@ int nvme_async_idm_read_lock_mode(char *lock_id, char *drive, uint64_t *handle);
 int nvme_async_idm_read_lvb(char *lock_id, char *host_id, char *drive, uint64_t *handle);
 int nvme_async_idm_unlock(char *lock_id, int mode, char *host_id,
                           char *lvb, int lvb_size, char *drive, uint64_t *handle);
+
+int nvme_idm_get_fd(uint64_t handle);
+int nvme_idm_read_version(int *version, char *drive);
 
 int nvme_sync_idm_lock(char *lock_id, int mode, char *host_id,
                        char *drive, uint64_t timeout);
