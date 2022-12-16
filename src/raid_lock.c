@@ -11,7 +11,7 @@
 
 #include "ilm.h"
 
-#include "idm_wrapper.h"
+#include "idm_api.h"
 #include "inject_fault.h"
 #include "lock.h"
 #include "log.h"
