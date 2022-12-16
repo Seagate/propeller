@@ -19,7 +19,7 @@
 
 #include "ilm.h"
 
-#include "idm_wrapper.h"
+#include "idm_scsi.h"
 #include "inject_fault.h"
 #include "list.h"
 #include "log.h"
@@ -176,7 +176,7 @@ static void _scsi_generate_version_inquiry_cdb(uint8_t *cdb){
 static void _scsi_generate_write_cdb(uint8_t *cdb, int mutex_op)
 {
 	cdb[0] = IDM_SCSI_WRITE;
-	cdb[1] = mutex_op<<4;		/* The MUTEX_OP is in the upper nibble of Byte 1 */	
+	cdb[1] = mutex_op<<4;		/* The MUTEX_OP is in the upper nibble of Byte 1 */
 	cdb[2] = 0x00;				/* Reserved */
 	cdb[3] = 0x00;				/* Reserved */
 	cdb[4] = 0x00;				/* Reserved */
@@ -197,7 +197,7 @@ static void _scsi_generate_read_cdb(uint8_t *cdb, uint8_t group, int num)
 {
 	cdb[0] = IDM_SCSI_READ;
 	cdb[1] = 0x01;			/* Ignore the Mutex Opcode for now */
-	cdb[2] = 0x00;			/* Reserved */	
+	cdb[2] = 0x00;			/* Reserved */
 	cdb[3] = 0x00;			/* Reserved */
 	cdb[4] = 0x00;			/* Reserved */
 	cdb[5] = 0x00;			/* Reserved */
@@ -658,17 +658,17 @@ static int _scsi_get_async_result(struct idm_scsi_request *request,
 }
 
 /**
- * idm_drive_version - Read out IDM version
+ * scsi_idm_drive_version - Read out IDM version
  * @version:		Lock mode (unlock, shareable, exclusive).
  * @drive:		Drive path name.
  *
  * Returns zero or a negative error (ie. EINVAL, ENOMEM, EBUSY, etc).
  */
-int idm_drive_version(int *version, char *drive)
+int scsi_idm_drive_version(int *version, char *drive)
 {
 	uint8_t ver_request[SCSI_VER_INQ_LEN];
-	uint8_t sense[SCSI_SENSE_LEN]; 
-	uint8_t data[SCSI_VER_DATA_LEN]; 
+	uint8_t sense[SCSI_SENSE_LEN];
+	uint8_t data[SCSI_VER_DATA_LEN];
 
 	_scsi_generate_version_inquiry_cdb(ver_request);
 
@@ -684,7 +684,7 @@ int idm_drive_version(int *version, char *drive)
 }
 
 /**
- * idm_drive_lock - acquire an IDM on a specified drive
+ * scsi_idm_drive_lock - acquire an IDM on a specified drive
  * @lock_id:		Lock ID (64 bytes).
  * @mode:		Lock mode (unlock, shareable, exclusive).
  * @host_id:		Host ID (32 bytes).
@@ -693,7 +693,7 @@ int idm_drive_version(int *version, char *drive)
  *
  * Returns zero or a negative error (ie. EINVAL, ENOMEM, EBUSY, etc).
  */
-int idm_drive_lock(char *lock_id, int mode, char *host_id,
+int scsi_idm_drive_lock(char *lock_id, int mode, char *host_id,
                    char *drive, uint64_t timeout)
 {
 	struct idm_scsi_request *request;
@@ -747,7 +747,7 @@ int idm_drive_lock(char *lock_id, int mode, char *host_id,
 }
 
 /**
- * idm_drive_lock_async - acquire an IDM on a specified drive with async mode
+ * scsi_idm_drive_lock_async - acquire an IDM on a specified drive with async mode
  * @lock_id:		Lock ID (64 bytes).
  * @mode:		Lock mode (unlock, shareable, exclusive).
  * @host_id:		Host ID (32 bytes).
@@ -757,7 +757,7 @@ int idm_drive_lock(char *lock_id, int mode, char *host_id,
  *
  * Returns zero or a negative error (ie. EINVAL, ENOMEM, EBUSY, etc).
  */
-int idm_drive_lock_async(char *lock_id, int mode, char *host_id,
+int scsi_idm_drive_lock_async(char *lock_id, int mode, char *host_id,
 			 char *drive, uint64_t timeout, uint64_t *handle)
 {
 	struct idm_scsi_request *request;
@@ -814,7 +814,7 @@ int idm_drive_lock_async(char *lock_id, int mode, char *host_id,
 }
 
 /**
- * idm_drive_unlock - release an IDM on a specified drive
+ * scsi_idm_drive_unlock - release an IDM on a specified drive
  * @lock_id:		Lock ID (64 bytes).
  * @mode:		Lock mode (unlock, shareable, exclusive).
  * @host_id:		Host ID (32 bytes).
@@ -824,7 +824,7 @@ int idm_drive_lock_async(char *lock_id, int mode, char *host_id,
  *
  * Returns zero or a negative error (ie. EINVAL, ETIME).
  */
-int idm_drive_unlock(char *lock_id, int mode, char *host_id,
+int scsi_idm_drive_unlock(char *lock_id, int mode, char *host_id,
 		     char *lvb, int lvb_size, char *drive)
 {
 	struct idm_scsi_request *request;
@@ -882,7 +882,7 @@ int idm_drive_unlock(char *lock_id, int mode, char *host_id,
 }
 
 /**
- * idm_drive_unlock_async - release an IDM on a specified drive with async mode
+ * scsi_idm_drive_unlock_async - release an IDM on a specified drive with async mode
  * @lock_id:		Lock ID (64 bytes).
  * @mode:		Lock mode (unlock, shareable, exclusive).
  * @host_id:		Host ID (32 bytes).
@@ -893,7 +893,7 @@ int idm_drive_unlock(char *lock_id, int mode, char *host_id,
  *
  * Returns zero or a negative error (ie. EINVAL, ETIME).
  */
-int idm_drive_unlock_async(char *lock_id, int mode, char *host_id,
+int scsi_idm_drive_unlock_async(char *lock_id, int mode, char *host_id,
 			   char *lvb, int lvb_size,
 			   char *drive, uint64_t *handle)
 {
@@ -954,7 +954,7 @@ int idm_drive_unlock_async(char *lock_id, int mode, char *host_id,
 	return ret;
 }
 
-static int idm_drive_refresh_lock(char *lock_id, int mode, char *host_id,
+static int scsi_idm_drive_refresh_lock(char *lock_id, int mode, char *host_id,
 				  char *drive, uint64_t timeout)
 {
 	struct idm_scsi_request *request;
@@ -1007,7 +1007,7 @@ static int idm_drive_refresh_lock(char *lock_id, int mode, char *host_id,
 	return ret;
 }
 
-static int idm_drive_refresh_lock_async(char *lock_id, int mode,
+static int scsi_idm_drive_refresh_lock_async(char *lock_id, int mode,
 					char *host_id, char *drive,
 					uint64_t timeout,
 					uint64_t *handle)
@@ -1066,7 +1066,7 @@ static int idm_drive_refresh_lock_async(char *lock_id, int mode,
 }
 
 /**
- * idm_drive_convert_lock - Convert the lock mode for an IDM
+ * scsi_idm_drive_convert_lock - Convert the lock mode for an IDM
  * @lock_id:		Lock ID (64 bytes).
  * @mode:		Lock mode (unlock, shareable, exclusive).
  * @host_id:		Host ID (32 bytes).
@@ -1075,15 +1075,15 @@ static int idm_drive_refresh_lock_async(char *lock_id, int mode,
  *
  * Returns zero or a negative error (ie. EINVAL, ETIME).
  */
-int idm_drive_convert_lock(char *lock_id, int mode, char *host_id,
+int scsi_idm_drive_convert_lock(char *lock_id, int mode, char *host_id,
 			   char *drive, uint64_t timeout)
 {
-	return idm_drive_refresh_lock(lock_id, mode, host_id,
+	return scsi_idm_drive_refresh_lock(lock_id, mode, host_id,
 				      drive, timeout);
 }
 
 /**
- * idm_drive_convert_lock_async - Convert the lock mode with async
+ * scsi_idm_drive_convert_lock_async - Convert the lock mode with async
  * @lock_id:		Lock ID (64 bytes).
  * @mode:		Lock mode (unlock, shareable, exclusive).
  * @host_id:		Host ID (32 bytes).
@@ -1093,16 +1093,16 @@ int idm_drive_convert_lock(char *lock_id, int mode, char *host_id,
  *
  * Returns zero or a negative error (ie. EINVAL, ETIME).
  */
-int idm_drive_convert_lock_async(char *lock_id, int mode, char *host_id,
+int scsi_idm_drive_convert_lock_async(char *lock_id, int mode, char *host_id,
 				 char *drive, uint64_t timeout,
 				 uint64_t *handle)
 {
-	return idm_drive_refresh_lock_async(lock_id, mode, host_id,
+	return scsi_idm_drive_refresh_lock_async(lock_id, mode, host_id,
 					    drive, timeout, handle);
 }
 
 /**
- * idm_drive_renew_lock - Renew host's membership for an IDM
+ * scsi_idm_drive_renew_lock - Renew host's membership for an IDM
  * @lock_id:		Lock ID (64 bytes).
  * @mode:		Lock mode (unlock, shareable, exclusive).
  * @host_id:		Host ID (32 bytes).
@@ -1111,15 +1111,15 @@ int idm_drive_convert_lock_async(char *lock_id, int mode, char *host_id,
  *
  * Returns zero or a negative error (ie. EINVAL, ETIME).
  */
-int idm_drive_renew_lock(char *lock_id, int mode, char *host_id,
+int scsi_idm_drive_renew_lock(char *lock_id, int mode, char *host_id,
 			 char *drive, uint64_t timeout)
 {
-	return idm_drive_refresh_lock(lock_id, mode, host_id,
+	return scsi_idm_drive_refresh_lock(lock_id, mode, host_id,
 				      drive, timeout);
 }
 
 /**
- * idm_drive_renew_lock_async - Renew host's membership for an IDM
+ * scsi_idm_drive_renew_lock_async - Renew host's membership for an IDM
  * 				with async mode
  * @lock_id:		Lock ID (64 bytes).
  * @mode:		Lock mode (unlock, shareable, exclusive).
@@ -1130,17 +1130,17 @@ int idm_drive_renew_lock(char *lock_id, int mode, char *host_id,
  *
  * Returns zero or a negative error (ie. EINVAL, ETIME).
  */
-int idm_drive_renew_lock_async(char *lock_id, int mode,
+int scsi_idm_drive_renew_lock_async(char *lock_id, int mode,
 			       char *host_id, char *drive,
 			       uint64_t timeout,
 			       uint64_t *handle)
 {
-	return idm_drive_refresh_lock_async(lock_id, mode, host_id,
+	return scsi_idm_drive_refresh_lock_async(lock_id, mode, host_id,
 					    drive, timeout, handle);
 }
 
 /**
- * idm_drive_break_lock - Break an IDM if before other hosts have
+ * scsi_idm_drive_break_lock - Break an IDM if before other hosts have
  * acquired this IDM.  This function is to allow a host_id to take
  * over the ownership if other hosts of the IDM is timeout, or the
  * countdown value is -1UL.
@@ -1152,7 +1152,7 @@ int idm_drive_renew_lock_async(char *lock_id, int mode,
  *
  * Returns zero or a negative error (ie. EINVAL).
  */
-int idm_drive_break_lock(char *lock_id, int mode, char *host_id,
+int scsi_idm_drive_break_lock(char *lock_id, int mode, char *host_id,
 			 char *drive, uint64_t timeout)
 {
 	struct idm_scsi_request *request;
@@ -1206,7 +1206,7 @@ int idm_drive_break_lock(char *lock_id, int mode, char *host_id,
 }
 
 /**
- * idm_drive_break_lock_async - Break an IDM with async mode.
+ * scsi_idm_drive_break_lock_async - Break an IDM with async mode.
  * @lock_id:		Lock ID (64 bytes).
  * @mode:		Lock mode (unlock, shareable, exclusive).
  * @host_id:		Host ID (32 bytes).
@@ -1216,7 +1216,7 @@ int idm_drive_break_lock(char *lock_id, int mode, char *host_id,
  *
  * Returns zero or a negative error (ie. EINVAL).
  */
-int idm_drive_break_lock_async(char *lock_id, int mode, char *host_id,
+int scsi_idm_drive_break_lock_async(char *lock_id, int mode, char *host_id,
 			       char *drive, uint64_t timeout, uint64_t *handle)
 {
 	struct idm_scsi_request *request;
@@ -1272,7 +1272,7 @@ int idm_drive_break_lock_async(char *lock_id, int mode, char *host_id,
 	return ret;
 }
 
-static int idm_drive_read_mutex_num(char *drive, unsigned int *num)
+static int scsi_idm_drive_read_mutex_num(char *drive, unsigned int *num)
 {
 	struct idm_scsi_request *request;
 	unsigned char *data;
@@ -1319,7 +1319,7 @@ out:
 }
 
 /**
- * idm_drive_read_lvb - Read value block which is associated to an IDM.
+ * scsi_idm_drive_read_lvb - Read value block which is associated to an IDM.
  * @lock_id:		Lock ID (64 bytes).
  * @lvb:		Lock value block pointer.
  * @lvb_size:		Lock value block size.
@@ -1327,7 +1327,7 @@ out:
  *
  * Returns zero or a negative error (ie. EINVAL).
  */
-int idm_drive_read_lvb(char *lock_id, char *host_id,
+int scsi_idm_drive_read_lvb(char *lock_id, char *host_id,
 		       char *lvb, int lvb_size, char *drive)
 {
 	struct idm_scsi_request *request;
@@ -1344,7 +1344,7 @@ int idm_drive_read_lvb(char *lock_id, char *host_id,
 	if (!lock_id || !host_id || !drive)
 		return -EINVAL;
 
-	ret = idm_drive_read_mutex_num(drive, &num);
+	ret = scsi_idm_drive_read_mutex_num(drive, &num);
 	if (ret < 0)
 		return -ENOENT;
 
@@ -1407,7 +1407,7 @@ out:
 }
 
 /**
- * idm_drive_read_lvb_async - Read value block with async mode.
+ * scsi_idm_drive_read_lvb_async - Read value block with async mode.
  * @lock_id:		Lock ID (64 bytes).
  * @lvb:		Lock value block pointer.
  * @lvb_size:		Lock value block size.
@@ -1416,7 +1416,7 @@ out:
  *
  * Returns zero or a negative error (ie. EINVAL).
  */
-int idm_drive_read_lvb_async(char *lock_id, char *host_id, char *drive, uint64_t *handle)
+int scsi_idm_drive_read_lvb_async(char *lock_id, char *host_id, char *drive, uint64_t *handle)
 {
 	struct idm_scsi_request *request;
 	int ret, block_size;
@@ -1428,7 +1428,7 @@ int idm_drive_read_lvb_async(char *lock_id, char *host_id, char *drive, uint64_t
 	if (!lock_id || !host_id || !drive)
 		return -EINVAL;
 
-	ret = idm_drive_read_mutex_num(drive, &num);
+	ret = scsi_idm_drive_read_mutex_num(drive, &num);
 	if (ret < 0)
 		return -ENOENT;
 
@@ -1478,7 +1478,7 @@ int idm_drive_read_lvb_async(char *lock_id, char *host_id, char *drive, uint64_t
 }
 
 /**
- * idm_drive_read_lvb_async_result - Read the result for read_lvb operation with
+ * scsi_idm_drive_read_lvb_async_result - Read the result for read_lvb operation with
  * 				     async mode.
  * @fd:			File descriptor (emulated with index).
  * @lvb:		Lock value block pointer.
@@ -1487,7 +1487,7 @@ int idm_drive_read_lvb_async(char *lock_id, char *host_id, char *drive, uint64_t
  *
  * Returns zero or a negative error (ie. EINVAL).
  */
-int idm_drive_read_lvb_async_result(uint64_t handle, char *lvb, int lvb_size,
+int scsi_idm_drive_read_lvb_async_result(uint64_t handle, char *lvb, int lvb_size,
 				    int *result)
 {
 	struct idm_scsi_request *request = (struct idm_scsi_request *)handle;
@@ -1521,7 +1521,7 @@ int idm_drive_read_lvb_async_result(uint64_t handle, char *lvb, int lvb_size,
 }
 
 /**
- * idm_drive_lock_count - Read the host count for an IDM.
+ * scsi_idm_drive_lock_count - Read the host count for an IDM.
  * @lock_id:		Lock ID (64 bytes).
  * @host_id:		Host ID (32 bytes).
  * @count:		Returned count value's pointer.
@@ -1530,7 +1530,7 @@ int idm_drive_read_lvb_async_result(uint64_t handle, char *lvb, int lvb_size,
  *
  * Returns zero or a negative error (ie. EINVAL).
  */
-int idm_drive_lock_count(char *lock_id, char *host_id,
+int scsi_idm_drive_lock_count(char *lock_id, char *host_id,
 			 int *count, int *self, char *drive)
 {
 	struct idm_scsi_request *request;
@@ -1552,11 +1552,11 @@ int idm_drive_lock_count(char *lock_id, char *host_id,
 	if (!lock_id || !host_id || !drive)
 		return -EINVAL;
 
-	ret = idm_drive_read_mutex_num(drive, &num);
+	ret = scsi_idm_drive_read_mutex_num(drive, &num);
 	if (ret < 0)
 		return -ENOENT;
 
-	if (!num) 
+	if (!num)
 		return 0;
 
 	block_size = IDM_DATA_BLOCK_SIZE * num;
@@ -1630,7 +1630,7 @@ out:
 }
 
 /**
- * idm_drive_lock_count_async - Read the host count for an IDM with async mode.
+ * scsi_idm_drive_lock_count_async - Read the host count for an IDM with async mode.
  * @lock_id:		Lock ID (64 bytes).
  * @host_id:		Host ID (32 bytes).
  * @drive:		Drive path name.
@@ -1638,7 +1638,7 @@ out:
  *
  * Returns zero or a negative error (ie. EINVAL).
  */
-int idm_drive_lock_count_async(char *lock_id, char *host_id,
+int scsi_idm_drive_lock_count_async(char *lock_id, char *host_id,
 			       char *drive, uint64_t *handle)
 {
 	struct idm_scsi_request *request;
@@ -1651,7 +1651,7 @@ int idm_drive_lock_count_async(char *lock_id, char *host_id,
 	if (!lock_id || !host_id || !drive)
 		return -EINVAL;
 
-	ret = idm_drive_read_mutex_num(drive, &num);
+	ret = scsi_idm_drive_read_mutex_num(drive, &num);
 	if (ret < 0)
 		return -ENOENT;
 
@@ -1703,7 +1703,7 @@ int idm_drive_lock_count_async(char *lock_id, char *host_id,
 }
 
 /**
- * idm_drive_lock_count_async_result - Read the result for host count.
+ * scsi_idm_drive_lock_count_async_result - Read the result for host count.
  * @fd:			File descriptor (emulated with index).
  * @count:		Returned count value's pointer.
  * @self:		Returned self count value's pointer.
@@ -1711,7 +1711,7 @@ int idm_drive_lock_count_async(char *lock_id, char *host_id,
  *
  * Returns zero or a negative error (ie. EINVAL).
  */
-int idm_drive_lock_count_async_result(uint64_t handle, int *count, int *self,
+int scsi_idm_drive_lock_count_async_result(uint64_t handle, int *count, int *self,
 				      int *result)
 {
 	struct idm_scsi_request *request = (struct idm_scsi_request *)handle;
@@ -1761,14 +1761,14 @@ out:
 }
 
 /**
- * idm_drive_lock_mode - Read back an IDM's current mode.
+ * scsi_idm_drive_lock_mode - Read back an IDM's current mode.
  * @lock_id:		Lock ID (64 bytes).
  * @mode:		Returned mode's pointer.
  * @drive:		Drive path name.
  *
  * Returns zero or a negative error (ie. EINVAL).
  */
-int idm_drive_lock_mode(char *lock_id, int *mode, char *drive)
+int scsi_idm_drive_lock_mode(char *lock_id, int *mode, char *drive)
 {
 	struct idm_scsi_request *request;
 	struct idm_data *data;
@@ -1785,7 +1785,7 @@ int idm_drive_lock_mode(char *lock_id, int *mode, char *drive)
 	if (!lock_id || !drive)
 		return -EINVAL;
 
-	ret = idm_drive_read_mutex_num(drive, &num);
+	ret = scsi_idm_drive_read_mutex_num(drive, &num);
 	if (ret < 0)
 		return -ENOENT;
 
@@ -1869,14 +1869,14 @@ out:
 }
 
 /**
- * idm_drive_lock_mode_async - Read an IDM's mode with async mode.
+ * scsi_idm_drive_lock_mode_async - Read an IDM's mode with async mode.
  * @lock_id:		Lock ID (64 bytes).
  * @drive:		Drive path name.
  * @fd:			File descriptor (emulated with index).
  *
  * Returns zero or a negative error (ie. EINVAL).
  */
-int idm_drive_lock_mode_async(char *lock_id, char *drive, uint64_t *handle)
+int scsi_idm_drive_lock_mode_async(char *lock_id, char *drive, uint64_t *handle)
 {
 	struct idm_scsi_request *request;
 	int ret, block_size;
@@ -1885,7 +1885,7 @@ int idm_drive_lock_mode_async(char *lock_id, char *drive, uint64_t *handle)
 	if (ilm_inject_fault_is_hit())
 		return -EIO;
 
-	ret = idm_drive_read_mutex_num(drive, &num);
+	ret = scsi_idm_drive_read_mutex_num(drive, &num);
 	if (ret < 0)
 		return -ENOENT;
 
@@ -1934,14 +1934,14 @@ int idm_drive_lock_mode_async(char *lock_id, char *drive, uint64_t *handle)
 }
 
 /**
- * idm_drive_lock_mode_async_result - Read the result for lock mode.
+ * scsi_idm_drive_lock_mode_async_result - Read the result for lock mode.
  * @fd:			File descriptor (emulated with index).
  * @mode:		Returned mode's pointer.
  * @result:		Returned result for the operation.
  *
  * Returns zero or a negative error (ie. EINVAL).
  */
-int idm_drive_lock_mode_async_result(uint64_t handle, int *mode, int *result)
+int scsi_idm_drive_lock_mode_async_result(uint64_t handle, int *mode, int *result)
 {
 	struct idm_scsi_request *request = (struct idm_scsi_request *)handle;
 	struct idm_data *data = request->data;
@@ -1992,13 +1992,13 @@ out:
 }
 
 /**
- * idm_drive_async_result - Read the result for normal operations.
+ * scsi_idm_drive_async_result - Read the result for normal operations.
  * @handle:		SCSI request handle
  * @result:		Returned result for the operation.
  *
  * Returns zero or a negative error (ie. EINVAL).
  */
-int idm_drive_async_result(uint64_t handle, int *result)
+int scsi_idm_drive_async_result(uint64_t handle, int *result)
 {
 	struct idm_scsi_request *request = (struct idm_scsi_request *)handle;
 
@@ -2009,12 +2009,12 @@ int idm_drive_async_result(uint64_t handle, int *result)
 }
 
 /**
- * idm_drive_free_async_result - Free the async result
+ * scsi_idm_drive_free_async_result - Free the async result
  * @handle:		SCSI request handle
  *
  * No return value
  */
-void idm_drive_free_async_result(uint64_t handle)
+void scsi_idm_drive_free_async_result(uint64_t handle)
 {
 	struct idm_scsi_request *request = (struct idm_scsi_request *)handle;
 
@@ -2023,7 +2023,7 @@ void idm_drive_free_async_result(uint64_t handle)
 }
 
 /**
- * idm_drive_host_state - Read back the host's state for an specific IDM.
+ * scsi_idm_drive_host_state - Read back the host's state for an specific IDM.
  * @lock_id:		Lock ID (64 bytes).
  * @host_id:		Host ID (64 bytes).
  * @host_state:		Returned host state's pointer.
@@ -2031,7 +2031,7 @@ void idm_drive_free_async_result(uint64_t handle)
  *
  * Returns zero or a negative error (ie. EINVAL).
  */
-int idm_drive_host_state(char *lock_id, char *host_id,
+int scsi_idm_drive_host_state(char *lock_id, char *host_id,
 			 int *host_state, char *drive)
 {
 	struct idm_scsi_request *request;
@@ -2045,7 +2045,7 @@ int idm_drive_host_state(char *lock_id, char *host_id,
 	if (!lock_id || !host_id || !drive)
 		return -EINVAL;
 
-	ret = idm_drive_read_mutex_num(drive, &num);
+	ret = scsi_idm_drive_read_mutex_num(drive, &num);
 	if (ret < 0)
 		return -ENOENT;
 
@@ -2106,28 +2106,28 @@ out:
 }
 
 /**
- * idm_drive_whitelist - Read back hosts list for an specific drive.
+ * scsi_idm_drive_whitelist - Read back hosts list for an specific drive.
  * @drive:		Drive path name.
  * @whitelist:		Returned pointer for host's white list.
  * @whitelist:		Returned pointer for host num.
  *
  * Returns zero or a negative error (ie. ENOMEM).
  */
-int idm_drive_whitelist(char *drive, char **whitelist, int *whitelist_num)
+int scsi_idm_drive_whitelist(char *drive, char **whitelist, int *whitelist_num)
 {
 	/* TODO */
 	return 0;
 }
 
 /**
- * idm_drive_read_group - Read back mutex group for all IDM in the drives
+ * scsi_idm_drive_read_group - Read back mutex group for all IDM in the drives
  * @drive:		Drive path name.
  * @info_ptr:		Returned pointer for info list.
  * @info_num:		Returned pointer for info num.
  *
  * Returns zero or a negative error (ie. ENOMEM).
  */
-int idm_drive_read_group(char *drive, struct idm_info **info_ptr, int *info_num)
+int scsi_idm_drive_read_group(char *drive, struct idm_info **info_ptr, int *info_num)
 {
 	struct idm_scsi_request *request;
 	struct idm_data *data;
@@ -2139,7 +2139,7 @@ int idm_drive_read_group(char *drive, struct idm_info **info_ptr, int *info_num)
 	if (ilm_inject_fault_is_hit())
 		return -EIO;
 
-	ret = idm_drive_read_mutex_num(drive, &num);
+	ret = scsi_idm_drive_read_mutex_num(drive, &num);
 	if (ret < 0)
 		return -ENOENT;
 
@@ -2232,13 +2232,13 @@ free_info_list:
 }
 
 /**
- * idm_drive_destroy - Destroy an IDM and release all associated resource.
+ * scsi_idm_drive_destroy - Destroy an IDM and release all associated resource.
  * @lock_id:		Lock ID (64 bytes).
  * @drive:		Drive path name.
  *
  * Returns zero or a negative error (ie. EINVAL).
  */
-int idm_drive_destroy(char *lock_id, int mode, char *host_id,
+int scsi_idm_drive_destroy(char *lock_id, int mode, char *host_id,
 		      char *drive)
 {
 	struct idm_scsi_request *request;
@@ -2291,7 +2291,7 @@ int idm_drive_destroy(char *lock_id, int mode, char *host_id,
 	return ret;
 }
 
-int idm_drive_get_fd(uint64_t handle)
+int scsi_idm_drive_get_fd(uint64_t handle)
 {
 	struct idm_scsi_request *request = (struct idm_scsi_request *)handle;
 
