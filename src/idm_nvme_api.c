@@ -30,8 +30,8 @@
 //////////////////////////////////////////
 //TODO: DELETE THESE 2 (AND ALL CORRESPONDING CODE) AFTER NVME FILES COMPILE WITH THE REST OF PROPELLER.
 #define COMPILE_STANDALONE
-#define MAIN_ACTIVATE
-#define FORCE_MUTEX_NUM    //TODO: HACK!!  This MUST be remove!!
+// #define MAIN_ACTIVATE
+#define FORCE_MUTEX_NUM    //TODO: HACK!!  This MUST be removed!!
 
 #define FUNCTION_ENTRY_DEBUG    //TODO: Remove this entirely???
 
@@ -1253,7 +1253,7 @@ EXIT_FAIL:
  *
  * Returns zero or a negative error (ie. EINVAL, ENOMEM, EBUSY, etc).
  */
-int nvme_sync_idm_read_mutex_group(char *drive, idmInfo **info_ptr, int *info_num)
+int nvme_sync_idm_read_mutex_group(char *drive, struct idm_info **info_ptr, int *info_num)
 {
     #ifdef FUNCTION_ENTRY_DEBUG
     printf("%s: START\n", __func__);
@@ -2396,7 +2396,7 @@ int _parse_lvb(nvmeIdmRequest *request_idm, char *lvb, int lvb_size) {
 }
 
 /**
- * _parse_mutex_group - Convenience function for parsing idmInfo data out of the
+ * _parse_mutex_group - Convenience function for parsing struct idm_info data out of the
  * returned data payload.
  *
  * @request_idm: Struct containing all NVMe-specific command info for the
@@ -2408,7 +2408,7 @@ int _parse_lvb(nvmeIdmRequest *request_idm, char *lvb, int lvb_size) {
  *
  * Returns zero or a negative error (ie. EINVAL, ENOMEM, EBUSY, etc).
  */
-int _parse_mutex_group(nvmeIdmRequest *request_idm, idmInfo **info_ptr, int *info_num) {
+int _parse_mutex_group(nvmeIdmRequest *request_idm, struct idm_info **info_ptr, int *info_num) {
 
     #ifdef FUNCTION_ENTRY_DEBUG
     printf("%s: START\n", __func__);
@@ -2418,9 +2418,9 @@ int _parse_mutex_group(nvmeIdmRequest *request_idm, idmInfo **info_ptr, int *inf
     unsigned int   mutex_num = request_idm->data_num;
     int            i, ret    = SUCCESS;
     uint64_t       state, class;
-    idmInfo        *info_list, *info;
+    struct idm_info        *info_list, *info;
 
-    info_list = malloc(sizeof(idmInfo) * mutex_num);
+    info_list = malloc(sizeof(struct idm_info) * mutex_num);
     if (!info_list) {
         ret = -ENOMEM;
         goto EXIT;
@@ -2612,7 +2612,7 @@ int main(int argc, char *argv[])
         int             result=0;
         unsigned int    mutex_num;
         unsigned int    info_num;
-        idmInfo         *info_list;
+        struct idm_info         *info_list;
         int             host_state;
         int             count;
         int             self;

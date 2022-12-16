@@ -3,41 +3,16 @@
  * Copyright (C) 2021 Seagate Technology LLC and/or its Affiliates.
  */
 
-#ifndef __IDM_WRAPPER_H__
-#define __IDM_WRAPPER_H__
+#ifndef __IDM_SCSI_H__
+#define __IDM_SCSI_H__
 
 #include <stdint.h>
+
+#include "idm_cmd_common.h"
 
 #define IDM_LOCK_ID_LEN			64
 #define IDM_HOST_ID_LEN			32
 #define IDM_VALUE_LEN			8
-
-#define IDM_MODE_UNLOCK			0
-#define IDM_MODE_EXCLUSIVE		1
-#define IDM_MODE_SHAREABLE		2
-
-struct idm_info {
-	/* Lock ID */
-	char id[IDM_LOCK_ID_LEN];
-	int state;
-	int mode;
-
-	/* Host ID */
-	char host_id[IDM_HOST_ID_LEN];
-
-	/* Membership */
-	uint64_t last_renew_time;
-};
-
-/*
- * NOTE: assumes the functions idm_drive_init() and idm_drive_destroy()
- * will be used internally in IDM wrapper layer; so this can be transparent
- * to upper layer and reduce the complexity in raid lock layer.
- */
-#if 0
-int idm_drive_init(char *lock_id, char *host_id, char *drive);
-int idm_drive_destroy(char *lock_id, char *host_id, char *drive);
-#endif
 
 int scsi_idm_drive_version(int *version, char *drive);
 int scsi_idm_drive_lock(char *lock_id, int mode, char *host_id,
@@ -95,4 +70,4 @@ int scsi_idm_drive_get_fd(uint64_t handle);
 
 void scsi_idm_drive_free_async_result(uint64_t handle);
 
-#endif
+#endif //__IDM_SCSI_H__

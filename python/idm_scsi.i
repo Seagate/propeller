@@ -19,6 +19,7 @@
 #define IDM_HOST_ID_LEN         32
 #define IDM_VALUE_LEN           8
 
+//TODO: Replace with common include?
 #define IDM_MODE_UNLOCK         0
 #define IDM_MODE_EXCLUSIVE      1
 #define IDM_MODE_SHAREABLE      2
@@ -89,6 +90,7 @@ int idm_drive_get_fd(uint64_t handle);
 
 %}
 
+//TODO: Replace with common include?
 #define IDM_LOCK_ID_LEN         64
 #define IDM_HOST_ID_LEN         32
 #define IDM_VALUE_LEN           8

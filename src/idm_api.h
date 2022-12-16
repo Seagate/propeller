@@ -3,34 +3,18 @@
  * Copyright (C) 2021 Seagate Technology LLC and/or its Affiliates.
  */
 
-#ifndef __IDM_WRAPPER_H__
-#define __IDM_WRAPPER_H__
+#ifndef __IDM_API_H__
+#define __IDM_API_H__
 
 #include <stdint.h>
+
+#include "idm_cmd_common.h"
 
 #define IDM_LOCK_ID_LEN			64
 #define IDM_HOST_ID_LEN			32
 #define IDM_VALUE_LEN			8
 
-#define IDM_MODE_UNLOCK			0
-#define IDM_MODE_EXCLUSIVE		1
-#define IDM_MODE_SHAREABLE		2
-
 #define NVME_DEVICE_TAG "nvme"
-
-
-struct idm_info {
-	/* Lock ID */
-	char id[IDM_LOCK_ID_LEN];
-	int state;
-	int mode;
-
-	/* Host ID */
-	char host_id[IDM_HOST_ID_LEN];
-
-	/* Membership */
-	uint64_t last_renew_time;
-};
 
 /*
  * NOTE: assumes the functions idm_drive_init() and idm_drive_destroy()
@@ -100,4 +84,4 @@ int idm_drive_get_fd(char *drive, uint64_t handle);
 
 void idm_drive_free_async_result(char *drive, uint64_t handle);
 
-#endif
+#endif //__IDM_API_H__

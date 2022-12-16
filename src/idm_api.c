@@ -109,8 +109,8 @@ int idm_drive_unlock(char *lock_id, int mode, char *host_id, char *lvb,
 		ret = nvme_sync_idm_unlock(lock_id, mode, host_id, lvb,
 					   lvb_size, drive);
 	else
-		ret = scsi_idm_drive_lock(lock_id, mode, host_id, lvb,
-					  lvb_size, drive);
+		ret = scsi_idm_drive_unlock(lock_id, mode, host_id, lvb,
+					    lvb_size, drive);
 
 	return ret;
 }
@@ -137,8 +137,8 @@ int idm_drive_unlock_async(char *lock_id, int mode, char *host_id, char *lvb,
 		ret = nvme_async_idm_unlock(lock_id, mode, host_id, lvb,
 					    lvb_size, drive, handle);
 	else
-		ret = scsi_idm_drive_lock_async(lock_id, mode, host_id, lvb,
-						lvb_size, drive, handle);
+		ret = scsi_idm_drive_unlock_async(lock_id, mode, host_id, lvb,
+						  lvb_size, drive, handle);
 
 	return ret;
 }
@@ -738,5 +738,5 @@ int idm_drive_get_fd(char *drive, uint64_t handle)
 }
 
 
-
+//TODO: Remove.  Temp use for standalone compile.
 int main(){}

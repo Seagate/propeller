@@ -16,7 +16,7 @@
 
 
 void dumpIdmDataStruct(idmData *data_idm);
-void dumpIdmInfoStruct(idmInfo *info);
+void dumpIdmInfoStruct(struct idm_info *info);
 void dumpNvmeCmdStruct(nvmeIdmVendorCmd *cmd_nvme, int view_fields, int view_cdws);
 void dumpNvmePassthruCmd(struct nvme_passthru_cmd *cmd);
 
