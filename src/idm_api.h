@@ -75,28 +75,29 @@ int idm_drive_read_lvb(char *lock_id, char *host_id, char *lvb, int lvb_size,
 		       char *drive);
 int idm_drive_read_lvb_async(char *lock_id, char *host_id, char *drive,
 			     uint64_t *handle);
-int idm_drive_read_lvb_async_result(uint64_t handle, char *lvb, int lvb_size,
-				    int *result);
+int idm_drive_read_lvb_async_result(char *drive, uint64_t handle, char *lvb,
+				    int lvb_size, int *result);
 int idm_drive_lock_count(char *lock_id, char *host_id, int *count, int *self,
 			 char *drive);
 int idm_drive_lock_count_async(char *lock_id, char *host_id, char *drive,
 			       uint64_t *handle);
-int idm_drive_lock_count_async_result(uint64_t handle, int *count, int *self,
-				      int *result);
+int idm_drive_lock_count_async_result(char *drive, uint64_t handle, int *count,
+				      int *self, int *result);
 int idm_drive_lock_mode(char *lock_id, int *mode, char *drive);
 int idm_drive_lock_mode_async(char *lock_id, char *drive, uint64_t *handle);
-int idm_drive_lock_mode_async_result(uint64_t handle, int *mode, int *result);
+int idm_drive_lock_mode_async_result(char *drive, uint64_t handle, int *mode,
+				     int *result);
 int idm_drive_read_group(char *drive, struct idm_info **info_ptr,
 			 int *info_num);
 int idm_drive_destroy(char *lock_id, int mode, char *host_id, char *drive);
-int idm_drive_async_result(uint64_t handle, int *result);
+int idm_drive_async_result(char *drive, uint64_t handle, int *result);
 int idm_drive_host_state(char *lock_id, char *host_id, int *host_state,
 			 char *drive);
 
 int idm_drive_whitelist(char *drive, char **whitelist, int *whitelist_num);
 
-int idm_drive_get_fd(uint64_t handle);
+int idm_drive_get_fd(char *drive, uint64_t handle);
 
-void idm_drive_free_async_result(uint64_t handle);
+void idm_drive_free_async_result(char *drive, uint64_t handle);
 
 #endif

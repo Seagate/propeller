@@ -41,7 +41,7 @@ def test_idm__async_lock_exclusive(idm_cleanup):
 
     wait_for_scsi_response(handle)
 
-    ret, result = idm_scsi.idm_drive_async_result(handle)
+    ret, result = idm_scsi.idm_drive_async_result(SG_DEVICE1, handle)
     assert ret == 0
     assert result == 0
 
@@ -61,7 +61,7 @@ def test_idm__async_lock_exclusive(idm_cleanup):
 
     wait_for_scsi_response(handle)
 
-    ret, result = idm_scsi.idm_drive_async_result(handle)
+    ret, result = idm_scsi.idm_drive_async_result(SG_DEVICE1, handle)
     assert ret == 0
     assert result == 0
 
@@ -77,7 +77,7 @@ def test_idm__async_lock_shareable(idm_cleanup):
 
     wait_for_scsi_response(handle)
 
-    ret, result = idm_scsi.idm_drive_async_result(handle)
+    ret, result = idm_scsi.idm_drive_async_result(SG_DEVICE1, handle)
     assert ret == 0
     assert result == 0
 
@@ -97,7 +97,7 @@ def test_idm__async_lock_shareable(idm_cleanup):
 
     wait_for_scsi_response(handle)
 
-    ret, result = idm_scsi.idm_drive_async_result(handle)
+    ret, result = idm_scsi.idm_drive_async_result(SG_DEVICE1, handle)
     assert ret == 0
     assert result == 0
 
@@ -117,11 +117,11 @@ def test_idm__async_lock_exclusive_two_drives(idm_cleanup):
     wait_for_scsi_response(handle1)
     wait_for_scsi_response(handle2)
 
-    ret, result = idm_scsi.idm_drive_async_result(handle1)
+    ret, result = idm_scsi.idm_drive_async_result(SG_DEVICE1, handle1)
     assert ret == 0
     assert result == 0
 
-    ret, result = idm_scsi.idm_drive_async_result(handle2)
+    ret, result = idm_scsi.idm_drive_async_result(SG_DEVICE2, handle2)
     assert ret == 0
     assert result == 0
 
@@ -146,11 +146,11 @@ def test_idm__async_lock_exclusive_two_drives(idm_cleanup):
     wait_for_scsi_response(handle1)
     wait_for_scsi_response(handle2)
 
-    ret, result = idm_scsi.idm_drive_async_result(handle1)
+    ret, result = idm_scsi.idm_drive_async_result(SG_DEVICE1, handle1)
     assert ret == 0
     assert result == 0
 
-    ret, result = idm_scsi.idm_drive_async_result(handle2)
+    ret, result = idm_scsi.idm_drive_async_result(SG_DEVICE2, handle2)
     assert ret == 0
     assert result == 0
 
@@ -170,11 +170,11 @@ def test_idm__async_lock_shareable_two_drives(idm_cleanup):
     wait_for_scsi_response(handle1)
     wait_for_scsi_response(handle2)
 
-    ret, result = idm_scsi.idm_drive_async_result(handle1)
+    ret, result = idm_scsi.idm_drive_async_result(SG_DEVICE1, handle1)
     assert ret == 0
     assert result == 0
 
-    ret, result = idm_scsi.idm_drive_async_result(handle2)
+    ret, result = idm_scsi.idm_drive_async_result(SG_DEVICE2, handle2)
     assert ret == 0
     assert result == 0
 
@@ -199,11 +199,11 @@ def test_idm__async_lock_shareable_two_drives(idm_cleanup):
     wait_for_scsi_response(handle1)
     wait_for_scsi_response(handle2)
 
-    ret, result = idm_scsi.idm_drive_async_result(handle1)
+    ret, result = idm_scsi.idm_drive_async_result(SG_DEVICE1, handle1)
     assert ret == 0
     assert result == 0
 
-    ret, result = idm_scsi.idm_drive_async_result(handle2)
+    ret, result = idm_scsi.idm_drive_async_result(SG_DEVICE2, handle2)
     assert ret == 0
     assert result == 0
 
@@ -224,11 +224,11 @@ def test_idm__async_lock_shareable_two_locks(idm_cleanup):
     wait_for_scsi_response(handle1)
     wait_for_scsi_response(handle2)
 
-    ret, result = idm_scsi.idm_drive_async_result(handle1)
+    ret, result = idm_scsi.idm_drive_async_result(SG_DEVICE1, handle1)
     assert ret == 0
     assert result == 0
 
-    ret, result = idm_scsi.idm_drive_async_result(handle2)
+    ret, result = idm_scsi.idm_drive_async_result(SG_DEVICE1, handle2)
     assert ret == 0
     assert result == 0
 
@@ -253,11 +253,11 @@ def test_idm__async_lock_shareable_two_locks(idm_cleanup):
     wait_for_scsi_response(handle1)
     wait_for_scsi_response(handle2)
 
-    ret, result = idm_scsi.idm_drive_async_result(handle1)
+    ret, result = idm_scsi.idm_drive_async_result(SG_DEVICE1, handle1)
     assert ret == 0
     assert result == 0
 
-    ret, result = idm_scsi.idm_drive_async_result(handle2)
+    ret, result = idm_scsi.idm_drive_async_result(SG_DEVICE1, handle2)
     assert ret == 0
     assert result == 0
 
@@ -278,11 +278,11 @@ def test_idm__async_break_lock_1(idm_cleanup):
     wait_for_scsi_response(handle1)
     wait_for_scsi_response(handle2)
 
-    ret, result = idm_scsi.idm_drive_async_result(handle1)
+    ret, result = idm_scsi.idm_drive_async_result(SG_DEVICE1, handle1)
     assert ret == 0
     assert result == 0
 
-    ret, result = idm_scsi.idm_drive_async_result(handle2)
+    ret, result = idm_scsi.idm_drive_async_result(SG_DEVICE1, handle2)
     assert ret == 0
     assert result == -16    # -EBUSY
 
@@ -294,7 +294,7 @@ def test_idm__async_break_lock_1(idm_cleanup):
 
     wait_for_scsi_response(handle)
 
-    ret, result = idm_scsi.idm_drive_async_result(handle)
+    ret, result = idm_scsi.idm_drive_async_result(SG_DEVICE1, handle)
     assert ret == 0
     assert result == 0
 
@@ -319,11 +319,11 @@ def test_idm__async_break_lock_1(idm_cleanup):
     wait_for_scsi_response(handle1)
     wait_for_scsi_response(handle2)
 
-    ret, result = idm_scsi.idm_drive_async_result(handle1)
+    ret, result = idm_scsi.idm_drive_async_result(SG_DEVICE1, handle1)
     assert ret == 0
     assert result == -2	     # -ENOENT
 
-    ret, result = idm_scsi.idm_drive_async_result(handle2)
+    ret, result = idm_scsi.idm_drive_async_result(SG_DEVICE1, handle2)
     assert ret == 0
     assert result == 0
 
@@ -344,11 +344,11 @@ def test_idm__async_break_lock_2(idm_cleanup):
     wait_for_scsi_response(handle1)
     wait_for_scsi_response(handle2)
 
-    ret, result = idm_scsi.idm_drive_async_result(handle1)
+    ret, result = idm_scsi.idm_drive_async_result(SG_DEVICE1, handle1)
     assert ret == 0
     assert result == 0
 
-    ret, result = idm_scsi.idm_drive_async_result(handle2)
+    ret, result = idm_scsi.idm_drive_async_result(SG_DEVICE1, handle2)
     assert ret == 0
     assert result == -16    # -EBUSY
 
@@ -360,7 +360,7 @@ def test_idm__async_break_lock_2(idm_cleanup):
 
     wait_for_scsi_response(handle)
 
-    ret, result = idm_scsi.idm_drive_async_result(handle)
+    ret, result = idm_scsi.idm_drive_async_result(SG_DEVICE1, handle)
     assert ret == 0
     assert result == 0
 
@@ -385,11 +385,11 @@ def test_idm__async_break_lock_2(idm_cleanup):
     wait_for_scsi_response(handle1)
     wait_for_scsi_response(handle2)
 
-    ret, result = idm_scsi.idm_drive_async_result(handle1)
+    ret, result = idm_scsi.idm_drive_async_result(SG_DEVICE1, handle1)
     assert ret == 0
     assert result == -2
 
-    ret, result = idm_scsi.idm_drive_async_result(handle2)
+    ret, result = idm_scsi.idm_drive_async_result(SG_DEVICE1, handle2)
     assert ret == 0
     assert result == 0
 
@@ -410,11 +410,11 @@ def test_idm__async_break_lock_3(idm_cleanup):
     wait_for_scsi_response(handle1)
     wait_for_scsi_response(handle2)
 
-    ret, result = idm_scsi.idm_drive_async_result(handle1)
+    ret, result = idm_scsi.idm_drive_async_result(SG_DEVICE1, handle1)
     assert ret == 0
     assert result == 0
 
-    ret, result = idm_scsi.idm_drive_async_result(handle2)
+    ret, result = idm_scsi.idm_drive_async_result(SG_DEVICE1, handle2)
     assert ret == 0
     assert result == -16    # -EBUSY
 
@@ -426,7 +426,7 @@ def test_idm__async_break_lock_3(idm_cleanup):
 
     wait_for_scsi_response(handle)
 
-    ret, result = idm_scsi.idm_drive_async_result(handle)
+    ret, result = idm_scsi.idm_drive_async_result(SG_DEVICE1, handle)
     assert ret == 0
     assert result == 0
 
@@ -451,11 +451,11 @@ def test_idm__async_break_lock_3(idm_cleanup):
     wait_for_scsi_response(handle1)
     wait_for_scsi_response(handle2)
 
-    ret, result = idm_scsi.idm_drive_async_result(handle1)
+    ret, result = idm_scsi.idm_drive_async_result(SG_DEVICE1, handle1)
     assert ret == 0
     assert result == -2        # -ENOENT
 
-    ret, result = idm_scsi.idm_drive_async_result(handle2)
+    ret, result = idm_scsi.idm_drive_async_result(SG_DEVICE1, handle2)
     assert ret == 0
     assert result == 0
 
@@ -470,7 +470,7 @@ def test_idm__async_convert_1(idm_cleanup):
 
     wait_for_scsi_response(handle)
 
-    ret, result = idm_scsi.idm_drive_async_result(handle)
+    ret, result = idm_scsi.idm_drive_async_result(SG_DEVICE1, handle)
     assert ret == 0
     assert result == 0
 
@@ -480,7 +480,7 @@ def test_idm__async_convert_1(idm_cleanup):
 
     wait_for_scsi_response(handle)
 
-    ret, result = idm_scsi.idm_drive_async_result(handle)
+    ret, result = idm_scsi.idm_drive_async_result(SG_DEVICE1, handle)
     assert ret == 0
     assert result == 0
 
@@ -500,7 +500,7 @@ def test_idm__async_convert_1(idm_cleanup):
 
     wait_for_scsi_response(handle)
 
-    ret, result = idm_scsi.idm_drive_async_result(handle)
+    ret, result = idm_scsi.idm_drive_async_result(SG_DEVICE1, handle)
     assert ret == 0
     assert result == 0
 
@@ -515,7 +515,7 @@ def test_idm__async_convert_2(idm_cleanup):
 
     wait_for_scsi_response(handle)
 
-    ret, result = idm_scsi.idm_drive_async_result(handle)
+    ret, result = idm_scsi.idm_drive_async_result(SG_DEVICE1, handle)
     assert ret == 0
     assert result == 0
 
@@ -525,7 +525,7 @@ def test_idm__async_convert_2(idm_cleanup):
 
     wait_for_scsi_response(handle)
 
-    ret, result = idm_scsi.idm_drive_async_result(handle)
+    ret, result = idm_scsi.idm_drive_async_result(SG_DEVICE1, handle)
     assert ret == 0
     assert result == 0
 
@@ -545,7 +545,7 @@ def test_idm__async_convert_2(idm_cleanup):
 
     wait_for_scsi_response(handle)
 
-    ret, result = idm_scsi.idm_drive_async_result(handle)
+    ret, result = idm_scsi.idm_drive_async_result(SG_DEVICE1, handle)
     assert ret == 0
     assert result == 0
 
@@ -566,11 +566,11 @@ def test_idm__async_convert_3(idm_cleanup):
     wait_for_scsi_response(handle1)
     wait_for_scsi_response(handle2)
 
-    ret, result = idm_scsi.idm_drive_async_result(handle1)
+    ret, result = idm_scsi.idm_drive_async_result(SG_DEVICE1, handle1)
     assert ret == 0
     assert result == 0
 
-    ret, result = idm_scsi.idm_drive_async_result(handle2)
+    ret, result = idm_scsi.idm_drive_async_result(SG_DEVICE1, handle2)
     assert ret == 0
     assert result == 0
 
@@ -580,7 +580,7 @@ def test_idm__async_convert_3(idm_cleanup):
 
     wait_for_scsi_response(handle)
 
-    ret, result = idm_scsi.idm_drive_async_result(handle)
+    ret, result = idm_scsi.idm_drive_async_result(SG_DEVICE1, handle)
     assert ret == 0
     assert result == -1        # -EPERM
 
@@ -605,11 +605,11 @@ def test_idm__async_convert_3(idm_cleanup):
     wait_for_scsi_response(handle1)
     wait_for_scsi_response(handle2)
 
-    ret, result = idm_scsi.idm_drive_async_result(handle1)
+    ret, result = idm_scsi.idm_drive_async_result(SG_DEVICE1, handle1)
     assert ret == 0
     assert result == 0
 
-    ret, result = idm_scsi.idm_drive_async_result(handle2)
+    ret, result = idm_scsi.idm_drive_async_result(SG_DEVICE1, handle2)
     assert ret == 0
     assert result == 0
 
@@ -624,7 +624,7 @@ def test_idm__async_renew_1(idm_cleanup):
 
     wait_for_scsi_response(handle)
 
-    ret, result = idm_scsi.idm_drive_async_result(handle)
+    ret, result = idm_scsi.idm_drive_async_result(SG_DEVICE1, handle)
     assert ret == 0
     assert result == 0
 
@@ -636,7 +636,7 @@ def test_idm__async_renew_1(idm_cleanup):
 
     wait_for_scsi_response(handle)
 
-    ret, result = idm_scsi.idm_drive_async_result(handle)
+    ret, result = idm_scsi.idm_drive_async_result(SG_DEVICE1, handle)
     assert ret == 0
     assert result == 0
 
@@ -648,7 +648,7 @@ def test_idm__async_renew_1(idm_cleanup):
 
     wait_for_scsi_response(handle)
 
-    ret, result = idm_scsi.idm_drive_async_result(handle)
+    ret, result = idm_scsi.idm_drive_async_result(SG_DEVICE1, handle)
     assert ret == 0
     assert result == 0
 
@@ -660,7 +660,7 @@ def test_idm__async_renew_1(idm_cleanup):
 
     wait_for_scsi_response(handle)
 
-    ret, result = idm_scsi.idm_drive_async_result(handle)
+    ret, result = idm_scsi.idm_drive_async_result(SG_DEVICE1, handle)
     assert ret == 0
     assert result == 0
 
@@ -680,7 +680,7 @@ def test_idm__async_renew_1(idm_cleanup):
 
     wait_for_scsi_response(handle)
 
-    ret, result = idm_scsi.idm_drive_async_result(handle)
+    ret, result = idm_scsi.idm_drive_async_result(SG_DEVICE1, handle)
     assert ret == 0
     assert result == 0
 
@@ -695,7 +695,7 @@ def test_idm__async_renew_2(idm_cleanup):
 
     wait_for_scsi_response(handle)
 
-    ret, result = idm_scsi.idm_drive_async_result(handle)
+    ret, result = idm_scsi.idm_drive_async_result(SG_DEVICE1, handle)
     assert ret == 0
     assert result == 0
 
@@ -707,7 +707,7 @@ def test_idm__async_renew_2(idm_cleanup):
 
     wait_for_scsi_response(handle)
 
-    ret, result = idm_scsi.idm_drive_async_result(handle)
+    ret, result = idm_scsi.idm_drive_async_result(SG_DEVICE1, handle)
     assert ret == 0
     assert result == 0
 
@@ -719,7 +719,7 @@ def test_idm__async_renew_2(idm_cleanup):
 
     wait_for_scsi_response(handle)
 
-    ret, result = idm_scsi.idm_drive_async_result(handle)
+    ret, result = idm_scsi.idm_drive_async_result(SG_DEVICE1, handle)
     assert ret == 0
     assert result == 0
 
@@ -731,7 +731,7 @@ def test_idm__async_renew_2(idm_cleanup):
 
     wait_for_scsi_response(handle)
 
-    ret, result = idm_scsi.idm_drive_async_result(handle)
+    ret, result = idm_scsi.idm_drive_async_result(SG_DEVICE1, handle)
     assert ret == 0
     assert result == 0
 
@@ -751,7 +751,7 @@ def test_idm__async_renew_2(idm_cleanup):
 
     wait_for_scsi_response(handle)
 
-    ret, result = idm_scsi.idm_drive_async_result(handle)
+    ret, result = idm_scsi.idm_drive_async_result(SG_DEVICE1, handle)
     assert ret == 0
     assert result == 0
 
@@ -766,7 +766,7 @@ def test_idm__async_renew_timout_1(idm_cleanup):
 
     wait_for_scsi_response(handle)
 
-    ret, result = idm_scsi.idm_drive_async_result(handle)
+    ret, result = idm_scsi.idm_drive_async_result(SG_DEVICE1, handle)
     assert ret == 0
     assert result == 0
 
@@ -778,7 +778,7 @@ def test_idm__async_renew_timout_1(idm_cleanup):
 
     wait_for_scsi_response(handle)
 
-    ret, result = idm_scsi.idm_drive_async_result(handle)
+    ret, result = idm_scsi.idm_drive_async_result(SG_DEVICE1, handle)
     assert ret == 0
     assert result == 0        # -ETIME or 0
 
@@ -798,7 +798,7 @@ def test_idm__async_renew_timout_1(idm_cleanup):
 
     wait_for_scsi_response(handle)
 
-    ret, result = idm_scsi.idm_drive_async_result(handle)
+    ret, result = idm_scsi.idm_drive_async_result(SG_DEVICE1, handle)
     assert ret == 0
     assert result == 0          # -ETIME or 0
 
@@ -813,7 +813,7 @@ def test_idm__async_renew_timeout_2(idm_cleanup):
 
     wait_for_scsi_response(handle)
 
-    ret, result = idm_scsi.idm_drive_async_result(handle)
+    ret, result = idm_scsi.idm_drive_async_result(SG_DEVICE1, handle)
     assert ret == 0
     assert result == 0
 
@@ -825,7 +825,7 @@ def test_idm__async_renew_timeout_2(idm_cleanup):
 
     wait_for_scsi_response(handle)
 
-    ret, result = idm_scsi.idm_drive_async_result(handle)
+    ret, result = idm_scsi.idm_drive_async_result(SG_DEVICE1, handle)
     assert ret == 0
     assert result == 0
 
@@ -845,7 +845,7 @@ def test_idm__async_renew_timeout_2(idm_cleanup):
 
     wait_for_scsi_response(handle)
 
-    ret, result = idm_scsi.idm_drive_async_result(handle)
+    ret, result = idm_scsi.idm_drive_async_result(SG_DEVICE1, handle)
     assert ret == 0
     assert result == 0          # -ETIME or 0
 
@@ -860,7 +860,7 @@ def test_idm__async_read_lvb_1(idm_cleanup):
 
     wait_for_scsi_response(handle)
 
-    ret, result = idm_scsi.idm_drive_async_result(handle)
+    ret, result = idm_scsi.idm_drive_async_result(SG_DEVICE1, handle)
     assert ret == 0
     assert result == 0
 
@@ -871,7 +871,7 @@ def test_idm__async_read_lvb_1(idm_cleanup):
 
     wait_for_scsi_response(handle)
 
-    ret, result = idm_scsi.idm_drive_read_lvb_async_result(handle, a, 8)
+    ret, result = idm_scsi.idm_drive_read_lvb_async_result(SG_DEVICE1, handle, a, 8)
     assert ret == 0
     assert result == 0
 
@@ -890,7 +890,7 @@ def test_idm__async_read_lvb_1(idm_cleanup):
 
     wait_for_scsi_response(handle)
 
-    ret, result = idm_scsi.idm_drive_async_result(handle)
+    ret, result = idm_scsi.idm_drive_async_result(SG_DEVICE1, handle)
     assert ret == 0
     assert result == 0
 
@@ -905,7 +905,7 @@ def test_idm__async_read_lvb_2(idm_cleanup):
 
     wait_for_scsi_response(handle)
 
-    ret, result = idm_scsi.idm_drive_async_result(handle)
+    ret, result = idm_scsi.idm_drive_async_result(SG_DEVICE1, handle)
     assert ret == 0
     assert result == 0
 
@@ -916,7 +916,7 @@ def test_idm__async_read_lvb_2(idm_cleanup):
 
     wait_for_scsi_response(handle)
 
-    ret, result = idm_scsi.idm_drive_read_lvb_async_result(handle, a, 8)
+    ret, result = idm_scsi.idm_drive_read_lvb_async_result(SG_DEVICE1, handle, a, 8)
     assert ret == 0
     assert result == 0
 
@@ -944,7 +944,7 @@ def test_idm__async_read_lvb_2(idm_cleanup):
 
     wait_for_scsi_response(handle)
 
-    ret, result = idm_scsi.idm_drive_async_result(handle)
+    ret, result = idm_scsi.idm_drive_async_result(SG_DEVICE1, handle)
     assert ret == 0
     assert result == 0
 
@@ -954,7 +954,7 @@ def test_idm__async_read_lvb_2(idm_cleanup):
 
     wait_for_scsi_response(handle)
 
-    ret, result = idm_scsi.idm_drive_async_result(handle)
+    ret, result = idm_scsi.idm_drive_async_result(SG_DEVICE1, handle)
     assert ret == 0
     assert result == 0
 
@@ -963,7 +963,7 @@ def test_idm__async_read_lvb_2(idm_cleanup):
 
     wait_for_scsi_response(handle)
 
-    ret, result = idm_scsi.idm_drive_read_lvb_async_result(handle, a, 8)
+    ret, result = idm_scsi.idm_drive_read_lvb_async_result(SG_DEVICE1, handle, a, 8)
     assert ret == 0
     assert result == 0
 
@@ -982,7 +982,7 @@ def test_idm__async_read_lvb_2(idm_cleanup):
 
     wait_for_scsi_response(handle)
 
-    ret, result = idm_scsi.idm_drive_async_result(handle)
+    ret, result = idm_scsi.idm_drive_async_result(SG_DEVICE1, handle)
     assert ret == 0
     assert result == 0
 
@@ -997,7 +997,7 @@ def test_idm__async_get_host_count(idm_cleanup):
 
     wait_for_scsi_response(handle)
 
-    ret, result = idm_scsi.idm_drive_async_result(handle)
+    ret, result = idm_scsi.idm_drive_async_result(SG_DEVICE1, handle)
     assert ret == 0
     assert result == 0
 
@@ -1006,7 +1006,7 @@ def test_idm__async_get_host_count(idm_cleanup):
 
     wait_for_scsi_response(handle)
 
-    ret, count, self, result = idm_scsi.idm_drive_lock_count_async_result(handle)
+    ret, count, self, result = idm_scsi.idm_drive_lock_count_async_result(SG_DEVICE1, handle)
     assert ret == 0
     assert result == 0
     assert count == 0
@@ -1028,7 +1028,7 @@ def test_idm__async_get_host_count(idm_cleanup):
 
     wait_for_scsi_response(handle)
 
-    ret, result = idm_scsi.idm_drive_async_result(handle)
+    ret, result = idm_scsi.idm_drive_async_result(SG_DEVICE1, handle)
     assert ret == 0
     assert result == 0
 
@@ -1037,7 +1037,7 @@ def test_idm__async_get_host_count(idm_cleanup):
 
     wait_for_scsi_response(handle)
 
-    ret, count, self, result = idm_scsi.idm_drive_lock_count_async_result(handle)
+    ret, count, self, result = idm_scsi.idm_drive_lock_count_async_result(SG_DEVICE1, handle)
     assert ret == 0
     assert result == 0
     assert count == 0
@@ -1056,7 +1056,7 @@ def test_idm__async_two_hosts_get_host_count(idm_cleanup):
 
     wait_for_scsi_response(handle)
 
-    ret, result = idm_scsi.idm_drive_async_result(handle)
+    ret, result = idm_scsi.idm_drive_async_result(SG_DEVICE1, handle)
     assert ret == 0
     assert result == 0
 
@@ -1066,7 +1066,7 @@ def test_idm__async_two_hosts_get_host_count(idm_cleanup):
 
     wait_for_scsi_response(handle)
 
-    ret, result = idm_scsi.idm_drive_async_result(handle)
+    ret, result = idm_scsi.idm_drive_async_result(SG_DEVICE1, handle)
     assert ret == 0
     assert result == 0
 
@@ -1075,7 +1075,7 @@ def test_idm__async_two_hosts_get_host_count(idm_cleanup):
 
     wait_for_scsi_response(handle)
 
-    ret, count, self, result = idm_scsi.idm_drive_lock_count_async_result(handle)
+    ret, count, self, result = idm_scsi.idm_drive_lock_count_async_result(SG_DEVICE1, handle)
     assert ret == 0
     assert result == 0
     assert count == 1
@@ -1086,7 +1086,7 @@ def test_idm__async_two_hosts_get_host_count(idm_cleanup):
 
     wait_for_scsi_response(handle)
 
-    ret, count, self, result = idm_scsi.idm_drive_lock_count_async_result(handle)
+    ret, count, self, result = idm_scsi.idm_drive_lock_count_async_result(SG_DEVICE1, handle)
     assert ret == 0
     assert result == 0
     assert count == 1
@@ -1097,7 +1097,7 @@ def test_idm__async_two_hosts_get_host_count(idm_cleanup):
 
     wait_for_scsi_response(handle)
 
-    ret, count, self, result = idm_scsi.idm_drive_lock_count_async_result(handle)
+    ret, count, self, result = idm_scsi.idm_drive_lock_count_async_result(SG_DEVICE1, handle)
     assert ret == 0
     assert result == 0
     assert count == 2
@@ -1119,7 +1119,7 @@ def test_idm__async_two_hosts_get_host_count(idm_cleanup):
 
     wait_for_scsi_response(handle)
 
-    ret, result = idm_scsi.idm_drive_async_result(handle)
+    ret, result = idm_scsi.idm_drive_async_result(SG_DEVICE1, handle)
     assert ret == 0
     assert result == 0
 
@@ -1129,7 +1129,7 @@ def test_idm__async_two_hosts_get_host_count(idm_cleanup):
 
     wait_for_scsi_response(handle)
 
-    ret, result = idm_scsi.idm_drive_async_result(handle)
+    ret, result = idm_scsi.idm_drive_async_result(SG_DEVICE1, handle)
     assert ret == 0
     assert result == 0
 
@@ -1138,7 +1138,7 @@ def test_idm__async_two_hosts_get_host_count(idm_cleanup):
 
     wait_for_scsi_response(handle)
 
-    ret, count, self, result = idm_scsi.idm_drive_lock_count_async_result(handle)
+    ret, count, self, result = idm_scsi.idm_drive_lock_count_async_result(SG_DEVICE1, handle)
     assert ret == 0
     assert result == 0
     assert count == 0
@@ -1157,7 +1157,7 @@ def test_idm__async_three_hosts_get_host_count(idm_cleanup):
 
     wait_for_scsi_response(handle)
 
-    ret, result = idm_scsi.idm_drive_async_result(handle)
+    ret, result = idm_scsi.idm_drive_async_result(SG_DEVICE1, handle)
     assert ret == 0
     assert result == 0
 
@@ -1167,7 +1167,7 @@ def test_idm__async_three_hosts_get_host_count(idm_cleanup):
 
     wait_for_scsi_response(handle)
 
-    ret, result = idm_scsi.idm_drive_async_result(handle)
+    ret, result = idm_scsi.idm_drive_async_result(SG_DEVICE1, handle)
     assert ret == 0
     assert result == 0
 
@@ -1177,7 +1177,7 @@ def test_idm__async_three_hosts_get_host_count(idm_cleanup):
 
     wait_for_scsi_response(handle)
 
-    ret, result = idm_scsi.idm_drive_async_result(handle)
+    ret, result = idm_scsi.idm_drive_async_result(SG_DEVICE1, handle)
     assert ret == 0
     assert result == 0
 
@@ -1186,7 +1186,7 @@ def test_idm__async_three_hosts_get_host_count(idm_cleanup):
 
     wait_for_scsi_response(handle)
 
-    ret, count, self, result = idm_scsi.idm_drive_lock_count_async_result(handle)
+    ret, count, self, result = idm_scsi.idm_drive_lock_count_async_result(SG_DEVICE1, handle)
     assert ret == 0
     assert result == 0
     assert count == 2
@@ -1197,7 +1197,7 @@ def test_idm__async_three_hosts_get_host_count(idm_cleanup):
 
     wait_for_scsi_response(handle)
 
-    ret, count, self, result = idm_scsi.idm_drive_lock_count_async_result(handle)
+    ret, count, self, result = idm_scsi.idm_drive_lock_count_async_result(SG_DEVICE1, handle)
     assert ret == 0
     assert result == 0
     assert count == 2
@@ -1208,7 +1208,7 @@ def test_idm__async_three_hosts_get_host_count(idm_cleanup):
 
     wait_for_scsi_response(handle)
 
-    ret, count, self, result = idm_scsi.idm_drive_lock_count_async_result(handle)
+    ret, count, self, result = idm_scsi.idm_drive_lock_count_async_result(SG_DEVICE1, handle)
     assert ret == 0
     assert result == 0
     assert count == 2
@@ -1230,7 +1230,7 @@ def test_idm__async_three_hosts_get_host_count(idm_cleanup):
 
     wait_for_scsi_response(handle)
 
-    ret, result = idm_scsi.idm_drive_async_result(handle)
+    ret, result = idm_scsi.idm_drive_async_result(SG_DEVICE1, handle)
     assert ret == 0
     assert result == 0
 
@@ -1240,7 +1240,7 @@ def test_idm__async_three_hosts_get_host_count(idm_cleanup):
 
     wait_for_scsi_response(handle)
 
-    ret, result = idm_scsi.idm_drive_async_result(handle)
+    ret, result = idm_scsi.idm_drive_async_result(SG_DEVICE1, handle)
     assert ret == 0
     assert result == 0
 
@@ -1250,7 +1250,7 @@ def test_idm__async_three_hosts_get_host_count(idm_cleanup):
 
     wait_for_scsi_response(handle)
 
-    ret, result = idm_scsi.idm_drive_async_result(handle)
+    ret, result = idm_scsi.idm_drive_async_result(SG_DEVICE1, handle)
     assert ret == 0
     assert result == 0
 
@@ -1259,7 +1259,7 @@ def test_idm__async_three_hosts_get_host_count(idm_cleanup):
 
     wait_for_scsi_response(handle)
 
-    ret, count, self, result = idm_scsi.idm_drive_lock_count_async_result(handle)
+    ret, count, self, result = idm_scsi.idm_drive_lock_count_async_result(SG_DEVICE1, handle)
     assert ret == 0
     assert result == 0
     assert count == 0
@@ -1275,7 +1275,7 @@ def test_idm__async_get_lock_mode(idm_cleanup):
 
     wait_for_scsi_response(handle)
 
-    ret, mode, result = idm_scsi.idm_drive_lock_mode_async_result(handle)
+    ret, mode, result = idm_scsi.idm_drive_lock_mode_async_result(SG_DEVICE1, handle)
     assert ret == 0
     assert mode == idm_scsi.IDM_MODE_UNLOCK
     assert result == 0
@@ -1291,7 +1291,7 @@ def test_idm__async_get_lock_exclusive_mode(idm_cleanup):
 
     wait_for_scsi_response(handle)
 
-    ret, result = idm_scsi.idm_drive_async_result(handle)
+    ret, result = idm_scsi.idm_drive_async_result(SG_DEVICE1, handle)
     assert ret == 0
     assert result == 0
 
@@ -1300,7 +1300,7 @@ def test_idm__async_get_lock_exclusive_mode(idm_cleanup):
 
     wait_for_scsi_response(handle)
 
-    ret, mode, result = idm_scsi.idm_drive_lock_mode_async_result(handle)
+    ret, mode, result = idm_scsi.idm_drive_lock_mode_async_result(SG_DEVICE1, handle)
     assert ret == 0
     assert mode == idm_scsi.IDM_MODE_EXCLUSIVE
     assert result == 0
@@ -1321,7 +1321,7 @@ def test_idm__async_get_lock_exclusive_mode(idm_cleanup):
 
     wait_for_scsi_response(handle)
 
-    ret, result = idm_scsi.idm_drive_async_result(handle)
+    ret, result = idm_scsi.idm_drive_async_result(SG_DEVICE1, handle)
     assert ret == 0
     assert result == 0
 
@@ -1336,7 +1336,7 @@ def test_idm__async_get_lock_shareable_mode(idm_cleanup):
 
     wait_for_scsi_response(handle)
 
-    ret, result = idm_scsi.idm_drive_async_result(handle)
+    ret, result = idm_scsi.idm_drive_async_result(SG_DEVICE1, handle)
     assert ret == 0
     assert result == 0
 
@@ -1345,7 +1345,7 @@ def test_idm__async_get_lock_shareable_mode(idm_cleanup):
 
     wait_for_scsi_response(handle)
 
-    ret, mode, result = idm_scsi.idm_drive_lock_mode_async_result(handle)
+    ret, mode, result = idm_scsi.idm_drive_lock_mode_async_result(SG_DEVICE1, handle)
     assert ret == 0
     assert mode == idm_scsi.IDM_MODE_SHAREABLE
     assert result == 0
@@ -1366,6 +1366,6 @@ def test_idm__async_get_lock_shareable_mode(idm_cleanup):
 
     wait_for_scsi_response(handle)
 
-    ret, result = idm_scsi.idm_drive_async_result(handle)
+    ret, result = idm_scsi.idm_drive_async_result(SG_DEVICE1, handle)
     assert ret == 0
     assert result == 0

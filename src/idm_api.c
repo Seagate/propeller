@@ -429,6 +429,7 @@ int idm_drive_read_lvb_async(char *lock_id, char *host_id, char *drive,
  * idm_drive_read_lvb_async_result - Read the result for read_lvb operation with
  * async mode.
  *
+ * @drive:	Drive path name.
  * @handle:	Handle for the previously sent device operation.
  * @lvb:	Lock value block pointer.
  * @lvb_size:	Lock value block size.
@@ -436,12 +437,11 @@ int idm_drive_read_lvb_async(char *lock_id, char *host_id, char *drive,
  *
  * Returns zero or a negative error (ie. EINVAL, ENOMEM, EBUSY, etc).
  */
-int idm_drive_read_lvb_async_result(uint64_t handle, char *lvb, int lvb_size,
-				    int *result)
+int idm_drive_read_lvb_async_result(char *drive, uint64_t handle, char *lvb,
+				    int lvb_size, int *result)
 {
 	int ret;
 
-//TODO: Modify interace to take drive param.
 	if (!strstr(drive, NVME_DEVICE_TAG))
 		ret = nvme_async_idm_get_result_lvb(handle, lvb, lvb_size,
 						    result);
@@ -506,6 +506,7 @@ int idm_drive_lock_count_async(char *lock_id, char *host_id, char *drive,
 /**
  * idm_drive_lock_count_async_result - Read the result for host count.
  *
+ * @drive:	Drive path name.
  * @handle:	Handle for the previously sent device operation.
  * @count:	Returned count value's pointer.
  * @self:	Returned self count value's pointer.
@@ -513,8 +514,8 @@ int idm_drive_lock_count_async(char *lock_id, char *host_id, char *drive,
  *
  * Returns zero or a negative error (ie. EINVAL, ENOMEM, EBUSY, etc).
  */
-int idm_drive_lock_count_async_result(uint64_t handle, int *count, int *self,
-				      int *result)
+int idm_drive_lock_count_async_result(char *drive, uint64_t handle, int *count,
+				      int *self, int *result)
 {
 	int ret;
 
@@ -573,13 +574,15 @@ int idm_drive_lock_mode_async(char *lock_id, char *drive, uint64_t *handle)
 /**
  * idm_drive_lock_mode_async_result - Read the result for lock mode.
  *
+ * @drive:	Drive path name.
  * @handle:	Handle for the previously sent device operation.
  * @mode:	Returned mode's pointer.
  * @result:	Returned result for the operation.
  *
  * Returns zero or a negative error (ie. EINVAL, ENOMEM, EBUSY, etc).
  */
-int idm_drive_lock_mode_async_result(uint64_t handle, int *mode, int *result)
+int idm_drive_lock_mode_async_result(char *drive, uint64_t handle, int *mode,
+				     int *result)
 {
 	int ret;
 
@@ -596,12 +599,13 @@ int idm_drive_lock_mode_async_result(uint64_t handle, int *mode, int *result)
 /**
  * idm_drive_async_result - Read the result for normal operations.
  *
+ * @drive:	Drive path name.
  * @handle:	Handle for the previously sent device operation.
  * @result:	Returned result for the operation.
  *
  * Returns zero or a negative error (ie. EINVAL, ENOMEM, EBUSY, etc).
  */
-int idm_drive_async_result(uint64_t handle, int *result)
+int idm_drive_async_result(char *drive, uint64_t handle, int *result)
 {
 	int ret;
 
@@ -616,11 +620,12 @@ int idm_drive_async_result(uint64_t handle, int *result)
 /**
  * idm_drive_free_async_result - Free the async result
  *
+ * @drive:	Drive path name.
  * @handle:	Handle for the previously sent device operation.
  *
  * No return value
  */
-void idm_drive_free_async_result(uint64_t handle)
+void idm_drive_free_async_result(char *drive, uint64_t handle)
 {
 	if (!strstr(drive, NVME_DEVICE_TAG))
 		nvme_async_idm_free_result(handle);
@@ -712,7 +717,15 @@ int idm_drive_destroy(char *lock_id, int mode, char *host_id,
 	return ret;
 }
 
-int idm_drive_get_fd(uint64_t handle)
+/**
+ * idm_drive_destroy - Destroy an IDM and release all associated resource.
+ *
+ * @drive:	Drive path name.
+ * @handle:	Handle for the previously sent device operation.
+ *
+ * Returns zero or a negative error (ie. EINVAL, ENOMEM, EBUSY, etc).
+ */
+int idm_drive_get_fd(char *drive, uint64_t handle)
 {
 	int ret;
 

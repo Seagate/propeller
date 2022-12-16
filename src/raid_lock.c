@@ -460,26 +460,30 @@ static int _raid_read_result_async(struct _raid_request *req)
 	case ILM_OP_UNLOCK:
 	case ILM_OP_CONVERT:
 	case ILM_OP_RENEW:
-		ret = idm_drive_async_result(req->handle, &req->result);
+		ret = idm_drive_async_result(req->path, req->handle,
+					     &req->result);
 		break;
 	case ILM_OP_BREAK:
-		ret = idm_drive_async_result(req->handle, &req->result);
+		ret = idm_drive_async_result(req->path, req->handle,
+					     &req->result);
 		if (!ret)
 			drive->is_brk = 1;
 		break;
 	case ILM_OP_READ_LVB:
-		ret = idm_drive_read_lvb_async_result(req->handle, req->lvb,
+		ret = idm_drive_read_lvb_async_result(req->path,
+						      req->handle, req->lvb,
 						      req->lvb_size,
 						      &req->result);
 		break;
 	case ILM_OP_COUNT:
-		ret = idm_drive_lock_count_async_result(req->handle,
+		ret = idm_drive_lock_count_async_result(req->path,
+							req->handle,
 							&req->count,
 							&req->self,
-						        &req->result);
+							&req->result);
 		break;
 	case ILM_OP_MODE:
-		ret = idm_drive_lock_mode_async_result(req->handle,
+		ret = idm_drive_lock_mode_async_result(req->path, req->handle,
 						       &req->mode,
 						       &req->result);
 		break;
