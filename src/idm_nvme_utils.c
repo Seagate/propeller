@@ -46,10 +46,10 @@ void dumpIdmDataStruct(idmData *d){
  *
  * @info: Data structure containing IDM-specific info.
  */
-void dumpIdmInfoStruct(idmInfo *info){
+void dumpIdmInfoStruct(struct idm_info *info){
 
-    printf("idmInfo struct: fields\n");
-    printf("=======================\n");
+    printf("struct idm_info fields\n");
+    printf("======================\n");
     printf("id      = '");
     _print_char_arr(info->id, IDM_LOCK_ID_LEN_BYTES);
     printf("state   = 0x%X (%d)\n", info->state, info->state);

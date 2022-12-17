@@ -129,14 +129,14 @@ typedef struct _nvmeIdmRequest {
 //////////////////////////////////////////
 // Functions
 //////////////////////////////////////////
-int nvme_async_idm_data_rcv(nvmeIdmRequest *request_idm, int *result);
-int nvme_async_idm_read(nvmeIdmRequest *request_idm);
-int nvme_async_idm_write(nvmeIdmRequest *request_idm);
+int nvme_idm_async_data_rcv(nvmeIdmRequest *request_idm, int *result);
+int nvme_idm_async_read(nvmeIdmRequest *request_idm);
+int nvme_idm_async_write(nvmeIdmRequest *request_idm);
+int nvme_idm_sync_read(nvmeIdmRequest *request_idm);
+int nvme_idm_sync_write(nvmeIdmRequest *request_idm);
 void nvme_idm_read_init(char *drive, nvmeIdmRequest *request_idm);
 int nvme_idm_write_init(char *lock_id, int mode, char *host_id, char *drive,
                         uint64_t timeout, nvmeIdmRequest *request_idm);
-int nvme_sync_idm_read(nvmeIdmRequest *request_idm);
-int nvme_sync_idm_write(nvmeIdmRequest *request_idm);
 
 int _async_idm_cmd_send(nvmeIdmRequest *request_idm);  // Uses write()   (_scsi_write())
 int _async_idm_data_rcv(nvmeIdmRequest *request_idm, int *result); // Uses read()    (_scsi_read()) (ALWAYS returns status code.  MAY fill data)
