@@ -52,8 +52,8 @@ int idm_drive_break_lock_async(char *lock_id, int mode, char *host_id,
 			       uint64_t *handle);
 int idm_drive_write_lvb(char *lock_id, char *host_id, char *lvb, int lvb_size,
 			char *drive);
-int idm_drive_write_lvb_async(char *lock_id, char *host_id, char *drive,
-			      uint64_t *handle);
+int idm_drive_write_lvb_async(char *lock_id, char *host_id, char *lvb,
+			      int lvb_size, char *drive, uint64_t *handle);
 
 int idm_drive_read_lvb(char *lock_id, char *host_id, char *lvb, int lvb_size,
 		       char *drive);
