@@ -40,13 +40,13 @@
 //////////////////////////////////////////
 
 /**
- * nvme_async_idm_free_result - Free the async result
+ * nvme_idm_async_free_result - Free the async result
  *
  * @handle:      NVMe request handle for the previously sent NVMe cmd.
  *
  * No return value
  */
-void nvme_async_idm_free_result(uint64_t handle)
+void nvme_idm_async_free_result(uint64_t handle)
 {
     nvmeIdmRequest *request_idm = (nvmeIdmRequest *)request_idm;
 
@@ -54,14 +54,14 @@ void nvme_async_idm_free_result(uint64_t handle)
 }
 
 /**
- * nvme_async_idm_get_result - Retreive the result for normal async operations.
+ * nvme_idm_async_get_result - Retreive the result for normal async operations.
  *
  * @handle:      NVMe request handle for the previously sent NVMe cmd.
  * @result:      Returned result (0 or -ve value) for the previously sent NVMe command.
  *
  * Returns zero or a negative error (ie. EINVAL, ENOMEM, EBUSY, etc).
  */
-int nvme_async_idm_get_result(uint64_t handle, int *result) {
+int nvme_idm_async_get_result(uint64_t handle, int *result) {
 
     #ifdef FUNCTION_ENTRY_DEBUG
     printf("%s: START\n", __func__);
@@ -70,12 +70,12 @@ int nvme_async_idm_get_result(uint64_t handle, int *result) {
     nvmeIdmRequest *request_idm = (nvmeIdmRequest *)handle;
     int            ret          = SUCCESS;
 
-    ret = nvme_async_idm_data_rcv(request_idm, result);
+    ret = nvme_idm_async_data_rcv(request_idm, result);
     if (ret < 0) {
         #ifndef COMPILE_STANDALONE
-        ilm_log_err("%s: nvme_async_idm_data_rcv fail %d", __func__, ret);
+        ilm_log_err("%s: nvme_idm_async_data_rcv fail %d", __func__, ret);
         #else
-        printf("%s: nvme_async_idm_data_rcv fail %d\n", __func__, ret);
+        printf("%s: nvme_idm_async_data_rcv fail %d\n", __func__, ret);
         #endif //COMPILE_STANDALONE
         goto EXIT;
     }
@@ -97,7 +97,7 @@ EXIT:
 }
 
 /**
- * nvme_async_idm_get_result_lock_count - Asynchronously retreive the result for a previous
+ * nvme_idm_async_get_result_lock_count - Asynchronously retreive the result for a previous
  * asynchronous read lock count request.
  *
  * @handle:     NVMe request handle for the previously sent NVMe cmd.
@@ -109,7 +109,7 @@ EXIT:
  *
  * Returns zero or a negative error (ie. EINVAL, ENOMEM, EBUSY, etc).
  */
-int nvme_async_idm_get_result_lock_count(uint64_t handle, int *count, int *self, int *result) {
+int nvme_idm_async_get_result_lock_count(uint64_t handle, int *count, int *self, int *result) {
 
     #ifdef FUNCTION_ENTRY_DEBUG
     printf("%s: START\n", __func__);
@@ -122,12 +122,12 @@ int nvme_async_idm_get_result_lock_count(uint64_t handle, int *count, int *self,
     *count = 0;
     *self  = 0;
 
-    ret = nvme_async_idm_data_rcv(request_idm, result);
+    ret = nvme_idm_async_data_rcv(request_idm, result);
     if (ret < 0) {
         #ifndef COMPILE_STANDALONE
-        ilm_log_err("%s: nvme_async_idm_data_rcv fail %d", __func__, ret);
+        ilm_log_err("%s: nvme_idm_async_data_rcv fail %d", __func__, ret);
         #else
-        printf("%s: nvme_async_idm_data_rcv fail %d\n", __func__, ret);
+        printf("%s: nvme_idm_async_data_rcv fail %d\n", __func__, ret);
         #endif //COMPILE_STANDALONE
         goto EXIT_FAIL;
     }
@@ -162,7 +162,7 @@ EXIT_FAIL:
 }
 
 /**
- * nvme_async_idm_get_result_lock_mode - Asynchronously retreive the result for a previous
+ * nvme_idm_async_get_result_lock_mode - Asynchronously retreive the result for a previous
  * asynchronous read lock mode request.
  *
  * @handle:     NVMe request handle for the previously sent NVMe cmd.
@@ -172,7 +172,7 @@ EXIT_FAIL:
  *
  * Returns zero or a negative error (ie. EINVAL, ENOMEM, EBUSY, etc).
  */
-int nvme_async_idm_get_result_lock_mode(uint64_t handle, int *mode, int *result) {
+int nvme_idm_async_get_result_lock_mode(uint64_t handle, int *mode, int *result) {
 
     #ifdef FUNCTION_ENTRY_DEBUG
     printf("%s: START\n", __func__);
@@ -184,12 +184,12 @@ int nvme_async_idm_get_result_lock_mode(uint64_t handle, int *mode, int *result)
     // Initialize the return parameter
     *mode = -1;    //TODO: hardcoded state. add an "error" state to the enum?
 
-    ret = nvme_async_idm_data_rcv(request_idm, result);
+    ret = nvme_idm_async_data_rcv(request_idm, result);
     if (ret < 0) {
         #ifndef COMPILE_STANDALONE
-        ilm_log_err("%s: nvme_async_idm_data_rcv fail %d", __func__, ret);
+        ilm_log_err("%s: nvme_idm_async_data_rcv fail %d", __func__, ret);
         #else
-        printf("%s: nvme_async_idm_data_rcv fail %d\n", __func__, ret);
+        printf("%s: nvme_idm_async_data_rcv fail %d\n", __func__, ret);
         #endif //COMPILE_STANDALONE
         goto EXIT_FAIL;
     }
@@ -224,7 +224,7 @@ EXIT_FAIL:
 }
 
 /**
- * nvme_async_idm_get_result_lvb - Asynchronously retreive the result for a previous
+ * nvme_idm_async_get_result_lvb - Asynchronously retreive the result for a previous
  * asynchronous read lvb request.
  *
  * @handle:     NVMe request handle for the previously sent NVMe cmd.
@@ -235,7 +235,7 @@ EXIT_FAIL:
  *
  * Returns zero or a negative error (ie. EINVAL, ENOMEM, EBUSY, etc).
  */
-int nvme_async_idm_get_result_lvb(uint64_t handle, char *lvb, int lvb_size, int *result) {
+int nvme_idm_async_get_result_lvb(uint64_t handle, char *lvb, int lvb_size, int *result) {
 
     #ifdef FUNCTION_ENTRY_DEBUG
     printf("%s: START\n", __func__);
@@ -249,12 +249,12 @@ int nvme_async_idm_get_result_lvb(uint64_t handle, char *lvb, int lvb_size, int 
     if ((!lvb) || (lvb_size <= 0) || (lvb_size > IDM_LVB_LEN_BYTES))
         return -EINVAL;
 
-    ret = nvme_async_idm_data_rcv(request_idm, result);
+    ret = nvme_idm_async_data_rcv(request_idm, result);
     if (ret < 0) {
         #ifndef COMPILE_STANDALONE
-        ilm_log_err("%s: nvme_async_idm_data_rcv fail %d", __func__, ret);
+        ilm_log_err("%s: nvme_idm_async_data_rcv fail %d", __func__, ret);
         #else
-        printf("%s: nvme_async_idm_data_rcv fail %d\n", __func__, ret);
+        printf("%s: nvme_idm_async_data_rcv fail %d\n", __func__, ret);
         #endif //COMPILE_STANDALONE
         goto EXIT_FAIL;
     }
@@ -287,7 +287,7 @@ EXIT_FAIL:
 }
 
 /**
- * nvme_async_idm_lock - Asynchronously acquire an IDM on a specified NVMe drive.
+ * nvme_idm_async_lock - Asynchronously acquire an IDM on a specified NVMe drive.
  *
  * @lock_id:    Lock ID (64 bytes).
  * @mode:       Lock mode (unlock, shareable, exclusive).
@@ -298,7 +298,7 @@ EXIT_FAIL:
  *
  * Returns zero or a negative error (ie. EINVAL, ENOMEM, EBUSY, etc).
  */
-int nvme_async_idm_lock(char *lock_id, int mode, char *host_id,
+int nvme_idm_async_lock(char *lock_id, int mode, char *host_id,
                         char *drive, uint64_t timeout, uint64_t *handle) {
 
     #ifdef FUNCTION_ENTRY_DEBUG
@@ -318,12 +318,12 @@ int nvme_async_idm_lock(char *lock_id, int mode, char *host_id,
         goto EXIT_FAIL;
     }
 
-    ret = nvme_async_idm_write(request_idm);
+    ret = nvme_idm_async_write(request_idm);
     if (ret < 0) {
         #ifndef COMPILE_STANDALONE
-        ilm_log_err("%s: nvme_async_idm_write fail %d", __func__, ret);
+        ilm_log_err("%s: nvme_idm_async_write fail %d", __func__, ret);
         #else
-        printf("%s: nvme_async_idm_write fail %d\n", __func__, ret);
+        printf("%s: nvme_idm_async_write fail %d\n", __func__, ret);
         #endif //COMPILE_STANDALONE
         goto EXIT_FAIL;
     }
@@ -337,7 +337,7 @@ EXIT:
 }
 
 /**
- * nvme_async_idm_lock_break - Asynchronously break an IDM lock if before other
+ * nvme_idm_async_lock_break - Asynchronously break an IDM lock if before other
  * hosts have acquired this IDM.  This function is to allow a host_id to take
  * over the ownership if other hosts of the IDM is timeout, or the countdown
  * value is -1UL.
@@ -351,7 +351,7 @@ EXIT:
  *
  * Returns zero or a negative error (ie. EINVAL, ENOMEM, EBUSY, etc).
  */
-int nvme_async_idm_lock_break(char *lock_id, int mode, char *host_id,
+int nvme_idm_async_lock_break(char *lock_id, int mode, char *host_id,
                               char *drive, uint64_t timeout, uint64_t *handle) {
 
     #ifdef FUNCTION_ENTRY_DEBUG
@@ -371,12 +371,12 @@ int nvme_async_idm_lock_break(char *lock_id, int mode, char *host_id,
         goto EXIT_FAIL;
     }
 
-    ret = nvme_async_idm_write(request_idm);
+    ret = nvme_idm_async_write(request_idm);
     if (ret < 0) {
         #ifndef COMPILE_STANDALONE
-        ilm_log_err("%s: nvme_async_idm_write fail %d", __func__, ret);
+        ilm_log_err("%s: nvme_idm_async_write fail %d", __func__, ret);
         #else
-        printf("%s: nvme_async_idm_write fail %d\n", __func__, ret);
+        printf("%s: nvme_idm_async_write fail %d\n", __func__, ret);
         #endif //COMPILE_STANDALONE
         goto EXIT_FAIL;
     }
@@ -390,7 +390,7 @@ EXIT:
 }
 
 /**
- * nvme_async_idm_lock_convert - Asynchronously convert the lock mode for an IDM.
+ * nvme_idm_async_lock_convert - Asynchronously convert the lock mode for an IDM.
  *
  * @lock_id:    Lock ID (64 bytes).
  * @mode:       Lock mode (unlock, shareable, exclusive).
@@ -401,15 +401,15 @@ EXIT:
  *
  * Returns zero or a negative error (ie. EINVAL, ENOMEM, EBUSY, etc).
  */
-int nvme_async_idm_lock_convert(char *lock_id, int mode, char *host_id,
+int nvme_idm_async_lock_convert(char *lock_id, int mode, char *host_id,
                                 char *drive, uint64_t timeout, uint64_t *handle)
 {
-    return nvme_async_idm_lock_refresh(lock_id, mode, host_id,
+    return nvme_idm_async_lock_refresh(lock_id, mode, host_id,
                                        drive, timeout, handle);
 }
 
 /**
- * nvme_async_idm_lock_destroy - Asynchronously destroy an IDM and release all associated resource.
+ * nvme_idm_async_lock_destroy - Asynchronously destroy an IDM and release all associated resource.
  *
  * @lock_id:    Lock ID (64 bytes).
  * @mode:       Lock mode (unlock, shareable, exclusive).
@@ -419,7 +419,7 @@ int nvme_async_idm_lock_convert(char *lock_id, int mode, char *host_id,
  *
  * Returns zero or a negative error (ie. EINVAL, ENOMEM, EBUSY, etc).
  */
-int nvme_async_idm_lock_destroy(char *lock_id, int mode, char *host_id,
+int nvme_idm_async_lock_destroy(char *lock_id, int mode, char *host_id,
                                 char *drive, uint64_t *handle)
 {
     #ifdef FUNCTION_ENTRY_DEBUG
@@ -439,12 +439,12 @@ int nvme_async_idm_lock_destroy(char *lock_id, int mode, char *host_id,
         goto EXIT_FAIL;
     }
 
-    ret = nvme_async_idm_write(request_idm);
+    ret = nvme_idm_async_write(request_idm);
     if (ret < 0) {
         #ifndef COMPILE_STANDALONE
-        ilm_log_err("%s: nvme_async_idm_write fail %d", __func__, ret);
+        ilm_log_err("%s: nvme_idm_async_write fail %d", __func__, ret);
         #else
-        printf("%s: nvme_async_idm_write fail %d\n", __func__, ret);
+        printf("%s: nvme_idm_async_write fail %d\n", __func__, ret);
         #endif //COMPILE_STANDALONE
         goto EXIT_FAIL;
     }
@@ -458,7 +458,7 @@ EXIT:
 }
 
 /**
- * nvme_async_idm_lock_refresh - Asynchronously refreshes the host's membership for an IDM.
+ * nvme_idm_async_lock_refresh - Asynchronously refreshes the host's membership for an IDM.
  *
  * @lock_id:    Lock ID (64 bytes).
  * @mode:       Lock mode (unlock, shareable, exclusive).
@@ -469,7 +469,7 @@ EXIT:
  *
  * Returns zero or a negative error (ie. EINVAL, ENOMEM, EBUSY, etc).
  */
-int nvme_async_idm_lock_refresh(char *lock_id, int mode, char *host_id,
+int nvme_idm_async_lock_refresh(char *lock_id, int mode, char *host_id,
                                 char *drive, uint64_t timeout, uint64_t *handle)
 {
     #ifdef FUNCTION_ENTRY_DEBUG
@@ -489,12 +489,12 @@ int nvme_async_idm_lock_refresh(char *lock_id, int mode, char *host_id,
         goto EXIT_FAIL;
     }
 
-    ret = nvme_async_idm_write(request_idm);
+    ret = nvme_idm_async_write(request_idm);
     if (ret < 0) {
         #ifndef COMPILE_STANDALONE
-        ilm_log_err("%s: nvme_async_idm_write fail %d", __func__, ret);
+        ilm_log_err("%s: nvme_idm_async_write fail %d", __func__, ret);
         #else
-        printf("%s: nvme_async_idm_write fail %d\n", __func__, ret);
+        printf("%s: nvme_idm_async_write fail %d\n", __func__, ret);
         #endif //COMPILE_STANDALONE
         goto EXIT_FAIL;
     }
@@ -508,7 +508,7 @@ EXIT:
 }
 
 /**
- * nvme_async_idm_lock_renew - Asynchronously renew host's membership for an IDM.
+ * nvme_idm_async_lock_renew - Asynchronously renew host's membership for an IDM.
  *
  * @lock_id:    Lock ID (64 bytes).
  * @mode:       Lock mode (unlock, shareable, exclusive).
@@ -519,17 +519,17 @@ EXIT:
  *
  * Returns zero or a negative error (ie. EINVAL, ENOMEM, EBUSY, etc).
  */
-int nvme_async_idm_lock_renew(char *lock_id, int mode, char *host_id,
+int nvme_idm_async_lock_renew(char *lock_id, int mode, char *host_id,
                               char *drive, uint64_t timeout, uint64_t *handle)
 {
-    return nvme_async_idm_lock_refresh(lock_id, mode, host_id,
+    return nvme_idm_async_lock_refresh(lock_id, mode, host_id,
                                        drive, timeout, handle);
 }
 
 /**
- * nvme_async_idm_read_lock_count - Asynchrnously read the lock count for an IDM.
+ * nvme_idm_async_read_lock_count - Asynchrnously read the lock count for an IDM.
  * This command only issues the request.  It does NOT retrieve the data.
- * The desired data is returned during a separate call to nvme_async_idm_get_result_lock_count().
+ * The desired data is returned during a separate call to nvme_idm_async_get_result_lock_count().
  *
  * @lock_id:    Lock ID (64 bytes).
  * @host_id:    Host ID (32 bytes).
@@ -538,7 +538,7 @@ int nvme_async_idm_lock_renew(char *lock_id, int mode, char *host_id,
  *
  * Returns zero or a negative error (ie. EINVAL, ENOMEM, EBUSY, etc).
  */
-int nvme_async_idm_read_lock_count(char *lock_id, char *host_id, char *drive, uint64_t *handle) {
+int nvme_idm_async_read_lock_count(char *lock_id, char *host_id, char *drive, uint64_t *handle) {
 
     #ifdef FUNCTION_ENTRY_DEBUG
     printf("%s: START\n", __func__);
@@ -557,12 +557,12 @@ int nvme_async_idm_read_lock_count(char *lock_id, char *host_id, char *drive, ui
         goto EXIT_FAIL;
     }
 
-    ret = nvme_async_idm_read(request_idm);
+    ret = nvme_idm_async_read(request_idm);
     if (ret < 0) {
         #ifndef COMPILE_STANDALONE
-        ilm_log_err("%s: nvme_async_idm_read fail %d", __func__, ret);
+        ilm_log_err("%s: nvme_idm_async_read fail %d", __func__, ret);
         #else
-        printf("%s: nvme_async_idm_read fail %d\n", __func__, ret);
+        printf("%s: nvme_idm_async_read fail %d\n", __func__, ret);
         #endif //COMPILE_STANDALONE
         goto EXIT_FAIL;
     }
@@ -576,7 +576,7 @@ EXIT:
 }
 
 /**
- * nvme_async_idm_read_lock_mode - Asynchronously read back an IDM's current mode.
+ * nvme_idm_async_read_lock_mode - Asynchronously read back an IDM's current mode.
  *
  * @lock_id:    Lock ID (64 bytes).
  * @drive:      Drive path name.
@@ -584,7 +584,7 @@ EXIT:
  *
  * Returns zero or a negative error (ie. EINVAL, ENOMEM, EBUSY, etc).
  */
-int nvme_async_idm_read_lock_mode(char *lock_id, char *drive, uint64_t *handle) {
+int nvme_idm_async_read_lock_mode(char *lock_id, char *drive, uint64_t *handle) {
 
     #ifdef FUNCTION_ENTRY_DEBUG
     printf("%s: START\n", __func__);
@@ -603,12 +603,12 @@ int nvme_async_idm_read_lock_mode(char *lock_id, char *drive, uint64_t *handle) 
         goto EXIT_FAIL;
     }
 
-    ret = nvme_async_idm_read(request_idm);
+    ret = nvme_idm_async_read(request_idm);
     if (ret < 0) {
         #ifndef COMPILE_STANDALONE
-        ilm_log_err("%s: nvme_async_idm_read fail %d", __func__, ret);
+        ilm_log_err("%s: nvme_idm_async_read fail %d", __func__, ret);
         #else
-        printf("%s: nvme_async_idm_read fail %d\n", __func__, ret);
+        printf("%s: nvme_idm_async_read fail %d\n", __func__, ret);
         #endif //COMPILE_STANDALONE
         goto EXIT_FAIL;
     }
@@ -622,7 +622,7 @@ EXIT:
 }
 
 /**
- * nvme_async_idm_read_lvb - Asynchronously read the lock value block(lvb) which is
+ * nvme_idm_async_read_lvb - Asynchronously read the lock value block(lvb) which is
  * associated to an IDM.
  *
  * @lock_id:    Lock ID (64 bytes).
@@ -633,7 +633,7 @@ EXIT:
  *
  * Returns zero or a negative error (ie. EINVAL).
  */
-int nvme_async_idm_read_lvb(char *lock_id, char *host_id, char *drive, uint64_t *handle)
+int nvme_idm_async_read_lvb(char *lock_id, char *host_id, char *drive, uint64_t *handle)
 {
     #ifdef FUNCTION_ENTRY_DEBUG
     printf("%s: START\n", __func__);
@@ -652,12 +652,12 @@ int nvme_async_idm_read_lvb(char *lock_id, char *host_id, char *drive, uint64_t 
         goto EXIT_FAIL;
     }
 
-    ret = nvme_async_idm_read(request_idm);
+    ret = nvme_idm_async_read(request_idm);
     if (ret < 0) {
         #ifndef COMPILE_STANDALONE
-        ilm_log_err("%s: nvme_async_idm_read fail %d", __func__, ret);
+        ilm_log_err("%s: nvme_idm_async_read fail %d", __func__, ret);
         #else
-        printf("%s: nvme_async_idm_read fail %d\n", __func__, ret);
+        printf("%s: nvme_idm_async_read fail %d\n", __func__, ret);
         #endif //COMPILE_STANDALONE
         goto EXIT_FAIL;
     }
@@ -671,7 +671,7 @@ EXIT:
 }
 
 /**
- * nvme_async_idm_unlock - Asynchronously release an IDM on a specified drive.
+ * nvme_idm_async_unlock - Asynchronously release an IDM on a specified drive.
  *
  * @lock_id:    Lock ID (64 bytes).
  * @mode:       Lock mode (unlock, shareable, exclusive).
@@ -683,7 +683,7 @@ EXIT:
  *
  * Returns zero or a negative error (ie. EINVAL, ENOMEM, EBUSY, etc).
  */
-int nvme_async_idm_unlock(char *lock_id, int mode, char *host_id,
+int nvme_idm_async_unlock(char *lock_id, int mode, char *host_id,
                           char *lvb, int lvb_size, char *drive, uint64_t *handle)
 {
     #ifdef FUNCTION_ENTRY_DEBUG
@@ -703,12 +703,12 @@ int nvme_async_idm_unlock(char *lock_id, int mode, char *host_id,
         goto EXIT_FAIL;
     }
 
-    ret = nvme_async_idm_write(request_idm);
+    ret = nvme_idm_async_write(request_idm);
     if (ret < 0) {
         #ifndef COMPILE_STANDALONE
-        ilm_log_err("%s: nvme_async_idm_write fail %d", __func__, ret);
+        ilm_log_err("%s: nvme_idm_async_write fail %d", __func__, ret);
         #else
-        printf("%s: nvme_async_idm_write fail %d\n", __func__, ret);
+        printf("%s: nvme_idm_async_write fail %d\n", __func__, ret);
         #endif //COMPILE_STANDALONE
         goto EXIT_FAIL;
     }
@@ -752,7 +752,7 @@ int nvme_idm_read_version(int *version, char *drive)
 }
 
 /**
- * nvme_sync_idm_lock - Synchronously acquire an IDM on a specified NVMe drive.
+ * nvme_idm_sync_lock - Synchronously acquire an IDM on a specified NVMe drive.
  *
  * @lock_id:    Lock ID (64 bytes).
  * @mode:       Lock mode (unlock, shareable, exclusive).
@@ -762,7 +762,7 @@ int nvme_idm_read_version(int *version, char *drive)
  *
  * Returns zero or a negative error (ie. EINVAL, ENOMEM, EBUSY, etc).
  */
-int nvme_sync_idm_lock(char *lock_id, int mode, char *host_id,
+int nvme_idm_sync_lock(char *lock_id, int mode, char *host_id,
                        char *drive, uint64_t timeout) {
 
     #ifdef FUNCTION_ENTRY_DEBUG
@@ -782,12 +782,12 @@ int nvme_sync_idm_lock(char *lock_id, int mode, char *host_id,
         goto EXIT;
     }
 
-    ret = nvme_sync_idm_write(request_idm);
+    ret = nvme_idm_sync_write(request_idm);
     if (ret < 0) {
         #ifndef COMPILE_STANDALONE
-        ilm_log_err("%s: nvme_sync_idm_write fail %d", __func__, ret);
+        ilm_log_err("%s: nvme_idm_sync_write fail %d", __func__, ret);
         #else
-        printf("%s: nvme_sync_idm_write fail %d\n", __func__, ret);
+        printf("%s: nvme_idm_sync_write fail %d\n", __func__, ret);
         #endif //COMPILE_STANDALONE
     }
 
@@ -797,7 +797,7 @@ EXIT:
 }
 
 /**
- * nvme_sync_idm_lock_break - Synchronously break an IDM lock if before other
+ * nvme_idm_sync_lock_break - Synchronously break an IDM lock if before other
  * hosts have acquired this IDM.  This function is to allow a host_id to take
  * over the ownership if other hosts of the IDM is timeout, or the countdown
  * value is -1UL.
@@ -810,7 +810,7 @@ EXIT:
  *
  * Returns zero or a negative error (ie. EINVAL, ENOMEM, EBUSY, etc).
  */
-int nvme_sync_idm_lock_break(char *lock_id, int mode, char *host_id,
+int nvme_idm_sync_lock_break(char *lock_id, int mode, char *host_id,
                              char *drive, uint64_t timeout)
 {
     #ifdef FUNCTION_ENTRY_DEBUG
@@ -830,12 +830,12 @@ int nvme_sync_idm_lock_break(char *lock_id, int mode, char *host_id,
         goto EXIT;
     }
 
-    ret = nvme_sync_idm_write(request_idm);
+    ret = nvme_idm_sync_write(request_idm);
     if (ret < 0) {
         #ifndef COMPILE_STANDALONE
-        ilm_log_err("%s: nvme_sync_idm_write fail %d", __func__, ret);
+        ilm_log_err("%s: nvme_idm_sync_write fail %d", __func__, ret);
         #else
-        printf("%s: nvme_sync_idm_write fail %d\n", __func__, ret);
+        printf("%s: nvme_idm_sync_write fail %d\n", __func__, ret);
         #endif //COMPILE_STANDALONE
     }
 
@@ -845,7 +845,7 @@ EXIT:
 }
 
 /**
- * nvme_sync_idm_lock_convert - Synchronously convert the lock mode for an IDM.
+ * nvme_idm_sync_lock_convert - Synchronously convert the lock mode for an IDM.
  *
  * @lock_id:    Lock ID (64 bytes).
  * @mode:       Lock mode (unlock, shareable, exclusive).
@@ -855,15 +855,15 @@ EXIT:
  *
  * Returns zero or a negative error (ie. EINVAL, ENOMEM, EBUSY, etc).
  */
-int nvme_sync_idm_lock_convert(char *lock_id, int mode, char *host_id,
+int nvme_idm_sync_lock_convert(char *lock_id, int mode, char *host_id,
                                char *drive, uint64_t timeout)
 {
-    return nvme_sync_idm_lock_refresh(lock_id, mode, host_id,
+    return nvme_idm_sync_lock_refresh(lock_id, mode, host_id,
                                       drive, timeout);
 }
 
 /**
- * nvme_sync_idm_lock_destroy - Synchronously destroy an IDM and release all associated resource.
+ * nvme_idm_sync_lock_destroy - Synchronously destroy an IDM and release all associated resource.
  *
  * @lock_id:    Lock ID (64 bytes).
  * @mode:       Lock mode (unlock, shareable, exclusive).
@@ -872,7 +872,7 @@ int nvme_sync_idm_lock_convert(char *lock_id, int mode, char *host_id,
  *
  * Returns zero or a negative error (ie. EINVAL, ENOMEM, EBUSY, etc).
  */
-int nvme_sync_idm_lock_destroy(char *lock_id, int mode, char *host_id, char *drive)
+int nvme_idm_sync_lock_destroy(char *lock_id, int mode, char *host_id, char *drive)
 {
     #ifdef FUNCTION_ENTRY_DEBUG
     printf("%s: START\n", __func__);
@@ -891,12 +891,12 @@ int nvme_sync_idm_lock_destroy(char *lock_id, int mode, char *host_id, char *dri
         goto EXIT;
     }
 
-    ret = nvme_sync_idm_write(request_idm);
+    ret = nvme_idm_sync_write(request_idm);
     if (ret < 0) {
         #ifndef COMPILE_STANDALONE
-        ilm_log_err("%s: nvme_sync_idm_write fail %d", __func__, ret);
+        ilm_log_err("%s: nvme_idm_sync_write fail %d", __func__, ret);
         #else
-        printf("%s: nvme_sync_idm_write fail %d\n", __func__, ret);
+        printf("%s: nvme_idm_sync_write fail %d\n", __func__, ret);
         #endif //COMPILE_STANDALONE
     }
 
@@ -906,7 +906,7 @@ EXIT:
 }
 
 /**
- * nvme_sync_idm_lock_refresh - Synchronously refreshes the host's membership for an IDM.
+ * nvme_idm_sync_lock_refresh - Synchronously refreshes the host's membership for an IDM.
  *
  * @lock_id:    Lock ID (64 bytes).
  * @mode:       Lock mode (unlock, shareable, exclusive).
@@ -916,7 +916,7 @@ EXIT:
  *
  * Returns zero or a negative error (ie. EINVAL, ENOMEM, EBUSY, etc).
  */
-int nvme_sync_idm_lock_refresh(char *lock_id, int mode, char *host_id,
+int nvme_idm_sync_lock_refresh(char *lock_id, int mode, char *host_id,
                                   char *drive, uint64_t timeout)
 {
     #ifdef FUNCTION_ENTRY_DEBUG
@@ -936,12 +936,12 @@ int nvme_sync_idm_lock_refresh(char *lock_id, int mode, char *host_id,
         goto EXIT;
     }
 
-    ret = nvme_sync_idm_write(request_idm);
+    ret = nvme_idm_sync_write(request_idm);
     if (ret < 0) {
         #ifndef COMPILE_STANDALONE
-        ilm_log_err("%s: nvme_sync_idm_write fail %d", __func__, ret);
+        ilm_log_err("%s: nvme_idm_sync_write fail %d", __func__, ret);
         #else
-        printf("%s: nvme_sync_idm_write fail %d\n", __func__, ret);
+        printf("%s: nvme_idm_sync_write fail %d\n", __func__, ret);
         #endif //COMPILE_STANDALONE
     }
 
@@ -951,7 +951,7 @@ EXIT:
 }
 
 /**
- * nvme_sync_idm_lock_renew - Synchronously renew host's membership for an IDM.
+ * nvme_idm_sync_lock_renew - Synchronously renew host's membership for an IDM.
  *
  * @lock_id:    Lock ID (64 bytes).
  * @mode:       Lock mode (unlock, shareable, exclusive).
@@ -961,15 +961,15 @@ EXIT:
  *
  * Returns zero or a negative error (ie. EINVAL, ETIME).
  */
-int nvme_sync_idm_lock_renew(char *lock_id, int mode, char *host_id,
+int nvme_idm_sync_lock_renew(char *lock_id, int mode, char *host_id,
                              char *drive, uint64_t timeout)
 {
-    return nvme_sync_idm_lock_refresh(lock_id, mode, host_id,
+    return nvme_idm_sync_lock_refresh(lock_id, mode, host_id,
                                       drive, timeout);
 }
 
 /**
- * nvme_sync_idm_read_host_state - Read back the host's state for an specific IDM.
+ * nvme_idm_sync_read_host_state - Read back the host's state for an specific IDM.
  *
  * @lock_id:    Lock ID (64 bytes).
  * @host_id:    Host ID (32 bytes).
@@ -979,7 +979,7 @@ int nvme_sync_idm_lock_renew(char *lock_id, int mode, char *host_id,
  *
  * Returns zero or a negative error (ie. EINVAL, ENOMEM, EBUSY, etc).
  */
-int nvme_sync_idm_read_host_state(char *lock_id, char *host_id, int *host_state, char *drive)
+int nvme_idm_sync_read_host_state(char *lock_id, char *host_id, int *host_state, char *drive)
 {
     #ifdef FUNCTION_ENTRY_DEBUG
     printf("%s: START\n", __func__);
@@ -1004,12 +1004,12 @@ int nvme_sync_idm_read_host_state(char *lock_id, char *host_id, int *host_state,
         goto EXIT_FAIL;
     }
 
-    ret = nvme_sync_idm_read(request_idm);
+    ret = nvme_idm_sync_read(request_idm);
     if (ret < 0) {
         #ifndef COMPILE_STANDALONE
-        ilm_log_err("%s: nvme_sync_idm_read fail %d", __func__, ret);
+        ilm_log_err("%s: nvme_idm_sync_read fail %d", __func__, ret);
         #else
-        printf("%s: nvme_sync_idm_read fail %d\n", __func__, ret);
+        printf("%s: nvme_idm_sync_read fail %d\n", __func__, ret);
         #endif //COMPILE_STANDALONE
         goto EXIT_FAIL;
     }
@@ -1035,7 +1035,7 @@ EXIT_FAIL:
 }
 
 /**
- * nvme_sync_idm_read_lock_count - Synchrnously read the lock count for an IDM.
+ * nvme_idm_sync_read_lock_count - Synchrnously read the lock count for an IDM.
  *
  * @lock_id:    Lock ID (64 bytes).
  * @host_id:    Host ID (32 bytes).
@@ -1047,7 +1047,7 @@ EXIT_FAIL:
  *
  * Returns zero or a negative error (ie. EINVAL, ENOMEM, EBUSY, etc).
  */
-int nvme_sync_idm_read_lock_count(char *lock_id, char *host_id, int *count, int *self, char *drive)
+int nvme_idm_sync_read_lock_count(char *lock_id, char *host_id, int *count, int *self, char *drive)
 {
     #ifdef FUNCTION_ENTRY_DEBUG
     printf("%s: START\n", __func__);
@@ -1074,12 +1074,12 @@ int nvme_sync_idm_read_lock_count(char *lock_id, char *host_id, int *count, int 
         return SUCCESS;
     }
 
-    ret = nvme_sync_idm_read(request_idm);
+    ret = nvme_idm_sync_read(request_idm);
     if (ret < 0) {
         #ifndef COMPILE_STANDALONE
-        ilm_log_err("%s: nvme_sync_idm_read fail %d", __func__, ret);
+        ilm_log_err("%s: nvme_idm_sync_read fail %d", __func__, ret);
         #else
-        printf("%s: nvme_sync_idm_read fail %d\n", __func__, ret);
+        printf("%s: nvme_idm_sync_read fail %d\n", __func__, ret);
         #endif //COMPILE_STANDALONE
         goto EXIT_FAIL;
     }
@@ -1105,7 +1105,7 @@ EXIT_FAIL:
 }
 
 /**
- * nvme_sync_idm_read_lock_mode - Synchronously read back an IDM's current mode.
+ * nvme_idm_sync_read_lock_mode - Synchronously read back an IDM's current mode.
  *
  * @lock_id:    Lock ID (64 bytes).
  * @mode:       Returned lock mode (unlock, shareable, exclusive).
@@ -1114,7 +1114,7 @@ EXIT_FAIL:
  *
  * Returns zero or a negative error (ie. EINVAL, ENOMEM, EBUSY, etc).
  */
-int nvme_sync_idm_read_lock_mode(char *lock_id, int *mode, char *drive)
+int nvme_idm_sync_read_lock_mode(char *lock_id, int *mode, char *drive)
 {
     #ifdef FUNCTION_ENTRY_DEBUG
     printf("%s: START\n", __func__);
@@ -1141,12 +1141,12 @@ int nvme_sync_idm_read_lock_mode(char *lock_id, int *mode, char *drive)
         return SUCCESS;
     }
 
-    ret = nvme_sync_idm_read(request_idm);
+    ret = nvme_idm_sync_read(request_idm);
     if (ret < 0) {
         #ifndef COMPILE_STANDALONE
-        ilm_log_err("%s: nvme_sync_idm_read fail %d", __func__, ret);
+        ilm_log_err("%s: nvme_idm_sync_read fail %d", __func__, ret);
         #else
-        printf("%s: nvme_sync_idm_read fail %d\n", __func__, ret);
+        printf("%s: nvme_idm_sync_read fail %d\n", __func__, ret);
         #endif //COMPILE_STANDALONE
         goto EXIT_FAIL;
     }
@@ -1172,7 +1172,7 @@ EXIT_FAIL:
 }
 
 /**
- * nvme_sync_idm_read_lvb - Synchronously read the lock value block(lvb) which is
+ * nvme_idm_sync_read_lvb - Synchronously read the lock value block(lvb) which is
  * associated to an IDM.
  *
  * @lock_id:    Lock ID (64 bytes).
@@ -1185,7 +1185,7 @@ EXIT_FAIL:
  *
  * Returns zero or a negative error (ie. EINVAL).
  */
-int nvme_sync_idm_read_lvb(char *lock_id, char *host_id, char *lvb, int lvb_size, char *drive)
+int nvme_idm_sync_read_lvb(char *lock_id, char *host_id, char *lvb, int lvb_size, char *drive)
 {
     #ifdef FUNCTION_ENTRY_DEBUG
     printf("%s: START\n", __func__);
@@ -1214,12 +1214,12 @@ int nvme_sync_idm_read_lvb(char *lock_id, char *host_id, char *lvb, int lvb_size
         return SUCCESS;
     }
 
-    ret = nvme_sync_idm_read(request_idm);
+    ret = nvme_idm_sync_read(request_idm);
     if (ret < 0) {
         #ifndef COMPILE_STANDALONE
-        ilm_log_err("%s: nvme_sync_idm_read fail %d", __func__, ret);
+        ilm_log_err("%s: nvme_idm_sync_read fail %d", __func__, ret);
         #else
-        printf("%s: nvme_sync_idm_read fail %d\n", __func__, ret);
+        printf("%s: nvme_idm_sync_read fail %d\n", __func__, ret);
         #endif //COMPILE_STANDALONE
         goto EXIT_FAIL;
     }
@@ -1243,7 +1243,7 @@ EXIT_FAIL:
 }
 
 /**
- * nvme_sync_idm_read_mutex_group - Synchronously read back mutex group info for all IDM in the drives
+ * nvme_idm_sync_read_mutex_group - Synchronously read back mutex group info for all IDM in the drives
  *
  * @drive:      Drive path name.
  * @info_ptr:   Returned pointer for info list.
@@ -1253,7 +1253,7 @@ EXIT_FAIL:
  *
  * Returns zero or a negative error (ie. EINVAL, ENOMEM, EBUSY, etc).
  */
-int nvme_sync_idm_read_mutex_group(char *drive, struct idm_info **info_ptr, int *info_num)
+int nvme_idm_sync_read_mutex_group(char *drive, struct idm_info **info_ptr, int *info_num)
 {
     #ifdef FUNCTION_ENTRY_DEBUG
     printf("%s: START\n", __func__);
@@ -1276,12 +1276,12 @@ int nvme_sync_idm_read_mutex_group(char *drive, struct idm_info **info_ptr, int 
         goto EXIT_FAIL;
     }
 
-    ret = nvme_sync_idm_read(request_idm);
+    ret = nvme_idm_sync_read(request_idm);
     if (ret < 0) {
         #ifndef COMPILE_STANDALONE
-        ilm_log_err("%s: nvme_sync_idm_read fail %d", __func__, ret);
+        ilm_log_err("%s: nvme_idm_sync_read fail %d", __func__, ret);
         #else
-        printf("%s: nvme_sync_idm_read fail %d\n", __func__, ret);
+        printf("%s: nvme_idm_sync_read fail %d\n", __func__, ret);
         #endif //COMPILE_STANDALONE
         goto EXIT_FAIL;
     }
@@ -1310,7 +1310,7 @@ EXIT_FAIL:
 }
 
 /**
- * nvme_sync_idm_read_mutex_num - Synchronously retrieves the number of mutexes
+ * nvme_idm_sync_read_mutex_num - Synchronously retrieves the number of mutexes
  * present on the drive.
  *
  * @drive:       Drive path name.
@@ -1320,7 +1320,7 @@ EXIT_FAIL:
  *
  * Returns zero or a negative error (ie. EINVAL, ENOMEM, EBUSY, etc).
  */
-int nvme_sync_idm_read_mutex_num(char *drive, unsigned int *mutex_num)
+int nvme_idm_sync_read_mutex_num(char *drive, unsigned int *mutex_num)
 {
     #ifdef FUNCTION_ENTRY_DEBUG
     printf("%s: START\n", __func__);
@@ -1343,14 +1343,14 @@ int nvme_sync_idm_read_mutex_num(char *drive, unsigned int *mutex_num)
         goto EXIT_FAIL;
     }
 
-    ret = nvme_sync_idm_read(request_idm);
+    ret = nvme_idm_sync_read(request_idm);
     if (ret < 0) {
         #ifndef COMPILE_STANDALONE
-        ilm_log_err("%s: nvme_sync_idm_read fail %d", __func__, ret);
+        ilm_log_err("%s: nvme_idm_sync_read fail %d", __func__, ret);
         goto EXIT_FAIL;
         #else
 //TODO: !!!! Temp HACK!!!!! For stand alone, to get the reads working.
-        printf("%s: nvme_sync_idm_read fail %d, Continuing\n", __func__, ret);
+        printf("%s: nvme_idm_sync_read fail %d, Continuing\n", __func__, ret);
         ret = SUCCESS;
         #endif //COMPILE_STANDALONE
     }
@@ -1368,7 +1368,7 @@ EXIT_FAIL:
 }
 
 /**
- * nvme_sync_idm_unlock - Synchronously release an IDM on a specified drive.
+ * nvme_idm_sync_unlock - Synchronously release an IDM on a specified drive.
  *
  * @lock_id:    Lock ID (64 bytes).
  * @mode:       Lock mode (unlock, shareable, exclusive).
@@ -1379,7 +1379,7 @@ EXIT_FAIL:
  *
  * Returns zero or a negative error (ie. EINVAL, ENOMEM, EBUSY, etc).
  */
-int nvme_sync_idm_unlock(char *lock_id, int mode, char *host_id,
+int nvme_idm_sync_unlock(char *lock_id, int mode, char *host_id,
                          char *lvb, int lvb_size, char *drive)
 {
     #ifdef FUNCTION_ENTRY_DEBUG
@@ -1399,12 +1399,12 @@ int nvme_sync_idm_unlock(char *lock_id, int mode, char *host_id,
         goto EXIT;
     }
 
-    ret = nvme_sync_idm_write(request_idm);
+    ret = nvme_idm_sync_write(request_idm);
     if (ret < 0) {
         #ifndef COMPILE_STANDALONE
-        ilm_log_err("%s: nvme_sync_idm_write fail %d", __func__, ret);
+        ilm_log_err("%s: nvme_idm_sync_write fail %d", __func__, ret);
         #else
-        printf("%s: nvme_sync_idm_write fail %d\n", __func__, ret);
+        printf("%s: nvme_idm_sync_write fail %d\n", __func__, ret);
         #endif //COMPILE_STANDALONE
     }
 
@@ -1677,7 +1677,7 @@ int _init_read_host_state(char *lock_id, char *host_id, char *drive,
     if (ret < 0)
         return ret;
 
-    ret = nvme_sync_idm_read_mutex_num(drive, &mutex_num);
+    ret = nvme_idm_sync_read_mutex_num(drive, &mutex_num);
     if (ret < 0)
         return -ENOENT;
     else if (!mutex_num)
@@ -1725,7 +1725,7 @@ int _init_read_lock_count(int async_on, char *lock_id, char *host_id, char *driv
     if (ret < 0)
         return ret;
 
-    ret = nvme_sync_idm_read_mutex_num(drive, &mutex_num);
+    ret = nvme_idm_sync_read_mutex_num(drive, &mutex_num);
     if (ret < 0)
         return -ENOENT;
     else if (!mutex_num)
@@ -1797,7 +1797,7 @@ int _init_read_lock_mode(int async_on, char *lock_id, char *drive,
     if (!lock_id || !drive)
         return -EINVAL;
 
-    ret = nvme_sync_idm_read_mutex_num(drive, &mutex_num);
+    ret = nvme_idm_sync_read_mutex_num(drive, &mutex_num);
     if (ret < 0)
         return -ENOENT;
 
@@ -1863,7 +1863,7 @@ int _init_read_lvb(int async_on, char *lock_id, char *host_id, char *drive,
     if (ret < 0)
         return ret;
 
-    ret = nvme_sync_idm_read_mutex_num(drive, &mutex_num);
+    ret = nvme_idm_sync_read_mutex_num(drive, &mutex_num);
     if (ret < 0)
         return -ENOENT;
 
@@ -1929,7 +1929,7 @@ int _init_read_mutex_group(char *drive, nvmeIdmRequest **request_idm) {
     if (!drive)
         return -EINVAL;
 
-    ret = nvme_sync_idm_read_mutex_num(drive, &mutex_num);
+    ret = nvme_idm_sync_read_mutex_num(drive, &mutex_num);
     if (ret < 0)
         return -ENOENT;
     else if (!mutex_num)
@@ -2618,104 +2618,104 @@ int main(int argc, char *argv[])
         int             self;
 
         if(strcmp(argv[1], "async_get") == 0){
-            ret = nvme_async_idm_lock(lock_id, mode, host_id, drive, timeout, &handle); // dummy call, ignore error.
+            ret = nvme_idm_async_lock(lock_id, mode, host_id, drive, timeout, &handle); // dummy call, ignore error.
             printf("'inserted lock' ret=%d\n", ret);
-            ret = nvme_async_idm_get_result(handle, &result);
+            ret = nvme_idm_async_get_result(handle, &result);
             printf("'%s' ret=%d, result=0x%X\n", argv[1], ret, result);
         }
         else if(strcmp(argv[1], "async_get_count") == 0){
-            ret = nvme_async_idm_read_lock_count(lock_id, host_id, drive, &handle); // dummy call, ignore error.
+            ret = nvme_idm_async_read_lock_count(lock_id, host_id, drive, &handle); // dummy call, ignore error.
             printf("'inserted read lock count' ret=%d\n", ret);
-            ret = nvme_async_idm_get_result_lock_count(handle, &count, &self, &result);
+            ret = nvme_idm_async_get_result_lock_count(handle, &count, &self, &result);
             printf("'%s' ret=%d, result=0x%X\n", argv[1], ret, result);
         }
         else if(strcmp(argv[1], "async_get_mode") == 0){
-            ret = nvme_async_idm_read_lock_mode(lock_id, drive, &handle); // dummy call, ignore error.
+            ret = nvme_idm_async_read_lock_mode(lock_id, drive, &handle); // dummy call, ignore error.
             printf("'inserted read lock mode' ret=%d\n", ret);
-            ret = nvme_async_idm_get_result_lock_mode(handle, &mode, &result);
+            ret = nvme_idm_async_get_result_lock_mode(handle, &mode, &result);
             printf("'%s' ret=%d, result=0x%X\n", argv[1], ret, result);
         }
         else if(strcmp(argv[1], "async_get_lvb") == 0){
-            ret = nvme_async_idm_read_lvb(lock_id, host_id, drive, &handle); // dummy call, ignore error.
+            ret = nvme_idm_async_read_lvb(lock_id, host_id, drive, &handle); // dummy call, ignore error.
             printf("'inserted read lvb' ret=%d\n", ret);
-            ret = nvme_async_idm_get_result_lvb(handle, lvb, lvb_size, &result);
+            ret = nvme_idm_async_get_result_lvb(handle, lvb, lvb_size, &result);
             printf("'%s' ret=%d, result=0x%X\n", argv[1], ret, result);
         }
         else if(strcmp(argv[1], "async_lock") == 0){
-            ret = nvme_async_idm_lock(lock_id, mode, host_id, drive, timeout, &handle);
+            ret = nvme_idm_async_lock(lock_id, mode, host_id, drive, timeout, &handle);
         }
         else if(strcmp(argv[1], "async_lock_break") == 0){
-            ret = nvme_async_idm_lock_break(lock_id, mode, host_id, drive, timeout, &handle);
+            ret = nvme_idm_async_lock_break(lock_id, mode, host_id, drive, timeout, &handle);
         }
         else if(strcmp(argv[1], "async_lock_convert") == 0){
-            ret = nvme_async_idm_lock_convert(lock_id, mode, host_id, drive, timeout, &handle);
+            ret = nvme_idm_async_lock_convert(lock_id, mode, host_id, drive, timeout, &handle);
         }
         else if(strcmp(argv[1], "async_lock_destroy") == 0){
-            ret = nvme_async_idm_lock_destroy(lock_id, mode, host_id, drive, &handle);
+            ret = nvme_idm_async_lock_destroy(lock_id, mode, host_id, drive, &handle);
         }
         else if(strcmp(argv[1], "async_lock_refresh") == 0){
-            ret = nvme_async_idm_lock_refresh(lock_id, mode, host_id, drive, timeout, &handle);
+            ret = nvme_idm_async_lock_refresh(lock_id, mode, host_id, drive, timeout, &handle);
         }
         else if(strcmp(argv[1], "async_lock_renew") == 0){
-            ret = nvme_async_idm_lock_renew(lock_id, mode, host_id, drive, timeout, &handle);
+            ret = nvme_idm_async_lock_renew(lock_id, mode, host_id, drive, timeout, &handle);
         }
         else if(strcmp(argv[1], "async_read_count") == 0){
-            ret = nvme_async_idm_read_lock_count(lock_id, host_id, drive, &handle);
+            ret = nvme_idm_async_read_lock_count(lock_id, host_id, drive, &handle);
         }
         else if(strcmp(argv[1], "async_read_mode") == 0){
-            ret = nvme_async_idm_read_lock_mode(lock_id, drive, &handle);
+            ret = nvme_idm_async_read_lock_mode(lock_id, drive, &handle);
         }
         else if(strcmp(argv[1], "async_read_lvb") == 0){
-            ret = nvme_async_idm_read_lvb(lock_id, host_id, drive, &handle);
+            ret = nvme_idm_async_read_lvb(lock_id, host_id, drive, &handle);
         }
         else if(strcmp(argv[1], "async_unlock") == 0){
-            ret = nvme_async_idm_unlock(lock_id, mode, host_id, lvb, lvb_size, drive, &handle);
+            ret = nvme_idm_async_unlock(lock_id, mode, host_id, lvb, lvb_size, drive, &handle);
         }
         else if(strcmp(argv[1], "sync_lock") == 0){
-            ret = nvme_sync_idm_lock(lock_id, mode, host_id, drive, timeout);
+            ret = nvme_idm_sync_lock(lock_id, mode, host_id, drive, timeout);
         }
         else if(strcmp(argv[1], "sync_lock_break") == 0){
-            ret = nvme_sync_idm_lock_break(lock_id, mode, host_id, drive, timeout);
+            ret = nvme_idm_sync_lock_break(lock_id, mode, host_id, drive, timeout);
         }
         else if(strcmp(argv[1], "sync_lock_convert") == 0){
-            ret = nvme_sync_idm_lock_convert(lock_id, mode, host_id, drive, timeout);
+            ret = nvme_idm_sync_lock_convert(lock_id, mode, host_id, drive, timeout);
         }
         else if(strcmp(argv[1], "sync_lock_destroy") == 0){
-            ret = nvme_sync_idm_lock_destroy(lock_id, mode, host_id, drive);
+            ret = nvme_idm_sync_lock_destroy(lock_id, mode, host_id, drive);
         }
         else if(strcmp(argv[1], "sync_lock_refresh") == 0){
-            ret = nvme_sync_idm_lock_refresh(lock_id, mode, host_id, drive, timeout);
+            ret = nvme_idm_sync_lock_refresh(lock_id, mode, host_id, drive, timeout);
         }
         else if(strcmp(argv[1], "sync_lock_renew") == 0){
-            ret = nvme_sync_idm_lock_renew(lock_id, mode, host_id, drive, timeout);
+            ret = nvme_idm_sync_lock_renew(lock_id, mode, host_id, drive, timeout);
         }
         else if(strcmp(argv[1], "sync_read_state") == 0){
-            ret = nvme_sync_idm_read_host_state(lock_id, host_id, &host_state, drive);
+            ret = nvme_idm_sync_read_host_state(lock_id, host_id, &host_state, drive);
             printf("output: host_state=%d\n", host_state);
         }
         else if(strcmp(argv[1], "sync_read_count") == 0){
-            ret = nvme_sync_idm_read_lock_count(lock_id, host_id, &count, &self, drive);
+            ret = nvme_idm_sync_read_lock_count(lock_id, host_id, &count, &self, drive);
             printf("output: lock_count=%d, self=%d\n", count, self);
         }
         else if(strcmp(argv[1], "sync_read_mode") == 0){
-            ret = nvme_sync_idm_read_lock_mode(lock_id, &mode, drive);
+            ret = nvme_idm_sync_read_lock_mode(lock_id, &mode, drive);
             printf("output: lock_mode=%d\n", mode);
         }
         else if(strcmp(argv[1], "sync_read_lvb") == 0){
             //TODO: Should "lvb" be passed in with "&lvb" instead???
             //TODO: Technically, shouldn't ALL these param be passed in like that (ie - &lock_id, &host_id, etc)??
-            ret = nvme_sync_idm_read_lvb(lock_id, host_id, lvb, lvb_size, drive);
+            ret = nvme_idm_sync_read_lvb(lock_id, host_id, lvb, lvb_size, drive);
         }
         else if(strcmp(argv[1], "sync_read_group") == 0){
-            ret = nvme_sync_idm_read_mutex_group(drive, &info_list, &info_num);
+            ret = nvme_idm_sync_read_mutex_group(drive, &info_list, &info_num);
             printf("output: info_num=%u\n", info_num);
         }
         else if(strcmp(argv[1], "sync_read_num") == 0){
-            ret = nvme_sync_idm_read_mutex_num(drive, &mutex_num);
+            ret = nvme_idm_sync_read_mutex_num(drive, &mutex_num);
             printf("output: mutex_num=%u\n", mutex_num);
         }
         else if(strcmp(argv[1], "sync_unlock") == 0){
-            ret = nvme_sync_idm_unlock(lock_id, mode, host_id, lvb, lvb_size, drive);
+            ret = nvme_idm_sync_unlock(lock_id, mode, host_id, lvb, lvb_size, drive);
         }
         else {
             printf("%s: invalid command option!\n", argv[1]);
