@@ -1260,7 +1260,7 @@ int nvme_idm_sync_read_mutex_group(char *drive, struct idm_info **info_ptr, int 
     #endif //FUNCTION_ENTRY_DEBUG
 
     nvmeIdmRequest *request_idm;
-    int            i, ret = SUCCESS;
+    int            ret = SUCCESS;
 
     // Initialize the output
     *info_ptr = NULL;
@@ -2488,7 +2488,7 @@ EXIT:
  * @request_idm:    Struct containing all NVMe-specific command info for the requested IDM action.
  * @mutex_num:      Returned number of mutexes present on the drive.
  */
-void _parse_mutex_num(nvmeIdmRequest *request_idm, int *mutex_num) {
+void _parse_mutex_num(nvmeIdmRequest *request_idm, unsigned int *mutex_num) {
 
     #ifdef FUNCTION_ENTRY_DEBUG
     printf("%s: START\n", __func__);

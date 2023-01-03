@@ -741,4 +741,4 @@ int idm_drive_get_fd(char *drive, uint64_t handle)
 
 
 //TODO: Remove.  Temp use for standalone compile.
-int main(){}
+//int main(){}

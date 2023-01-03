@@ -806,7 +806,8 @@ static void *idm_raid_thread(void *data)
 			/* Prepare for polling file descriptor array */
 			num = 0;
 			list_for_each_entry(tmp, &raid_th->process_list, list) {
-				poll_fd[num].fd = idm_drive_get_fd(tmp->handle);
+				poll_fd[num].fd = idm_drive_get_fd(tmp->path,
+				                                   tmp->handle);
 				poll_fd[num].events = POLLIN;
 				num++;
 			}
@@ -832,7 +833,7 @@ static void *idm_raid_thread(void *data)
 
 				req = NULL;
 				list_for_each_entry(tmp, &raid_th->process_list, list) {
-					if (idm_drive_get_fd(tmp->handle) ==
+					if (idm_drive_get_fd(tmp->path, tmp->handle) ==
 							poll_fd[i].fd) {
 						req = tmp;
 						break;

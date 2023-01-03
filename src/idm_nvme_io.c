@@ -370,7 +370,7 @@ int _async_idm_cmd_send(nvmeIdmRequest *request_idm) {
         #else
         printf("%s: write failed: %d(0x%X)\n", __func__, ret, ret);
         #endif //COMPILE_STANDALONE
-        return ret;
+        goto EXIT;
     }
 
 EXIT:
@@ -770,7 +770,6 @@ int _sync_idm_cmd_send(nvmeIdmRequest *request_idm) {
 
     ret = _idm_cmd_check_status(ret, request_idm->opcode_idm);
 
-EXIT:
     close(fd_nvme);
     return ret;
 }
