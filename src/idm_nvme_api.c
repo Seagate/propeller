@@ -2151,6 +2151,7 @@ int _parse_host_state(nvmeIdmRequest *request_idm, int *host_state) {
     idmData        *data_idm;
     char           bswap_lock_id[IDM_LOCK_ID_LEN_BYTES];
     char           bswap_host_id[IDM_HOST_ID_LEN_BYTES];
+    int            i;
     unsigned int   mutex_num = request_idm->data_num;
     int            ret       = SUCCESS;
 
@@ -2158,7 +2159,7 @@ int _parse_host_state(nvmeIdmRequest *request_idm, int *host_state) {
     bswap_char_arr(bswap_host_id, request_idm->host_id, IDM_HOST_ID_LEN_BYTES);
 
     data_idm = request_idm->data_idm;
-    for (int i = 0; i < mutex_num; i++) {
+    for (i = 0; i < mutex_num; i++) {
         #ifndef COMPILE_STANDALONE
         ilm_log_array_dbg("resource_id",  data_idm[i].resource_id, IDM_LOCK_ID_LEN_BYTES);
         ilm_log_array_dbg("lock_id",      bswap_lock_id,           IDM_LOCK_ID_LEN_BYTES);
@@ -2211,6 +2212,7 @@ int _parse_lock_count(nvmeIdmRequest *request_idm, int *count, int *self) {
     idmData        *data_idm;
     char           bswap_lock_id[IDM_LOCK_ID_LEN_BYTES];
     char           bswap_host_id[IDM_HOST_ID_LEN_BYTES];
+    int            i;
     unsigned int   mutex_num = request_idm->data_num;
     int            ret = SUCCESS;
     uint64_t       state, locked;
@@ -2219,7 +2221,7 @@ int _parse_lock_count(nvmeIdmRequest *request_idm, int *count, int *self) {
     bswap_char_arr(bswap_host_id, request_idm->host_id, IDM_HOST_ID_LEN_BYTES);
 
     data_idm = request_idm->data_idm;
-    for (int i = 0; i < mutex_num; i++) {
+    for (i = 0; i < mutex_num; i++) {
 
         state  = __bswap_64(data_idm[i].state);
         locked = (state == IDM_STATE_LOCKED) || (state == IDM_STATE_MULTIPLE_LOCKED);
@@ -2287,6 +2289,7 @@ int _parse_lock_mode(nvmeIdmRequest *request_idm, int *mode) {
 
     idmData        *data_idm;
     char           bswap_lock_id[IDM_LOCK_ID_LEN_BYTES];
+    int            i;
     unsigned int   mutex_num = request_idm->data_num;
     int            ret       = SUCCESS;
     uint64_t       state, class;
@@ -2294,7 +2297,7 @@ int _parse_lock_mode(nvmeIdmRequest *request_idm, int *mode) {
     bswap_char_arr(bswap_lock_id, request_idm->lock_id, IDM_LOCK_ID_LEN_BYTES);
 
     data_idm = request_idm->data_idm;
-    for (int i = 0; i < mutex_num; i++) {
+    for (i = 0; i < mutex_num; i++) {
 
         #ifndef COMPILE_STANDALONE
         ilm_log_array_dbg("resource_id",   data_idm[i].resource_id, IDM_LOCK_ID_LEN_BYTES);
@@ -2371,6 +2374,7 @@ int _parse_lvb(nvmeIdmRequest *request_idm, char *lvb, int lvb_size) {
     idmData        *data_idm;
     char           bswap_lock_id[IDM_LOCK_ID_LEN_BYTES];
     char           bswap_host_id[IDM_HOST_ID_LEN_BYTES];
+    int            i;
     unsigned int   mutex_num = request_idm->data_num;
     int            ret       = SUCCESS;
 
@@ -2379,7 +2383,7 @@ int _parse_lvb(nvmeIdmRequest *request_idm, char *lvb, int lvb_size) {
 
     ret = -ENOENT;
     data_idm = request_idm->data_idm;
-    for (int i = 0; i < mutex_num; i++) {
+    for (i = 0; i < mutex_num; i++) {
         /* Skip for other locks */
         if (memcmp(data_idm[i].resource_id, bswap_lock_id, IDM_LOCK_ID_LEN_BYTES))
             continue;
