@@ -10,6 +10,7 @@
 #define __LOG_H__
 
 #include <stdarg.h>
+#include <stdio.h>
 #include <syslog.h>
 
 extern int log_file_priority;
