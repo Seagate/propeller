@@ -60,7 +60,7 @@ If a mutex has been locked with shareable mode, then it cannot be granted to
 a new owner with exclusive mode.
 
 .IP \[bu] 2
-The IDM lock manager combines the lock state from multiple drives in order to give a verdict on whether its host does or does not own any specific lock. 
+The IDM lock manager combines the lock state from multiple drives in order to give a verdict on whether its host does or does not own any specific lock.
 
 The majority locking algorithm is introduced for verdict: it has no difference with the common semantics if a lock is resident on a single drive: it must acquire the mutex on the drive.  For the case with multiple drives, the majority means the lock is only granted after a user has achieved the locking majority of all drives.
 The majority calculation can be express as:
@@ -162,7 +162,7 @@ manager deactivates VG:
   # dmsetup table
   centos-home: 0 111214592 linear 8:2 16254976
   TESTPV1: 0 163840 linear 8:146 0
-  TESTVG1-TESTVG1LV1: 0 155648 error 
+  TESTVG1-TESTVG1LV1: 0 155648 error
   centos-swap: 0 16252928 linear 8:2 2048
   centos-root: 0 104857600 linear 8:2 127469568
 .fi
@@ -251,10 +251,10 @@ in the macros DRIVE1/DRIVE2/DRIVE3/DRIVE4.
 
 #include <ilm.h>
 
-#define DRIVE1	"/dev/sdb2"
-#define DRIVE2	"/dev/sdd2"
-#define DRIVE3	"/dev/sde2"
-#define DRIVE4	"/dev/sdg2"
+#define DRIVE1	"/dev/sd"
+#define DRIVE2	"/dev/sd"
+#define DRIVE3	"/dev/sd"
+#define DRIVE4	"/dev/sd"
 
 int main(void)
 {

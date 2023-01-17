@@ -26,7 +26,7 @@ int idm_drive_version(int *version, char *drive)
 {
 	int ret;
 
-	if (!strstr(drive, NVME_DEVICE_TAG))
+	if (strstr(drive, NVME_DEVICE_TAG))
 		ret = nvme_idm_read_version(version, drive);
 	else
 		ret = scsi_idm_read_version(version, drive);
@@ -50,7 +50,7 @@ int idm_drive_lock(char *lock_id, int mode, char *host_id, char *drive,
 {
 	int ret;
 
-	if (!strstr(drive, NVME_DEVICE_TAG))
+	if (strstr(drive, NVME_DEVICE_TAG))
 		ret = nvme_idm_sync_lock(lock_id, mode, host_id, drive,
 					 timeout);
 	else
@@ -77,7 +77,7 @@ int idm_drive_lock_async(char *lock_id, int mode, char *host_id, char *drive,
 {
 	int ret;
 
-	if (!strstr(drive, NVME_DEVICE_TAG))
+	if (strstr(drive, NVME_DEVICE_TAG))
 		ret = nvme_idm_async_lock(lock_id, mode, host_id, drive,
 					  timeout, handle);
 	else
@@ -104,7 +104,7 @@ int idm_drive_unlock(char *lock_id, int mode, char *host_id, char *lvb,
 {
 	int ret;
 
-	if (!strstr(drive, NVME_DEVICE_TAG))
+	if (strstr(drive, NVME_DEVICE_TAG))
 		ret = nvme_idm_sync_unlock(lock_id, mode, host_id, lvb,
 					   lvb_size, drive);
 	else
@@ -132,7 +132,7 @@ int idm_drive_unlock_async(char *lock_id, int mode, char *host_id, char *lvb,
 {
 	int ret;
 
-	if (!strstr(drive, NVME_DEVICE_TAG))
+	if (strstr(drive, NVME_DEVICE_TAG))
 		ret = nvme_idm_async_unlock(lock_id, mode, host_id, lvb,
 					    lvb_size, drive, handle);
 	else
@@ -158,7 +158,7 @@ int idm_drive_convert_lock(char *lock_id, int mode, char *host_id, char *drive,
 {
 	int ret;
 
-	if (!strstr(drive, NVME_DEVICE_TAG))
+	if (strstr(drive, NVME_DEVICE_TAG))
 		ret = nvme_idm_sync_lock_convert(lock_id, mode, host_id,
 						 drive, timeout);
 	else
@@ -186,7 +186,7 @@ int idm_drive_convert_lock_async(char *lock_id, int mode, char *host_id,
 {
 	int ret;
 
-	if (!strstr(drive, NVME_DEVICE_TAG))
+	if (strstr(drive, NVME_DEVICE_TAG))
 		ret = nvme_idm_async_lock_convert(lock_id, mode, host_id,
 						  drive, timeout, handle);
 	else
@@ -212,7 +212,7 @@ int idm_drive_renew_lock(char *lock_id, int mode, char *host_id, char *drive,
 {
 	int ret;
 
-	if (!strstr(drive, NVME_DEVICE_TAG))
+	if (strstr(drive, NVME_DEVICE_TAG))
 		ret = nvme_idm_sync_lock_renew(lock_id, mode, host_id, drive,
 					       timeout);
 	else
@@ -240,7 +240,7 @@ int idm_drive_renew_lock_async(char *lock_id, int mode, char *host_id,
 {
 	int ret;
 
-	if (!strstr(drive, NVME_DEVICE_TAG))
+	if (strstr(drive, NVME_DEVICE_TAG))
 		ret = nvme_idm_async_lock_renew(lock_id, mode, host_id, drive,
 						timeout, handle);
 	else
@@ -269,7 +269,7 @@ int idm_drive_break_lock(char *lock_id, int mode, char *host_id,
 {
 	int ret;
 
-	if (!strstr(drive, NVME_DEVICE_TAG))
+	if (strstr(drive, NVME_DEVICE_TAG))
 		ret = nvme_idm_sync_lock_break(lock_id, mode, host_id, drive,
 					       timeout);
 	else
@@ -296,7 +296,7 @@ int idm_drive_break_lock_async(char *lock_id, int mode, char *host_id,
 {
 	int ret;
 
-	if (!strstr(drive, NVME_DEVICE_TAG))
+	if (strstr(drive, NVME_DEVICE_TAG))
 		ret = nvme_idm_async_lock_break(lock_id, mode, host_id, drive,
 						timeout, handle);
 	else
@@ -391,7 +391,7 @@ int idm_drive_read_lvb(char *lock_id, char *host_id, char *lvb, int lvb_size,
 {
 	int ret;
 
-	if (!strstr(drive, NVME_DEVICE_TAG))
+	if (strstr(drive, NVME_DEVICE_TAG))
 		ret = nvme_idm_sync_read_lvb(lock_id, host_id, lvb, lvb_size,
 					     drive);
 	else
@@ -416,7 +416,7 @@ int idm_drive_read_lvb_async(char *lock_id, char *host_id, char *drive,
 {
 	int ret;
 
-	if (!strstr(drive, NVME_DEVICE_TAG))
+	if (strstr(drive, NVME_DEVICE_TAG))
 		ret = nvme_idm_async_read_lvb(lock_id, host_id, drive, handle);
 	else
 		ret = scsi_idm_async_read_lvb(lock_id, host_id, drive, handle);
@@ -441,7 +441,7 @@ int idm_drive_read_lvb_async_result(char *drive, uint64_t handle, char *lvb,
 {
 	int ret;
 
-	if (!strstr(drive, NVME_DEVICE_TAG))
+	if (strstr(drive, NVME_DEVICE_TAG))
 		ret = nvme_idm_async_get_result_lvb(handle, lvb, lvb_size,
 						    result);
 	else
@@ -467,7 +467,7 @@ int idm_drive_lock_count(char *lock_id, char *host_id, int *count, int *self,
 {
 	int ret;
 
-	if (!strstr(drive, NVME_DEVICE_TAG))
+	if (strstr(drive, NVME_DEVICE_TAG))
 		ret = nvme_idm_sync_read_lock_count(lock_id, host_id, count,
 						    self, drive);
 	else
@@ -492,7 +492,7 @@ int idm_drive_lock_count_async(char *lock_id, char *host_id, char *drive,
 {
 	int ret;
 
-	if (!strstr(drive, NVME_DEVICE_TAG))
+	if (strstr(drive, NVME_DEVICE_TAG))
 		ret = nvme_idm_async_read_lock_count(lock_id, host_id, drive,
 						     handle);
 	else
@@ -518,7 +518,7 @@ int idm_drive_lock_count_async_result(char *drive, uint64_t handle, int *count,
 {
 	int ret;
 
-	if (!strstr(drive, NVME_DEVICE_TAG))
+	if (strstr(drive, NVME_DEVICE_TAG))
 		ret = nvme_idm_async_get_result_lock_count(handle, count,
 							   self, result);
 	else
@@ -541,7 +541,7 @@ int idm_drive_lock_mode(char *lock_id, int *mode, char *drive)
 {
 	int ret;
 
-	if (!strstr(drive, NVME_DEVICE_TAG))
+	if (strstr(drive, NVME_DEVICE_TAG))
 		ret = nvme_idm_sync_read_lock_mode(lock_id, mode, drive);
 	else
 		ret = scsi_idm_sync_read_lock_mode(lock_id, mode, drive);
@@ -562,7 +562,7 @@ int idm_drive_lock_mode_async(char *lock_id, char *drive, uint64_t *handle)
 {
 	int ret;
 
-	if (!strstr(drive, NVME_DEVICE_TAG))
+	if (strstr(drive, NVME_DEVICE_TAG))
 		ret = nvme_idm_async_read_lock_mode(lock_id, drive, handle);
 	else
 		ret = scsi_idm_async_read_lock_mode(lock_id, drive, handle);
@@ -585,7 +585,7 @@ int idm_drive_lock_mode_async_result(char *drive, uint64_t handle, int *mode,
 {
 	int ret;
 
-	if (!strstr(drive, NVME_DEVICE_TAG))
+	if (strstr(drive, NVME_DEVICE_TAG))
 		ret = nvme_idm_async_get_result_lock_mode(handle, mode,
 							  result);
 	else
@@ -608,7 +608,7 @@ int idm_drive_async_result(char *drive, uint64_t handle, int *result)
 {
 	int ret;
 
-	if (!strstr(drive, NVME_DEVICE_TAG))
+	if (strstr(drive, NVME_DEVICE_TAG))
 		ret = nvme_idm_async_get_result(handle, result);
 	else
 		ret = scsi_idm_async_get_result(handle, result);
@@ -626,7 +626,7 @@ int idm_drive_async_result(char *drive, uint64_t handle, int *result)
  */
 void idm_drive_free_async_result(char *drive, uint64_t handle)
 {
-	if (!strstr(drive, NVME_DEVICE_TAG))
+	if (strstr(drive, NVME_DEVICE_TAG))
 		nvme_idm_async_free_result(handle);
 	else
 		scsi_idm_async_free_result(handle);
@@ -647,7 +647,7 @@ int idm_drive_host_state(char *lock_id, char *host_id, int *host_state,
 {
 	int ret;
 
-	if (!strstr(drive, NVME_DEVICE_TAG))
+	if (strstr(drive, NVME_DEVICE_TAG))
 		ret = nvme_idm_sync_read_host_state(lock_id, host_id,
 						    host_state, drive);
 	else
@@ -685,7 +685,7 @@ int idm_drive_read_group(char *drive, struct idm_info **info_ptr, int *info_num)
 {
 	int ret;
 
-	if (!strstr(drive, NVME_DEVICE_TAG))
+	if (strstr(drive, NVME_DEVICE_TAG))
 		ret = nvme_idm_sync_read_mutex_group(drive, info_ptr,
 						     info_num);
 	else
@@ -708,7 +708,7 @@ int idm_drive_destroy(char *lock_id, int mode, char *host_id,
 {
 	int ret;
 
-	if (!strstr(drive, NVME_DEVICE_TAG))
+	if (strstr(drive, NVME_DEVICE_TAG))
 		ret = nvme_idm_sync_lock_destroy(lock_id, mode, host_id,
 						 drive);
 	else
@@ -731,7 +731,7 @@ int idm_drive_get_fd(char *drive, uint64_t handle)
 {
 	int ret;
 
-	if (!strstr(drive, NVME_DEVICE_TAG))
+	if (strstr(drive, NVME_DEVICE_TAG))
 		ret = nvme_idm_get_fd(handle);
 	else
 		ret = scsi_idm_get_fd(handle);
