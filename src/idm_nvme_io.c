@@ -87,9 +87,6 @@ int nvme_idm_async_data_rcv(nvmeIdmRequest *request_idm, int *result) {
         #endif //COMPILE_STANDALONE
     }
 
-//TODO: This command does NOT free memory for the previous async idm request (ie - "handle").
-//          Should it?
-//          Especially since fd_nvme is being closed here(with no current way to reopen it).
     close(request_idm->fd_nvme);
     return ret;
 }
@@ -352,8 +349,6 @@ int _async_idm_cmd_send(nvmeIdmRequest *request_idm) {
         return fd_nvme;
     }
 
-    //TODO: !!! Does anything need to be added\changed to cmd_nvme_passthru for use in write()?!!!
-
     _fill_nvme_cmd(request_idm, &cmd_nvme_passthru);
 
     //TODO: Keep?  Add debug flag?
@@ -412,8 +407,6 @@ int _async_idm_data_rcv(nvmeIdmRequest *request_idm, int *result) {
         ret = FAILURE;
         goto EXIT;
     }
-
-    //TODO: !!! Does anything need to be added\changed to cmd_nvme_passthru for use in read()?!!!
 
     //TODO: If emulate what SCSI-side is doing, this fill is NOT necessary.
     //          ?? Does ONLY the opcode_nvme needs to be updated (to indicate the concept of "direction" (like SCSI-side))?????
@@ -637,7 +630,6 @@ int _idm_cmd_init(nvmeIdmRequest *request_idm, uint8_t opcode_nvme) {
     cmd_nvme->addr               = (uint64_t)(uintptr_t)request_idm->data_idm;
     cmd_nvme->data_len           = request_idm->data_len;
     cmd_nvme->ndt                = request_idm->data_len / 4;
-//TODO: Change spec so don't have to do this 4-bit shift
     cmd_nvme->opcode_idm_bits7_4 = request_idm->opcode_idm << 4;
     cmd_nvme->group_idm          = request_idm->group_idm;
     cmd_nvme->timeout_ms         = VENDOR_CMD_TIMEOUT_DEFAULT;

@@ -61,7 +61,7 @@ int nvme_admin_identify(char *drive) {
  *
  */
 void _gen_nvme_cmd_identify(struct nvme_admin_cmd *cmd_admin, nvmeIDCtrl *data_identify_ctrl) {
-//TODO: Should this return "void"???
+
     memset(cmd_admin,          0, sizeof(struct nvme_admin_cmd));
     memset(data_identify_ctrl, 0, sizeof(nvmeIDCtrl));
 

@@ -1350,6 +1350,7 @@ int nvme_idm_sync_read_mutex_num(char *drive, unsigned int *mutex_num)
         goto EXIT_FAIL;
         #else
 //TODO: !!!! Temp HACK!!!!! For stand alone, to get the reads working.
+	//WARNING: This is realted to the FORCE_MUTEX_NUM compile flag as well
         printf("%s: nvme_idm_sync_read fail %d, Continuing\n", __func__, ret);
         ret = SUCCESS;
         #endif //COMPILE_STANDALONE
