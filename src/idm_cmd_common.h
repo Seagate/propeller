@@ -44,9 +44,9 @@
 // Enums
 //////////////////////////////////////////
 typedef enum _eIdmClasses {
-    IDM_MODE_UNLOCK    = 0,
-    IDM_MODE_EXCLUSIVE = 0x1,
-    IDM_MODE_SHAREABLE = 0x2,
+    IDM_CLASS_EXCLUSIVE             = 0,
+    IDM_CLASS_PROTECTED_WRITE       = 0x1,
+    IDM_CLASS_SHARED_PROTECTED_READ = 0x2,
 }eIdmClasses;
 
 typedef enum _eIdmGroups {
@@ -55,9 +55,9 @@ typedef enum _eIdmGroups {
 }eIdmGroups;
 
 typedef enum _eIdmModes {
-    IDM_CLASS_EXCLUSIVE             = 0,
-    IDM_CLASS_PROTECTED_WRITE       = 0x1,
-    IDM_CLASS_SHARED_PROTECTED_READ = 0x2,
+    IDM_MODE_UNLOCK    = 0,
+    IDM_MODE_EXCLUSIVE = 0x1,
+    IDM_MODE_SHAREABLE = 0x2,
 }eIdmModes;
 
 typedef enum _eIdmOpcodes {
@@ -113,19 +113,18 @@ typedef struct _idmData {
     };
 }idmData;
 
-typedef struct _idmInfo {
-    /* Lock ID */
-    char id[IDM_LOCK_ID_LEN_BYTES];
-    int state;
-    int mode;
+struct idm_info {
+	/* Lock ID */
+	char id[IDM_LOCK_ID_LEN_BYTES];
+	int state;
+	int mode;
 
-    /* Host ID */
-    char host_id[IDM_HOST_ID_LEN_BYTES];
+	/* Host ID */
+	char host_id[IDM_HOST_ID_LEN_BYTES];
 
-    /* Membership */
-    uint64_t last_renew_time;
-}idmInfo;
-
+	/* Membership */
+	uint64_t last_renew_time;
+};
 
 //////////////////////////////////////////
 // Functions

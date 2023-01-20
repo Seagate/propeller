@@ -10,7 +10,7 @@ import pytest
 
 from . import ilm_util
 
-import idm_scsi
+import idm_api
 from test_conf import *     # Normally bad practice, but only importing 'constants' here
 
 _logger = logging.getLogger(__name__)
@@ -64,7 +64,7 @@ def _init_devices():
 
     for device in BLK_DEVICES:
         try:
-            idm_scsi.idm_drive_lock_mode(LOCK_ID0, device)
+            idm_api.idm_drive_lock_mode(LOCK_ID0, device)
         except Exception as e:
             _logger.error(f'{device} lock failure')
             raise e from None

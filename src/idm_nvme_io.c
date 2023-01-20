@@ -62,7 +62,7 @@
 //////////////////////////////////////////
 
 /**
- * nvme_async_idm_data_rcv - Asynchronously retrieves the status word and (as needed) data from
+ * nvme_idm_async_data_rcv - Asynchronously retrieves the status word and (as needed) data from
  * a specified device for a previously issued NVMe IDM command.
  *
  * @request_idm:    Struct containing all NVMe-specific command info for the requested IDM action.
@@ -70,7 +70,7 @@
  *
  * Returns zero or a negative error (ie. EINVAL, ENOMEM, EBUSY, etc).
  */
-int nvme_async_idm_data_rcv(nvmeIdmRequest *request_idm, int *result) {
+int nvme_idm_async_data_rcv(nvmeIdmRequest *request_idm, int *result) {
 
     #ifdef FUNCTION_ENTRY_DEBUG
     printf("%s: START\n", __func__);
@@ -87,15 +87,12 @@ int nvme_async_idm_data_rcv(nvmeIdmRequest *request_idm, int *result) {
         #endif //COMPILE_STANDALONE
     }
 
-//TODO: This command does NOT free memory for the previous async idm request (ie - "handle").
-//          Should it?
-//          Especially since fd_nvme is being closed here(with no current way to reopen it).
     close(request_idm->fd_nvme);
     return ret;
 }
 
 /**
- * nvme_async_idm_read - Issues a custom (vendor-specific) NVMe command to the drive that then
+ * nvme_idm_async_read - Issues a custom (vendor-specific) NVMe command to the drive that then
  * executes a READ action on the IDM.  The specific action performed on the IDM is defined
  * by the IDM opcode set within the NVMe command structure.
  * However, this function issues this NVMe command asychronously.  Therefore, a separate
@@ -105,7 +102,7 @@ int nvme_async_idm_data_rcv(nvmeIdmRequest *request_idm, int *result) {
  *
  * Returns zero or a negative error (ie. EINVAL, ENOMEM, EBUSY, etc).
  */
-int nvme_async_idm_read(nvmeIdmRequest *request_idm) {
+int nvme_idm_async_read(nvmeIdmRequest *request_idm) {
 
     #ifdef FUNCTION_ENTRY_DEBUG
     printf("%s: START\n", __func__);
@@ -132,7 +129,7 @@ int nvme_async_idm_read(nvmeIdmRequest *request_idm) {
 }
 
 /**
- * nvme_async_idm_write - Issues a custom (vendor-specific) NVMe command to the drive that then
+ * nvme_idm_async_write - Issues a custom (vendor-specific) NVMe command to the drive that then
  * executes a WRITE action on the IDM.  The specific action performed on the IDM is defined
  * by the IDM opcode set within the NVMe command structure.
  * However, this function issues this NVMe command asychronously.  Therefore, a separate
@@ -143,7 +140,7 @@ int nvme_async_idm_read(nvmeIdmRequest *request_idm) {
  *
  * Returns zero or a negative error (ie. EINVAL, ENOMEM, EBUSY, etc).
  */
-int nvme_async_idm_write(nvmeIdmRequest *request_idm) {
+int nvme_idm_async_write(nvmeIdmRequest *request_idm) {
 
     #ifdef FUNCTION_ENTRY_DEBUG
     printf("%s: START\n", __func__);
@@ -237,7 +234,7 @@ int nvme_idm_write_init(char *lock_id, int mode, char *host_id, char *drive,
 }
 
 /**
- * nvme_sync_idm_read - Issues a custom (vendor-specific) NVMe command to the drive that then
+ * nvme_idm_sync_read - Issues a custom (vendor-specific) NVMe command to the drive that then
  * executes a READ action on the IDM.  The specific action performed on the IDM is defined
  * by the IDM opcode set within the NVMe command structure.
  * Intended to be called by higher level read IDM API's.
@@ -246,7 +243,7 @@ int nvme_idm_write_init(char *lock_id, int mode, char *host_id, char *drive,
  *
  * Returns zero or a negative error (ie. EINVAL, ENOMEM, EBUSY, etc).
  */
-int nvme_sync_idm_read(nvmeIdmRequest *request_idm) {
+int nvme_idm_sync_read(nvmeIdmRequest *request_idm) {
 
     #ifdef FUNCTION_ENTRY_DEBUG
     printf("%s: START\n", __func__);
@@ -281,7 +278,7 @@ int nvme_sync_idm_read(nvmeIdmRequest *request_idm) {
 }
 
 /**
- * nvme_sync_idm_write - Issues a custom (vendor-specific) NVMe command to the device that then
+ * nvme_idm_sync_write - Issues a custom (vendor-specific) NVMe command to the device that then
  * executes a WRITE action on the IDM.  The specific action performed on the IDM is defined
  * by the IDM opcode set within the NVMe command structure.
  * Intended to be called by higher level IDM API's (i.e.: lock, unlock, etc).
@@ -290,7 +287,7 @@ int nvme_sync_idm_read(nvmeIdmRequest *request_idm) {
  *
  * Returns zero or a negative error (ie. EINVAL, ENOMEM, EBUSY, etc).
  */
-int nvme_sync_idm_write(nvmeIdmRequest *request_idm) {
+int nvme_idm_sync_write(nvmeIdmRequest *request_idm) {
 
     #ifdef FUNCTION_ENTRY_DEBUG
     printf("%s: START\n", __func__);
@@ -352,8 +349,6 @@ int _async_idm_cmd_send(nvmeIdmRequest *request_idm) {
         return fd_nvme;
     }
 
-    //TODO: !!! Does anything need to be added\changed to cmd_nvme_passthru for use in write()?!!!
-
     _fill_nvme_cmd(request_idm, &cmd_nvme_passthru);
 
     //TODO: Keep?  Add debug flag?
@@ -370,7 +365,7 @@ int _async_idm_cmd_send(nvmeIdmRequest *request_idm) {
         #else
         printf("%s: write failed: %d(0x%X)\n", __func__, ret, ret);
         #endif //COMPILE_STANDALONE
-        return ret;
+        goto EXIT;
     }
 
 EXIT:
@@ -412,8 +407,6 @@ int _async_idm_data_rcv(nvmeIdmRequest *request_idm, int *result) {
         ret = FAILURE;
         goto EXIT;
     }
-
-    //TODO: !!! Does anything need to be added\changed to cmd_nvme_passthru for use in read()?!!!
 
     //TODO: If emulate what SCSI-side is doing, this fill is NOT necessary.
     //          ?? Does ONLY the opcode_nvme needs to be updated (to indicate the concept of "direction" (like SCSI-side))?????
@@ -637,7 +630,6 @@ int _idm_cmd_init(nvmeIdmRequest *request_idm, uint8_t opcode_nvme) {
     cmd_nvme->addr               = (uint64_t)(uintptr_t)request_idm->data_idm;
     cmd_nvme->data_len           = request_idm->data_len;
     cmd_nvme->ndt                = request_idm->data_len / 4;
-//TODO: Change spec so don't have to do this 4-bit shift
     cmd_nvme->opcode_idm_bits7_4 = request_idm->opcode_idm << 4;
     cmd_nvme->group_idm          = request_idm->group_idm;
     cmd_nvme->timeout_ms         = VENDOR_CMD_TIMEOUT_DEFAULT;
@@ -770,7 +762,6 @@ int _sync_idm_cmd_send(nvmeIdmRequest *request_idm) {
 
     ret = _idm_cmd_check_status(ret, request_idm->opcode_idm);
 
-EXIT:
     close(fd_nvme);
     return ret;
 }

@@ -35,7 +35,12 @@ SOURCE = main.c \
 	 failure.c \
 	 drive.c \
 	 scsiutils.c \
-	 uuid.c
+	 uuid.c \
+	 idm_cmd_common.c \
+	 idm_nvme_api.c \
+	 idm_nvme_io.c \
+	 idm_nvme_utils.c \
+	 idm_scsi.c
 
 LIB_SOURCE = lib_client.c
 
@@ -45,7 +50,7 @@ ifdef IDM_PTHREAD_EMULATION
 CFLAGS += -DIDM_PTHREAD_EMULATION
 SOURCE += idm_pthread_backend.c
 else
-SOURCE += idm_scsi.c
+SOURCE += idm_api.c
 endif
 
 LIB_CFLAGS = -fPIC

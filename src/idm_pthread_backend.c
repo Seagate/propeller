@@ -12,7 +12,7 @@
 
 #include "ilm.h"
 
-#include "idm_wrapper.h"
+#include "idm_api.h"
 #include "inject_fault.h"
 #include "list.h"
 #include "log.h"

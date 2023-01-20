@@ -1,5 +1,5 @@
 # Propeller Source Code Documentation
-This documentation is meant to give a generalized view of the functionality of the code in this project. Diagrams are not a 1:1 match with the code, as they are meant to explain the functionality at a higher-level. Self-explanatory functions or instantiations are skipped over to reduce complexity. 
+This documentation is meant to give a generalized view of the functionality of the code in this project. Diagrams are not a 1:1 match with the code, as they are meant to explain the functionality at a higher-level. Self-explanatory functions or instantiations are skipped over to reduce complexity.
 ## Initialization
 ```mermaid
 sequenceDiagram
@@ -43,8 +43,8 @@ sequenceDiagram
 ilm_client_listener_init() ->> ilm_client_add(): listener_sock_fd, ilm_client_connect(), NULL
 ilm_client_add() ->> list_add(): client
 ```
-[The main loop](#main-loop), which is checking if the client list is updated, notices the update. It polls the file descriptor and handles the connection. 
-Connecting to the client adds the client back to the list to handle their following request after establishing connection. 
+[The main loop](#main-loop), which is checking if the client list is updated, notices the update. It polls the file descriptor and handles the connection.
+Connecting to the client adds the client back to the list to handle their following request after establishing connection.
 ```mermaid
 sequenceDiagram
 ilm_client_connect() ->> ilm_client_add(): client_fd, ilm_client_request, NULL
@@ -81,7 +81,7 @@ opt lockspace command
 end
 ```
 ## drive.c/drive.h
-The `drive.c` code handles the heavy lifting associated with maintaining the drive list. This includes the drive thread that maintains the list, and the helper functions for tasks such as finding a drive's path, SCSI generic (sg) node, WWN, UUID. It also can rescan the drive list uses the udev library to monitor and remove dead drives from the list and return the drive list version. 
+The `drive.c` code handles the heavy lifting associated with maintaining the drive list. This includes the drive thread that maintains the list, and the helper functions for tasks such as finding a drive's path, SCSI generic (sg) node, WWN, UUID. It also can rescan the drive list uses the udev library to monitor and remove dead drives from the list and return the drive list version.
 
 The drive thread function uses a udev monitor to track actions associated with the drives, and update the drive list accordingly:
 ```mermaid
@@ -110,17 +110,19 @@ Loop Until Shutdown
     end
   end
 end
-      
+
 ```
 
 ## failure.c/failure.c
 This file handles the killing of a failed lockspace by utilizing the lockspace's killpath element.
+## idm_api.h
+This provides the generic IDM APIs for the SCSI and NVMe mutex commands found in idm_scsi.c and idm_nvme_api.c
 ## idm_pthread_backend.c
-This is used for running the Seagate lock manager in an emulated state, opting to emulate the IDM instead of contacting the drive. 
+This is used for running the Seagate lock manager in an emulated state, opting to emulate the IDM instead of contacting the drive.
+## idm_nvme_api.c
+This provides the lock manager with NVMe API for direct communication with IDM-enabled drives. This queries the drive for things such as lock mode, lock count, IDM version, etc. Synchronous communication utilize the NVMe Admin command set.  Asynchronous communication is not yet supported.
 ## idm_scsi.c
 This provides the lock manager with SCSI API for direct communication with IDM-enabled drives. This queries the drive for things such as lock mode, lock count, IDM version, etc. Asynchronous communication is handled using the standard read/write functions, but synchronous communication requires the SG (SCSI Generic) library.
-## idm_wrapper.h
-This provides the wrapper API for the SCSI mutex commands found in idm_scsi.c
 ## ilm.h
 This is this header file that is installed into the system's `/include/` directory that provides the prototypes for the client functions defined in lib_client.c
 ## ilm_internal.h
@@ -132,7 +134,7 @@ This file provides the API for lvmlockd to use the IDM lock manager. This allows
 ## libseagate_ilm.pc
 This is the package config file, which assists LVM in checking if the IDM lock manager is installed before configuring LVM to use it.
 ## list.h
-This file is based on the standard Linux linked-list structure and is used by files such as `client.c` to create a client list. 
+This file is based on the standard Linux linked-list structure and is used by files such as `client.c` to create a client list.
 ## lock.c/lock.h
 TODO
 ## lockspace.c/lockspace.h

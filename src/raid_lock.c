@@ -11,7 +11,7 @@
 
 #include "ilm.h"
 
-#include "idm_wrapper.h"
+#include "idm_api.h"
 #include "inject_fault.h"
 #include "lock.h"
 #include "log.h"
@@ -460,26 +460,30 @@ static int _raid_read_result_async(struct _raid_request *req)
 	case ILM_OP_UNLOCK:
 	case ILM_OP_CONVERT:
 	case ILM_OP_RENEW:
-		ret = idm_drive_async_result(req->handle, &req->result);
+		ret = idm_drive_async_result(req->path, req->handle,
+					     &req->result);
 		break;
 	case ILM_OP_BREAK:
-		ret = idm_drive_async_result(req->handle, &req->result);
+		ret = idm_drive_async_result(req->path, req->handle,
+					     &req->result);
 		if (!ret)
 			drive->is_brk = 1;
 		break;
 	case ILM_OP_READ_LVB:
-		ret = idm_drive_read_lvb_async_result(req->handle, req->lvb,
+		ret = idm_drive_read_lvb_async_result(req->path,
+						      req->handle, req->lvb,
 						      req->lvb_size,
 						      &req->result);
 		break;
 	case ILM_OP_COUNT:
-		ret = idm_drive_lock_count_async_result(req->handle,
+		ret = idm_drive_lock_count_async_result(req->path,
+							req->handle,
 							&req->count,
 							&req->self,
-						        &req->result);
+							&req->result);
 		break;
 	case ILM_OP_MODE:
-		ret = idm_drive_lock_mode_async_result(req->handle,
+		ret = idm_drive_lock_mode_async_result(req->path, req->handle,
 						       &req->mode,
 						       &req->result);
 		break;
@@ -802,7 +806,8 @@ static void *idm_raid_thread(void *data)
 			/* Prepare for polling file descriptor array */
 			num = 0;
 			list_for_each_entry(tmp, &raid_th->process_list, list) {
-				poll_fd[num].fd = idm_drive_get_fd(tmp->handle);
+				poll_fd[num].fd = idm_drive_get_fd(tmp->path,
+				                                   tmp->handle);
 				poll_fd[num].events = POLLIN;
 				num++;
 			}
@@ -828,7 +833,7 @@ static void *idm_raid_thread(void *data)
 
 				req = NULL;
 				list_for_each_entry(tmp, &raid_th->process_list, list) {
-					if (idm_drive_get_fd(tmp->handle) ==
+					if (idm_drive_get_fd(tmp->path, tmp->handle) ==
 							poll_fd[i].fd) {
 						req = tmp;
 						break;

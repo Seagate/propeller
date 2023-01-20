@@ -49,6 +49,7 @@ int ilm_inject_fault(int sock, int percentage);
 
 #define ILM_DRIVE_MAX_NUM       512
 
+//TODO: Replace with common include?
 #define IDM_MODE_UNLOCK         0
 #define IDM_MODE_EXCLUSIVE      1
 #define IDM_MODE_SHAREABLE      2

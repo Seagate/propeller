@@ -66,9 +66,6 @@ typedef struct _nvmeIdmVendorCmd {
     // uint64_t            prp2;        //CDW8 & 9
     uint32_t            ndt;          //CDW10
     uint32_t            ndm;          //CDW11
-//TODO: Move bit fields in CDW12. (saves a bit shift, at least for me)
-//  idm_group[7:0]
-//  idm_opcode_bits11_8[11:8]
     uint8_t             opcode_idm_bits7_4;   //CDW12   // bits[7:4].  Lower nibble reserved.
     uint8_t             group_idm;    //CDW12
     uint16_t            rsvd2;        //CDW12
@@ -111,10 +108,8 @@ typedef struct _nvmeIdmRequest {
     nvmeIdmVendorCmd    cmd_nvme;
     idmData             *data_idm;
 
-    //Misc collection area for kludgy smuggling of request-related parameters.
-    //GEnerally, these values are cached here in the API-level, and then
-    //stored in their final location in the IO-level.
-    //TODO: Convert these to function params and explictly pass around?
+    //Generally, these values are cached here in the API-layer, and then
+    //stored in their final location in the IO-layer.
     uint8_t             opcode_idm;
     uint8_t             group_idm;
     char                res_ver_type;
@@ -129,14 +124,14 @@ typedef struct _nvmeIdmRequest {
 //////////////////////////////////////////
 // Functions
 //////////////////////////////////////////
-int nvme_async_idm_data_rcv(nvmeIdmRequest *request_idm, int *result);
-int nvme_async_idm_read(nvmeIdmRequest *request_idm);
-int nvme_async_idm_write(nvmeIdmRequest *request_idm);
+int nvme_idm_async_data_rcv(nvmeIdmRequest *request_idm, int *result);
+int nvme_idm_async_read(nvmeIdmRequest *request_idm);
+int nvme_idm_async_write(nvmeIdmRequest *request_idm);
+int nvme_idm_sync_read(nvmeIdmRequest *request_idm);
+int nvme_idm_sync_write(nvmeIdmRequest *request_idm);
 void nvme_idm_read_init(char *drive, nvmeIdmRequest *request_idm);
 int nvme_idm_write_init(char *lock_id, int mode, char *host_id, char *drive,
                         uint64_t timeout, nvmeIdmRequest *request_idm);
-int nvme_sync_idm_read(nvmeIdmRequest *request_idm);
-int nvme_sync_idm_write(nvmeIdmRequest *request_idm);
 
 int _async_idm_cmd_send(nvmeIdmRequest *request_idm);  // Uses write()   (_scsi_write())
 int _async_idm_data_rcv(nvmeIdmRequest *request_idm, int *result); // Uses read()    (_scsi_read()) (ALWAYS returns status code.  MAY fill data)
