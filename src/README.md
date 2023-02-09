@@ -97,16 +97,16 @@ Loop Until Shutdown
       ilm_find_sg() ->> drive_thd_function(): SCSI generic node
       drive_thd_function() ->> ilm_read_device_wwn(): device path
       ilm_read_device_wwn() ->>  drive_thd_function(): WWN
-      drive_thd_function() ->> ilm_scsi_add_drive_path(): device path, SCSI generic node, WWN
+      drive_thd_function() ->> ilm_add_drive_path(): device path, SCSI generic node, WWN
     else action = remove
-      drive_thd_function() ->> ilm_scsi_del_drive_path(): device path
+      drive_thd_function() ->> ilm_del_drive_path(): device path
     else action = change
-      drive_thd_function() ->> ilm_scsi_del_drive_path(): device path
+      drive_thd_function() ->> ilm_del_drive_path(): device path
       drive_thd_function() ->> ilm_find_sg(): device name
       ilm_find_sg() ->> drive_thd_function(): SCSI generic node
       drive_thd_function() ->> ilm_read_device_wwn(): device path
       ilm_read_device_wwn() ->>  drive_thd_function(): WWN
-      drive_thd_function() ->> ilm_scsi_add_drive_path(): device path, SCSI generic node, WWN
+      drive_thd_function() ->> ilm_add_drive_path(): device path, SCSI generic node, WWN
     end
   end
 end
