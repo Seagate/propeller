@@ -34,7 +34,8 @@ SOURCE = main.c \
 	 inject_fault.c \
 	 failure.c \
 	 drive.c \
-	 scsiutils.c \
+	 utils_nvme.c \
+	 utils_scsi.c \
 	 uuid.c \
 	 idm_cmd_common.c \
 	 idm_nvme_api.c \

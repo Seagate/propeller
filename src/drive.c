@@ -24,7 +24,8 @@
 #include "drive.h"
 #include "list.h"
 #include "log.h"
-#include "scsiutils.h"
+#include "utils_nvme.h"
+#include "utils_scsi.h"
 
 #define SYSFS_ROOT		"/sys"
 #define BUS_SCSI_DEVS		"/bus/scsi/devices"
@@ -235,7 +236,7 @@ int ilm_read_device_wwn(char *dev, unsigned long *wwn)
 {
 	char cmd[128];
 	char buf[512];
-	char tmp[128], tmp1[128];
+	char tmp[128], tmp1[sizeof(tmp)], tmp2[sizeof(tmp)];
 	FILE *fp;
 	int ret;
 
@@ -253,19 +254,18 @@ int ilm_read_device_wwn(char *dev, unsigned long *wwn)
 		if (ret != 2)
 			continue;
 
-//TODO: Replace hard-coded string
-		if (strstr(dev, "nvme")) {//for now, ignore on nvme devices
-			//TODO: Is sscanf() safe to use like this?
-			//		Want result in tmp1 when done.
-			ret = sscanf(tmp1, "eui.%s", tmp1);
+		if (strstr(dev, NVME_NAME)) {//for now, ignore on nvme devices
+			ret = sscanf(tmp1, "eui.%s", tmp2);
 			if (ret != 1) {
 				ilm_log_err("%s: wwn eui strip failed for dev %s",
 				            __func__, dev);
+				pclose(fp);
 				return -1;
 			}
+			strcpy(tmp1, tmp2);
 		}
 
-		*wwn = strtol(tmp1, NULL, 16);
+		*wwn = strtoul(tmp1, NULL, 16);
 		ilm_log_dbg("%s: dev=%s wwn=0x%lx", __func__, dev, *wwn);
 		break;
 	}
@@ -356,6 +356,43 @@ out:
                 free(namelist[i]);
 	free(namelist);
         return tmp;
+}
+
+/**
+ * ilm_find_sg_with_nvme_hack - NVMe-specific wrapper function (with a terrible
+ * name) for handling the scsi sg path.
+ *
+ * The SG(scsi-generic) path doesn't really have an equivalent in the nvme
+ * world.  However, it currently exists in many places throughout the code base.
+ * To handle this situation, the NVMe device /dev path is just
+ * duplicated in the SG path, for now.
+ *
+ * This function malloc's the returned string, just like ilm_find_sg() does.
+ * This way, scsi and nvme device BOTH require free() calls on this string
+ * downstream.
+ *
+ * @blk_dev:	String containing the block device path.
+ * @drive_type:	enum value specifiying the drive type (scsi vs nvme).
+ *
+ * Returns malloc'd char* of sg path or NULL if it's not found.
+ */
+static char *ilm_find_sg_with_nvme_hack(char *blk_dev,
+                                        enum ilm_drive_type drive_type)
+{
+	char dev_node[64];
+	char *result = NULL;
+
+	switch (drive_type) {
+		case ILM_DRIVE_TYPE_NVME:
+			snprintf(dev_node, sizeof(dev_node),
+			         "/dev/%s", blk_dev);
+			result = strdup(dev_node);
+			break;
+		default://ILM_DRIVE_TYPE_SCSI
+			result = ilm_find_sg(blk_dev);
+	}
+
+	return result;
 }
 #endif
 
@@ -623,12 +660,10 @@ static int ilm_add_drive_path(char *dev_node, char *sg_node,
 	drive->path[drive->path_num].blk_path = strdup(dev_node);
 	drive->path[drive->path_num].sg_path = strdup(sg_node);
 	drive->path_num++;
-	if (strstr(dev_node, "nvme")) {
+	if (strstr(dev_node, NVME_NAME))
 		drive->drive_type = ILM_DRIVE_TYPE_NVME;
-	}
-	else {
+	else
 		drive->drive_type = ILM_DRIVE_TYPE_SCSI;
-	}
 
 	drive_list_version++;
 	pthread_mutex_unlock(&drive_list_mutex);
@@ -752,6 +787,7 @@ static void *drive_thd_fn(void *arg __maybe_unused)
 			char *sg = NULL;
 			char dev_node[64];
 			unsigned long wwn;
+			enum ilm_drive_type drive_type;
 			int i;
 
 			dev = udev_monitor_receive_device(mon);
@@ -766,24 +802,45 @@ static void *drive_thd_fn(void *arg __maybe_unused)
 			if (!i)
 				continue;
 
-			/* Iterate all digital */
-			while ((i > 0) && isdigit(dev_name[i-1]))
-				i--;
-
-			dev_name[i] = '\0';
-
 			ilm_log_dbg("%s: action=%s dev_name=%s", __func__,
+				    action, dev_name);
+
+			if (strstr(dev_name, NVME_NAME)) //Assumes nvmeXnX
+				drive_type = ILM_DRIVE_TYPE_NVME;
+			else
+				drive_type = ILM_DRIVE_TYPE_SCSI;
+
+			//If present, remove parition-portion on device name
+			switch (drive_type) {
+				case ILM_DRIVE_TYPE_NVME:
+					//Assumes nvmeXnXpX partition name format
+					if (strstr(dev_name, NVME_PARTITION_TAG)) {
+						char *pos = strchr(dev_name, 'p');
+						while (pos) {
+							*pos = '\0';
+							pos = strchr(pos, 'p');
+						}
+					}
+					break;
+				default://ILM_DRIVE_TYPE_SCSI
+					/* Iterate all digital */
+					while ((i > 0) && isdigit(dev_name[i-1]))
+						i--;
+
+					dev_name[i] = '\0';
+			}
+
+			ilm_log_dbg("%s: action=%s stripped dev_name=%s", __func__,
 				    action, dev_name);
 
 			snprintf(dev_node, sizeof(dev_node), "/dev/%s", dev_name);
 
 			if (!strcmp(action, "add")) {
 
-//TODO: Fix for nvme.  Move to new function and reuse??
-				sg = ilm_find_sg(dev_name);
+				sg = ilm_find_sg_with_nvme_hack(dev_name, drive_type);
 				if (!sg) {
 					ilm_log_warn("%s: Fail to find sg for %s",
-						     __func__, dev_name);
+					             __func__, dev_name);
 					goto free_dev_ref;
 				}
 
@@ -801,10 +858,10 @@ static void *drive_thd_fn(void *arg __maybe_unused)
 				/* Remove block device from node */
 				ilm_del_drive_path(dev_node);
 
-//TODO: Fix for nvme.  Move to new function and reuse??
-				sg = ilm_find_sg(dev_name);
-				if(!sg) {
-					ilm_log_warn("%s: Fail to find sg for %s", __func__, dev_name);
+				sg = ilm_find_sg_with_nvme_hack(dev_name, drive_type);
+				if (!sg) {
+					ilm_log_warn("%s: Fail to find sg for %s",
+					             __func__, dev_name);
 					goto free_dev_ref;
 				}
 
@@ -981,109 +1038,6 @@ int ilm_scsi_list_refresh(void)
 		ilm_log_err("Fail to scan drive list: %d", ret);
 
 	return ret;
-}
-
-// It looks like you could glob for SAS like:
-// ls /sys/block/sd*/device/generic/device/scsi_generic
-
-// and then NVMe simply like:
-// ls /sys/block/nvme*
-
-// #define PATH_NVME_BLK_DEVS "/sys/block"
-// #define GLOB_NVME_BLK_DEVS_GLOB "/sys/block/nvme*"
-// static int ilm_drive_list_rescan_nvme(void)
-// {
-// 	//Need: blk_path: /dev/nvmeXnX
-// 	//Need: sg_path: /dev/nvmeXnX
-// 	//Need: wwn:
-
-// 	char dev_node[PATH_MAX];
-// 	unsigned long wwn;
-
-// 	// char str[] ="- This, a sample string.";
-// 	// char * pch;
-// 	// ilm_log_dbg ("Splitting string \"%s\" into tokens:\n",str);
-// 	// pch = strtok (str," ,.-");
-// 	// while (pch != NULL)
-// 	// {
-// 	// 	ilm_log_dbg ("%s\n",pch);
-// 	// 	pch = strtok (NULL, " ,.-");
-// 	// }
-// 	// return 0;
-
-// 	char cmd[128];
-// 	char buf[512];
-// 	char tmp[128], tmp1[128];
-// 	FILE *fp;
-// 	char *substr;
-
-// 	//NOTE: Looks for all nvme DEFAULT drives names, but only in nvme
-// 	//	namespaces 0 thru 9.
-// 	//	This is enough for current needs.
-// 	snprintf(cmd, sizeof(cmd), "ls /dev/nvme*n[0-9]");
-// 	ilm_log_dbg("%s: cmd=%s", __func__, cmd);
-
-// 	if ((fp = popen(cmd, "r")) == NULL) {
-// 		ilm_log_err("cmd fail: %s", cmd);
-// 		return -1;
-// 	}
-
-// //TODO: Find ALL NVMe drives present
-// 	while (fgets(buf, sizeof(buf), fp) != NULL) {
-// 		// ret = sscanf(buf, "%s ID_WWN=%s", tmp, tmp1);
-// 		// if (ret != 2)
-// 		// 	continue;
-// 		ilm_log_dbg("%s: buf=\"%s\"", __func__, buf);
-// 		buf[strcspn(buf, "\r\n")] = 0;
-// 		ilm_log_dbg("%s: buf=\"%s\", %lu", __func__, buf, strlen(buf));
-
-
-// 	}
-
-// 	pclose(fp);
-
-
-// //TODO: For each drive, create struct (Leo's funky way), init with found path, and then add them to drive list
-// 		//also find wwn
-
-
-
-// 	// ret = ilm_read_device_wwn(dev_node, &wwn);
-// 	// if (ret < 0) {
-// 	// 	ilm_log_err("fail to read parttable id");
-// 	// }
-
-
-// 	return 0;
-// }
-
-//TODO: Move to new utils_nvme.c file
-	//TODO: Side-note: Rename scsiutils.c to utils_scsi.c
-//Serach for "nmveXnX", where "X" is any integer.
-//Ignore "nvmeX" and "nmveXnXpX"
-static int ilm_nvme_dir_select(const struct dirent *s)
-{
-//TODO: Do I only need 1 ptr here?  Test it
-	char *token1;
-	char *token2;
-
-	token1 = strstr(s->d_name, "nvme");//NVMe device
-	if (token1 != NULL) {
-		token1 += strlen("nvme");
-
-		token2 = strstr(token1, "n");//want namespace char
-		if (token2 != NULL) {
-			token2 += strlen("n");
-
-			token1 = strstr(token2, "p");//no partition char
-			if (token1 == NULL) {
-				return 1;
-			}
-		}
-
-	}
-
-	return 0;
 }
 
 //TODO: Sort out how deal with "static"(private) functions.  Use leading_?

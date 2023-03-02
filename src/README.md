@@ -145,7 +145,9 @@ TODO
 TODO
 ## raid_lock.c/raidlock.h
 TODO
-## scsiutils.c/scsiutils.h
+## utils_scsi.c/utils_scsi.h
+TODO
+## utils_nvme.c/utils_nvme.h
 TODO
 ## seagate_ilm.service
 This defines the locking manager service for use with `systemd`.

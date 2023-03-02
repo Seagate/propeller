@@ -15,7 +15,7 @@
 #include <linux/limits.h>
 
 #include "log.h"
-#include "scsiutils.h"
+#include "utils_scsi.h"
 
 int ilm_scsi_dir_select(const struct dirent *s)
 {
