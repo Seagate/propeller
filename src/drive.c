@@ -29,6 +29,11 @@
 #define SYSFS_ROOT		"/sys"
 #define BUS_SCSI_DEVS		"/bus/scsi/devices"
 
+enum ilm_drive_type {
+	ILM_DRIVE_TYPE_SCSI = 0,
+	ILM_DRIVE_TYPE_NVME = 1,
+};
+
 struct ilm_hw_drive_path {
 	char *blk_path;
 	char *sg_path;
@@ -38,6 +43,7 @@ struct ilm_hw_drive {
 	unsigned long wwn;
 	uint32_t path_num;
 	struct ilm_hw_drive_path path[ILM_DRIVE_MAX_NUM];
+	enum ilm_drive_type drive_type;
 };
 
 struct ilm_hw_drive_node {
@@ -246,6 +252,18 @@ int ilm_read_device_wwn(char *dev, unsigned long *wwn)
 		ret = sscanf(buf, "%s ID_WWN=%s", tmp, tmp1);
 		if (ret != 2)
 			continue;
+
+//TODO: Replace hard-coded string
+		if (strstr(dev, "nvme")) {//for now, ignore on nvme devices
+			//TODO: Is sscanf() safe to use like this?
+			//		Want result in tmp1 when done.
+			ret = sscanf(tmp1, "eui.%s", tmp1);
+			if (ret != 1) {
+				ilm_log_err("%s: wwn eui strip failed for dev %s",
+				            __func__, dev);
+				return -1;
+			}
+		}
 
 		*wwn = strtol(tmp1, NULL, 16);
 		ilm_log_dbg("%s: dev=%s wwn=0x%lx", __func__, dev, *wwn);
@@ -530,7 +548,7 @@ int ilm_scsi_get_part_table_uuid(char *dev, uuid_t *id)
 }
 #endif
 
-static void ilm_scsi_dump_nodes(void)
+static void ilm_drive_list_dump(void)
 {
 	struct ilm_hw_drive_node *pos;
 	int i;
@@ -538,7 +556,7 @@ static void ilm_scsi_dump_nodes(void)
 	pthread_mutex_lock(&drive_list_mutex);
 
 	list_for_each_entry(pos, &drive_list, list) {
-		ilm_log_dbg("SCSI dev WWN: 0x%lx", pos->drive.wwn);
+		ilm_log_dbg("Device WWN: 0x%lx", pos->drive.wwn);
 
 		for (i = 0; i < pos->drive.path_num; i++) {
 			ilm_log_dbg("blk_path %s", pos->drive.path[i].blk_path);
@@ -560,7 +578,7 @@ int ilm_scsi_drive_version(void)
 	return version;
 }
 
-static int ilm_scsi_add_drive_path(char *dev_node, char *sg_node,
+static int ilm_add_drive_path(char *dev_node, char *sg_node,
 				   unsigned long wwn)
 {
 	struct ilm_hw_drive_node *pos, *found = NULL;
@@ -605,13 +623,19 @@ static int ilm_scsi_add_drive_path(char *dev_node, char *sg_node,
 	drive->path[drive->path_num].blk_path = strdup(dev_node);
 	drive->path[drive->path_num].sg_path = strdup(sg_node);
 	drive->path_num++;
+	if (strstr(dev_node, "nvme")) {
+		drive->drive_type = ILM_DRIVE_TYPE_NVME;
+	}
+	else {
+		drive->drive_type = ILM_DRIVE_TYPE_SCSI;
+	}
 
 	drive_list_version++;
 	pthread_mutex_unlock(&drive_list_mutex);
 	return 0;
 }
 
-static int ilm_scsi_del_drive_path(char *dev_node)
+static int ilm_del_drive_path(char *dev_node)
 {
 	struct ilm_hw_drive_node *pos, *found = NULL;
 	struct ilm_hw_drive *drive;
@@ -664,7 +688,7 @@ clean_node:
 	return 0;
 }
 
-static int ilm_scsi_release_drv_list(void)
+static int ilm_drive_list_release(void)
 {
 	struct ilm_hw_drive_node *pos, *next;
 	struct ilm_hw_drive *drive;
@@ -754,6 +778,8 @@ static void *drive_thd_fn(void *arg __maybe_unused)
 			snprintf(dev_node, sizeof(dev_node), "/dev/%s", dev_name);
 
 			if (!strcmp(action, "add")) {
+
+//TODO: Fix for nvme.  Move to new function and reuse??
 				sg = ilm_find_sg(dev_name);
 				if (!sg) {
 					ilm_log_warn("%s: Fail to find sg for %s",
@@ -768,13 +794,14 @@ static void *drive_thd_fn(void *arg __maybe_unused)
 					goto free_dev_ref;
 				}
 
-				ilm_scsi_add_drive_path(dev_node, sg, wwn);
+				ilm_add_drive_path(dev_node, sg, wwn);
 			} else if (!strcmp(action, "remove")) {
-				ilm_scsi_del_drive_path(dev_node);
+				ilm_del_drive_path(dev_node);
 			} else if (!strcmp(action, "change")) {
 				/* Remove block device from node */
-				ilm_scsi_del_drive_path(dev_node);
+				ilm_del_drive_path(dev_node);
 
+//TODO: Fix for nvme.  Move to new function and reuse??
 				sg = ilm_find_sg(dev_name);
 				if(!sg) {
 					ilm_log_warn("%s: Fail to find sg for %s", __func__, dev_name);
@@ -788,10 +815,10 @@ static void *drive_thd_fn(void *arg __maybe_unused)
 				}
 
 				/* Add the block device with updated SG and WWN */
-				ilm_scsi_add_drive_path(dev_node, sg, wwn);
+				ilm_add_drive_path(dev_node, sg, wwn);
 			}
 
-			ilm_scsi_dump_nodes();
+			ilm_drive_list_dump();
 
 free_dev_ref:
 			if (sg)
@@ -846,7 +873,7 @@ static int ilm_sg_mod_is_loaded(void)
 	return 0;
 }
 
-int ilm_scsi_list_rescan(void)
+static int ilm_drive_list_rescan_scsi(void)
 {
 	struct dirent **namelist;
 	char devs_path[PATH_MAX];
@@ -928,7 +955,7 @@ int ilm_scsi_list_rescan(void)
 			continue;
 		}
 
-		ret = ilm_scsi_add_drive_path(dev_node, sg_node, wwn);
+		ret = ilm_add_drive_path(dev_node, sg_node, wwn);
 		if (ret < 0) {
 			ilm_log_err("fail to add scsi node");
 			goto out;
@@ -936,14 +963,10 @@ int ilm_scsi_list_rescan(void)
 	}
 	/* After scanning, reset return value so service stays operational even if some SCSI devices fail */
 	ret = 0;
-	ilm_scsi_dump_nodes();
 out:
         for (i = 0; i < num; i++)
                 free(namelist[i]);
 	free(namelist);
-
-	if (ret)
-		ilm_scsi_release_drv_list();
 
 	return ret;
 }
@@ -952,17 +975,200 @@ int ilm_scsi_list_refresh(void)
 {
 	int ret;
 
-	ilm_scsi_release_drv_list();
-	ret = ilm_scsi_list_rescan();
+	ilm_drive_list_release();
+	ret = ilm_drive_list_rescan_scsi();
 	if (ret)
 		ilm_log_err("Fail to scan drive list: %d", ret);
 
 	return ret;
 }
 
-int ilm_scsi_list_init(void)
+// It looks like you could glob for SAS like:
+// ls /sys/block/sd*/device/generic/device/scsi_generic
+
+// and then NVMe simply like:
+// ls /sys/block/nvme*
+
+// #define PATH_NVME_BLK_DEVS "/sys/block"
+// #define GLOB_NVME_BLK_DEVS_GLOB "/sys/block/nvme*"
+// static int ilm_drive_list_rescan_nvme(void)
+// {
+// 	//Need: blk_path: /dev/nvmeXnX
+// 	//Need: sg_path: /dev/nvmeXnX
+// 	//Need: wwn:
+
+// 	char dev_node[PATH_MAX];
+// 	unsigned long wwn;
+
+// 	// char str[] ="- This, a sample string.";
+// 	// char * pch;
+// 	// ilm_log_dbg ("Splitting string \"%s\" into tokens:\n",str);
+// 	// pch = strtok (str," ,.-");
+// 	// while (pch != NULL)
+// 	// {
+// 	// 	ilm_log_dbg ("%s\n",pch);
+// 	// 	pch = strtok (NULL, " ,.-");
+// 	// }
+// 	// return 0;
+
+// 	char cmd[128];
+// 	char buf[512];
+// 	char tmp[128], tmp1[128];
+// 	FILE *fp;
+// 	char *substr;
+
+// 	//NOTE: Looks for all nvme DEFAULT drives names, but only in nvme
+// 	//	namespaces 0 thru 9.
+// 	//	This is enough for current needs.
+// 	snprintf(cmd, sizeof(cmd), "ls /dev/nvme*n[0-9]");
+// 	ilm_log_dbg("%s: cmd=%s", __func__, cmd);
+
+// 	if ((fp = popen(cmd, "r")) == NULL) {
+// 		ilm_log_err("cmd fail: %s", cmd);
+// 		return -1;
+// 	}
+
+// //TODO: Find ALL NVMe drives present
+// 	while (fgets(buf, sizeof(buf), fp) != NULL) {
+// 		// ret = sscanf(buf, "%s ID_WWN=%s", tmp, tmp1);
+// 		// if (ret != 2)
+// 		// 	continue;
+// 		ilm_log_dbg("%s: buf=\"%s\"", __func__, buf);
+// 		buf[strcspn(buf, "\r\n")] = 0;
+// 		ilm_log_dbg("%s: buf=\"%s\", %lu", __func__, buf, strlen(buf));
+
+
+// 	}
+
+// 	pclose(fp);
+
+
+// //TODO: For each drive, create struct (Leo's funky way), init with found path, and then add them to drive list
+// 		//also find wwn
+
+
+
+// 	// ret = ilm_read_device_wwn(dev_node, &wwn);
+// 	// if (ret < 0) {
+// 	// 	ilm_log_err("fail to read parttable id");
+// 	// }
+
+
+// 	return 0;
+// }
+
+//TODO: Move to new utils_nvme.c file
+	//TODO: Side-note: Rename scsiutils.c to utils_scsi.c
+//Serach for "nmveXnX", where "X" is any integer.
+//Ignore "nvmeX" and "nmveXnXpX"
+static int ilm_nvme_dir_select(const struct dirent *s)
+{
+//TODO: Do I only need 1 ptr here?  Test it
+	char *token1;
+	char *token2;
+
+	token1 = strstr(s->d_name, "nvme");//NVMe device
+	if (token1 != NULL) {
+		token1 += strlen("nvme");
+
+		token2 = strstr(token1, "n");//want namespace char
+		if (token2 != NULL) {
+			token2 += strlen("n");
+
+			token1 = strstr(token2, "p");//no partition char
+			if (token1 == NULL) {
+				return 1;
+			}
+		}
+
+	}
+
+	return 0;
+}
+
+//TODO: Sort out how deal with "static"(private) functions.  Use leading_?
+static int ilm_drive_list_rescan_nvme(void)
+{
+	struct dirent **namelist;
+	char devs_path[PATH_MAX];
+	char dev_node[PATH_MAX];
+	int i, num;
+	int ret = 0;
+	unsigned long wwn;
+
+	snprintf(devs_path, sizeof(devs_path), "/dev");
+
+	num = scandir(devs_path, &namelist, ilm_nvme_dir_select, NULL);
+	if (num < 0) {
+		ilm_log_err("Attached nvme devices: none");
+		return -1;
+	}
+
+	for (i = 0; i < num; ++i) {
+		ret = snprintf(dev_node, sizeof(dev_node), "%s/%s",
+			       devs_path, namelist[i]->d_name);
+		if (ret < 0) {
+			ilm_log_err("string is out of memory");
+			goto out;
+		}
+
+		ilm_log_dbg("%s: dev_node=%s ", __func__, dev_node);
+
+		ret = ilm_read_device_wwn(dev_node, &wwn);
+		if (ret < 0) {
+			ilm_log_err("fail to read parttable id");
+			continue;
+		}
+
+		ret = ilm_add_drive_path(dev_node, dev_node, wwn);
+		if (ret < 0) {
+			ilm_log_err("fail to add scsi node");
+			goto out;
+		}
+	}
+	/* After scanning, reset return value so service stays operational even if some SCSI devices fail */
+	ret = 0;
+
+out:
+        for (i = 0; i < num; i++)
+                free(namelist[i]);
+	free(namelist);
+
+	return ret;
+}
+
+int ilm_drive_list_rescan(void)
 {
 	int ret;
+
+	ret = ilm_drive_list_rescan_scsi();
+	if (ret) {
+		ilm_log_err("%s: drive list rescan(scsi) failure: %d",
+		            __func__, ret);
+		goto EXIT;
+	}
+
+	ret = ilm_drive_list_rescan_nvme();
+	if (ret) {
+		ilm_log_err("%s: drive list rescan(nvme) failure: %d",
+		            __func__, ret);
+		goto EXIT;
+	}
+
+	ilm_drive_list_dump();
+
+	if (ret)
+		ilm_drive_list_release();
+
+EXIT:
+	return ret;
+}
+
+int ilm_drive_list_init(void)
+{
+	int ret;
+
+	INIT_LIST_HEAD(&drive_list);
 
 	if (!ilm_sg_mod_is_loaded()) {
 		ilm_log_err("Kernel module \"sg\" hasn't been loaded?!");
@@ -972,31 +1178,32 @@ int ilm_scsi_list_init(void)
 		return -1;
 	}
 
-	INIT_LIST_HEAD(&drive_list);
-
-	ret = ilm_scsi_list_rescan();
+	ret = ilm_drive_list_rescan();
 	if (ret) {
 		ilm_log_err("Fail to scan drive list: %d", ret);
-		return ret;
+		goto EXIT;
 	}
 
 	ret = pthread_create(&drive_thd, NULL, drive_thd_fn, NULL);
 	if (ret) {
 		ilm_log_err("Fail to create drive thread");
-		ilm_scsi_release_drv_list();
-		return ret;
+		ilm_drive_list_release();
+		goto EXIT;
 	}
 
-	return 0;
+EXIT:
+	return ret;
 }
 
 void ilm_scsi_list_exit(void)
 {
 	/* Notify drive thread to exit */
+	pthread_mutex_lock(&drive_list_mutex);
 	drive_thd_done = 1;
+	pthread_mutex_unlock(&drive_list_mutex);
 
 	/* Wait for drive thread to exit */
 	pthread_join(drive_thd, NULL);
 
-	ilm_scsi_release_drv_list();
+	ilm_drive_list_release();
 }

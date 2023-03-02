@@ -242,7 +242,8 @@ int main(int argc, char *argv[])
 	if (ret < 0)
 		goto signal_setup_fail;
 
-	ret = ilm_scsi_list_init();
+	// ret = ilm_scsi_list_init();
+	ret = ilm_drive_list_init();
 	if (ret < 0)
 		goto signal_setup_fail;
 
