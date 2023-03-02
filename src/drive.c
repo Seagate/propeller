@@ -25,12 +25,10 @@
 #include "list.h"
 #include "log.h"
 #include "scsiutils.h"
+#include "utils_nvme.h"
 
 #define SYSFS_ROOT		"/sys"
 #define BUS_SCSI_DEVS		"/bus/scsi/devices"
-#define NVME_NAME		"nvme"
-#define NVME_WWN_PREFIX		"eui."
-#define NVME_PARTITION_TAG	"p"
 
 enum ilm_drive_type {
 	ILM_DRIVE_TYPE_SCSI = 0,
@@ -1040,35 +1038,6 @@ int ilm_scsi_list_refresh(void)
 		ilm_log_err("Fail to scan drive list: %d", ret);
 
 	return ret;
-}
-
-//TODO: Move to new utils_nvme.c file
-	//TODO: Side-note: Rename scsiutils.c to utils_scsi.c
-//Serach for "nmveXnX", where "X" is any integer.
-//Ignore "nvmeX" and "nmveXnXpX"
-static int ilm_nvme_dir_select(const struct dirent *s)
-{
-//TODO: Do I only need 1 ptr here?  Test it
-	char *token1;
-	char *token2;
-
-	token1 = strstr(s->d_name, NVME_NAME);//NVMe device
-	if (token1 != NULL) {
-		token1 += strlen(NVME_NAME);
-
-		token2 = strstr(token1, "n");//want namespace char
-		if (token2 != NULL) {
-			token2 += strlen("n");
-
-			token1 = strstr(token2, "p");//no partition char
-			if (token1 == NULL) {
-				return 1;
-			}
-		}
-
-	}
-
-	return 0;
 }
 
 //TODO: Sort out how deal with "static"(private) functions.  Use leading_?
