@@ -604,7 +604,7 @@ static void ilm_drive_list_dump(void)
 	pthread_mutex_unlock(&drive_list_mutex);
 }
 
-int ilm_scsi_drive_version(void)
+int ilm_drive_list_version(void)
 {
 	int version;
 
@@ -1028,18 +1028,6 @@ out:
 	return ret;
 }
 
-int ilm_scsi_list_refresh(void)
-{
-	int ret;
-
-	ilm_drive_list_release();
-	ret = ilm_drive_list_rescan_scsi();
-	if (ret)
-		ilm_log_err("Fail to scan drive list: %d", ret);
-
-	return ret;
-}
-
 //TODO: Sort out how deal with "static"(private) functions.  Use leading_?
 static int ilm_drive_list_rescan_nvme(void)
 {
@@ -1149,7 +1137,19 @@ EXIT:
 	return ret;
 }
 
-void ilm_scsi_list_exit(void)
+int ilm_drive_list_refresh(void)
+{
+	int ret;
+
+	ilm_drive_list_release();
+	ret = ilm_drive_list_rescan();
+	if (ret)
+		ilm_log_err("Fail to scan drive list: %d", ret);
+
+	return ret;
+}
+
+void ilm_drive_list_exit(void)
 {
 	/* Notify drive thread to exit */
 	pthread_mutex_lock(&drive_list_mutex);

@@ -11,8 +11,8 @@ main.c ->> log.c: ilm_log_init()
 Note over main.c, log.c: Spin up logging thread and open log file
 main.c ->> main.c: ilm_signal_setup()
 Note right of main.c: Set up signal handling for ILM shutdown
-main.c ->> drive.c: ilm_scsi_list_init()
-Note over main.c, drive.c: Fill drive list with attached SCSI drives and initialize thread for drive
+main.c ->> drive.c: ilm_drive_list_init()
+Note over main.c, drive.c: Fill drive list with attached drives and initialize thread for drive
 main.c ->> client.c: ilm_client_listener_init()
 Note over main.c, client.c: Generate lock file and setup socket listener to handle clients
 main.c ->> cmd.c: ilm_cmd_queue_create()

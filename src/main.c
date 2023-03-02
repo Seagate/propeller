@@ -242,7 +242,6 @@ int main(int argc, char *argv[])
 	if (ret < 0)
 		goto signal_setup_fail;
 
-	// ret = ilm_scsi_list_init();
 	ret = ilm_drive_list_init();
 	if (ret < 0)
 		goto signal_setup_fail;
@@ -264,7 +263,7 @@ int main(int argc, char *argv[])
 queue_fail:
 	ilm_client_listener_exit();
 client_fail:
-	ilm_scsi_list_exit();
+	ilm_drive_list_exit();
 signal_setup_fail:
 	ilm_log_exit();
 	return 0;

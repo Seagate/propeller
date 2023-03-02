@@ -88,7 +88,7 @@ int ilm_update_drive_multi_paths(struct ilm_lock *lock)
 	 * If the drive version is not changed, do nothing and
 	 * directly bail out.
 	 */
-	if (lock->drive_version == ilm_scsi_drive_version())
+	if (lock->drive_version == ilm_drive_list_version())
 		return 0;
 
 	do {
@@ -99,7 +99,7 @@ int ilm_update_drive_multi_paths(struct ilm_lock *lock)
 		}
 
 		/* Update to the latest drive version */
-		lock->drive_version = ilm_scsi_drive_version();
+		lock->drive_version = ilm_drive_list_version();
 
 		for (i = 0; i < lock->good_drive_num; i++) {
 			drive = &lock->drive[i];
@@ -115,7 +115,7 @@ int ilm_update_drive_multi_paths(struct ilm_lock *lock)
 
 			/* Failed to retrieve any SG path for drive, refresh block list and retry */
 			if (!drive->path_num) {
-				ilm_scsi_list_refresh();
+				ilm_drive_list_refresh();
 				drive->path_num = ilm_scsi_get_all_sgs(drive->wwn,
 					drive->path, IDM_DRIVE_PATH_NUM);
 			}
@@ -141,7 +141,7 @@ int ilm_update_drive_multi_paths(struct ilm_lock *lock)
 	 * It's possible that the drive list is altered during updating,
 	 * check the version number and if doesn't match, try it again.
 	 */
-	} while (lock->drive_version != ilm_scsi_drive_version());
+	} while (lock->drive_version != ilm_drive_list_version());
 
 	return 0;
 }
@@ -154,7 +154,7 @@ static int ilm_insert_drive_multi_paths(struct ilm_lock *lock,
 	struct ilm_drive *drive;
 	int found;
 
-	lock->drive_version = ilm_scsi_drive_version();
+	lock->drive_version = ilm_drive_list_version();
 
 	for (i = 0; i < wwn_num; i++) {
 
@@ -182,7 +182,7 @@ static int ilm_insert_drive_multi_paths(struct ilm_lock *lock,
 
 		/* Failed to retrieve any SG path for drive, refresh block list and retry */
 		if (!drive->path_num) {
-			ilm_scsi_list_refresh();
+			ilm_drive_list_refresh();
 			drive->path_num = ilm_scsi_get_all_sgs(drive->wwn,
 				drive->path, IDM_DRIVE_PATH_NUM);
 		}
