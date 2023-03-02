@@ -24,8 +24,8 @@
 #include "drive.h"
 #include "list.h"
 #include "log.h"
-#include "scsiutils.h"
 #include "utils_nvme.h"
+#include "utils_scsi.h"
 
 #define SYSFS_ROOT		"/sys"
 #define BUS_SCSI_DEVS		"/bus/scsi/devices"

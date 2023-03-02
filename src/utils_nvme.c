@@ -3,9 +3,6 @@
  * Copyright (C) 2023 Seagate Technology LLC and/or its Affiliates.
  */
 
-
-//TODO: Side-note: Rename scsiutils.c to utils_scsi.c
-
 #include <stdio.h>
 
 #include "utils_nvme.h"
