@@ -106,7 +106,7 @@ struct idm_nvme_request {
 
     //IDM core structs
     struct nvme_idm_vendor_cmd  cmd_nvme;
-    struct idm_data                     *data_idm;
+    struct idm_data             *data_idm;
 
     //Generally, these values are cached here in the API-layer, and then
     //stored in their final location in the IO-layer.

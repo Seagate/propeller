@@ -2240,12 +2240,12 @@ int _parse_host_state(struct idm_nvme_request *request_idm, int *host_state)
 	printf("%s: START\n", __func__);
 	#endif //FUNCTION_ENTRY_DEBUG
 
-	struct idm_data        *data_idm;
-	char           bswap_lock_id[IDM_LOCK_ID_LEN_BYTES];
-	char           bswap_host_id[IDM_HOST_ID_LEN_BYTES];
-	int            i;
-	unsigned int   mutex_num = request_idm->data_num;
-	int            ret       = SUCCESS;
+	struct idm_data    *data_idm;
+	char               bswap_lock_id[IDM_LOCK_ID_LEN_BYTES];
+	char               bswap_host_id[IDM_HOST_ID_LEN_BYTES];
+	int                i;
+	unsigned int       mutex_num = request_idm->data_num;
+	int                ret       = SUCCESS;
 
 	bswap_char_arr(bswap_lock_id, request_idm->lock_id,
 	               IDM_LOCK_ID_LEN_BYTES);
@@ -2308,13 +2308,13 @@ int _parse_lock_count(struct idm_nvme_request *request_idm, int *count,
 	printf("%s: START\n", __func__);
 	#endif //FUNCTION_ENTRY_DEBUG
 
-	struct idm_data        *data_idm;
-	char           bswap_lock_id[IDM_LOCK_ID_LEN_BYTES];
-	char           bswap_host_id[IDM_HOST_ID_LEN_BYTES];
-	int            i;
-	unsigned int   mutex_num = request_idm->data_num;
-	int            ret = SUCCESS;
-	uint64_t       state, locked;
+	struct idm_data    *data_idm;
+	char               bswap_lock_id[IDM_LOCK_ID_LEN_BYTES];
+	char               bswap_host_id[IDM_HOST_ID_LEN_BYTES];
+	int                i;
+	unsigned int       mutex_num = request_idm->data_num;
+	int                ret = SUCCESS;
+	uint64_t           state, locked;
 
 	bswap_char_arr(bswap_lock_id, request_idm->lock_id,
 	               IDM_LOCK_ID_LEN_BYTES);
@@ -2397,12 +2397,12 @@ int _parse_lock_mode(struct idm_nvme_request *request_idm, int *mode)
 	printf("%s: START\n", __func__);
 	#endif //FUNCTION_ENTRY_DEBUG
 
-	struct idm_data        *data_idm;
-	char           bswap_lock_id[IDM_LOCK_ID_LEN_BYTES];
-	int            i;
-	unsigned int   mutex_num = request_idm->data_num;
-	int            ret       = SUCCESS;
-	uint64_t       state, class;
+	struct idm_data    *data_idm;
+	char               bswap_lock_id[IDM_LOCK_ID_LEN_BYTES];
+	int                i;
+	unsigned int       mutex_num = request_idm->data_num;
+	int                ret       = SUCCESS;
+	uint64_t           state, class;
 
 	bswap_char_arr(bswap_lock_id, request_idm->lock_id, IDM_LOCK_ID_LEN_BYTES);
 
@@ -2485,12 +2485,12 @@ int _parse_lvb(struct idm_nvme_request *request_idm, char *lvb, int lvb_size)
 	printf("%s: START\n", __func__);
 	#endif //FUNCTION_ENTRY_DEBUG
 
-	struct idm_data        *data_idm;
-	char           bswap_lock_id[IDM_LOCK_ID_LEN_BYTES];
-	char           bswap_host_id[IDM_HOST_ID_LEN_BYTES];
-	int            i;
-	unsigned int   mutex_num = request_idm->data_num;
-	int            ret       = SUCCESS;
+	struct idm_data    *data_idm;
+	char               bswap_lock_id[IDM_LOCK_ID_LEN_BYTES];
+	char               bswap_host_id[IDM_HOST_ID_LEN_BYTES];
+	int                i;
+	unsigned int       mutex_num = request_idm->data_num;
+	int                ret       = SUCCESS;
 
 	bswap_char_arr(bswap_lock_id, request_idm->lock_id,
 	               IDM_LOCK_ID_LEN_BYTES);
@@ -2537,11 +2537,11 @@ int _parse_mutex_group(struct idm_nvme_request *request_idm,
 	printf("%s: START\n", __func__);
 	#endif //FUNCTION_ENTRY_DEBUG
 
-	struct idm_data        *data_idm;
-	unsigned int   mutex_num = request_idm->data_num;
-	int            i, ret    = SUCCESS;
-	uint64_t       state, class;
-	struct idm_info        *info_list, *info;
+	struct idm_data    *data_idm;
+	unsigned int       mutex_num = request_idm->data_num;
+	int                i, ret    = SUCCESS;
+	uint64_t           state, class;
+	struct idm_info    *info_list, *info;
 
 	info_list = malloc(sizeof(struct idm_info) * mutex_num);
 	if (!info_list) {
@@ -2740,7 +2740,7 @@ int main(int argc, char *argv[])
         int             result=0;
         unsigned int    mutex_num;
         unsigned int    info_num;
-        struct idm_info         *info_list;
+        struct idm_info *info_list;
         int             host_state;
         int             count;
         int             self;

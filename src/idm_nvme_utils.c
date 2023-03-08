@@ -25,7 +25,7 @@
  */
 void dumpIdmDataStruct(struct idm_data *d)
 {
-	printf("struct idm_data struct: fields\n");
+	printf("struct idm_data: fields\n");
 	printf("=======================\n");
 	printf("state\\ignored0     = 0x%.16"PRIX64" (%lu)\n", d->state,    d->state);
 	printf("modified\\time_now  = 0x%.16"PRIX64" (%lu)\n", d->modified, d->modified);
