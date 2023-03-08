@@ -51,7 +51,7 @@ void dumpIdmDataStruct(struct idm_data *d)
  */
 void dumpIdmInfoStruct(struct idm_info *info)
 {
-	printf("struct idm_info fields\n");
+	printf("struct idm_info: fields\n");
 	printf("======================\n");
 	printf("id      = '");
 	_print_char_arr(info->id, IDM_LOCK_ID_LEN_BYTES);
@@ -78,7 +78,7 @@ void dumpNvmeCmdStruct(struct nvme_idm_vendor_cmd *cmd_nvme, int view_fields,
 	if(view_fields){
 		struct nvme_idm_vendor_cmd *c = cmd_nvme;
 
-		printf("struct nvme_idm_vendor_cmd struct: fields\n");
+		printf("struct nvme_idm_vendor_cmd: fields\n");
 		printf("===========================\n");
 		printf("opcode_nvme  (CDW0[ 7:0])  = 0x%.2X (%u)\n", c->opcode_nvme,  c->opcode_nvme);
 		printf("flags        (CDW0[15:8])  = 0x%.2X (%u)\n", c->flags,        c->flags);
@@ -107,7 +107,7 @@ void dumpNvmeCmdStruct(struct nvme_idm_vendor_cmd *cmd_nvme, int view_fields,
 		uint32_t *cdw = (uint32_t*)cmd_nvme;
 		int i;
 
-		printf("struct nvme_idm_vendor_cmd struct: CDWs (hex)\n");
+		printf("struct nvme_idm_vendor_cmd: CDWs (hex)\n");
 		printf("===============================\n");
 		for(i = 0; i <= 17; i++) {
 			printf("cdw%.2d = 0x%.8X\n", i, cdw[i]);
@@ -119,7 +119,7 @@ void dumpNvmeCmdStruct(struct nvme_idm_vendor_cmd *cmd_nvme, int view_fields,
 void dumpNvmePassthruCmd(struct nvme_passthru_cmd *cmd)
 {
 	printf("\n");
-	printf("nvme_passthru_cmd struct: fields\n");
+	printf("struct nvme_passthru_cmd: fields\n");
 	printf("================================\n");
 	printf("opcode       (CDW0[ 7:0])  = 0x%.2X (%u)\n", cmd->opcode,       cmd->opcode);
 	printf("flags        (CDW0[15:8])  = 0x%.2X (%u)\n", cmd->flags,        cmd->flags);
