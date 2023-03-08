@@ -29,47 +29,54 @@
 // FUNCTIONS
 //////////////////////////////////////////
 /**
- * nvme_admin_identify - Send NVMe Identify Controller command to specified device.
+ * nvme_admin_identify - Send NVMe Identify Controller command to specified
+ * device.
+ *
  * @drive:  Drive path name.
  *
  * Returns zero or a negative error (ie. EINVAL, ENOMEM, EBUSY, etc).
  */
-int nvme_admin_identify(char *drive) {
+int nvme_admin_identify(char *drive)
+{
+	printf("%s: IN: drive=%s\n", __func__, drive);
 
-    printf("%s: IN: drive=%s\n", __func__, drive);
-
-    struct nvme_admin_cmd cmd_admin;
-    nvmeIDCtrl data_identify_ctrl;
-    int ret = SUCCESS;
+	struct nvme_admin_cmd cmd_admin;
+	nvmeIDCtrl data_identify_ctrl;
+	int ret = SUCCESS;
 //TODO: This should ALWAYS be 4096.  Make a compile check for this??
-    printf("sizeof(nvmeIDCtrl) = %d\n", sizeof(nvmeIDCtrl));
+	printf("sizeof(nvmeIDCtrl) = %d\n", sizeof(nvmeIDCtrl));
 
-    _gen_nvme_cmd_identify(&cmd_admin, &data_identify_ctrl);
+	_gen_nvme_cmd_identify(&cmd_admin, &data_identify_ctrl);
 
-    ret = _send_nvme_cmd_admin(drive, &cmd_admin);
+	ret = _send_nvme_cmd_admin(drive, &cmd_admin);
 
 //TODO: Keep this debug??
-    printf("%s: data_identify_ctrl.subnqn = %s\n", __func__, data_identify_ctrl.subnqn);
+	printf("%s: data_identify_ctrl.subnqn = %s\n",
+	       __func__, data_identify_ctrl.subnqn);
 
-    return ret;
+	return ret;
 }
 
 /**
- * gen_nvme_cmd_identify - Setup the NVMe ADmin command struct for Identify Controller (opcode=0x6)
+ * gen_nvme_cmd_identify - Setup the NVMe ADmin command struct for Identify
+ * Controller (opcode=0x6)
+ *
  * @cmd_admin:          NVMe Admin Command struct to fill
- * @data_identify_ctrl: NVMe Admin Commmand data struct.  This is the cmd output destination.
+ * @data_identify_ctrl: NVMe Admin Commmand data struct.
+ *                      This is the cmd output destination.
  *
  */
-void _gen_nvme_cmd_identify(struct nvme_admin_cmd *cmd_admin, nvmeIDCtrl *data_identify_ctrl) {
+void _gen_nvme_cmd_identify(struct nvme_admin_cmd *cmd_admin,
+                            nvmeIDCtrl *data_identify_ctrl)
+{
+	memset(cmd_admin,          0, sizeof(struct nvme_admin_cmd));
+	memset(data_identify_ctrl, 0, sizeof(nvmeIDCtrl));
 
-    memset(cmd_admin,          0, sizeof(struct nvme_admin_cmd));
-    memset(data_identify_ctrl, 0, sizeof(nvmeIDCtrl));
-
-    cmd_admin->opcode     = NVME_ADMIN_CMD_IDENTIFY;
-    cmd_admin->addr       = (uint64_t)(uintptr_t)(data_identify_ctrl);
-    cmd_admin->data_len   = NVME_IDENTIFY_DATA_LEN_BYTES;
-    cmd_admin->cdw10      = NVME_IDENTIFY_CNS_CTRL;         // Set CNS
-    cmd_admin->timeout_ms = ADMIN_CMD_TIMEOUT_MS_DEFAULT;
+	cmd_admin->opcode     = NVME_ADMIN_CMD_IDENTIFY;
+	cmd_admin->addr       = (uint64_t)(uintptr_t)(data_identify_ctrl);
+	cmd_admin->data_len   = NVME_IDENTIFY_DATA_LEN_BYTES;
+	cmd_admin->cdw10      = NVME_IDENTIFY_CNS_CTRL;         // Set CNS
+	cmd_admin->timeout_ms = ADMIN_CMD_TIMEOUT_MS_DEFAULT;
 }
 
 /**
@@ -79,42 +86,44 @@ void _gen_nvme_cmd_identify(struct nvme_admin_cmd *cmd_admin, nvmeIDCtrl *data_i
  *
   * Returns zero or a negative error (ie. EINVAL, ENOMEM, EBUSY, etc).
 */
-int _send_nvme_cmd_admin(char *drive, struct nvme_admin_cmd *cmd_admin) {
-    int nvme_fd;
-    int ret = SUCCESS;
+int _send_nvme_cmd_admin(char *drive, struct nvme_admin_cmd *cmd_admin)
+{
+	int nvme_fd;
+	int ret = SUCCESS;
 
-    if ((nvme_fd = open(drive, O_RDWR | O_NONBLOCK)) < 0) {
-        #ifndef COMPILE_STANDALONE
-        ilm_log_err("%s: error opening drive %s fd %d",
-                __func__, drive, nvme_fd);
-        #else
-        printf("%s: error opening drive %s fd %d\n",
-                __func__, drive, nvme_fd);
-        #endif
-        return nvme_fd;
-    }
+	if ((nvme_fd = open(drive, O_RDWR | O_NONBLOCK)) < 0) {
+		#ifndef COMPILE_STANDALONE
+		ilm_log_err("%s: error opening drive %s fd %d",
+		            __func__, drive, nvme_fd);
+		#else
+		printf("%s: error opening drive %s fd %d\n",
+		       __func__, drive, nvme_fd);
+		#endif
+		return nvme_fd;
+	}
 
-    ret = ioctl(nvme_fd, NVME_IOCTL_ADMIN_CMD, cmd_admin);
-    if(ret) {
-        #ifndef COMPILE_STANDALONE
-        ilm_log_err("%s: ioctl failed: %d", __func__, ret);
-        #else
-        printf("%s: ioctl failed: %d\n", __func__, ret);
-        #endif
-        goto out;
-    }
+	ret = ioctl(nvme_fd, NVME_IOCTL_ADMIN_CMD, cmd_admin);
+	if(ret) {
+		#ifndef COMPILE_STANDALONE
+		ilm_log_err("%s: ioctl failed: %d", __func__, ret);
+		#else
+		printf("%s: ioctl failed: %d\n", __func__, ret);
+		#endif
+		goto out;
+	}
 
 //TODO: Keep this debug??
-    printf("%s: ioctl ret=%d\n", __func__, ret);
-    printf("%s: ioctl cmd_admin->result=%d\n", __func__, cmd_admin->result);
+	printf("%s: ioctl ret=%d\n", __func__, ret);
+	printf("%s: ioctl cmd_admin->result=%d\n",
+	       __func__, cmd_admin->result);
 
 //Completion Queue Entry (CQE) SIDE-NOTE:
 // CQE DW0[31:0]  == cmd_admin->result
 // CQE DW3[31:17] == ret                //?? is "ret" just [24:17]??
 
 out:
-    close(nvme_fd);
-    return ret;
+	close(nvme_fd);
+	return ret;
 }
 
 
@@ -133,26 +142,25 @@ out:
 //gcc idm_nvme_io_admin.c -o idm_nvme_io_admin
 int main(int argc, char *argv[])
 {
-    char *drive;
-    int  ret = 0;
+	char *drive;
+	int  ret = 0;
 
-    if(argc >= 3){
-        drive = argv[2];
-    }
-    else {
-        drive = DRIVE_DEFAULT_DEVICE;
-    }
+	if(argc >= 3){
+		drive = argv[2];
+	}
+	else {
+		drive = DRIVE_DEFAULT_DEVICE;
+	}
 
-    //cli usage: idm_nvme_io_admin identify
-    if(argc >= 2){
-        if(strcmp(argv[1], "identify") == 0){
-            ret = nvme_admin_identify(drive);
-            printf("%s exiting with %d\n", argv[1], ret);
-        }
+	//cli usage: idm_nvme_io_admin identify
+	if(argc >= 2){
+		if(strcmp(argv[1], "identify") == 0){
+			ret = nvme_admin_identify(drive);
+			printf("%s exiting with %d\n", argv[1], ret);
+		}
 
-    }
+	}
 
-
-    return 0;
+	return 0;
 }
 #endif//MAIN_ACTIVATE
