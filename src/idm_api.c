@@ -46,16 +46,16 @@ int idm_drive_version(int *version, char *drive)
  * Returns zero or a negative error (ie. EINVAL, ENOMEM, EBUSY, etc).
  */
 int idm_drive_lock(char *lock_id, int mode, char *host_id, char *drive,
-		   uint64_t timeout)
+                   uint64_t timeout)
 {
 	int ret;
 
 	if (strstr(drive, NVME_DEVICE_TAG))
 		ret = nvme_idm_sync_lock(lock_id, mode, host_id, drive,
-					 timeout);
+		                         timeout);
 	else
 		ret = scsi_idm_sync_lock(lock_id, mode, host_id, drive,
-					 timeout);
+		                         timeout);
 
 	return ret;
 }
@@ -73,16 +73,16 @@ int idm_drive_lock(char *lock_id, int mode, char *host_id, char *drive,
  * Returns zero or a negative error (ie. EINVAL, ENOMEM, EBUSY, etc).
  */
 int idm_drive_lock_async(char *lock_id, int mode, char *host_id, char *drive,
-			 uint64_t timeout, uint64_t *handle)
+                         uint64_t timeout, uint64_t *handle)
 {
 	int ret;
 
 	if (strstr(drive, NVME_DEVICE_TAG))
 		ret = nvme_idm_async_lock(lock_id, mode, host_id, drive,
-					  timeout, handle);
+		                          timeout, handle);
 	else
 		ret = scsi_idm_async_lock(lock_id, mode, host_id, drive,
-					  timeout, handle);
+		                          timeout, handle);
 
 	return ret;
 }
@@ -100,16 +100,16 @@ int idm_drive_lock_async(char *lock_id, int mode, char *host_id, char *drive,
  * Returns zero or a negative error (ie. EINVAL, ENOMEM, EBUSY, etc).
  */
 int idm_drive_unlock(char *lock_id, int mode, char *host_id, char *lvb,
-		     int lvb_size, char *drive)
+                     int lvb_size, char *drive)
 {
 	int ret;
 
 	if (strstr(drive, NVME_DEVICE_TAG))
 		ret = nvme_idm_sync_unlock(lock_id, mode, host_id, lvb,
-					   lvb_size, drive);
+		                           lvb_size, drive);
 	else
 		ret = scsi_idm_sync_unlock(lock_id, mode, host_id, lvb,
-					   lvb_size, drive);
+		                           lvb_size, drive);
 
 	return ret;
 }
@@ -128,16 +128,16 @@ int idm_drive_unlock(char *lock_id, int mode, char *host_id, char *lvb,
  * Returns zero or a negative error (ie. EINVAL, ENOMEM, EBUSY, etc).
  */
 int idm_drive_unlock_async(char *lock_id, int mode, char *host_id, char *lvb,
-			   int lvb_size, char *drive, uint64_t *handle)
+                           int lvb_size, char *drive, uint64_t *handle)
 {
 	int ret;
 
 	if (strstr(drive, NVME_DEVICE_TAG))
 		ret = nvme_idm_async_unlock(lock_id, mode, host_id, lvb,
-					    lvb_size, drive, handle);
+		                            lvb_size, drive, handle);
 	else
 		ret = scsi_idm_async_unlock(lock_id, mode, host_id, lvb,
-					    lvb_size, drive, handle);
+		                            lvb_size, drive, handle);
 
 	return ret;
 }
@@ -154,16 +154,16 @@ int idm_drive_unlock_async(char *lock_id, int mode, char *host_id, char *lvb,
  * Returns zero or a negative error (ie. EINVAL, ENOMEM, EBUSY, etc).
  */
 int idm_drive_convert_lock(char *lock_id, int mode, char *host_id, char *drive,
-			   uint64_t timeout)
+                           uint64_t timeout)
 {
 	int ret;
 
 	if (strstr(drive, NVME_DEVICE_TAG))
 		ret = nvme_idm_sync_lock_convert(lock_id, mode, host_id,
-						 drive, timeout);
+		                                 drive, timeout);
 	else
 		ret = scsi_idm_sync_lock_convert(lock_id, mode, host_id,
-						 drive, timeout);
+		                                 drive, timeout);
 
 	return ret;
 }
@@ -181,17 +181,17 @@ int idm_drive_convert_lock(char *lock_id, int mode, char *host_id, char *drive,
  * Returns zero or a negative error (ie. EINVAL, ENOMEM, EBUSY, etc).
  */
 int idm_drive_convert_lock_async(char *lock_id, int mode, char *host_id,
-				 char *drive, uint64_t timeout,
-				 uint64_t *handle)
+                                 char *drive, uint64_t timeout,
+                                 uint64_t *handle)
 {
 	int ret;
 
 	if (strstr(drive, NVME_DEVICE_TAG))
 		ret = nvme_idm_async_lock_convert(lock_id, mode, host_id,
-						  drive, timeout, handle);
+		                                 drive, timeout, handle);
 	else
 		ret = scsi_idm_async_lock_convert(lock_id, mode, host_id,
-						  drive, timeout, handle);
+		                                  drive, timeout, handle);
 
 	return ret;
 }
@@ -208,16 +208,16 @@ int idm_drive_convert_lock_async(char *lock_id, int mode, char *host_id,
  * Returns zero or a negative error (ie. EINVAL, ENOMEM, EBUSY, etc).
  */
 int idm_drive_renew_lock(char *lock_id, int mode, char *host_id, char *drive,
-			 uint64_t timeout)
+                         uint64_t timeout)
 {
 	int ret;
 
 	if (strstr(drive, NVME_DEVICE_TAG))
 		ret = nvme_idm_sync_lock_renew(lock_id, mode, host_id, drive,
-					       timeout);
+		                               timeout);
 	else
 		ret = scsi_idm_sync_lock_renew(lock_id, mode, host_id, drive,
-					       timeout);
+		                               timeout);
 
 	return ret;
 }
@@ -236,16 +236,16 @@ int idm_drive_renew_lock(char *lock_id, int mode, char *host_id, char *drive,
  * Returns zero or a negative error (ie. EINVAL, ENOMEM, EBUSY, etc).
  */
 int idm_drive_renew_lock_async(char *lock_id, int mode, char *host_id,
-			       char *drive, uint64_t timeout, uint64_t *handle)
+                              char *drive, uint64_t timeout, uint64_t *handle)
 {
 	int ret;
 
 	if (strstr(drive, NVME_DEVICE_TAG))
 		ret = nvme_idm_async_lock_renew(lock_id, mode, host_id, drive,
-						timeout, handle);
+		                                timeout, handle);
 	else
 		ret = scsi_idm_async_lock_renew(lock_id, mode, host_id, drive,
-						timeout, handle);
+		                                timeout, handle);
 
 	return ret;
 }
@@ -265,16 +265,16 @@ int idm_drive_renew_lock_async(char *lock_id, int mode, char *host_id,
  * Returns zero or a negative error (ie. EINVAL, ENOMEM, EBUSY, etc).
  */
 int idm_drive_break_lock(char *lock_id, int mode, char *host_id,
-			 char *drive, uint64_t timeout)
+                         char *drive, uint64_t timeout)
 {
 	int ret;
 
 	if (strstr(drive, NVME_DEVICE_TAG))
 		ret = nvme_idm_sync_lock_break(lock_id, mode, host_id, drive,
-					       timeout);
+		                               timeout);
 	else
 		ret = scsi_idm_sync_lock_break(lock_id, mode, host_id, drive,
-					       timeout);
+		                               timeout);
 
 	return ret;
 }
@@ -292,16 +292,16 @@ int idm_drive_break_lock(char *lock_id, int mode, char *host_id,
  * Returns zero or a negative error (ie. EINVAL, ENOMEM, EBUSY, etc).
  */
 int idm_drive_break_lock_async(char *lock_id, int mode, char *host_id,
-			       char *drive, uint64_t timeout, uint64_t *handle)
+                               char *drive, uint64_t timeout, uint64_t *handle)
 {
 	int ret;
 
 	if (strstr(drive, NVME_DEVICE_TAG))
 		ret = nvme_idm_async_lock_break(lock_id, mode, host_id, drive,
-						timeout, handle);
+		                                timeout, handle);
 	else
 		ret = scsi_idm_async_lock_break(lock_id, mode, host_id, drive,
-						timeout, handle);
+		                                timeout, handle);
 
 	return ret;
 }
@@ -318,7 +318,7 @@ int idm_drive_break_lock_async(char *lock_id, int mode, char *host_id,
  * Returns zero or a negative error (ie. EINVAL, ENOMEM, EBUSY, etc).
  */
 int idm_drive_write_lvb(char *lock_id, char *host_id, char *lvb, int lvb_size,
-			char *drive)
+                        char *drive)
 {
 	/*
 	NOT IMPLEMENTED
@@ -353,7 +353,7 @@ int idm_drive_write_lvb(char *lock_id, char *host_id, char *lvb, int lvb_size,
  * Returns zero or a negative error (ie. EINVAL, ENOMEM, EBUSY, etc).
  */
 int idm_drive_write_lvb_async(char *lock_id, char *host_id, char *lvb,
-			      int lvb_size, char *drive, uint64_t *handle)
+                              int lvb_size, char *drive, uint64_t *handle)
 {
 	/*
 	NOT IMPLEMENTED
@@ -387,16 +387,16 @@ int idm_drive_write_lvb_async(char *lock_id, char *host_id, char *lvb,
  * Returns zero or a negative error (ie. EINVAL, ENOMEM, EBUSY, etc).
  */
 int idm_drive_read_lvb(char *lock_id, char *host_id, char *lvb, int lvb_size,
-		       char *drive)
+                       char *drive)
 {
 	int ret;
 
 	if (strstr(drive, NVME_DEVICE_TAG))
 		ret = nvme_idm_sync_read_lvb(lock_id, host_id, lvb, lvb_size,
-					     drive);
+		                             drive);
 	else
 		ret = scsi_idm_sync_read_lvb(lock_id, host_id, lvb, lvb_size,
-					     drive);
+		                             drive);
 
 	return ret;
 }
@@ -412,7 +412,7 @@ int idm_drive_read_lvb(char *lock_id, char *host_id, char *lvb, int lvb_size,
  * Returns zero or a negative error (ie. EINVAL, ENOMEM, EBUSY, etc).
  */
 int idm_drive_read_lvb_async(char *lock_id, char *host_id, char *drive,
-			     uint64_t *handle)
+                             uint64_t *handle)
 {
 	int ret;
 
@@ -437,16 +437,16 @@ int idm_drive_read_lvb_async(char *lock_id, char *host_id, char *drive,
  * Returns zero or a negative error (ie. EINVAL, ENOMEM, EBUSY, etc).
  */
 int idm_drive_read_lvb_async_result(char *drive, uint64_t handle, char *lvb,
-				    int lvb_size, int *result)
+                                    int lvb_size, int *result)
 {
 	int ret;
 
 	if (strstr(drive, NVME_DEVICE_TAG))
 		ret = nvme_idm_async_get_result_lvb(handle, lvb, lvb_size,
-						    result);
+		                                    result);
 	else
 		ret = scsi_idm_async_get_result_lvb(handle, lvb, lvb_size,
-						    result);
+		                                    result);
 
 	return ret;
 }
@@ -463,16 +463,16 @@ int idm_drive_read_lvb_async_result(char *drive, uint64_t handle, char *lvb,
  * Returns zero or a negative error (ie. EINVAL, ENOMEM, EBUSY, etc).
  */
 int idm_drive_lock_count(char *lock_id, char *host_id, int *count, int *self,
-			 char *drive)
+                         char *drive)
 {
 	int ret;
 
 	if (strstr(drive, NVME_DEVICE_TAG))
 		ret = nvme_idm_sync_read_lock_count(lock_id, host_id, count,
-						    self, drive);
+		                                    self, drive);
 	else
 		ret = scsi_idm_sync_read_lock_count(lock_id, host_id, count,
-						    self, drive);
+		                                    self, drive);
 
 	return ret;
 }
@@ -488,16 +488,16 @@ int idm_drive_lock_count(char *lock_id, char *host_id, int *count, int *self,
  * Returns zero or a negative error (ie. EINVAL, ENOMEM, EBUSY, etc).
  */
 int idm_drive_lock_count_async(char *lock_id, char *host_id, char *drive,
-			       uint64_t *handle)
+                               uint64_t *handle)
 {
 	int ret;
 
 	if (strstr(drive, NVME_DEVICE_TAG))
 		ret = nvme_idm_async_read_lock_count(lock_id, host_id, drive,
-						     handle);
+		                                     handle);
 	else
 		ret = scsi_idm_async_read_lock_count(lock_id, host_id, drive,
-						     handle);
+		                                     handle);
 
 	return ret;
 }
@@ -514,16 +514,16 @@ int idm_drive_lock_count_async(char *lock_id, char *host_id, char *drive,
  * Returns zero or a negative error (ie. EINVAL, ENOMEM, EBUSY, etc).
  */
 int idm_drive_lock_count_async_result(char *drive, uint64_t handle, int *count,
-				      int *self, int *result)
+                                      int *self, int *result)
 {
 	int ret;
 
 	if (strstr(drive, NVME_DEVICE_TAG))
 		ret = nvme_idm_async_get_result_lock_count(handle, count,
-							   self, result);
+		                                           self, result);
 	else
 		ret = scsi_idm_async_get_result_lock_count(handle, count,
-							   self, result);
+		                                           self, result);
 
 	return ret;
 }
@@ -581,16 +581,16 @@ int idm_drive_lock_mode_async(char *lock_id, char *drive, uint64_t *handle)
  * Returns zero or a negative error (ie. EINVAL, ENOMEM, EBUSY, etc).
  */
 int idm_drive_lock_mode_async_result(char *drive, uint64_t handle, int *mode,
-				     int *result)
+                                     int *result)
 {
 	int ret;
 
 	if (strstr(drive, NVME_DEVICE_TAG))
 		ret = nvme_idm_async_get_result_lock_mode(handle, mode,
-							  result);
+		                                          result);
 	else
 		ret = scsi_idm_async_get_result_lock_mode(handle, mode,
-							  result);
+		                                          result);
 
 	return ret;
 }
@@ -643,16 +643,16 @@ void idm_drive_free_async_result(char *drive, uint64_t handle)
  * Returns zero or a negative error (ie. EINVAL, ENOMEM, EBUSY, etc).
  */
 int idm_drive_host_state(char *lock_id, char *host_id, int *host_state,
-			 char *drive)
+                         char *drive)
 {
 	int ret;
 
 	if (strstr(drive, NVME_DEVICE_TAG))
 		ret = nvme_idm_sync_read_host_state(lock_id, host_id,
-						    host_state, drive);
+		                                    host_state, drive);
 	else
 		ret = scsi_idm_sync_read_host_state(lock_id, host_id,
-						    host_state, drive);
+		                                    host_state, drive);
 
 	return ret;
 }
@@ -687,10 +687,10 @@ int idm_drive_read_group(char *drive, struct idm_info **info_ptr, int *info_num)
 
 	if (strstr(drive, NVME_DEVICE_TAG))
 		ret = nvme_idm_sync_read_mutex_group(drive, info_ptr,
-						     info_num);
+		                                     info_num);
 	else
 		ret = scsi_idm_sync_read_mutex_group(drive, info_ptr,
-						     info_num);
+		                                     info_num);
 
 	return ret;
 }
@@ -704,16 +704,16 @@ int idm_drive_read_group(char *drive, struct idm_info **info_ptr, int *info_num)
  * Returns zero or a negative error (ie. EINVAL, ENOMEM, EBUSY, etc).
  */
 int idm_drive_destroy(char *lock_id, int mode, char *host_id,
-		      char *drive)
+                      char *drive)
 {
 	int ret;
 
 	if (strstr(drive, NVME_DEVICE_TAG))
 		ret = nvme_idm_sync_lock_destroy(lock_id, mode, host_id,
-						 drive);
+		                                 drive);
 	else
 		ret = nvme_idm_sync_lock_destroy(lock_id, mode, host_id,
-						 drive);
+		                                 drive);
 
 	return ret;
 }
