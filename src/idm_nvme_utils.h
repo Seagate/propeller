@@ -15,9 +15,9 @@
 #include "idm_nvme_io.h"
 
 
-void dumpIdmDataStruct(idmData *data_idm);
+void dumpIdmDataStruct(struct idm_data *data_idm);
 void dumpIdmInfoStruct(struct idm_info *info);
-void dumpNvmeCmdStruct(nvmeIdmVendorCmd *cmd_nvme, int view_fields,
+void dumpNvmeCmdStruct(struct nvme_idm_vendor_cmd *cmd_nvme, int view_fields,
                        int view_cdws);
 void dumpNvmePassthruCmd(struct nvme_passthru_cmd *cmd);
 

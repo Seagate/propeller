@@ -72,7 +72,7 @@
  *
  * Returns zero or a negative error (ie. EINVAL, ENOMEM, EBUSY, etc).
  */
-int nvme_idm_async_data_rcv(nvmeIdmRequest *request_idm, int *result)
+int nvme_idm_async_data_rcv(struct idm_nvme_request *request_idm, int *result)
 {
 	#ifdef FUNCTION_ENTRY_DEBUG
 	printf("%s: START\n", __func__);
@@ -107,7 +107,7 @@ int nvme_idm_async_data_rcv(nvmeIdmRequest *request_idm, int *result)
  *
  * Returns zero or a negative error (ie. EINVAL, ENOMEM, EBUSY, etc).
  */
-int nvme_idm_async_read(nvmeIdmRequest *request_idm)
+int nvme_idm_async_read(struct idm_nvme_request *request_idm)
 {
 	#ifdef FUNCTION_ENTRY_DEBUG
 	printf("%s: START\n", __func__);
@@ -147,7 +147,7 @@ int nvme_idm_async_read(nvmeIdmRequest *request_idm)
  *
  * Returns zero or a negative error (ie. EINVAL, ENOMEM, EBUSY, etc).
  */
-int nvme_idm_async_write(nvmeIdmRequest *request_idm)
+int nvme_idm_async_write(struct idm_nvme_request *request_idm)
 {
 	#ifdef FUNCTION_ENTRY_DEBUG
 	printf("%s: START\n", __func__);
@@ -184,7 +184,7 @@ int nvme_idm_async_write(nvmeIdmRequest *request_idm)
  * @request_idm:    Struct containing all NVMe-specific command info for the
  *                  requested IDM action.
  */
-void nvme_idm_read_init(char *drive, nvmeIdmRequest *request_idm)
+void nvme_idm_read_init(char *drive, struct idm_nvme_request *request_idm)
 {
 	#ifdef FUNCTION_ENTRY_DEBUG
 	printf("%s: START\n", __func__);
@@ -215,7 +215,7 @@ void nvme_idm_read_init(char *drive, nvmeIdmRequest *request_idm)
  * Returns zero or a negative error (ie. EINVAL, ENOMEM, EBUSY, etc).
  */
 int nvme_idm_write_init(char *lock_id, int mode, char *host_id, char *drive,
-                        uint64_t timeout, nvmeIdmRequest *request_idm)
+                        uint64_t timeout, struct idm_nvme_request *request_idm)
 {
 	#ifdef FUNCTION_ENTRY_DEBUG
 	printf("%s: START\n", __func__);
@@ -260,7 +260,7 @@ int nvme_idm_write_init(char *lock_id, int mode, char *host_id, char *drive,
  *
  * Returns zero or a negative error (ie. EINVAL, ENOMEM, EBUSY, etc).
  */
-int nvme_idm_sync_read(nvmeIdmRequest *request_idm)
+int nvme_idm_sync_read(struct idm_nvme_request *request_idm)
 {
 	#ifdef FUNCTION_ENTRY_DEBUG
 	printf("%s: START\n", __func__);
@@ -285,9 +285,9 @@ int nvme_idm_sync_read(nvmeIdmRequest *request_idm)
 
 //TODO: Put on debug flag OR remove??
 	#ifndef COMPILE_STANDALONE
-	ilm_log_dbg("%s: retrieved idmData", __func__);
+	ilm_log_dbg("%s: retrieved struct idm_data", __func__);
 	#else
-	printf("%s: retrieved idmData\n", __func__);
+	printf("%s: retrieved struct idm_data\n", __func__);
 	#endif //COMPILE_STANDALONE
 	dumpIdmDataStruct(request_idm->data_idm);
 
@@ -306,7 +306,7 @@ int nvme_idm_sync_read(nvmeIdmRequest *request_idm)
  *
  * Returns zero or a negative error (ie. EINVAL, ENOMEM, EBUSY, etc).
  */
-int nvme_idm_sync_write(nvmeIdmRequest *request_idm)
+int nvme_idm_sync_write(struct idm_nvme_request *request_idm)
 {
 	#ifdef FUNCTION_ENTRY_DEBUG
 	printf("%s: START\n", __func__);
@@ -343,7 +343,7 @@ int nvme_idm_sync_write(nvmeIdmRequest *request_idm)
  *
  * Returns zero or a negative error (ie. EINVAL, ENOMEM, EBUSY, etc).
  */
-int _async_idm_cmd_send(nvmeIdmRequest *request_idm)
+int _async_idm_cmd_send(struct idm_nvme_request *request_idm)
 {
 	#ifdef FUNCTION_ENTRY_DEBUG
 	printf("%s: START\n", __func__);
@@ -406,7 +406,7 @@ EXIT:
  *
  * Returns zero or a negative error (ie. EINVAL, ENOMEM, EBUSY, etc).
  */
-int _async_idm_data_rcv(nvmeIdmRequest *request_idm, int *result)
+int _async_idm_data_rcv(struct idm_nvme_request *request_idm, int *result)
 {
 	#ifdef FUNCTION_ENTRY_DEBUG
 	printf("%s: START\n", __func__);
@@ -491,7 +491,7 @@ EXIT:
  *
  * Returns zero or a negative error (ie. EINVAL, ENOMEM, EBUSY, etc).
  */
-void _fill_nvme_cmd(nvmeIdmRequest *request_idm,
+void _fill_nvme_cmd(struct idm_nvme_request *request_idm,
                     struct nvme_admin_cmd *cmd_nvme_passthru)
 {
 	//TODO: Leave this commented out section for nsid in-place for now.  May be needed in near future.
@@ -654,13 +654,13 @@ int _idm_cmd_check_status(int status, uint8_t opcode_idm)
  *
  * Returns zero or a negative error (ie. EINVAL, ENOMEM, EBUSY, etc).
  */
-int _idm_cmd_init(nvmeIdmRequest *request_idm, uint8_t opcode_nvme)
+int _idm_cmd_init(struct idm_nvme_request *request_idm, uint8_t opcode_nvme)
 {
 	#ifdef FUNCTION_ENTRY_DEBUG
 	printf("%s: START\n", __func__);
 	#endif //FUNCTION_ENTRY_DEBUG
 
-	nvmeIdmVendorCmd *cmd_nvme = &request_idm->cmd_nvme;
+	struct nvme_idm_vendor_cmd *cmd_nvme = &request_idm->cmd_nvme;
 	int ret = SUCCESS;
 
 	cmd_nvme->opcode_nvme        = opcode_nvme;
@@ -683,13 +683,13 @@ int _idm_cmd_init(nvmeIdmRequest *request_idm, uint8_t opcode_nvme)
  *
  * Returns zero or a negative error (ie. EINVAL, ENOMEM, EBUSY, etc).
  */
-int _idm_data_init_wrt(nvmeIdmRequest *request_idm)
+int _idm_data_init_wrt(struct idm_nvme_request *request_idm)
 {
 	#ifdef FUNCTION_ENTRY_DEBUG
 	printf("%s: START\n", __func__);
 	#endif //FUNCTION_ENTRY_DEBUG
 
-	idmData *data_idm = request_idm->data_idm;
+	struct idm_data *data_idm = request_idm->data_idm;
 	int ret           = SUCCESS;
 
 	#ifndef COMPILE_STANDALONE
@@ -743,7 +743,7 @@ int _idm_data_init_wrt(nvmeIdmRequest *request_idm)
  *
  * Returns zero or a negative error (ie. EINVAL, ENOMEM, EBUSY, etc).
  */
-int _sync_idm_cmd_send(nvmeIdmRequest *request_idm)
+int _sync_idm_cmd_send(struct idm_nvme_request *request_idm)
 {
 	#ifdef FUNCTION_ENTRY_DEBUG
 	printf("%s: START\n", __func__);
@@ -844,7 +844,7 @@ int main(int argc, char *argv[])
             uint64_t    timeout     = 10;
 
             //Create required input structs the IDM API would normally create
-            nvmeIdmRequest *request_idm;
+            struct idm_nvme_request *request_idm;
             int            ret = SUCCESS;
 
             ret = nvme_idm_write_init(lock_id, mode, host_id,drive, timeout, 0, 0,

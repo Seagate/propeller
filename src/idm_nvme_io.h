@@ -23,13 +23,13 @@
 //////////////////////////////////////////
 // Enums
 //////////////////////////////////////////
-//Custom (vendor-specific) NVMe opcodes sent via CDW0[7:0] of nvmeIdmVendorCmd
-typedef enum _eNvmeIdmVendorCmdOpcodes {
+//Custom (vendor-specific) NVMe opcodes sent via CDW0[7:0] of struct nvme_idm_vendor_cmd
+enum nvme_idm_vendor_cmd_opcodes {
     NVME_IDM_VENDOR_CMD_OP_WRITE = 0xC1,
     NVME_IDM_VENDOR_CMD_OP_READ  = 0xC2,
-} eNvmeIdmVendorCmdOpcodes;
+};
 
-typedef enum _eNvmeIdmErrorCodes {
+enum nvme_idm_error_codes {
     NVME_IDM_ERR_MUTEX_OP_FAILURE                  = 0xC0,    //SCSI Equivalent: 0x04042200
     NVME_IDM_ERR_MUTEX_REVERSE_OWNER_CHECK_FAILURE = 0xC1,    //SCSI Equivalent: 0x04042201
     NVME_IDM_ERR_MUTEX_OP_FAILURE_STATE            = 0xC2,    //SCSI Equivalent: 0x04042202
@@ -42,14 +42,14 @@ typedef enum _eNvmeIdmErrorCodes {
     NVME_IDM_ERR_MUTEX_CONFLICT                    = 0xC9,    //SCSI Equivalent: Res Conf
     NVME_IDM_ERR_MUTEX_HELD_ALREADY                = 0xCA,    //SCSI Equivalent: Terminated
     NVME_IDM_ERR_MUTEX_HELD_BY_ANOTHER             = 0xCB,    //SCSI Equivalent: Busy
-}eNvmeIdmErrorCodes;
+};
 
 
 //////////////////////////////////////////
 // Structs
 //////////////////////////////////////////
 //TODO: Add struct description HERE
-typedef struct _nvmeIdmVendorCmd {
+struct nvme_idm_vendor_cmd {
     uint8_t             opcode_nvme;  //CDW0
     uint8_t             flags;        //CDW0    psdt_bits7_6, rsvd0_bits5_2, fuse_bits1_0
     uint16_t            command_id;   //CDW0
@@ -74,7 +74,7 @@ typedef struct _nvmeIdmVendorCmd {
     uint32_t            cdw15;        //CDW15
     uint32_t            timeout_ms;   //Same as nvme_admin_cmd when using ioctl()??
     uint32_t            result;       //Same as nvme_admin_cmd when using ioctl()??
-}nvmeIdmVendorCmd;
+};
 
 
 
@@ -84,17 +84,17 @@ typedef struct _nvmeIdmVendorCmd {
 // //TODO: What does ioctl() return?  Just status code OR the entire DW3 status field.
 
 // //Note that bits [14:0] of ioctl()'s return status word contain bits[31/24:17] above.
-// typedef struct _eCqeStatusFields {
+// struct cqe_status_fields {
 //     uint8_t     dnr;        //Do Not Retry          (CQE DWord3[31])
 //     uint8_t     more;       //More                  (CQE DWord3[30])
 //     uint8_t     crd;        //Command Retry Delay   (CQE DWord3[29:28])
 //     uint8_t     sct;        //Status Code Type      (CQE DWord3[27:25])
 //     uint8_t     sc;         //Status Code           (CQE DWord3[24:17])
-// }eCqeStatusFields;
+// };
 
 
 //TODO: Add struct description HERE
-typedef struct _nvmeIdmRequest {
+struct idm_nvme_request {
     //Cached "IDM API" input params
     char                lock_id[IDM_LOCK_ID_LEN_BYTES];
     int                 mode_idm;
@@ -105,8 +105,8 @@ typedef struct _nvmeIdmRequest {
     int                 lvb_size;   //TODO: should be unsigned, but public API setup with int.  size_t anyway?
 
     //IDM core structs
-    nvmeIdmVendorCmd    cmd_nvme;
-    idmData             *data_idm;
+    struct nvme_idm_vendor_cmd  cmd_nvme;
+    struct idm_data                     *data_idm;
 
     //Generally, these values are cached here in the API-layer, and then
     //stored in their final location in the IO-layer.
@@ -118,28 +118,28 @@ typedef struct _nvmeIdmRequest {
     uint64_t            class;
     int                 fd_nvme;
 
-}nvmeIdmRequest;
+};
 
 
 //////////////////////////////////////////
 // Functions
 //////////////////////////////////////////
-int nvme_idm_async_data_rcv(nvmeIdmRequest *request_idm, int *result);
-int nvme_idm_async_read(nvmeIdmRequest *request_idm);
-int nvme_idm_async_write(nvmeIdmRequest *request_idm);
-int nvme_idm_sync_read(nvmeIdmRequest *request_idm);
-int nvme_idm_sync_write(nvmeIdmRequest *request_idm);
-void nvme_idm_read_init(char *drive, nvmeIdmRequest *request_idm);
+int nvme_idm_async_data_rcv(struct idm_nvme_request *request_idm, int *result);
+int nvme_idm_async_read(struct idm_nvme_request *request_idm);
+int nvme_idm_async_write(struct idm_nvme_request *request_idm);
+int nvme_idm_sync_read(struct idm_nvme_request *request_idm);
+int nvme_idm_sync_write(struct idm_nvme_request *request_idm);
+void nvme_idm_read_init(char *drive, struct idm_nvme_request *request_idm);
 int nvme_idm_write_init(char *lock_id, int mode, char *host_id, char *drive,
-                        uint64_t timeout, nvmeIdmRequest *request_idm);
+                        uint64_t timeout, struct idm_nvme_request *request_idm);
 
-int _async_idm_cmd_send(nvmeIdmRequest *request_idm);  // Uses write()   (_scsi_write())
-int _async_idm_data_rcv(nvmeIdmRequest *request_idm, int *result); // Uses read()    (_scsi_read()) (ALWAYS returns status code.  MAY fill data)
-void _fill_nvme_cmd(nvmeIdmRequest *request_idm,
+int _async_idm_cmd_send(struct idm_nvme_request *request_idm);  // Uses write()   (_scsi_write())
+int _async_idm_data_rcv(struct idm_nvme_request *request_idm, int *result); // Uses read()    (_scsi_read()) (ALWAYS returns status code.  MAY fill data)
+void _fill_nvme_cmd(struct idm_nvme_request *request_idm,
                     struct nvme_admin_cmd *cmd_nvme_passthru);
 int _idm_cmd_check_status(int status, uint8_t opcode_idm);
-int _idm_cmd_init(nvmeIdmRequest *request_idm, uint8_t opcode_nvme);
-int _idm_data_init_wrt(nvmeIdmRequest *request_idm);
-int _sync_idm_cmd_send(nvmeIdmRequest *request_idm);   // Uses ioctl()
+int _idm_cmd_init(struct idm_nvme_request *request_idm, uint8_t opcode_nvme);
+int _idm_data_init_wrt(struct idm_nvme_request *request_idm);
+int _sync_idm_cmd_send(struct idm_nvme_request *request_idm);   // Uses ioctl()
 
 #endif /*__IDM_NVME_IO_H__ */

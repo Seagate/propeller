@@ -23,9 +23,9 @@
  *
  * @d: Data structure for sending and receiving IDM-specifc data.
  */
-void dumpIdmDataStruct(idmData *d)
+void dumpIdmDataStruct(struct idm_data *d)
 {
-	printf("idmData struct: fields\n");
+	printf("struct idm_data struct: fields\n");
 	printf("=======================\n");
 	printf("state\\ignored0     = 0x%.16"PRIX64" (%lu)\n", d->state,    d->state);
 	printf("modified\\time_now  = 0x%.16"PRIX64" (%lu)\n", d->modified, d->modified);
@@ -72,13 +72,13 @@ void dumpIdmInfoStruct(struct idm_info *info)
  * @view_fields: Boolean flag that outputs the struct's named fields.
  * @view_cdws:   Boolean flag that outputs all the struct's data as 32-bit words.
  */
-void dumpNvmeCmdStruct(nvmeIdmVendorCmd *cmd_nvme, int view_fields,
+void dumpNvmeCmdStruct(struct nvme_idm_vendor_cmd *cmd_nvme, int view_fields,
                        int view_cdws)
 {
 	if(view_fields){
-		nvmeIdmVendorCmd *c = cmd_nvme;
+		struct nvme_idm_vendor_cmd *c = cmd_nvme;
 
-		printf("nvmeIdmVendorCmd struct: fields\n");
+		printf("struct nvme_idm_vendor_cmd struct: fields\n");
 		printf("===========================\n");
 		printf("opcode_nvme  (CDW0[ 7:0])  = 0x%.2X (%u)\n", c->opcode_nvme,  c->opcode_nvme);
 		printf("flags        (CDW0[15:8])  = 0x%.2X (%u)\n", c->flags,        c->flags);
@@ -107,7 +107,7 @@ void dumpNvmeCmdStruct(nvmeIdmVendorCmd *cmd_nvme, int view_fields,
 		uint32_t *cdw = (uint32_t*)cmd_nvme;
 		int i;
 
-		printf("nvmeIdmVendorCmd struct: CDWs (hex)\n");
+		printf("struct nvme_idm_vendor_cmd struct: CDWs (hex)\n");
 		printf("===============================\n");
 		for(i = 0; i <= 17; i++) {
 			printf("cdw%.2d = 0x%.8X\n", i, cdw[i]);
