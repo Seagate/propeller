@@ -499,7 +499,8 @@ EXIT:
  * Returns zero or a negative error (ie. EINVAL, ENOMEM, EBUSY, etc).
  */
 int nvme_idm_async_lock_refresh(char *lock_id, int mode, char *host_id,
-                                char *drive, uint64_t timeout, uint64_t *handle)
+                                char *drive, uint64_t timeout,
+                                uint64_t *handle)
 {
 	#ifdef FUNCTION_ENTRY_DEBUG
 	printf("%s: START\n", __func__);
