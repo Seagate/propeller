@@ -64,19 +64,19 @@
 #define MBYTE2(val)			((char)((val >> 16) & 0xff))
 #define MBYTE3(val)			((char)((val >> 24) & 0xff))
 
-struct idm_data {
-	uint64_t state;		/* ignored when write */
-	uint64_t time_now;
-	uint64_t countdown;
-	uint64_t class;
-	char resource_ver[8];
-	char reserved0[24];
-	char resource_id[64];
-	char metadata[64];
-	char host_id[32];
-	char reserved1[32];
-	char ignore1[256];
-};
+// struct idm_data {
+// 	uint64_t state;		/* ignored when write */
+// 	uint64_t time_now;
+// 	uint64_t countdown;
+// 	uint64_t class;
+// 	char resource_ver[8];
+// 	char reserved0[24];
+// 	char resource_id[64];
+// 	char metadata[64];
+// 	char host_id[32];
+// 	char reserved1[32];
+// 	char ignore1[256];
+// };
 
 #define SCSI_VER_INQ_LEN		6
 #define SCSI_VER_DATA_LEN		150

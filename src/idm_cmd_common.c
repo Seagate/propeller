@@ -24,8 +24,8 @@
  */
 void bswap_char_arr(char *dest, char *src, int len)
 {
-    int i;
-    for (i = 0; i < len; i++) {
-        dest[i] = src[len - i - 1];
-    }
+	int i;
+	for (i = 0; i < len; i++) {
+		dest[i] = src[len - i - 1];
+	}
 }
