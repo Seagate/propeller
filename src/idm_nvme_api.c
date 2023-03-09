@@ -30,8 +30,8 @@
 //////////////////////////////////////////
 //TODO: DELETE THESE 2 (AND ALL CORRESPONDING CODE) AFTER NVME FILES COMPILE WITH THE REST OF PROPELLER.
 #define COMPILE_STANDALONE
-// #define MAIN_ACTIVATE
-#define FORCE_MUTEX_NUM    //TODO: HACK!!  This MUST be removed!!
+#define MAIN_ACTIVATE
+// #define FORCE_MUTEX_NUM    //TODO: HACK!!  This MUST be removed!!
 
 #define FUNCTION_ENTRY_DEBUG    //TODO: Remove this entirely???
 
@@ -1407,16 +1407,22 @@ int nvme_idm_sync_read_mutex_num(char *drive, unsigned int *mutex_num)
 
 	ret = nvme_idm_sync_read(request_idm);
 	if (ret < 0) {
-		#ifndef COMPILE_STANDALONE
-		ilm_log_err("%s: nvme_idm_sync_read fail %d", __func__, ret);
-		goto EXIT_FAIL;
-		#else
-//TODO: !!!! Temp HACK!!!!! For stand alone, to get the reads working.
-	//WARNING: This is realted to the FORCE_MUTEX_NUM compile flag as well
+//TODO: !!!! Temp HACK!!!!! For stand alone AND forced mutex_num, to get the reads working.
+		#if !defined COMPILE_STANDALONE && defined FORCE_MUTEX_NUM
+		ilm_log_err("%s: nvme_idm_sync_read fail %d, Continuing",
+		       __func__, ret);
+		ret = SUCCESS;
+		#elif defined COMPILE_STANDALONE && defined FORCE_MUTEX_NUM
 		printf("%s: nvme_idm_sync_read fail %d, Continuing\n",
 		       __func__, ret);
 		ret = SUCCESS;
-		#endif //COMPILE_STANDALONE
+		#elif !defined COMPILE_STANDALONE && !defined FORCE_MUTEX_NUM
+		ilm_log_err("%s: nvme_idm_sync_read fail %d", __func__, ret);
+		goto EXIT_FAIL;
+		#elif defined COMPILE_STANDALONE && !defined FORCE_MUTEX_NUM
+		printf("%s: nvme_idm_sync_read fail %d\n", __func__, ret);
+		goto EXIT_FAIL;
+		#endif
 	}
 
 	_parse_mutex_num(request_idm, mutex_num);
@@ -2624,6 +2630,7 @@ void _parse_mutex_num(struct idm_nvme_request *request_idm,
 
 	unsigned char  *data;
 
+	printf("%s: mutex mutex_num=%u\n", __func__, *mutex_num);
 //TODO: Ported from scsi-side as-is.  Need to verify if this even makes sense for nvme.
 //TODO: Why is "unsigned char" being used here??
 	data = (unsigned char *)request_idm->data_idm;
