@@ -30,7 +30,7 @@
 //////////////////////////////////////////
 //TODO: DELETE THESE 2 (AND ALL CORRESPONDING CODE) AFTER NVME FILES COMPILE WITH THE REST OF PROPELLER.
 #define COMPILE_STANDALONE
-#define MAIN_ACTIVATE
+// #define MAIN_ACTIVATE
 // #define FORCE_MUTEX_NUM    //TODO: HACK!!  This MUST be removed!!
 
 #define FUNCTION_ENTRY_DEBUG    //TODO: Remove this entirely???
@@ -2737,16 +2737,16 @@ int main(int argc, char *argv[])
 
     //cli usage: idm_nvme_api lock
     if(argc >= 2){
-        char            lock_id[IDM_LOCK_ID_LEN_BYTES] = "0000000000000000000000000000000000000000000000000000000000000000";
+        char            lock_id[IDM_LOCK_ID_LEN_BYTES] = "0000000000000000000000000000000000000000000000000000000000000201";
         int             mode                           = IDM_MODE_EXCLUSIVE;
-        char            host_id[IDM_HOST_ID_LEN_BYTES] = "00000000000000000000000000000000";
-        uint64_t        timeout                        = 10;
+        char            host_id[IDM_HOST_ID_LEN_BYTES] = "00000000000000000000000000000403";
+        uint64_t        timeout                        = 10000;
         char            lvb[IDM_LVB_LEN_BYTES]         = "lvb";
         int             lvb_size                       = 5;
         uint64_t        handle;
         int             result=0;
         unsigned int    mutex_num;
-        unsigned int    info_num;
+        int             info_num;
         struct idm_info *info_list;
         int             host_state;
         int             count;

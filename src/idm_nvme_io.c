@@ -192,9 +192,6 @@ void nvme_idm_read_init(char *drive, struct idm_nvme_request *request_idm)
 
 	request_idm->opcode_idm = IDM_OPCODE_INIT;  //Ignored, but default for all idm reads.
 	strncpy(request_idm->drive, drive, PATH_MAX);
-//TODO: Do I need a non-zero default timeout here for NVMe reads???
-//	request_idm->timeout  = 100;
-
 }
 
 /**
@@ -679,7 +676,7 @@ int _idm_cmd_init(struct idm_nvme_request *request_idm, uint8_t opcode_nvme)
  * IDM write.
  *
  * @request_idm:    Struct containing all NVMe-specific command info for the
- *                  requested IDM action.
+ *                  requested IDM action, including the target idm_data struct.
  *
  * Returns zero or a negative error (ie. EINVAL, ENOMEM, EBUSY, etc).
  */
