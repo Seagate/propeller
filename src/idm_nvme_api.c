@@ -2364,10 +2364,10 @@ int _parse_lock_count(struct idm_nvme_request *request_idm, int *count,
 		           IDM_LOCK_ID_LEN_BYTES))
 			continue;
 
-		if (memcmp(data_idm[i].host_id, bswap_host_id,
+		if (!memcmp(data_idm[i].host_id, bswap_host_id,
 		           IDM_HOST_ID_LEN_BYTES)) {
-		/* Must be wrong if self has been accounted */
 			if (*self) {
+				/* Must be wrong if self has been accounted */
 				#ifndef COMPILE_STANDALONE
 				ilm_log_err("%s: account self %d > 1",
 					__func__, *self);
