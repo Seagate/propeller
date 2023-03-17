@@ -108,9 +108,7 @@ EXIT:
  *
  * @handle:     NVMe request handle for the previously sent NVMe cmd.
  * @count:      Returned lock count.
- *              Referenced value set to 0 on error.
  * @self:       Returned self count.
- *              Referenced value set to 0 on error.
  * @result:     Returned result (0 or -ve value) for the previously sent
  *              NVMe command.
  *
@@ -1092,9 +1090,7 @@ EXIT_FAIL:
  * @lock_id:    Lock ID (64 bytes).
  * @host_id:    Host ID (32 bytes).
  * @count:      Returned lock count.
- *              Referenced value set to 0 on error.
  * @self:       Returned self count.
- *              Referenced value set to 0 on error.
  * @drive:      Drive path name.
  *
  * Returns zero or a negative error (ie. EINVAL, ENOMEM, EBUSY, etc).
@@ -2302,9 +2298,7 @@ int _parse_host_state(struct idm_nvme_request *request_idm, int *host_state)
  * @request_idm: Struct containing all NVMe-specific command info for the
  *               requested IDM action.
  * @count:       Returned lock count.
- *               Referenced value set to 0 on error.
  * @self:        Returned self count.
- *               Referenced value set to 0 on error.
  *
  * Returns zero or a negative error (ie. EINVAL, ENOMEM, EBUSY, etc).
  */
