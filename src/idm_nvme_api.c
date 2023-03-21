@@ -69,7 +69,7 @@ int nvme_idm_async_get_result(uint64_t handle, int *result)
 	#endif //FUNCTION_ENTRY_DEBUG
 
 	struct idm_nvme_request *request_idm = (struct idm_nvme_request *)handle;
-	int            ret          = SUCCESS;
+	int ret;
 
 	ret = nvme_idm_async_data_rcv(request_idm, result);
 	if (ret < 0) {
@@ -124,7 +124,7 @@ int nvme_idm_async_get_result_lock_count(uint64_t handle, int *count,
 	#endif //FUNCTION_ENTRY_DEBUG
 
 	struct idm_nvme_request *request_idm = (struct idm_nvme_request *)handle;
-	int            ret          = SUCCESS;
+	int ret;
 
 	// Initialize the return parameters
 	*count = 0;
@@ -194,7 +194,7 @@ int nvme_idm_async_get_result_lock_mode(uint64_t handle, int *mode,
 	#endif //FUNCTION_ENTRY_DEBUG
 
 	struct idm_nvme_request *request_idm = (struct idm_nvme_request *)handle;
-	int            ret          = SUCCESS;
+	int ret;
 
 	// Initialize the return parameter
 	*mode = -1;    //TODO: hardcoded state. add an "error" state to the enum?
@@ -262,7 +262,7 @@ int nvme_idm_async_get_result_lvb(uint64_t handle, char *lvb, int lvb_size,
 	#endif //FUNCTION_ENTRY_DEBUG
 
 	struct idm_nvme_request *request_idm = (struct idm_nvme_request *)handle;
-	int            ret          = SUCCESS;
+	int ret;
 
 	//TODO: The -ve check below should go away cuz lvb_size should be of unsigned type.
 	//However, this requires an IDM API parameter type change.
@@ -329,8 +329,8 @@ int nvme_idm_async_lock(char *lock_id, int mode, char *host_id,
 	printf("%s: START\n", __func__);
 	#endif //FUNCTION_ENTRY_DEBUG
 
-	struct idm_nvme_request *request_idm;
-	int ret = SUCCESS;  //TODO: Should ALL of these be initialized to FAILURE, instead of SUCCESS???  Probably going to be case-by-case
+	struct idm_nvme_request *request_idm = NULL;
+	int ret;
 
 	ret = _init_lock(lock_id, mode, host_id, drive, timeout, &request_idm);
 	if (ret < 0) {
@@ -382,8 +382,8 @@ int nvme_idm_async_lock_break(char *lock_id, int mode, char *host_id,
 	printf("%s: START\n", __func__);
 	#endif //FUNCTION_ENTRY_DEBUG
 
-	struct idm_nvme_request *request_idm;
-	int ret = SUCCESS;
+	struct idm_nvme_request *request_idm = NULL;
+	int ret;
 
 	ret = _init_lock_break(lock_id, mode, host_id, drive, timeout,
 	                       &request_idm);
@@ -454,8 +454,8 @@ int nvme_idm_async_lock_destroy(char *lock_id, int mode, char *host_id,
 	printf("%s: START\n", __func__);
 	#endif //FUNCTION_ENTRY_DEBUG
 
-	struct idm_nvme_request *request_idm;
-	int ret = SUCCESS;
+	struct idm_nvme_request *request_idm = NULL;
+	int ret;
 
 	ret = _init_lock_destroy(lock_id, mode, host_id, drive, &request_idm);
 	if (ret < 0) {
@@ -506,8 +506,8 @@ int nvme_idm_async_lock_refresh(char *lock_id, int mode, char *host_id,
 	printf("%s: START\n", __func__);
 	#endif //FUNCTION_ENTRY_DEBUG
 
-	struct idm_nvme_request *request_idm;
-	int ret = SUCCESS;
+	struct idm_nvme_request *request_idm = NULL;
+	int ret;
 
 	ret = _init_lock_refresh(lock_id, mode, host_id, drive, timeout,
 	                         &request_idm);
@@ -579,8 +579,8 @@ int nvme_idm_async_read_lock_count(char *lock_id, char *host_id, char *drive,
 	printf("%s: START\n", __func__);
 	#endif //FUNCTION_ENTRY_DEBUG
 
-	struct idm_nvme_request *request_idm;
-	int            ret = SUCCESS;
+	struct idm_nvme_request *request_idm = NULL;
+	int ret;
 
 	ret = _init_read_lock_count(ASYNC_ON, lock_id, host_id, drive,
 					&request_idm);
@@ -628,8 +628,8 @@ int nvme_idm_async_read_lock_mode(char *lock_id, char *drive, uint64_t *handle)
 	printf("%s: START\n", __func__);
 	#endif //FUNCTION_ENTRY_DEBUG
 
-	struct idm_nvme_request *request_idm;
-	int            ret = SUCCESS;
+	struct idm_nvme_request *request_idm = NULL;
+	int ret;
 
 	ret = _init_read_lock_mode(ASYNC_ON, lock_id, drive, &request_idm);
 	if (ret < 0) {
@@ -678,8 +678,8 @@ int nvme_idm_async_read_lvb(char *lock_id, char *host_id, char *drive,
 	printf("%s: START\n", __func__);
 	#endif //FUNCTION_ENTRY_DEBUG
 
-	struct idm_nvme_request *request_idm;
-	int            ret = SUCCESS;
+	struct idm_nvme_request *request_idm = NULL;
+	int ret;
 
 	ret = _init_read_lvb(ASYNC_ON, lock_id, host_id, drive, &request_idm);
 	if (ret < 0) {
@@ -730,8 +730,8 @@ int nvme_idm_async_unlock(char *lock_id, int mode, char *host_id,
 	printf("%s: START\n", __func__);
 	#endif //FUNCTION_ENTRY_DEBUG
 
-	struct idm_nvme_request *request_idm;
-	int            ret = SUCCESS;
+	struct idm_nvme_request *request_idm = NULL;
+	int ret;
 
 	ret = _init_unlock(lock_id, mode, host_id, lvb, lvb_size, drive,
 	                   &request_idm);
@@ -811,8 +811,8 @@ int nvme_idm_sync_lock(char *lock_id, int mode, char *host_id,
 	printf("%s: START\n", __func__);
 	#endif //FUNCTION_ENTRY_DEBUG
 
-	struct idm_nvme_request *request_idm;
-	int ret = SUCCESS;
+	struct idm_nvme_request *request_idm = NULL;
+	int ret;
 
 	ret = _init_lock(lock_id, mode, host_id, drive, timeout, &request_idm);
 	if (ret < 0) {
@@ -859,8 +859,8 @@ int nvme_idm_sync_lock_break(char *lock_id, int mode, char *host_id,
 	printf("%s: START\n", __func__);
 	#endif //FUNCTION_ENTRY_DEBUG
 
-	struct idm_nvme_request *request_idm;
-	int            ret = SUCCESS;
+	struct idm_nvme_request *request_idm = NULL;
+	int ret;
 
 	ret = _init_lock_break(lock_id, mode, host_id, drive, timeout,
 	                       &request_idm);
@@ -923,8 +923,8 @@ int nvme_idm_sync_lock_destroy(char *lock_id, int mode, char *host_id,
 	printf("%s: START\n", __func__);
 	#endif //FUNCTION_ENTRY_DEBUG
 
-	struct idm_nvme_request *request_idm;
-	int ret = SUCCESS;
+	struct idm_nvme_request *request_idm = NULL;
+	int ret;
 
 	ret = _init_lock_destroy(lock_id, mode, host_id, drive, &request_idm);
 	if (ret < 0) {
@@ -969,8 +969,8 @@ int nvme_idm_sync_lock_refresh(char *lock_id, int mode, char *host_id,
 	printf("%s: START\n", __func__);
 	#endif //FUNCTION_ENTRY_DEBUG
 
-	struct idm_nvme_request *request_idm;
-	int            ret = SUCCESS;
+	struct idm_nvme_request *request_idm = NULL;
+	int ret;
 
 	ret = _init_lock_refresh(lock_id, mode, host_id, drive, timeout,
 	                         &request_idm);
@@ -1034,8 +1034,8 @@ int nvme_idm_sync_read_host_state(char *lock_id, char *host_id,
 	printf("%s: START\n", __func__);
 	#endif //FUNCTION_ENTRY_DEBUG
 
-	struct idm_nvme_request *request_idm;
-	int            ret = SUCCESS;
+	struct idm_nvme_request *request_idm = NULL;
+	int ret;
 
 	// Initialize the output
 //TODO: Does ALWAYS setting to -1 on failure make sense?
@@ -1106,8 +1106,8 @@ int nvme_idm_sync_read_lock_count(char *lock_id, char *host_id, int *count,
 	printf("%s: START\n", __func__);
 	#endif //FUNCTION_ENTRY_DEBUG
 
-	struct idm_nvme_request *request_idm;
-	int            ret = SUCCESS;
+	struct idm_nvme_request *request_idm = NULL;
+	int ret;
 
 	// Initialize the output
 	*count = 0;
@@ -1178,8 +1178,8 @@ int nvme_idm_sync_read_lock_mode(char *lock_id, int *mode, char *drive)
 	printf("%s: START\n", __func__);
 	#endif //FUNCTION_ENTRY_DEBUG
 
-	struct idm_nvme_request *request_idm;
-	int            ret = SUCCESS;
+	struct idm_nvme_request *request_idm = NULL;
+	int ret;
 
 	// Initialize the output
 	*mode = -1;    //TODO: hardcoded state. add an "error" state to the enum?
@@ -1250,8 +1250,8 @@ int nvme_idm_sync_read_lvb(char *lock_id, char *host_id, char *lvb,
 	printf("%s: START\n", __func__);
 	#endif //FUNCTION_ENTRY_DEBUG
 
-	struct idm_nvme_request *request_idm;
-	int            ret = SUCCESS;
+	struct idm_nvme_request *request_idm = NULL;
+	int ret;
 
 	//TODO: The -ve check below should go away cuz lvb_size should be of unsigned type.
 	//However, this requires an IDM API parameter type change.
@@ -1320,8 +1320,8 @@ int nvme_idm_sync_read_mutex_group(char *drive, struct idm_info **info_ptr,
 	printf("%s: START\n", __func__);
 	#endif //FUNCTION_ENTRY_DEBUG
 
-	struct idm_nvme_request *request_idm;
-	int            ret = SUCCESS;
+	struct idm_nvme_request *request_idm = NULL;
+	int ret;
 
 	// Initialize the output
 	*info_ptr = NULL;
@@ -1388,8 +1388,8 @@ int nvme_idm_sync_read_mutex_num(char *drive, unsigned int *mutex_num)
 	printf("%s: START\n", __func__);
 	#endif //FUNCTION_ENTRY_DEBUG
 
-	struct idm_nvme_request *request_idm;
-	int            ret = SUCCESS;
+	struct idm_nvme_request *request_idm = NULL;
+	int ret;
 
 //TODO: The SCSI-side code tends to set this to 0 on certain failures.
 //          Does ALWAYS setting to 0 on failure HERE make sense (this is a bit different from scsi-side?
@@ -1456,8 +1456,8 @@ int nvme_idm_sync_unlock(char *lock_id, int mode, char *host_id,
 	printf("%s: START\n", __func__);
 	#endif //FUNCTION_ENTRY_DEBUG
 
-	struct idm_nvme_request *request_idm;
-	int            ret = SUCCESS;
+	struct idm_nvme_request *request_idm = NULL;
+	int ret;
 
 	ret = _init_unlock(lock_id, mode, host_id, lvb, lvb_size, drive,
 	                   &request_idm);
@@ -1505,7 +1505,7 @@ int _init_lock(char *lock_id, int mode, char *host_id, char *drive,
 	printf("%s: START\n", __func__);
 	#endif //FUNCTION_ENTRY_DEBUG
 
-	int ret = SUCCESS;
+	int ret;
 
 	ret = _validate_input_write(lock_id, mode, host_id, drive);
 	if (ret < 0) {
@@ -1569,7 +1569,7 @@ int _init_lock_break(char *lock_id, int mode, char *host_id, char *drive,
 	printf("%s: START\n", __func__);
 	#endif //FUNCTION_ENTRY_DEBUG
 
-	int ret = SUCCESS;
+	int ret;
 
 	ret = _validate_input_write(lock_id, mode, host_id, drive);
 	if (ret < 0) {
@@ -1632,7 +1632,7 @@ int _init_lock_destroy(char *lock_id, int mode, char *host_id, char *drive,
 	printf("%s: START\n", __func__);
 	#endif //FUNCTION_ENTRY_DEBUG
 
-	int ret = SUCCESS;
+	int ret;
 
 	ret = _validate_input_write(lock_id, mode, host_id, drive);
 	if (ret < 0) {
@@ -1696,7 +1696,7 @@ int _init_lock_refresh(char *lock_id, int mode, char *host_id, char *drive,
 	printf("%s: START\n", __func__);
 	#endif //FUNCTION_ENTRY_DEBUG
 
-	int ret = SUCCESS;
+	int ret;
 
 	ret = _validate_input_write(lock_id, mode, host_id, drive);
 	if (ret < 0) {
@@ -1758,8 +1758,8 @@ int _init_read_host_state(char *lock_id, char *host_id, char *drive,
 	printf("%s: START\n", __func__);
 	#endif //FUNCTION_ENTRY_DEBUG
 
-	unsigned int   mutex_num = 0;
-	int            ret       = SUCCESS;
+	unsigned int mutex_num = 0;
+	int ret;
 
 	ret = _validate_input_common(lock_id, host_id, drive);
 	if (ret < 0)
@@ -1806,8 +1806,8 @@ int _init_read_lock_count(int async_on, char *lock_id, char *host_id,
 	printf("%s: START\n", __func__);
 	#endif //FUNCTION_ENTRY_DEBUG
 
-	unsigned int   mutex_num = 0;
-	int            ret       = SUCCESS;
+	unsigned int mutex_num = 0;
+	int ret;
 
 	ret = _validate_input_common(lock_id, host_id, drive);
 	if (ret < 0)
@@ -1874,8 +1874,8 @@ int _init_read_lock_mode(int async_on, char *lock_id, char *drive,
 	printf("%s: START\n", __func__);
 	#endif //FUNCTION_ENTRY_DEBUG
 
-	unsigned int   mutex_num = 0;
-	int            ret       = SUCCESS;
+	unsigned int mutex_num = 0;
+	int ret;
 
 	#ifndef COMPILE_STANDALONE
 	if (ilm_inject_fault_is_hit())
@@ -1944,8 +1944,8 @@ int _init_read_lvb(int async_on, char *lock_id, char *host_id, char *drive,
 	printf("%s: START\n", __func__);
 	#endif //FUNCTION_ENTRY_DEBUG
 
-	unsigned int   mutex_num = 0;
-	int            ret = SUCCESS;
+	unsigned int mutex_num = 0;
+	int ret;
 
 	ret = _validate_input_common(lock_id, host_id, drive);
 	if (ret < 0)
@@ -2007,7 +2007,7 @@ int _init_read_mutex_group(char *drive, struct idm_nvme_request **request_idm)
 	#endif //FUNCTION_ENTRY_DEBUG
 
 	unsigned int mutex_num = 0;
-	int          ret       = SUCCESS;
+	int ret;
 
 	#ifndef COMPILE_STANDALONE
 	if (ilm_inject_fault_is_hit())
@@ -2051,7 +2051,7 @@ int _init_read_mutex_num(char *drive, struct idm_nvme_request **request_idm)
 	printf("%s: START\n", __func__);
 	#endif //FUNCTION_ENTRY_DEBUG
 
-	int ret = SUCCESS;
+	int ret;
 
 	#ifndef COMPILE_STANDALONE
 	if (ilm_inject_fault_is_hit())
@@ -2100,7 +2100,7 @@ int _init_unlock(char *lock_id, int mode, char *host_id, char *lvb,
 	printf("%s: START\n", __func__);
 	#endif //FUNCTION_ENTRY_DEBUG
 
-	int ret = SUCCESS;
+	int ret;
 
 	//TODO: The -ve check here should go away cuz lvb_size should be of unsigned type.
 	//However, this requires an IDM API parameter type change.
@@ -2196,7 +2196,6 @@ int _memory_init_idm_request(struct idm_nvme_request **request_idm,
 	#endif //FUNCTION_ENTRY_DEBUG
 
 	int data_len;
-	int ret = SUCCESS;
 
 	*request_idm = malloc(sizeof(struct idm_nvme_request));
 	if (!request_idm) {
@@ -2226,7 +2225,7 @@ int _memory_init_idm_request(struct idm_nvme_request **request_idm,
 	(*request_idm)->data_len = data_len;
 	(*request_idm)->data_num = data_num;
 
-	return ret;
+	return SUCCESS;
 }
 
 /**
@@ -2251,7 +2250,6 @@ int _parse_host_state(struct idm_nvme_request *request_idm, int *host_state)
 	char               bswap_host_id[IDM_HOST_ID_LEN_BYTES];
 	int                i;
 	unsigned int       mutex_num = request_idm->data_num;
-	int                ret       = SUCCESS;
 
 	bswap_char_arr(bswap_lock_id, request_idm->lock_id,
 	               IDM_LOCK_ID_LEN_BYTES);
@@ -2291,7 +2289,7 @@ int _parse_host_state(struct idm_nvme_request *request_idm, int *host_state)
 		break;
 	}
 
-	return ret;
+	return SUCCESS;
 }
 
 /**
@@ -2318,9 +2316,9 @@ int _parse_lock_count(struct idm_nvme_request *request_idm, int *count,
 	char               bswap_lock_id[IDM_LOCK_ID_LEN_BYTES];
 	char               bswap_host_id[IDM_HOST_ID_LEN_BYTES];
 	int                i;
-	unsigned int       mutex_num = request_idm->data_num;
-	int                ret = SUCCESS;
 	uint64_t           state, locked;
+	unsigned int       mutex_num = request_idm->data_num;
+	int                ret       = FAILURE;
 
 	bswap_char_arr(bswap_lock_id, request_idm->lock_id,
 	               IDM_LOCK_ID_LEN_BYTES);
@@ -2382,6 +2380,7 @@ int _parse_lock_count(struct idm_nvme_request *request_idm, int *count,
 		}
 	}
 
+	ret = SUCCESS;
 EXIT:
 	return ret;
 }
@@ -2406,9 +2405,9 @@ int _parse_lock_mode(struct idm_nvme_request *request_idm, int *mode)
 	struct idm_data    *data_idm;
 	char               bswap_lock_id[IDM_LOCK_ID_LEN_BYTES];
 	int                i;
-	unsigned int       mutex_num = request_idm->data_num;
-	int                ret       = SUCCESS;
 	uint64_t           state, class;
+	unsigned int       mutex_num = request_idm->data_num;
+	int                ret       = FAILURE;
 
 	bswap_char_arr(bswap_lock_id, request_idm->lock_id, IDM_LOCK_ID_LEN_BYTES);
 
@@ -2453,23 +2452,29 @@ int _parse_lock_mode(struct idm_nvme_request *request_idm, int *mode)
 		} else if (class == IDM_CLASS_PROTECTED_WRITE) {
 			#ifndef COMPILE_STANDALONE
 			ilm_log_err("%s: PROTECTED_WRITE is not unsupported", __func__);
+			#else
+			printf("%s: PROTECTED_WRITE is not unsupported\n", __func__);
 			#endif //COMPILE_STANDALONE
 			ret = -EFAULT;
+			goto EXIT;
 		}
 
 		#ifndef COMPILE_STANDALONE
 		ilm_log_dbg("%s: mode=%d", __func__, *mode);
+		#else
+		printf("%s: mode=%d\n", __func__, *mode);
 		#endif //COMPILE_STANDALONE
 
 		if (*mode == IDM_MODE_EXCLUSIVE || *mode == IDM_MODE_SHAREABLE)
 			break;
 	}
 
+	ret = SUCCESS;
 	//If the mutex is not found in drive fimware,
 	// simply return success and mode is unlocked.
 	if (*mode == -1)
 		*mode = IDM_MODE_UNLOCK;
-
+EXIT:
 	return ret;
 }
 
@@ -2496,7 +2501,7 @@ int _parse_lvb(struct idm_nvme_request *request_idm, char *lvb, int lvb_size)
 	char               bswap_host_id[IDM_HOST_ID_LEN_BYTES];
 	int                i;
 	unsigned int       mutex_num = request_idm->data_num;
-	int                ret       = SUCCESS;
+	int                ret;
 
 	bswap_char_arr(bswap_lock_id, request_idm->lock_id,
 	               IDM_LOCK_ID_LEN_BYTES);
@@ -2545,7 +2550,7 @@ int _parse_mutex_group(struct idm_nvme_request *request_idm,
 
 	struct idm_data    *data_idm;
 	unsigned int       mutex_num = request_idm->data_num;
-	int                i, ret    = SUCCESS;
+	int                i, ret    = FAILURE;
 	uint64_t           state, class;
 	struct idm_info    *info_list, *info;
 
@@ -2584,6 +2589,9 @@ int _parse_mutex_group(struct idm_nvme_request *request_idm,
 			#ifndef COMPILE_STANDALONE
 			ilm_log_err("%s: IDM class is not unsupported %ld",
 			            __func__, class);
+			#else
+			printf("%s: IDM class is not unsupported %ld\n",
+			            __func__, class);
 			#endif //COMPILE_STANDALONE
 			ret = -EFAULT;
 			goto EXIT;
@@ -2606,6 +2614,7 @@ int _parse_mutex_group(struct idm_nvme_request *request_idm,
 
 	*info_ptr = info_list;
 	*info_num = i;
+	ret = SUCCESS;
 
 EXIT:
 	if (ret != 0 && info_list)
@@ -2667,8 +2676,6 @@ int _validate_input_common(char *lock_id, char *host_id, char *drive)
 	printf("%s: START\n", __func__);
 	#endif //FUNCTION_ENTRY_DEBUG
 
-	int ret = SUCCESS;
-
 	#ifndef COMPILE_STANDALONE
 	if (ilm_inject_fault_is_hit())
 		return -EIO;
@@ -2677,7 +2684,7 @@ int _validate_input_common(char *lock_id, char *host_id, char *drive)
 	if (!lock_id || !host_id || !drive)
 		return -EINVAL;
 
-	return ret;
+	return SUCCESS;
 }
 
 /**
@@ -2697,7 +2704,7 @@ int _validate_input_write(char *lock_id, int mode, char *host_id, char *drive)
 	printf("%s: START\n", __func__);
 	#endif //FUNCTION_ENTRY_DEBUG
 
-	int ret = SUCCESS;
+	int ret = FAILURE;
 
 	ret = _validate_input_common(lock_id, host_id, drive);
 

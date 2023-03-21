@@ -14,7 +14,7 @@
 #include <sys/ioctl.h>
 #include <unistd.h>
 
-#include "idm_cmd_common.h"     //TODO: Only need this for #define's of SUCCESS\FAILURE.  Move them?
+#include "idm_cmd_common.h"
 #include "idm_nvme_io_admin.h"
 
 //////////////////////////////////////////
@@ -42,7 +42,7 @@ int nvme_admin_identify(char *drive)
 
 	struct nvme_admin_cmd cmd_admin;
 	nvmeIDCtrl data_identify_ctrl;
-	int ret = SUCCESS;
+	int ret;
 //TODO: This should ALWAYS be 4096.  Make a compile check for this??
 	printf("sizeof(nvmeIDCtrl) = %d\n", sizeof(nvmeIDCtrl));
 
@@ -89,7 +89,7 @@ void _gen_nvme_cmd_identify(struct nvme_admin_cmd *cmd_admin,
 int _send_nvme_cmd_admin(char *drive, struct nvme_admin_cmd *cmd_admin)
 {
 	int nvme_fd;
-	int ret = SUCCESS;
+	int ret;
 
 	if ((nvme_fd = open(drive, O_RDWR | O_NONBLOCK)) < 0) {
 		#ifndef COMPILE_STANDALONE
