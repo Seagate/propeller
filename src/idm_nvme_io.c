@@ -78,7 +78,7 @@ int nvme_idm_async_data_rcv(struct idm_nvme_request *request_idm, int *result)
 	printf("%s: START\n", __func__);
 	#endif //FUNCTION_ENTRY_DEBUG
 
-	int ret = SUCCESS;
+	int ret;
 
 	ret = _async_idm_data_rcv(request_idm, result);
 	if (ret < 0) {
@@ -113,7 +113,7 @@ int nvme_idm_async_read(struct idm_nvme_request *request_idm)
 	printf("%s: START\n", __func__);
 	#endif //FUNCTION_ENTRY_DEBUG
 
-	int ret = SUCCESS;
+	int ret;
 
 	ret = _idm_cmd_init(request_idm, NVME_IDM_VENDOR_CMD_OP_READ);
 	if (ret < 0) {
@@ -153,7 +153,7 @@ int nvme_idm_async_write(struct idm_nvme_request *request_idm)
 	printf("%s: START\n", __func__);
 	#endif //FUNCTION_ENTRY_DEBUG
 
-	int ret = SUCCESS;
+	int ret;
 
 	ret = _idm_cmd_init(request_idm, NVME_IDM_VENDOR_CMD_OP_WRITE);
 	if (ret < 0) {
@@ -263,7 +263,7 @@ int nvme_idm_sync_read(struct idm_nvme_request *request_idm)
 	printf("%s: START\n", __func__);
 	#endif //FUNCTION_ENTRY_DEBUG
 
-	int ret = SUCCESS;
+	int ret;
 
 	ret = _idm_cmd_init(request_idm, NVME_IDM_VENDOR_CMD_OP_READ);
 	if (ret < 0) {
@@ -309,7 +309,7 @@ int nvme_idm_sync_write(struct idm_nvme_request *request_idm)
 	printf("%s: START\n", __func__);
 	#endif //FUNCTION_ENTRY_DEBUG
 
-	int ret = SUCCESS;
+	int ret;
 
 	ret = _idm_cmd_init(request_idm, NVME_IDM_VENDOR_CMD_OP_WRITE);
 	if (ret < 0) {
@@ -348,7 +348,7 @@ int _async_idm_cmd_send(struct idm_nvme_request *request_idm)
 
 	struct nvme_passthru_cmd cmd_nvme_passthru;
 	int fd_nvme;
-	int ret = SUCCESS;
+	int ret = FAILURE;
 
 	//TODO: Put this under a debug flag of some kind??
 	dumpNvmeCmdStruct(&request_idm->cmd_nvme, 1, 1);
@@ -411,7 +411,7 @@ int _async_idm_data_rcv(struct idm_nvme_request *request_idm, int *result)
 
 	struct nvme_passthru_cmd cmd_nvme_passthru;
 	int status_async_cmd;    //The status of the PREVIOUSLY issued async cmd
-	int ret = SUCCESS;
+	int ret = FAILURE;
 
 	//TODO: Put this under a debug flag of some kind??
 	dumpNvmeCmdStruct(&request_idm->cmd_nvme, 1, 1);
@@ -658,7 +658,6 @@ int _idm_cmd_init(struct idm_nvme_request *request_idm, uint8_t opcode_nvme)
 	#endif //FUNCTION_ENTRY_DEBUG
 
 	struct nvme_idm_vendor_cmd *cmd_nvme = &request_idm->cmd_nvme;
-	int ret = SUCCESS;
 
 	cmd_nvme->opcode_nvme        = opcode_nvme;
 	cmd_nvme->addr               = (uint64_t)(uintptr_t)request_idm->data_idm;
@@ -668,7 +667,7 @@ int _idm_cmd_init(struct idm_nvme_request *request_idm, uint8_t opcode_nvme)
 	cmd_nvme->group_idm          = request_idm->group_idm;
 	cmd_nvme->timeout_ms         = VENDOR_CMD_TIMEOUT_DEFAULT;
 
-	return ret;
+	return SUCCESS;
 }
 
 /**
@@ -687,7 +686,6 @@ int _idm_data_init_wrt(struct idm_nvme_request *request_idm)
 	#endif //FUNCTION_ENTRY_DEBUG
 
 	struct idm_data *data_idm = request_idm->data_idm;
-	int ret           = SUCCESS;
 
 	#ifndef COMPILE_STANDALONE
 	data_idm->time_now  = __bswap_64(ilm_read_utc_time());
@@ -726,7 +724,7 @@ int _idm_data_init_wrt(struct idm_nvme_request *request_idm)
 	// data_idm->rsvd1[30]       = (char)0xCC;
 	// data_idm->rsvd1[31]       = (char)0xCC;
 
-	return ret;
+	return SUCCESS;
 }
 
 /**
@@ -748,7 +746,7 @@ int _sync_idm_cmd_send(struct idm_nvme_request *request_idm)
 
 	struct nvme_passthru_cmd cmd_nvme_passthru;
 	int fd_nvme;
-	int ret = SUCCESS;
+	int ret = FAILURE;
 
 	//TODO: Put this under a debug flag of some kind??
 	dumpNvmeCmdStruct(&request_idm->cmd_nvme, 1, 1);
@@ -842,7 +840,7 @@ int main(int argc, char *argv[])
 
             //Create required input structs the IDM API would normally create
             struct idm_nvme_request *request_idm;
-            int            ret = SUCCESS;
+            int ret = FAILURE;
 
             ret = nvme_idm_write_init(lock_id, mode, host_id,drive, timeout, 0, 0,
                                       request_idm);
