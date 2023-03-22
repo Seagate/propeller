@@ -1,6 +1,15 @@
 # SPDX-License-Identifier: LGPL-2.1-only
 # Copyright (C) 2022 Seagate Technology LLC and/or its Affiliates.
 
+"""
+Instructions for setting device paths:
+    For BLK_DEVICEX:
+        For SCSI, use the 'sd' 'dev' path (e.g.: /dev/sdb)
+        For NVMe, use the /dev/nvmeXnY path (e.g.: /dev/nvme0n1)
+    For RAW_DEVICEX:
+        For SCSI, use the cooresponding 'sg' 'dev' path (e.g.: /dev/sg1) for a given BLK_DEVICE path.
+        For NVMe, use SAME PATH used in BLK_DEVICE path
+"""
 
 #TODO: Consolidate these settings, along with the duplicate c-code settings, in a .json file
 BLK_DEVICE1 = '/dev/sd'
