@@ -29,19 +29,20 @@ enum nvme_idm_vendor_cmd_opcodes {
     NVME_IDM_VENDOR_CMD_OP_READ  = 0xC2,
 };
 
-enum nvme_idm_error_codes {
-    NVME_IDM_ERR_MUTEX_OP_FAILURE                  = 0xC0,    //SCSI Equivalent: 0x04042200
-    NVME_IDM_ERR_MUTEX_REVERSE_OWNER_CHECK_FAILURE = 0xC1,    //SCSI Equivalent: 0x04042201
-    NVME_IDM_ERR_MUTEX_OP_FAILURE_STATE            = 0xC2,    //SCSI Equivalent: 0x04042202
-    NVME_IDM_ERR_MUTEX_OP_FAILURE_CLASS            = 0xC3,    //SCSI Equivalent: 0x04042203
-    NVME_IDM_ERR_MUTEX_OP_FAILURE_OWNER            = 0xC4,    //SCSI Equivalent: 0x04042204
-    NVME_IDM_ERR_MUTEX_OPCODE_INVALID              = 0xC5,    //SCSI Equivalent: 0x0520000A
-    NVME_IDM_ERR_MUTEX_LIMIT_EXCEEDED              = 0xC6,    //SCSI Equivalent: 0x0B550300
-    NVME_IDM_ERR_MUTEX_LIMIT_EXCEEDED_HOST         = 0xC7,    //SCSI Equivalent: 0x0B550301
-    NVME_IDM_ERR_MUTEX_LIMIT_EXCEEDED_SHARED_HOST  = 0xC8,    //SCSI Equivalent: 0x0B550302
-    NVME_IDM_ERR_MUTEX_CONFLICT                    = 0xC9,    //SCSI Equivalent: Res Conf
-    NVME_IDM_ERR_MUTEX_HELD_ALREADY                = 0xCA,    //SCSI Equivalent: Terminated
-    NVME_IDM_ERR_MUTEX_HELD_BY_ANOTHER             = 0xCB,    //SCSI Equivalent: Busy
+enum nvme_idm_error_codes {//ioctl() idm-specific status codes(sc) of status code type 1(sct1)
+	NVME_IDM_ERR_MUTEX_OP_FAILURE                  = 0xC0,  // Mutex operation failed                                                   //SCSI Equivalent: 0x04042200
+	NVME_IDM_ERR_MUTEX_REVERSE_OWNER_CHECK_FAILURE = 0xC1,  // Mutex failed reverse owner check                                         //SCSI Equivalent: 0x04042201
+	NVME_IDM_ERR_MUTEX_OP_FAILURE_STATE            = 0xC2,  // Mutex operation failed for state error                                   //SCSI Equivalent: 0x04042202
+	NVME_IDM_ERR_MUTEX_OP_FAILURE_CLASS            = 0xC3,  // Mutex operation failed for class error                                   //SCSI Equivalent: 0x04042203
+	NVME_IDM_ERR_MUTEX_OP_FAILURE_OWNER            = 0xC4,  // Mutex operation failed for owner error                                   //SCSI Equivalent: 0x04042204
+	NVME_IDM_ERR_MUTEX_OPCODE_INVALID              = 0xC5,  // Mutex failed for invalid mutex opcode                                    //SCSI Equivalent: 0x0520000A
+	NVME_IDM_ERR_MUTEX_LIMIT_EXCEEDED              = 0xC6,  // Mutex limit exceeded                                                     //SCSI Equivalent: 0x0B550300
+	NVME_IDM_ERR_MUTEX_LIMIT_EXCEEDED_HOST         = 0xC7,  // Mutex host limit exceeded                                                //SCSI Equivalent: 0x0B550301
+	NVME_IDM_ERR_MUTEX_LIMIT_EXCEEDED_SHARED_HOST  = 0xC8,  // Mutex number of shared hosts exceeded                                    //SCSI Equivalent: 0x0B550302
+	NVME_IDM_ERR_MUTEX_GROUP_INVALID               = 0xC9,  // Mutex failed for invalid mutex group (LBA out of range, Mutex not found) //SCSI Equivalent: 0x05210001
+	NVME_IDM_ERR_MUTEX_RESERVATION_CONFLICT        = 0xCA,  // Mutex reservation conflict status (mutex conflict)                       //SCSI Equivalent: Res Conf
+	NVME_IDM_ERR_MUTEX_COMMAND_TERMINATED          = 0xCB,  // Mutex command terminated status (mutex initiator holds the lock)         //SCSI Equivalent: Terminated
+	NVME_IDM_ERR_MUTEX_BUSY                        = 0xCC,  // Mutex busy status (mutex held by other)                                  //SCSI Equivalent: Busy
 };
 
 
