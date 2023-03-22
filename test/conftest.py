@@ -15,14 +15,14 @@ from test_conf import *     # Normally bad practice, but only importing 'constan
 
 _logger = logging.getLogger(__name__)
 
-BLK_DEVICES = [BLK_DEVICE1,
-               BLK_DEVICE2,
-               BLK_DEVICE3,
-               BLK_DEVICE4,
-               BLK_DEVICE5,
-               BLK_DEVICE6,
-               BLK_DEVICE7,
-               BLK_DEVICE8]
+RAW_DEVICES = [SG_DEVICE1,
+               SG_DEVICE2,
+               SG_DEVICE3,
+               SG_DEVICE4,
+               SG_DEVICE5,
+               SG_DEVICE6,
+               SG_DEVICE7,
+               SG_DEVICE8]
 
 @pytest.fixture(scope="session")
 def ilm_daemon():
@@ -53,16 +53,24 @@ def _init_devices():
     SG_CMD   = 'sg_raw -v -s 512 -i zero.bin'
     SG_DATA  = 'F0 00 00 00 00 00 00 00 00 00 00 00 02 00 FF 00'
 
+    NVME_CMD = 'nvme admin-passthru'
+    NVME_DATA = '--opcode=0xC1 --data-len=512 --write --cdw12=0x0000FF00 --cdw10=0x00000080 --input-file=zero.bin'
+
     os.system('dd if=/dev/zero of=zero.bin count=1 bs=512')
 
-    for device in BLK_DEVICES:
+    for device in RAW_DEVICES:
         try:
-            os.system(f'{SG_CMD} {device} {SG_DATA}')
+            if device.find('nvme') >= 0:
+                _logger.info(f'possible nvme device found: {device}')
+                os.system(f'{NVME_CMD} {device} {NVME_DATA}')
+            else:
+                _logger.info(f'possible scsi device found: {device}')
+                os.system(f'{SG_CMD} {device} {SG_DATA}')
         except Exception as e:
-            _logger.error(f'{device} sg_raw failure')
+            _logger.error(f'{device} reset failure')
             raise e from None
 
-    for device in BLK_DEVICES:
+    for device in RAW_DEVICES:
         try:
             idm_api.idm_drive_lock_mode(LOCK_ID0, device)
         except Exception as e:
