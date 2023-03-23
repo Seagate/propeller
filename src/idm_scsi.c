@@ -220,7 +220,10 @@ static int _scsi_sg_io(char *drive, uint8_t *cdb, int cdb_len,
 	sg_io_hdr_t io_hdr;
 	int sg_fd;
 	int ret, status;
-	uint8_t op = cdb[14];
+	uint8_t op = cdb[1];
+
+	if (direction == SG_DXFER_TO_DEV)
+		op = op>>4;
 
 	if ((sg_fd = open(drive, O_RDWR | O_NONBLOCK)) < 0) {
 		ilm_log_err("%s: error opening drive %s fd %d",

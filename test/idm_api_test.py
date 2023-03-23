@@ -223,11 +223,12 @@ def test_idm__sync_break_lock_1(idm_cleanup):
     a[7] = 0
 
     ret = idm_api.idm_drive_unlock(lock_id0, idm_api.IDM_MODE_EXCLUSIVE,
-		    		    host_id0, a, 8, SG_DEVICE1)
-    assert ret == -16       # -EBUSY - The BreakLock() changes ownership from Host0 to Host1
+                                   host_id0, a, 8, SG_DEVICE1)
+
+    assert ret == -2     # -ENOENT (from RESERVATION_CONFLICT) - The BreakLock() changes ownership from Host0 to Host1
 
     ret = idm_api.idm_drive_unlock(lock_id0, idm_api.IDM_MODE_EXCLUSIVE,
-		    		    host_id1, a, 8, SG_DEVICE1)
+                                   host_id1, a, 8, SG_DEVICE1)
     assert ret == 0
 
 def test_idm__sync_break_lock_2(idm_cleanup):
@@ -261,11 +262,12 @@ def test_idm__sync_break_lock_2(idm_cleanup):
     a[7] = 0
 
     ret = idm_api.idm_drive_unlock(lock_id0, idm_api.IDM_MODE_EXCLUSIVE,
-		    		    host_id0, a, 8, SG_DEVICE1)
-    assert ret == -16       # -EBUSY - The BreakLock() changes ownership from Host0 to Host1
+                                   host_id0, a, 8, SG_DEVICE1)
+
+    assert ret == -2     # -ENOENT (from RESERVATION_CONFLICT) - The BreakLock() changes ownership from Host0 to Host1
 
     ret = idm_api.idm_drive_unlock(lock_id0, idm_api.IDM_MODE_SHAREABLE,
-		    		    host_id1, a, 8, SG_DEVICE1)
+                                   host_id1, a, 8, SG_DEVICE1)
     assert ret == 0
 
 def test_idm__sync_break_lock_3(idm_cleanup):
@@ -299,11 +301,12 @@ def test_idm__sync_break_lock_3(idm_cleanup):
     a[7] = 0
 
     ret = idm_api.idm_drive_unlock(lock_id0, idm_api.IDM_MODE_SHAREABLE,
-		    		    host_id0, a, 8, SG_DEVICE1)
-    assert ret == -16       # -EBUSY - The BreakLock() changes ownership from Host0 to Host1
+                                   host_id0, a, 8, SG_DEVICE1)
+
+    assert ret == -2     # -ENOENT (from RESERVATION_CONFLICT) - The BreakLock() changes ownership from Host0 to Host1
 
     ret = idm_api.idm_drive_unlock(lock_id0, idm_api.IDM_MODE_EXCLUSIVE,
-		    		    host_id1, a, 8, SG_DEVICE1)
+                                   host_id1, a, 8, SG_DEVICE1)
     assert ret == 0
 
 def test_idm__sync_convert_1(idm_cleanup):
@@ -376,7 +379,8 @@ def test_idm__sync_convert_3(idm_cleanup):
 
     ret = idm_api.idm_drive_convert_lock(lock_id0, idm_api.IDM_MODE_EXCLUSIVE,
                                           host_id1, SG_DEVICE1, 10000)
-    assert ret == -11       #Drive returns SCSI STATUS -x22
+
+    assert ret == -1     # -ENOENT (from COMMAND_TERMINATION)
 
     a = idm_api.charArray(8)
     a[0] = 0

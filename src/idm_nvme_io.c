@@ -590,8 +590,12 @@ int _idm_cmd_check_status(int status, uint8_t opcode_idm)
 			printf("NVME_IDM_ERR_MUTEX_LIMIT_EXCEEDED_SHARED_HOST\n");
 			ret = -ENOMEM;
 			break;
-		case NVME_IDM_ERR_MUTEX_CONFLICT:   //SCSI Equivalent: Reservation Conflict
-			printf("NVME_IDM_ERR_MUTEX_CONFLICT\n");
+		case NVME_IDM_ERR_MUTEX_GROUP_INVALID:
+			printf("NVME_IDM_ERR_MUTEX_GROUP_INVALID\n");
+			ret = -ENOENT;
+			break;
+		case NVME_IDM_ERR_MUTEX_RESERVATION_CONFLICT:
+			printf("NVME_IDM_ERR_MUTEX_RESERVATION_CONFLICT\n");
 			switch(opcode_idm) {
 				case IDM_OPCODE_REFRESH:
 					printf("Bad refresh: timeout\n");
@@ -606,8 +610,8 @@ int _idm_cmd_check_status(int status, uint8_t opcode_idm)
 					ret = -EBUSY;
 			}
 			break;
-		case NVME_IDM_ERR_MUTEX_HELD_ALREADY:   //SCSI Equivalent: Terminated
-			printf("NVME_IDM_ERR_MUTEX_HELD_ALREADY\n");
+		case NVME_IDM_ERR_MUTEX_COMMAND_TERMINATED:
+			printf("NVME_IDM_ERR_MUTEX_COMMAND_TERMINATED\n");
 			switch(opcode_idm) {
 				case IDM_OPCODE_REFRESH:
 					printf("Bad refresh: timeout\n");
@@ -622,8 +626,8 @@ int _idm_cmd_check_status(int status, uint8_t opcode_idm)
 					ret = -EAGAIN;
 			}
 			break;
-		case NVME_IDM_ERR_MUTEX_HELD_BY_ANOTHER:    //SCSI Equivalent: Busy
-			printf("NVME_IDM_ERR_MUTEX_HELD_BY_ANOTHER\n");
+		case NVME_IDM_ERR_MUTEX_BUSY:
+			printf("NVME_IDM_ERR_MUTEX_BUSY\n");
 			ret = -EBUSY;
 			break;
 		default:
