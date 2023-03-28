@@ -84,3 +84,22 @@ def pytest_addoption(parser):
 def pytest_configure(config):
     if not config.option.destroy:
         setattr(config.option, 'markexpr', 'not destroy')
+
+
+
+@pytest.fixture(scope="module")
+def nvme_async_threads():
+    try:
+        idm_api.idm_manual_startup()
+    except Exception as e:
+        _logger.error(f'idm_manual_startup failure:{e}')
+        raise e from None
+
+    yield
+
+    try:
+        idm_api.idm_manual_shutdown()
+    except Exception as e:
+        _logger.error(f'idm_manual_shutdown failure:{e}')
+        raise e from None
+

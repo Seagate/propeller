@@ -15,6 +15,7 @@
 #include <linux/nvme_ioctl.h>
 #include <sys/ioctl.h>
 
+#include "async_nvme_thread_pool.h"
 #include "idm_cmd_common.h"
 
 
@@ -117,6 +118,9 @@ struct idm_nvme_request {
 	unsigned int        data_num;      //Note: Currently, this also corresponds to # of mutexes (ie: mutex_num).  //TODO: uint64_t?
 	uint64_t            class;
 	int                 fd_nvme;
+
+	//Variables related to temporary NVMe asynchronous code
+	struct async_nvme_request     requent_async;
 };
 
 

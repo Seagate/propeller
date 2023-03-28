@@ -739,6 +739,20 @@ int idm_drive_get_fd(char *drive, uint64_t handle)
 	return ret;
 }
 
+int idm_manual_startup(void)
+{
+	int ret;
 
-//TODO: Remove.  Temp use for standalone compile.
-//int main(){}
+	ret  = thread_pool_start();
+
+	return ret;
+}
+
+int idm_manual_shutdown(void)
+{
+	int ret;
+
+	ret  = thread_pool_stop();
+
+	return ret;
+}

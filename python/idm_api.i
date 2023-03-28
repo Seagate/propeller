@@ -88,6 +88,9 @@ int idm_drive_whitelist(char *drive,
 
 int idm_drive_get_fd(char *drive, uint64_t handle);
 
+int idm_manual_startup(void);
+int idm_manual_shutdown(void);
+
 %}
 
 //TODO: Replace with common include?
@@ -162,3 +165,6 @@ int idm_drive_whitelist(char *drive,
                         int *whitelist_num);
 
 int idm_drive_get_fd(char *drive, uint64_t handle);
+
+int idm_manual_startup(void);
+int idm_manual_shutdown(void);

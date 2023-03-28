@@ -7,6 +7,7 @@ CFLAGS = -DTEST -c -fpic -I/usr/include/python3.6m -I../src
 LDFLAGS = -shared
 
 IDM_OBJECT_FILES = \
+	 ../src/async_nvme_thread_pool.o \
 	 ../src/idm_cmd_common.o \
 	 ../src/idm_nvme_api.o \
 	 ../src/idm_nvme_io.o \
