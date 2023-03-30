@@ -11,6 +11,7 @@ import pytest
 from . import ilm_util
 
 import idm_api
+import async_nvme
 from test_conf import *     # Normally bad practice, but only importing 'constants' here
 
 _logger = logging.getLogger(__name__)
@@ -86,20 +87,36 @@ def pytest_configure(config):
         setattr(config.option, 'markexpr', 'not destroy')
 
 
-
+"""
+Fixture for manually creatinga dn destroying thread pools.
+Used by the custom async nvme code.
+"""
+#TODO:: AFTER a device string starts getting passed into _init() and _destroy(),
+#		put a FOR-LOOP around these calls so as to create and destroy the
+#		thread pools attached to each NVMe device under test.
 @pytest.fixture(scope="module")
-def nvme_async_threads():
+def async_nvme_threads():
+    ret = -1
+
     try:
-        idm_api.idm_manual_startup()
+        # idm_api.idm_manual_startup()
+        ret = async_nvme.thread_pool_init()
     except Exception as e:
-        _logger.error(f'idm_manual_startup failure:{e}')
+        _logger.error(f'thread_pool_init failure:{e}')
         raise e from None
 
-    yield
+    yield ret #TODO: Would like to pass back the whole thread pool c-struct context here,
+              #        but don't know if can (since this is python code).
+              #        How represent a c-struct in python?
+	      #        POSSIBLE (BAD) SOLUTION: Add a bunch of getter functions to the
+	      #        C code that query the struct params
+	      #        (would need to pass in the device name and then lookup the
+	      #        c-struct in whatever "map" it resides in)
 
     try:
-        idm_api.idm_manual_shutdown()
+        # idm_api.idm_manual_shutdown()
+        async_nvme.thread_pool_destroy()
     except Exception as e:
-        _logger.error(f'idm_manual_shutdown failure:{e}')
+        _logger.error(f'thread_pool_destroy failure:{e}')
         raise e from None
 

@@ -35,16 +35,23 @@ void* thread_async_nvme(void *arg) {
 	free(arg);
 	printf("%s(%d): start\n", __func__, id);
 
-	sleep(5);
-
 // 	Task *task = NULL;
 
-// 	while(pool_kill == 0) {
+	pthread_mutex_lock(&(thrd_pool_async_nvme.mutex_pool_kill));
+	while(thrd_pool_async_nvme.pool_kill == 0) {
+		pthread_mutex_unlock(&(thrd_pool_async_nvme.mutex_pool_kill));
 
 // 		printf("%s(%d) while loop start\n", __func__, id);
 // 		thread_task_extract(&task);
-// 		if (pool_kill)
-// 			goto EXIT;
+		sleep(1);
+
+		pthread_mutex_lock(&(thrd_pool_async_nvme.mutex_pool_kill));
+		if (thrd_pool_async_nvme.pool_kill) {
+			pthread_mutex_unlock(&(thrd_pool_async_nvme.mutex_pool_kill));
+			printf("%s(%d): while exit\n", __func__, id);
+			goto EXIT;
+		}
+		pthread_mutex_unlock(&(thrd_pool_async_nvme.mutex_pool_kill));
 
 // 		printf("%s(%d): fake ioctl(): %d, %d\n", __func__, id,
 // 		                                        task->fd, task->ctl);
@@ -53,13 +60,14 @@ void* thread_async_nvme(void *arg) {
 
 // 		thread_result_submit(task->result);
 
-// 	}
-// EXIT:
+	}
+EXIT:
 	printf("%s(%d): dieing\n", __func__, id);
 	return 0;
 }
 
-int thread_pool_start(void)
+//TODO: Need to pass in device name (when using device to pool map)
+int thread_pool_init(void)
 {
 	printf("%s\n", __func__);
 
@@ -68,6 +76,7 @@ int thread_pool_start(void)
 	pthread_cond_init(&(thrd_pool->cond_request_queue), NULL);
 	pthread_mutex_init(&(thrd_pool->mutex_request_queue), NULL);
 	pthread_mutex_init(&(thrd_pool->mutex_result_queue), NULL);
+	pthread_mutex_init(&(thrd_pool->mutex_pool_kill), NULL);
 
 	thrd_pool->request_count = 0;
 	thrd_pool->result_count  = 0;
@@ -88,7 +97,7 @@ int thread_pool_start(void)
 	return 0;
 }
 
-int thread_pool_stop(void)
+int thread_pool_destroy(void)
 {
 	printf("%s\n", __func__);
 
@@ -96,7 +105,9 @@ int thread_pool_stop(void)
 	int ret;
 	struct async_nvme_thrd_pool_cntxt *thrd_pool = &thrd_pool_async_nvme;
 
+	pthread_mutex_lock(&(thrd_pool->mutex_pool_kill));
 	thrd_pool->pool_kill = 1;
+	pthread_mutex_unlock(&(thrd_pool->mutex_pool_kill));
 
 	// signal entire thread pool to exit wait
 	pthread_cond_broadcast(&(thrd_pool->cond_request_queue));
@@ -111,6 +122,7 @@ int thread_pool_stop(void)
 	pthread_cond_destroy(&(thrd_pool->cond_request_queue));
 	pthread_mutex_destroy(&(thrd_pool->mutex_request_queue));
 	pthread_mutex_destroy(&(thrd_pool->mutex_result_queue));
+	pthread_mutex_destroy(&(thrd_pool->mutex_pool_kill));
 
 	return 0;
 }

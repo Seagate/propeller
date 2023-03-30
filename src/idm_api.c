@@ -743,7 +743,7 @@ int idm_manual_startup(void)
 {
 	int ret;
 
-	ret  = thread_pool_start();
+	ret  = thread_pool_init();
 
 	return ret;
 }
@@ -752,7 +752,7 @@ int idm_manual_shutdown(void)
 {
 	int ret;
 
-	ret  = thread_pool_stop();
+	ret  = thread_pool_destroy();
 
 	return ret;
 }

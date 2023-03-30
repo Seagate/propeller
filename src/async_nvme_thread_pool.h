@@ -53,9 +53,13 @@ struct async_nvme_thrd_pool_cntxt {
 	pthread_cond_t         cond_request_queue;
 	pthread_mutex_t        mutex_request_queue;
 	pthread_mutex_t        mutex_result_queue;
+	pthread_mutex_t        mutex_pool_kill;
 };
 
 struct async_nvme_thrd_pool_cntxt thrd_pool_async_nvme;
+//TODO: This single thread pool needs eventually be turned into map
+//	Map will be a device string to malloc'd struct pointer
+
 
 //////////////////////////////
 // FUNCTIONS
@@ -70,7 +74,7 @@ void* thread_async_nvme(void *arg);
 // void thread_task_extract(Task **task);
 // void thread_task_submit(Task *task);
 
-int thread_pool_start(void);
-int thread_pool_stop(void);
+int thread_pool_destroy(void);
+int thread_pool_init(void);
 
 #endif /*__ASYNC_NVME_THREAD_POOL_H__*/
