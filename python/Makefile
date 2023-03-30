@@ -1,5 +1,6 @@
 PYTHON_ILM_MOD=_ilm.so
 PYTHON_IDM_API_MOD=_idm_api.so
+PYTHON_ASYNC_NVME_MOD=_async_nvme.so
 
 SWIG = /usr/local/bin/swig
 SWIGFLAGS = -python
@@ -15,12 +16,15 @@ IDM_OBJECT_FILES = \
 	 ../src/idm_scsi.o \
 	 ../src/idm_api.o
 
-all: $(PYTHON_ILM_MOD) $(PYTHON_IDM_API_MOD)
+all: $(PYTHON_ILM_MOD) $(PYTHON_IDM_API_MOD) $(PYTHON_ASYNC_NVME_MOD)
 
 $(PYTHON_ILM_MOD): ../src/lib_client.o lib_ilm_wrap.o
 	$(LD) $(LDFLAGS) $^ -o $@
 
 $(PYTHON_IDM_API_MOD): $(IDM_OBJECT_FILES) idm_api_wrap.o
+	$(LD) $(LDFLAGS) $^ -o $@
+
+$(PYTHON_ASYNC_NVME_MOD): ../src/async_nvme_thread_pool.o async_nvme_wrap.o
 	$(LD) $(LDFLAGS) $^ -o $@
 
 %.o: %.c
@@ -30,6 +34,9 @@ lib_ilm_wrap.c: lib_ilm.i
 	$(SWIG) $(SWIGFLAGS) $<
 
 idm_api_wrap.c: idm_api.i
+	$(SWIG) $(SWIGFLAGS) $<
+
+async_nvme_wrap.c: async_nvme.i
 	$(SWIG) $(SWIGFLAGS) $<
 
 clean:
