@@ -69,10 +69,10 @@ struct async_nvme_thrd_pool_cntxt thrd_pool_async_nvme;
 
 void* thread_async_nvme(void *arg);
 
-// void thread_result_extract(Result *result);
-// void thread_result_submit(Result *result);
-// void thread_task_extract(Task **task);
-// void thread_task_submit(Task *task);
+// void thread_result_extract(struct async_nvme_result *result);
+// void thread_result_submit(struct async_nvme_result *result);
+// void thread_request_extract(struct async_nvme_request **task);
+void thread_request_submit(struct async_nvme_request *request);
 
 int thread_pool_destroy(void);
 int thread_pool_init(void);

@@ -88,7 +88,7 @@ def pytest_configure(config):
 
 
 """
-Fixture for manually creatinga dn destroying thread pools.
+Fixture for manually creating, yielding and then destroying thread pools.
 Used by the custom async nvme code.
 """
 #TODO:: AFTER a device string starts getting passed into _init() and _destroy(),
