@@ -32,6 +32,8 @@
 #include <stdlib.h>
 #include <string.h>
 
+#include "async_nvme.h"
+
 
 /* ======================= COMPILE SWITCHES========================== */
 // #define THREADPOOL_INTEGRATED	//TODO: Activate during threadpool integration.  Eventually remove
@@ -60,24 +62,24 @@ struct table_entry *table_thpool[MAX_TABLE_ENTRIES];
 
 /* ========================== PROTOTYPES ============================ */
 static int  _table_entry_is_empty(struct table_entry *entry);
-static int  _table_entry_find_empty();
+static int  _table_entry_find_empty(void);
 static int  _table_entry_find_index(char *drive);
-static int  table_init();
+static int  table_init(void);
 static struct table_entry* table_entry_find(char *drive);
 static int  table_entry_add(char *drive, int n_pool_thrds);
 static int  table_entry_replace(char *drive, int n_pool_thrds);
 static int  table_entry_update(char *drive, int n_pool_thrds);
 static void table_entry_remove(char *drive);
-static void table_destroy();
+static void table_destroy(void);
 
 
 /* ================== ASYNC NVME INTERFACE(ANI) ===================== */
-int ani_init()
+int ani_init(void)
 {
 	return table_init();
 }
 
-void ani_destroy()
+void ani_destroy(void)
 {
 	table_destroy();
 }
@@ -96,7 +98,7 @@ static int _table_entry_is_empty(struct table_entry *entry)
 
 //Finds the index of the first table entry that is emtpy
 //return: (int >= 0) on success, -1 on failure(table full)
-static int _table_entry_find_empty()
+static int _table_entry_find_empty(void)
 {
 	int i;
 	struct table_entry *entry;
@@ -119,7 +121,7 @@ static int _table_entry_find_empty()
 //return: (int >= 0) on success, -1 on failure
 static int _table_entry_find_index(char *drive)
 {
-	int i, empty;
+	int i;
 	struct table_entry *entry;
 	int ret = -1;
 
@@ -145,17 +147,17 @@ EXIT:
 }
 
 //returns: 0 on success, -1 on failure.
-static int table_init()
+static int table_init(void)
 {
 	int i;
 	struct table_entry *entry;
 
 	//If calloc() fails, known state for ALL "entry" if table_destroy() runs
-	memset(&table_thpool, 0, sizeof(struct table_entry)*MAX_TABLE_ENTRIES);
+	memset(&table_thpool, 0, MAX_TABLE_ENTRIES * sizeof(*table_thpool));
 
 	for (i = 0; i < MAX_TABLE_ENTRIES; i++){
 		entry = (struct table_entry *)calloc(MAX_TABLE_ENTRIES,
-		                                     sizeof(*entry));
+		                                     sizeof(*table_thpool));
 		if (!entry) {
 			table_destroy();
 			return -1;
@@ -271,7 +273,6 @@ EXIT:
 //returns: 0 on success, -1 on failure.
 static int table_entry_update(char *drive, int n_pool_thrds)
 {
-	int index;
 	int ret = -1;	//assume table is full
 
 	ret = table_entry_replace(drive, n_pool_thrds);  //find existing entry and update
@@ -312,7 +313,7 @@ static void table_entry_remove(char *drive)
 	}
 }
 
-static void table_destroy()
+static void table_destroy(void)
 {
 	int i;
 	struct table_entry *entry;
@@ -343,7 +344,7 @@ static void table_destroy()
 #define DRIVE2	"/dev/nvme2n1"
 #define DRIVE3	"/dev/nvme3n1"
 
-int main(){
+int main(void){
 	printf("main\n");
 
 	int ret;
@@ -358,7 +359,7 @@ int main(){
 
 	ret = _table_entry_find_index(NULL);//invalid
 	assert(ret == -1);
-	ret = _table_entry_find_index(DRIVE1);
+	ret = _table_entry_find_index((char*)DRIVE1);
 	assert(ret == -1);
 	printf("\n");
 
@@ -366,16 +367,16 @@ int main(){
 	printf("FIND test - public\n");
 	entry = table_entry_find(NULL);//invalid
 	assert(entry == NULL);
-	entry = table_entry_find(DRIVE1);
+	entry = table_entry_find((char*)DRIVE1);
 	assert(entry == NULL);
 	printf("\n");
 
 	// Test ADD & public FIND
 	printf("ADD test\n");
-	ret = table_entry_add(DRIVE1, 4);
+	ret = table_entry_add((char*)DRIVE1, 4);
 	assert(ret == 0);
-	entry = table_entry_find(DRIVE1);
-	assert(strcmp(entry->drive, DRIVE1) == 0);
+	entry = table_entry_find((char*)DRIVE1);
+	assert(strcmp(entry->drive, (char*)DRIVE1) == 0);
 	assert(entry->thpool->n_pool_thrds == 4);
 
 	ret = _table_entry_find_empty();
@@ -384,10 +385,10 @@ int main(){
 
 	// Test REPLACE & public FIND
 	printf("REPLACE test\n");
-	ret = table_entry_replace(DRIVE1, 6);
+	ret = table_entry_replace((char*)DRIVE1, 6);
 	assert(ret == 0);
-	entry = table_entry_find(DRIVE1);
-	assert(strcmp(entry->drive, DRIVE1) == 0);
+	entry = table_entry_find((char*)DRIVE1);
+	assert(strcmp(entry->drive, (char*)DRIVE1) == 0);
 	assert(entry->thpool->n_pool_thrds == 6);
 
 	ret = _table_entry_find_empty();
@@ -396,16 +397,16 @@ int main(){
 
 	// Test UPDATE & public FIND
 	printf("UPDATE test\n");
-	ret = table_entry_update(DRIVE1, 8);
+	ret = table_entry_update((char*)DRIVE1, 8);
 	assert(ret == 0);
-	entry = table_entry_find(DRIVE1);
+	entry = table_entry_find((char*)DRIVE1);
 	assert(strcmp(entry->drive, DRIVE1) == 0);
 	assert(entry->thpool->n_pool_thrds == 8);
 
-	ret = table_entry_update(DRIVE3, 10);
+	ret = table_entry_update((char*)DRIVE3, 10);
 	assert(ret == 0);
-	entry = table_entry_find(DRIVE3);
-	assert(strcmp(entry->drive, DRIVE3) == 0);
+	entry = table_entry_find((char*)DRIVE3);
+	assert(strcmp(entry->drive, (char*)DRIVE3) == 0);
 	assert(entry->thpool->n_pool_thrds == 10);
 
 	ret = _table_entry_find_empty();
@@ -413,7 +414,7 @@ int main(){
 	printf("\n");
 
 	// Just add another entry
-	ret = table_entry_update(DRIVE2, 15);
+	ret = table_entry_update((char*)DRIVE2, 15);
 	assert(ret == 0);
 
 	ret = _table_entry_find_empty();
@@ -422,7 +423,7 @@ int main(){
 
 	// Test REMOVE
 	printf("REMOVE test\n");
-	table_entry_remove(DRIVE3);
+	table_entry_remove((char*)DRIVE3);
 
 	ret = _table_entry_find_empty();
 	assert(ret == 1);

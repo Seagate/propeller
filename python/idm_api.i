@@ -88,8 +88,8 @@ int idm_drive_whitelist(char *drive,
 
 int idm_drive_get_fd(char *drive, uint64_t handle);
 
-int idm_manual_startup(void);
-int idm_manual_shutdown(void);
+int idm_manual_init(void);
+int idm_manual_destroy(void);
 
 %}
 
@@ -166,5 +166,5 @@ int idm_drive_whitelist(char *drive,
 
 int idm_drive_get_fd(char *drive, uint64_t handle);
 
-int idm_manual_startup(void);
-int idm_manual_shutdown(void);
+int idm_manual_init(void);
+int idm_manual_destroy(void);

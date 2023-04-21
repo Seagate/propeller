@@ -15,7 +15,7 @@
 #include <linux/nvme_ioctl.h>
 #include <sys/ioctl.h>
 
-#include "async_nvme_thread_pool.h"
+#include "async_nvme.h"
 #include "idm_cmd_common.h"
 
 
@@ -120,7 +120,7 @@ struct idm_nvme_request {
 	int                 fd_nvme;
 
 	//Variables related to temporary NVMe asynchronous code
-	struct async_nvme_request     requent_async;
+	int                 uuid_async_job;
 };
 
 

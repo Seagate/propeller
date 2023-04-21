@@ -1,4 +1,4 @@
-SOURCE_IO := idm_cmd_common.c idm_nvme_io.c idm_nvme_utils.c async_nvme_thread_pool.c
+SOURCE_IO := idm_cmd_common.c idm_nvme_io.c idm_nvme_utils.c async_nvme.c
 SOURCE_API := $(SOURCE_IO) idm_nvme_api.c
 
 idm_nvme_api : $(SOURCE_API)

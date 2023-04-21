@@ -739,20 +739,35 @@ int idm_drive_get_fd(char *drive, uint64_t handle)
 	return ret;
 }
 
-int idm_manual_startup(void)
+/**
+ * idm_manual_init - This init\destroy pair were created solely for
+ * the project's unit test environ.
+ * The IDM unit tests are run WITHOUT starting the ilm_seagate service.
+ * The unit tests call directly into the idm_api.so lib.
+ * As a result, things like ilm_log... are NOT running and the ANI thread
+ * pools are NOT intialized (like they would be at service strtup)
+ * This code allows for them to be manually init'ed\destory'ed in the unit
+ * test environ.  In particluar, the ANI MUST be setup to function properly
+ * during async calls.
+ *
+ * Returns zero or a -1 error
+ */
+int idm_manual_init(void)
 {
 	int ret;
 
-	ret  = thread_pool_init();
+	//TODO: Add ilm logging setup
+
+	ret  = ani_init();
 
 	return ret;
 }
 
-int idm_manual_shutdown(void)
+int idm_manual_destroy(void)
 {
-	int ret;
+	//TODO: Add ilm logging teardown
 
-	ret  = thread_pool_destroy();
+	ani_destroy();
 
-	return ret;
+	return 0;
 }

@@ -8,7 +8,7 @@ CFLAGS = -DTEST -c -fpic -I/usr/include/python3.6m -I../src
 LDFLAGS = -shared
 
 IDM_OBJECT_FILES = \
-	 ../src/async_nvme_thread_pool.o \
+	 ../src/async_nvme.o \
 	 ../src/idm_cmd_common.o \
 	 ../src/idm_nvme_api.o \
 	 ../src/idm_nvme_io.o \
@@ -24,7 +24,7 @@ $(PYTHON_ILM_MOD): ../src/lib_client.o lib_ilm_wrap.o
 $(PYTHON_IDM_API_MOD): $(IDM_OBJECT_FILES) idm_api_wrap.o
 	$(LD) $(LDFLAGS) $^ -o $@
 
-$(PYTHON_ASYNC_NVME_MOD): ../src/async_nvme_thread_pool.o async_nvme_wrap.o
+$(PYTHON_ASYNC_NVME_MOD): ../src/async_nvme.o async_nvme_wrap.o
 	$(LD) $(LDFLAGS) $^ -o $@
 
 %.o: %.c

@@ -13,6 +13,6 @@
 
 
 /* ================== ASYNC NVME INTERFACE(ANI) ===================== */
-int  ani_init();
-void ani_destroy();
+int  ani_init(void);
+void ani_destroy(void);
 
