@@ -1,4 +1,4 @@
-%module async_nvme
+%module ani_api
 
 %include "typemaps.i"
 %include "stdint.i"

@@ -5,18 +5,18 @@ import time
 
 import pytest
 
-import async_nvme
+import ani_api
 from test_conf import *     # Normally bad practice, but only importing 'constants' here
 
 
 def test_ani__cycle_startup_manual():
-    ret = async_nvme.ani_init()
+    ret = ani_api.ani_init()
     assert ret == 0
 
-    async_nvme.ani_destroy()
+    ani_api.ani_destroy()
 
-def test_ani__cycle_startup_fixture(async_nvme_startup):
-    assert async_nvme_startup == 0
+def test_ani__cycle_startup_fixture(ani_api_startup):
+    assert ani_api_startup == 0
 
 
 

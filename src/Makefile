@@ -37,7 +37,7 @@ SOURCE = main.c \
 	 utils_nvme.c \
 	 utils_scsi.c \
 	 uuid.c \
-	 async_nvme.c \
+	 ani_api.c \
 	 idm_cmd_common.c \
 	 idm_nvme_api.c \
 	 idm_nvme_io.c \
