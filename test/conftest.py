@@ -11,7 +11,7 @@ import pytest
 from . import ilm_util
 
 import idm_api
-import async_nvme
+import ani_api
 from test_conf import *     # Normally bad practice, but only importing 'constants' here
 
 _logger = logging.getLogger(__name__)
@@ -93,12 +93,12 @@ async nvme interface (ANI).
 Used by the custom async nvme code.
 """
 @pytest.fixture(scope="module")
-def async_nvme_startup():
+def ani_api_startup():
     ret = -1
 
     try:
         # idm_api.idm_manual_init() #TODO: Move these to a "idm_manaul_startup" fixture??
-        ret = async_nvme.ani_init()
+        ret = ani_api.ani_init()
     except Exception as e:
         _logger.error(f'ani_init failure:{e}')
         raise e from None
@@ -107,7 +107,7 @@ def async_nvme_startup():
 
     try:
         # idm_api.idm_manual_destroy() #TODO: Move these to a "idm_manaul_startup" fixture??
-        async_nvme.ani_destroy()
+        ani_api.ani_destroy()
     except Exception as e:
         _logger.error(f'ani_destroy failure:{e}')
         raise e from None
