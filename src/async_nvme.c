@@ -3,14 +3,15 @@
  * Copyright (C) 2010-2011 Red Hat, Inc.
  * Copyright (C) 2023 Seagate Technology LLC and/or its Affiliates.
  *
- * async_nvme.c - Interface for simulating NVMe asynchronous command behavior.
+ * async_nvme.c - Source file for the IDM aync nvme interface (ANI).
+ * This interface is for simulating NVMe asynchronous command behavior.
  * This is in-lieu of using Linux kernel-supplied NVMe asynchronous capability.
  * Currently, bypassing the kernel-supplied async functionality due to th e fact
  * that the Linux kernel containing this functionality is too "new" and, therefore,
  * not easily adoptable by customers.
  *
  * There are 2 main sections:
- * 	The public "ASYNC NVME" interface
+ * 	The public "ASYNC NVME Interface"
  * 		Exposes API's used by the idm_nvme_io.c commands.
  * 		Asyncnronous behavior achieved via thread pools.
  * 	The private "LOOKUP TABLE" interface
@@ -70,13 +71,13 @@ static void table_entry_remove(char *drive);
 static void table_destroy();
 
 
-/* ===================== ASYNC NVME INTERFACE ======================= */
-int async_nvme_init()
+/* ================== ASYNC NVME INTERFACE(ANI) ===================== */
+int ani_init()
 {
 	return table_init();
 }
 
-void async_nvme_destroy()
+void ani_destroy()
 {
 	table_destroy();
 }
