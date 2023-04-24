@@ -28,23 +28,32 @@
 				Other?
  */
 
+#include <errno.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <uuid/uuid.h>
 
 #include "ani_api.h"
+#include "idm_nvme_utils.h"
+// #include "idm_nvme_io.h"
+#include "thpool.h"
 
 
 /* ======================= COMPILE SWITCHES========================== */
+
 // #define THREADPOOL_INTEGRATED	//TODO: Activate during threadpool integration.  Eventually remove
 // #define MAIN_ACTIVATE		//TODO: Remove after async nvme integrations
 
 
 /* ========================== DEFINES ============================ */
+
 #define MAX_TABLE_ENTRIES		8
 #define TABLE_ENTRY_DRIVE_BUFFER_SIZE	32
 
+
 /* ========================== STRUCTURES ============================ */
+
 //TODO: Remove AFTER threadpool integration
 #ifndef THREADPOOL_INTEGRATED
 struct thpool_ {
@@ -57,10 +66,17 @@ struct table_entry {
 	struct thpool_ *thpool;
 };
 
+
+/* =========================== GLOBLALS ============================= */
+
+//Primary drive-to-threadpool table
 struct table_entry *table_thpool[MAX_TABLE_ENTRIES];
 
 
 /* ========================== PROTOTYPES ============================ */
+
+static int ani_ioctl(void* arg);
+
 static int  _table_entry_is_empty(struct table_entry *entry);
 static int  _table_entry_find_empty(void);
 static int  _table_entry_find_index(char *drive);
@@ -74,6 +90,7 @@ static void table_destroy(void);
 
 
 /* ================== ASYNC NVME INTERFACE(ANI) ===================== */
+
 int ani_init(void)
 {
 	return table_init();
@@ -85,7 +102,83 @@ void ani_destroy(void)
 }
 
 
+// //The request_idm already points to the memory locations where the desired data will be stored
+// //If the result is found, and shows success, then the data has already been written to those memory locations.
+// //Just return and let the calling code retrieve what it needs.
+// int async_nvme_data_rcv(request_idm, fd_nvme)	//comparable to scsi-side "read()" call.
+// 	//get thpool for drive
+// 		// need:   request_idm->drive
+// 		//if no thpool, ??????????   FAIL?  -OR-  create one?
+// 	int result;
+// 	ret = thpool_find_result(thpool,
+// 							request_idm->uuid_async_job,
+// 							10000,
+// 							10000,
+// 							&result)
+// 	if (ret)
+// 		error
+// 	return ret
+
+
+// Returns zero or a negative error (ie. EINVAL, ENOMEM, EBUSY, etc).
+int ani_send_cmd(struct idm_nvme_request *request_idm, int fd_nvme,
+                 unsigned long ctrl, struct nvme_admin_cmd *cmd)
+{
+	struct table_entry *entry;
+	struct arg_ioctl *arg;
+	int ret = FAILURE;
+
+	entry = table_entry_find(request_idm->drive);
+	if (!entry){
+		//Auto-create new thpool for drive
+		ret = table_entry_add(request_idm->drive, 4);//TODO: Fix hardcoding
+		if (ret){
+			//TODO: log msg
+			goto EXIT;
+		}
+		entry = table_entry_find(request_idm->drive);
+		if (!entry){
+			//TODO: log msg
+			ret = FAILURE;
+			goto EXIT;
+		}
+	}
+
+	arg = (struct arg_ioctl*)calloc(1, sizeof(*arg));
+	if (!arg){
+		//TODO: log msg
+		ret = -ENOMEM;
+		goto EXIT;
+	}
+
+	arg->fd   = fd_nvme;
+	arg->ctrl = ctrl;
+	arg->cmd  = cmd;
+
+	uuid_generate(request_idm->uuid_async_job);
+
+	// ret = thpool_add_work(entry->thpool,
+	// 		      request_idm->uuid_async_job,
+	// 		      (th_func_p)ani_ioctl,
+	// 		      (void*)arg);
+	// if (ret)
+	// 	error
+EXIT:
+	free(arg); //TODO: temp while debugging this func
+
+	return ret;
+}
+
+static int ani_ioctl(void* arg)
+{
+	struct arg_ioctl *arg_ = (struct arg_ioctl *)arg;
+
+	return ioctl(arg_->fd, arg_->ctrl, arg_->cmd);
+}
+
+
 /* ========================== LOOKUP TABLE ============================ */
+
 //return: 1 when empty, 0 when NOT empty (so behaves like logical bool)
 static int _table_entry_is_empty(struct table_entry *entry)
 {
@@ -102,7 +195,7 @@ static int _table_entry_find_empty(void)
 {
 	int i;
 	struct table_entry *entry;
-	int ret = -1;
+	int ret = FAILURE;
 
 	for(i = 0; i < MAX_TABLE_ENTRIES; i++){
 		entry = table_thpool[i];
@@ -123,7 +216,7 @@ static int _table_entry_find_index(char *drive)
 {
 	int i;
 	struct table_entry *entry;
-	int ret = -1;
+	int ret = FAILURE;
 
 	if (!drive){
 		printf("%s: invalid param\n", __func__);
@@ -160,7 +253,7 @@ static int table_init(void)
 		                                     sizeof(*table_thpool));
 		if (!entry) {
 			table_destroy();
-			return -1;
+			return FAILURE;
 		}
 		table_thpool[i] = entry;
 	}
@@ -202,7 +295,7 @@ static int table_entry_add(char *drive, int n_pool_thrds)
 {
 	int index;
 	struct table_entry *entry;
-	int ret = -1;	//assume table is full
+	int ret = FAILURE;	//assume table is full
 
 	index = _table_entry_find_empty();
 	if (index >= 0) {
@@ -242,7 +335,7 @@ static int table_entry_replace(char *drive, int n_pool_thrds)
 {
 	int index;
 	struct table_entry *entry;
-	int ret = -1;	//assume table is full
+	int ret = FAILURE;	//assume table is full
 
 	index = _table_entry_find_index(drive);  //find existing entry and update
 	if (index >= 0) {
@@ -273,7 +366,7 @@ EXIT:
 //returns: 0 on success, -1 on failure.
 static int table_entry_update(char *drive, int n_pool_thrds)
 {
-	int ret = -1;	//assume table is full
+	int ret = FAILURE;	//assume table is full
 
 	ret = table_entry_replace(drive, n_pool_thrds);  //find existing entry and update
 	if (!ret) {
@@ -337,6 +430,7 @@ static void table_destroy(void)
 
 
 /* ============================= MAIN =============================== */
+
 #ifdef MAIN_ACTIVATE
 #include <assert.h>
 

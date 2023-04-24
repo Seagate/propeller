@@ -39,12 +39,14 @@
 #include <inttypes.h>
 #include <linux/nvme_ioctl.h>
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 #include <sys/ioctl.h>
 #include <unistd.h>
 
 #include "idm_nvme_io.h"
 #include "idm_nvme_utils.h"
+#include "ani_api.h"
 
 
 //////////////////////////////////////////
@@ -346,15 +348,13 @@ int _async_idm_cmd_send(struct idm_nvme_request *request_idm)
 	printf("%s: START\n", __func__);
 	#endif //FUNCTION_ENTRY_DEBUG
 
-	struct nvme_passthru_cmd cmd_nvme_passthru;
 	int fd_nvme;
+	struct nvme_passthru_cmd *cmd_nvme_passthru = NULL;
 	int ret = FAILURE;
 
 	//TODO: Put this under a debug flag of some kind??
 	dumpNvmeCmdStruct(&request_idm->cmd_nvme, 1, 1);
 	dumpIdmDataStruct(request_idm->data_idm);
-
-	memset(&cmd_nvme_passthru, 0, sizeof(struct nvme_passthru_cmd));
 
 	fd_nvme = open(request_idm->drive, O_RDWR | O_NONBLOCK);
 	if (fd_nvme < 0) {
@@ -365,30 +365,42 @@ int _async_idm_cmd_send(struct idm_nvme_request *request_idm)
 		printf("%s: error opening drive %s fd %d\n",
 		       __func__, request_idm->drive, fd_nvme);
 		#endif //COMPILE_STANDALONE
-		return fd_nvme;
-	}
-
-	_fill_nvme_cmd(request_idm, &cmd_nvme_passthru);
-
-	//TODO: Keep?  Add debug flag?
-	dumpNvmePassthruCmd(&cmd_nvme_passthru);
-
-	//TODO: Don't know exactly how to do this async communication yet via NVMe.
-	//      This write() call is just a duplication of what scsi is doing
-	printf("%s: CORE NVME ASYNC WRITE IO NOT YET FUNCTIONAL!\n", __func__);
-	// ret = write(fd_nvme, &cmd_nvme_passthru, sizeof(cmd_nvme_passthru));
-	if (ret) {
-		close(fd_nvme);
-		#ifndef COMPILE_STANDALONE
-		ilm_log_err("%s: write failed: %d(0x%X)", __func__, ret, ret);
-		#else
-		printf("%s: write failed: %d(0x%X)\n", __func__, ret, ret);
-		#endif //COMPILE_STANDALONE
+		ret = fd_nvme;
 		goto EXIT;
 	}
 
-EXIT:
+	size_t size_cmd   = sizeof(*cmd_nvme_passthru);
+	cmd_nvme_passthru = (struct nvme_passthru_cmd *)calloc(1, size_cmd);
+	if (!cmd_nvme_passthru){
+		#ifndef COMPILE_STANDALONE
+		ilm_log_err("%s: calloc failure: drive %s",
+		            __func__, request_idm->drive);
+		#else
+		printf("%s: calloc failure: drive %s\n",
+		        __func__, request_idm->drive);
+		#endif //COMPILE_STANDALONE
+		ret = -ENOMEM;
+		goto EXIT;
+	}
+
+	_fill_nvme_cmd(request_idm, cmd_nvme_passthru);
+
+	//TODO: Keep?  Add debug flag?
+	dumpNvmePassthruCmd(cmd_nvme_passthru);
+
+	ret = ani_send_cmd(request_idm, fd_nvme, NVME_IOCTL_ADMIN_CMD,
+	                   cmd_nvme_passthru);
+	if (ret) {
+		close(fd_nvme);
+		#ifndef COMPILE_STANDALONE
+		ilm_log_err("%s: sned failed: %d(0x%X)", __func__, ret, ret);
+		#else
+		printf("%s: send failed: %d(0x%X)\n", __func__, ret, ret);
+		#endif //COMPILE_STANDALONE
+		goto EXIT;
+	}
 	request_idm->fd_nvme = fd_nvme;  //async, so save fd_nvme for later
+EXIT:
 	return ret;
 }
 

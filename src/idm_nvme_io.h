@@ -10,12 +10,11 @@
 #ifndef __IDM_NVME_IO_H__
 #define __IDM_NVME_IO_H__
 
-#include <limits.h>
 #include <stdint.h>
 #include <linux/nvme_ioctl.h>
 #include <sys/ioctl.h>
+#include <uuid/uuid.h>
 
-#include "ani_api.h"
 #include "idm_cmd_common.h"
 
 
@@ -120,7 +119,7 @@ struct idm_nvme_request {
 	int                 fd_nvme;
 
 	//Variables related to temporary NVMe asynchronous code
-	int                 uuid_async_job;
+	uuid_t              uuid_async_job;
 };
 
 
