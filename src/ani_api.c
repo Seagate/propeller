@@ -42,7 +42,6 @@
 
 /* ======================= COMPILE SWITCHES========================== */
 
-// #define THREADPOOL_INTEGRATED	//TODO: Activate during threadpool integration.  Eventually remove
 // #define MAIN_ACTIVATE		//TODO: Remove after async nvme integrations
 
 
@@ -53,13 +52,6 @@
 
 
 /* ========================== STRUCTURES ============================ */
-
-//TODO: Remove AFTER threadpool integration
-#ifndef THREADPOOL_INTEGRATED
-struct threadpool {
-	int n_pool_thrds;
-};
-#endif
 
 struct table_entry {
 	char *drive;
@@ -306,20 +298,15 @@ static int table_entry_add(char *drive, int n_pool_thrds)
 		if (!entry->drive)
 			goto EXIT;
 		strcpy(entry->drive, drive);
-#ifdef THREADPOOL_INTEGRATED
+
 		entry->thpool = thpool_init(n_pool_thrds);
-#else
-		entry->thpool =
-			(struct threadpool *)calloc(n_pool_thrds,
-			                            sizeof(*entry->thpool));
 		if (!entry->thpool){
 			goto EXIT;
 		}
-		entry->thpool->n_pool_thrds = n_pool_thrds;
-#endif
+
 		printf("%s: %s{%d} added at %d\n",
 		       __func__, entry->drive,
-		       entry->thpool->n_pool_thrds, index);
+		       thpool_num_threads_alive(entry->thpool), index);
 		ret = 0;
 		goto EXIT;
 	}
@@ -340,19 +327,16 @@ static int table_entry_replace(char *drive, int n_pool_thrds)
 	index = _table_entry_find_index(drive);  //find existing entry and update
 	if (index >= 0) {
 		entry = table_thpool[index];
-#ifdef THREADPOOL_INTEGRATED
+
 		thpool_destroy(entry->thpool);
 		entry->thpool = thpool_init(n_pool_thrds);
-#else
-		free(entry->thpool);
-		entry->thpool =
-			(struct threadpool *)malloc(n_pool_thrds *
-			                            sizeof(*entry->thpool));
-		entry->thpool->n_pool_thrds = n_pool_thrds;
-#endif
+		if (!entry->thpool){
+			goto EXIT;
+		}
+
 		printf("%s: %s{%d} replaced at %d\n",
 		       __func__, entry->drive,
-		       entry->thpool->n_pool_thrds, index);
+		       thpool_num_threads_alive(entry->thpool), index);
 		ret = 0;
 		goto EXIT;
 	}
@@ -394,14 +378,13 @@ static void table_entry_remove(char *drive)
 	index = _table_entry_find_index(drive);  //find existing entry
 	if (index >= 0) {
 		entry = table_thpool[index];
+
 		free(entry->drive);
-#ifdef THREADPOOL_INTEGRATED
-		thpool_destory(entry->thpool);
-#else
-		free(entry->thpool);
-#endif
-		entry->thpool = NULL;
 		entry->drive  = NULL;
+
+		thpool_destroy(entry->thpool);
+		entry->thpool = NULL;
+
 		printf("%s: %s removed\n", __func__, drive);
 	}
 }
@@ -415,11 +398,7 @@ static void table_destroy(void)
 		entry = table_thpool[i];
 		if (entry) {
 			if (entry->thpool)
-#ifdef THREADPOOL_INTEGRATED
-				thpool_destory(entry->thpool);
-#else
-				free(entry->thpool);
-#endif
+				thpool_destroy(entry->thpool);
 			if (entry->drive)
 				free(entry->drive);
 			free(entry);
