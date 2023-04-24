@@ -20,6 +20,7 @@
 #include <string.h>
 #include <unistd.h>
 
+#include "ani_api.h"
 #include "idm_nvme_api.h"
 #include "idm_nvme_io.h"
 #include "idm_nvme_utils.h"
@@ -759,6 +760,28 @@ EXIT_FAIL:
 	_memory_free_idm_request(request_idm);
 EXIT:
 	return ret;
+}
+
+//TODO: Needed this init\destroy for stand-alone main.  Keep??
+int nvme_idm_manual_init(void)
+{
+	int ret;
+
+	//TODO: Add ilm logging setup
+		//Want for nvme & scsi
+
+	ret  = ani_init();
+
+	return ret;
+}
+
+int nvme_idm_manual_destroy(void)
+{
+	//TODO: Add ilm logging teardown
+
+	ani_destroy();
+
+	return 0;
 }
 
 /**
@@ -2737,6 +2760,9 @@ int main(int argc, char *argv[])
 		strcpy(drive, DRIVE_DEFAULT_DEVICE);
 	}
 
+	ret = nvme_idm_manual_init();
+	if (ret) goto INIT_FAIL_EXIT;
+
 	//cli usage: idm_nvme_api lock
 	if(argc >= 2){
 		char            lock_id[IDM_LOCK_ID_LEN_BYTES] = "0000000000000000000000000000000000000000000000000000000000000000";
@@ -2865,6 +2891,8 @@ int main(int argc, char *argv[])
 		printf("No command option given\n");
 	}
 
+	nvme_idm_manual_destroy();
+INIT_FAIL_EXIT:
 	return ret;
 }
 #endif//MAIN_ACTIVATE

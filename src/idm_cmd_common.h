@@ -14,6 +14,7 @@
 // at the top of the idm.scsi.c file with this files constants
 
 #include <stdint.h>
+#include <linux/limits.h>
 
 //////////////////////////////////////////
 // Defines
@@ -131,6 +132,8 @@ struct idm_info {
 //////////////////////////////////////////
 
 void bswap_char_arr(char *dst, char *src, int len);
+int common_idm_manual_init(void);
+int common_idm_manual_destroy(void);
 
 
 #endif /*__IDM_CMD_COMMON_H__ */

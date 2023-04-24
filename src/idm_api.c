@@ -755,19 +755,15 @@ int idm_drive_get_fd(char *drive, uint64_t handle)
 int idm_manual_init(void)
 {
 	int ret;
-
-	//TODO: Add ilm logging setup
-
-	ret  = ani_init();
-
+	ret = common_idm_manual_init();
+	if (ret) return ret;
+	ret = nvme_idm_manual_init();
 	return ret;
 }
 
 int idm_manual_destroy(void)
 {
-	//TODO: Add ilm logging teardown
-
-	ani_destroy();
-
+	common_idm_manual_destroy();
+	nvme_idm_manual_destroy();
 	return 0;
 }

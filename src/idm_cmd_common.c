@@ -29,3 +29,18 @@ void bswap_char_arr(char *dest, char *src, int len)
 		dest[i] = src[len - i - 1];
 	}
 }
+
+int common_idm_manual_init(void)
+{
+	//TODO: Add ilm logging setup
+		//Want for nvme & scsi during unit test
+	return 0;
+}
+
+int common_idm_manual_destroy(void)
+{
+	//TODO: Add ilm logging teardown
+		//Want for nvme & scsi during unit test
+	return 0;
+}
+
