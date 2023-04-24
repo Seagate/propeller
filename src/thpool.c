@@ -45,7 +45,6 @@
 #if defined(__linux__)
 #include <sys/prctl.h>
 #endif
-#include <uuid/uuid.h>
 
 #include "thpool.h"
 
@@ -93,7 +92,7 @@ typedef struct job{
 	struct job   *prev;          /* pointer to previous job   */
 
 	th_func_p    function;       /* function pointer          */
-	void         *arg;            /* function's argument       */
+	void         *arg;           /* function's argument       */
 
 	uuid_t       uuid;           /* job identifier            */
 	int          result;         /* job result code           */

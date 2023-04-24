@@ -35,6 +35,8 @@
 extern "C" {
 #endif
 
+#include <uuid/uuid.h>
+
 /* =================================== API ======================================= */
 
 struct threadpool;
