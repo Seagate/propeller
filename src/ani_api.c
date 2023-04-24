@@ -56,14 +56,14 @@
 
 //TODO: Remove AFTER threadpool integration
 #ifndef THREADPOOL_INTEGRATED
-struct thpool_ {
+struct threadpool {
 	int n_pool_thrds;
 };
 #endif
 
 struct table_entry {
 	char *drive;
-	struct thpool_ *thpool;
+	struct threadpool *thpool;
 };
 
 
@@ -310,8 +310,8 @@ static int table_entry_add(char *drive, int n_pool_thrds)
 		entry->thpool = thpool_init(n_pool_thrds);
 #else
 		entry->thpool =
-			(struct thpool_ *)calloc(n_pool_thrds,
-			                         sizeof(*entry->thpool));
+			(struct threadpool *)calloc(n_pool_thrds,
+			                            sizeof(*entry->thpool));
 		if (!entry->thpool){
 			goto EXIT;
 		}
@@ -341,13 +341,13 @@ static int table_entry_replace(char *drive, int n_pool_thrds)
 	if (index >= 0) {
 		entry = table_thpool[index];
 #ifdef THREADPOOL_INTEGRATED
-		thpool_destroy(entry->thpool));
+		thpool_destroy(entry->thpool);
 		entry->thpool = thpool_init(n_pool_thrds);
 #else
 		free(entry->thpool);
 		entry->thpool =
-			(struct thpool_ *)malloc(n_pool_thrds *
-			                         sizeof(*entry->thpool));
+			(struct threadpool *)malloc(n_pool_thrds *
+			                            sizeof(*entry->thpool));
 		entry->thpool->n_pool_thrds = n_pool_thrds;
 #endif
 		printf("%s: %s{%d} replaced at %d\n",

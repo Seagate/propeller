@@ -1,12 +1,32 @@
-/**********************************
- * @author      Johan Hanssen Seferidis
- * License:     MIT
+/* ********************************
+ * Author:       Johan Hanssen Seferidis
+ * License:	     MIT
+ * Description:  Library providing a threading pool where you can add
+ *               work. For usage, check the thpool.h file or README.md
  *
- *               This is a modified version of code original obtained from
- *                   https://github.com/Pithikos/C-Thread-Pool
- *               and is being used by Seagate under the above MIT license
+ * The MIT License (MIT)
  *
- **********************************/
+ * Copyright (c) 2016 Johan Hanssen Seferidis
+ * Copyright (C) 2023 Seagate Technology LLC and/or its Affiliates.
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in all
+ * copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+ * SOFTWARE.
+ ********************************/
 
 #ifndef _THPOOL_
 #define _THPOOL_
@@ -17,10 +37,9 @@ extern "C" {
 
 /* =================================== API ======================================= */
 
+struct threadpool;
 
-typedef struct thpool_* threadpool;
-
-typedef	int (*th_func_p)(void* arg);       /* function pointer          */
+typedef	int (*th_func_p)(void *arg);       /* function pointer          */
 
 
 /**
@@ -36,11 +55,11 @@ typedef	int (*th_func_p)(void* arg);       /* function pointer          */
  *    thpool = thpool_init(4);               //then we initialize it to 4 threads
  *    ..
  *
- * @param  num_threads   number of threads to be created in the threadpool
- * @return threadpool    created threadpool on success,
- *                       NULL on error
+ * @param  num_threads         number of threads to be created in the threadpool
+ * @return struct threadpool*  created threadpool on success,
+ *                             NULL on error
  */
-threadpool thpool_init(int num_threads);
+struct threadpool* thpool_init(int num_threads);
 
 
 /**
@@ -61,17 +80,18 @@ threadpool thpool_init(int num_threads);
  *    int main() {
  *       ..
  *       int a = 10;
- *       thpool_add_work(thpool, job_uuid, (void*)print_num, (void*)a);
+ *       thpool_add_work(thpool_p, job_uuid, (void*)print_num, (void*)a);
  *       ..
  *    }
  *
- * @param  threadpool    threadpool to which the work will be added
- * @param  job_uuid      unique job identifier
+ * @param  thpool_P      threadpool to which the work will be added
+ * @param  uuid_job      unique job identifier
  * @param  func_p        pointer to function to add as work
  * @param  arg_p         pointer to an argument
  * @return 0 on success, -1 otherwise.
  */
-int thpool_add_work(threadpool, int job_uuid, th_func_p func_p, void* arg_p);
+int thpool_add_work(struct threadpool *thpool_p, uuid_t uuid_job,
+                    th_func_p func_p, void *arg_p);
 
 
 /**
@@ -94,15 +114,15 @@ int thpool_add_work(threadpool, int job_uuid, th_func_p func_p, void* arg_p);
  *    int main() {
  *       ..
  *       int a = 10;
- *       thpool_add_work(thpool, job_uuid, (void*)print_num, (void*)a);
+ *       thpool_add_work(thpool_p, job_uuid, (void*)print_num, (void*)a);
  *       ..
  *       int res = 10;
  *       int ret;
- *       ret = thpool_find_result(thpool, job_uuid, 1000, 1000, &res);
+ *       ret = thpool_find_result(thpool_p, job_uuid, 1000, 1000, &res);
  *       ..
  *    }
  *
- * @param  threadpool            threadpool to which the work will be added
+ * @param  thpool_p              threadpool to which the work will be added
  * @param  job_uuid              unique job identifier to search for in queue_out
  * @param  retry_count_max       max retries for job_uuid search
  * @param  retry_interval_ns     wait time between job_uuid searches in nsec
@@ -110,7 +130,8 @@ int thpool_add_work(threadpool, int job_uuid, th_func_p func_p, void* arg_p);
  * @return 0 on success, -1 otherwise.
  * 			Currently, -1 only represents a "job not found" condition
  */
-int thpool_find_result(threadpool, int job_uuid, int retry_count_max, int retry_interval_ns, int* result_p);
+int thpool_find_result(struct threadpool *thpool_p, uuid_t job_uuid,
+                       int retry_count_max, int retry_interval_ns, int *result_p);
 
 
 /**
@@ -137,10 +158,10 @@ int thpool_find_result(threadpool, int job_uuid, int retry_count_max, int retry_
  *    puts("All added work has finished");
  *    ..
  *
- * @param threadpool     the threadpool to wait for
+ * @param thpool_p     the threadpool to wait for
  * @return nothing
  */
-void thpool_wait(threadpool);
+void thpool_wait(struct threadpool *thpool_p);
 
 
 /**
@@ -161,10 +182,10 @@ void thpool_wait(threadpool);
  *    ..
  *    thpool_resume(thpool); // Let the threads start their magic
  *
- * @param threadpool    the threadpool where the threads should be paused
+ * @param thpool_p    the threadpool where the threads should be paused
  * @return nothing
  */
-void thpool_pause(threadpool);
+void thpool_pause(struct threadpool *thpool_p);
 
 
 /**
@@ -177,10 +198,10 @@ void thpool_pause(threadpool);
  *    thpool_resume(thpool);
  *    ..
  *
- * @param threadpool     the threadpool where the threads should be unpaused
+ * @param thpool_p     the threadpool where the threads should be unpaused
  * @return nothing
  */
-void thpool_resume(threadpool);
+void thpool_resume(struct threadpool *thpool_p);
 
 
 /**
@@ -199,10 +220,10 @@ void thpool_resume(threadpool);
  *    return 0;
  * }
  *
- * @param threadpool     the threadpool to destroy
+ * @param thpool_p     the threadpool to destroy
  * @return nothing
  */
-void thpool_destroy(threadpool);
+void thpool_destroy(struct threadpool *thpool_p);
 
 
 /**
@@ -214,18 +235,18 @@ void thpool_destroy(threadpool);
  *
  * @example
  * int main() {
- *    threadpool thpool1 = thpool_init(2);
- *    threadpool thpool2 = thpool_init(2);
+ *    struct threadpool* thpool1 = thpool_init(2);
+ *    struct threadpool* thpool2 = thpool_init(2);
  *    ..
  *    printf("Working threads: %d\n", thpool_num_threads_alive(thpool1));
  *    ..
  *    return 0;
  * }
  *
- * @param threadpool     the threadpool of interest
+ * @param thpool_p     the threadpool of interest
  * @return integer       number of threads alive in pool
  */
-int thpool_num_threads_alive(threadpool);
+int thpool_num_threads_alive(struct threadpool *thpool_p);
 
 
 /**
@@ -235,18 +256,18 @@ int thpool_num_threads_alive(threadpool);
  *
  * @example
  * int main() {
- *    threadpool thpool1 = thpool_init(2);
- *    threadpool thpool2 = thpool_init(2);
+ *    struct threadpool* thpool1 = thpool_init(2);
+ *    struct threadpool* thpool2 = thpool_init(2);
  *    ..
  *    printf("Working threads: %d\n", thpool_num_threads_working(thpool1));
  *    ..
  *    return 0;
  * }
  *
- * @param threadpool     the threadpool of interest
+ * @param thpool_p       the threadpool of interest
  * @return integer       number of threads working
  */
-int thpool_num_threads_working(threadpool);
+int thpool_num_threads_working(struct threadpool *thpool_p);
 
 
 /**
@@ -262,10 +283,10 @@ int thpool_num_threads_working(threadpool);
  *    return 0;
  * }
  *
- * @param threadpool     the threadpool of interest
+ * @param thpool_p       the threadpool of interest
  * @return integer       number of completed jobs in queue_out
  */
-int thpool_queue_out_len(threadpool);
+int thpool_queue_out_len(struct threadpool *thpool_p);
 
 /**
  * @brief Show current state of thpool "keepalive" flag.
@@ -280,11 +301,11 @@ int thpool_queue_out_len(threadpool);
  *    return 0;
  * }
  *
- * @param threadpool     the threadpool of interest
+ * @param thpool_p       the threadpool of interest
  * @return integer       thpool's "keepalive" flag state.
  *                       1 - keep all threads alive, 0 - kill all threads
  */
-int thpool_alive_state(threadpool);
+int thpool_alive_state(struct threadpool *thpool_p);
 
 #ifdef __cplusplus
 }

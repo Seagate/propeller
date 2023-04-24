@@ -4,12 +4,28 @@
  * Description:  Library providing a threading pool where you can add
  *               work. For usage, check the thpool.h file or README.md
  *
- *               This is a modified version of code original obtained from
- *                   https://github.com/Pithikos/C-Thread-Pool
- *               and is being used by Seagate under the above MIT license
+ * The MIT License (MIT)
  *
- *//** @file thpool.h *//*
+ * Copyright (c) 2016 Johan Hanssen Seferidis
+ * Copyright (C) 2023 Seagate Technology LLC and/or its Affiliates.
  *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in all
+ * copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+ * SOFTWARE.
  ********************************/
 
 #if defined(__APPLE__)
@@ -29,6 +45,7 @@
 #if defined(__linux__)
 #include <sys/prctl.h>
 #endif
+#include <uuid/uuid.h>
 
 #include "thpool.h"
 
@@ -49,10 +66,6 @@
 //TODO DUMPING GROUND
 //===================
 //TODO:(captured) add queue metrics
-//TODO: How handle duplicate job_uuid's, if at all?
-//		Should this ever happen using UUID's?
-//		Only look for this in queue_out?  What do?
-//		Or, just allow it for now.  Future "queue_out monitor thread" can remove "aged-out" jobs.
 //TODO: AFTER INTEGRATION: all printf() and err() calls must be replaced will appropriate logging function calls
 
 
@@ -77,14 +90,12 @@ typedef struct bsem {
 
 /* Job */
 typedef struct job{
-	struct job*  prev;           /* pointer to previous job   */
+	struct job   *prev;          /* pointer to previous job   */
 
-//TODO: If keep, need to sort out different function pointer prototypes scattered across test code.
 	th_func_p    function;       /* function pointer          */
-	void*        arg;            /* function's argument       */	//fd
-//	void*        arg2;           /* function's argument       */	//cmd_nvme
+	void         *arg;            /* function's argument       */
 
-	int          uuid;           /* job identifier            */
+	uuid_t       uuid;           /* job identifier            */
 	int          result;         /* job result code           */
 //	int          age_queue;      /* generic age for either queue?  Later put in metrics struct? */
 
@@ -106,12 +117,12 @@ typedef struct jobqueue{
 typedef struct thread{
 	int       id;                        /* friendly id               */
 	pthread_t pthread;                   /* pointer to actual thread  */
-	struct thpool_* thpool_p;            /* access to thpool          */
+	struct threadpool *thpool_p;         /* access to thpool          */
 } thread;
 
 /* Threadpool */
-typedef struct thpool_{
-	thread**   threads;                  /* pointer to threads        */
+typedef struct threadpool{
+	thread   **threads;                  /* pointer to threads        */
 
 	volatile int num_threads_alive;      /* threads currently alive   */
 	volatile int num_threads_working;    /* threads currently working */
@@ -124,7 +135,7 @@ typedef struct thpool_{
 
 	jobqueue  queue_in;                  /* queue for pending jobs    */
 	jobqueue  queue_out;                 /* queue for completed jobs  */
-} thpool_;
+} threadpool;
 
 
 #define MAX_QUEUE_SIZE_WITHOUT_WARNING      100
@@ -133,18 +144,18 @@ typedef struct thpool_{
 /* ========================== PROTOTYPES ============================ */
 
 
-static int   thread_init(thpool_* thpool_p, struct thread** thread_p, int id);
-static void* thread_do(struct thread* thread_p);
+static int   thread_init(struct threadpool *thpool_p, struct thread **thread_p, int id);
+static void* thread_do(struct thread *thread_p);
 static void  thread_hold(int sig_id);
-static void  thread_destroy(struct thread* thread_p);
+static void  thread_destroy(struct thread *thread_p);
 
-static int   jobqueue_init(jobqueue* jobqueue_p);
-static void  jobqueue_clear(jobqueue* jobqueue_p);
-static void  jobqueue_push(jobqueue* jobqueue_p, struct job* newjob_p);
-static struct job* jobqueue_pull_front(jobqueue* jobqueue_p);
-static struct job* jobqueue_pull_by_uuid(jobqueue* jobqueue_p, int job_uuid);
-static int   jobqueue_length(jobqueue* jobqueue_p);
-static void  jobqueue_destroy(jobqueue* jobqueue_p);
+static int   jobqueue_init(jobqueue *jobqueue_p);
+static void  jobqueue_clear(jobqueue *jobqueue_p);
+static void  jobqueue_push(jobqueue *jobqueue_p, struct job *newjob_p);
+static struct job* jobqueue_pull_front(jobqueue *jobqueue_p);
+static struct job* jobqueue_pull_by_uuid(jobqueue *jobqueue_p, uuid_t uuid_job);
+static int   jobqueue_length(jobqueue *jobqueue_p);
+static void  jobqueue_destroy(jobqueue *jobqueue_p);
 
 static int   bsem_init(struct bsem *bsem_p, int value);
 static void  bsem_reset(struct bsem *bsem_p);
@@ -161,15 +172,15 @@ static void  bsem_destroy(struct bsem *bsem_p);
 
 
 /* Initialise thread pool */
-struct thpool_* thpool_init(int num_threads){
+struct threadpool* thpool_init(int num_threads){
 
 	if (num_threads < 0){
 		num_threads = 0;
 	}
 
 	/* Make new thread pool */
-	thpool_* thpool_p;
-	thpool_p = (struct thpool_*)malloc(sizeof(struct thpool_));
+	struct threadpool *thpool_p;
+	thpool_p = (struct threadpool*)malloc(sizeof(struct threadpool));
 	if (thpool_p == NULL){
 		err("thpool_init(): Could not allocate memory for thread pool\n");
 		return NULL;
@@ -242,8 +253,9 @@ struct thpool_* thpool_init(int num_threads){
 
 
 /* Add work to the thread pool */
-int thpool_add_work(thpool_* thpool_p, int job_uuid, th_func_p func_p, void* arg_p){
-	job* newjob;
+int thpool_add_work(struct threadpool *thpool_p, uuid_t uuid_job,
+                    th_func_p func_p, void *arg_p){
+	job *newjob;
 
 	newjob=(struct job*)malloc(sizeof(struct job));
 	if (newjob==NULL){
@@ -256,7 +268,7 @@ int thpool_add_work(thpool_* thpool_p, int job_uuid, th_func_p func_p, void* arg
 	newjob->arg=arg_p;
 
 	newjob->prev=NULL;
-	newjob->uuid=job_uuid;
+	uuid_copy(newjob->uuid, uuid_job);
 
 	/* add job to queue */
 	jobqueue_push(&thpool_p->queue_in, newjob);
@@ -265,10 +277,11 @@ int thpool_add_work(thpool_* thpool_p, int job_uuid, th_func_p func_p, void* arg
 }
 
 /* Extract result from thread pool */
-int thpool_find_result(thpool_* thpool_p, int job_uuid, int retry_count_max, int retry_interval_ns, int* result_p){
+int thpool_find_result(struct threadpool *thpool_p, uuid_t uuid_job,
+                       int retry_count_max, int retry_interval_ns, int *result_p){
 
 	struct timespec ts;
-	job* completed_job;
+	job *completed_job;
 	int retry_count = 0;
 	int result_found = 0;
 
@@ -277,7 +290,7 @@ int thpool_find_result(thpool_* thpool_p, int job_uuid, int retry_count_max, int
 
 	while(retry_count < retry_count_max){
 
-		completed_job = jobqueue_pull_by_uuid(&thpool_p->queue_out, job_uuid);
+		completed_job = jobqueue_pull_by_uuid(&thpool_p->queue_out, uuid_job);
 		if (completed_job){
 			*result_p = completed_job->result;
 			free(completed_job);
@@ -290,17 +303,21 @@ int thpool_find_result(thpool_* thpool_p, int job_uuid, int retry_count_max, int
 		retry_count++;
 	}
 
+#if THPOOL_DEBUG
+	unsigned char uuid_str[37];
+	uuid_unparse(uuid_job, uuid_str);
+#endif
 	if (result_found){
 #if THPOOL_DEBUG
-		printf("THPOOL_DEBUG: %s: job(%p) found: uuid %d\n",
-		       __func__, completed_job, job_uuid);
+		printf("THPOOL_DEBUG: %s: job(%p) found: uuid %s\n",
+		       __func__, completed_job, uuid_str);
 #endif
 		return 0;
 	}
 	else{
 #if THPOOL_DEBUG
-		printf("THPOOL_DEBUG: %s: job NOT found: uuid %d\n",
-		       __func__, job_uuid);
+		printf("THPOOL_DEBUG: %s: job NOT found: uuid %s\n",
+		       __func__, uuid_str);
 #endif
 		return -1;
 	}
@@ -312,7 +329,7 @@ int thpool_find_result(thpool_* thpool_p, int job_uuid, int retry_count_max, int
 //		Can "thpool_p->queue_out" even use this concept?
 //				(queue_out NOT GUARENTEED to be emptied out via thpool_find_results())
 //			If NOT, rename function?
-void thpool_wait(thpool_* thpool_p){
+void thpool_wait(struct threadpool *thpool_p){
 	pthread_mutex_lock(&thpool_p->thcount_lock);
 	while (jobqueue_length(&thpool_p->queue_in) || thpool_p->num_threads_working) {
 		pthread_cond_wait(&thpool_p->threads_all_idle, &thpool_p->thcount_lock);
@@ -323,7 +340,7 @@ void thpool_wait(thpool_* thpool_p){
 
 /* Destroy the threadpool */
 /* Retrieve any desired output before calling this destroy */
-void thpool_destroy(thpool_* thpool_p){
+void thpool_destroy(struct threadpool *thpool_p){
 	/* No need to destroy if it's NULL */
 	if (thpool_p == NULL) return ;
 
@@ -368,7 +385,7 @@ void thpool_destroy(thpool_* thpool_p){
 
 
 /* Pause all threads in threadpool */
-void thpool_pause(thpool_* thpool_p) {
+void thpool_pause(struct threadpool *thpool_p) {
 	int n;
 	for (n=0; n < thpool_num_threads_alive(thpool_p); n++){
 		pthread_kill(thpool_p->threads[n]->pthread, SIGUSR1);
@@ -378,7 +395,7 @@ void thpool_pause(thpool_* thpool_p) {
 
 
 /* Resume all threads in threadpool */
-void thpool_resume(thpool_* thpool_p) {
+void thpool_resume(struct threadpool *thpool_p) {
 	int n;
 	for (n=0; n < thpool_num_threads_alive(thpool_p); n++){
 		pthread_kill(thpool_p->threads[n]->pthread, SIGUSR2);
@@ -387,7 +404,7 @@ void thpool_resume(thpool_* thpool_p) {
 }
 
 
-int thpool_num_threads_alive(thpool_* thpool_p){
+int thpool_num_threads_alive(struct threadpool *thpool_p){
 	int num;
 	pthread_mutex_lock(&thpool_p->thcount_lock);
 	num = thpool_p->num_threads_alive;
@@ -396,7 +413,7 @@ int thpool_num_threads_alive(thpool_* thpool_p){
 }
 
 
-int thpool_num_threads_working(thpool_* thpool_p){
+int thpool_num_threads_working(struct threadpool *thpool_p){
 	int num;
 	pthread_mutex_lock(&thpool_p->thcount_lock);
 	num = thpool_p->num_threads_working;
@@ -405,12 +422,12 @@ int thpool_num_threads_working(thpool_* thpool_p){
 }
 
 
-int thpool_queue_out_len(thpool_* thpool_p){
+int thpool_queue_out_len(struct threadpool *thpool_p){
 	return jobqueue_length(&thpool_p->queue_out);
 }
 
 
-int thpool_alive_state(thpool_* thpool_p){
+int thpool_alive_state(struct threadpool *thpool_p){
 	int state;
 	pthread_mutex_lock(&thpool_p->alive_lock);
 	state = thpool_p->threads_keepalive;
@@ -430,7 +447,7 @@ int thpool_alive_state(thpool_* thpool_p){
  * @return 0 on success, -1 otherwise.
  */
 //TODO: Change thread id to set internally???
-static int thread_init (thpool_* thpool_p, struct thread** thread_p, int id){
+static int thread_init (struct threadpool *thpool_p, struct thread** thread_p, int id){
 
 	*thread_p = (struct thread*)malloc(sizeof(struct thread));
 	if (*thread_p == NULL){
@@ -494,7 +511,7 @@ static void* thread_do(struct thread* thread_p){
 #endif
 
 	/* Assure all threads have been created before starting serving */
-	thpool_* thpool_p = thread_p->thpool_p;
+	struct threadpool *thpool_p = thread_p->thpool_p;
 
 	/* Register signal handler */
 	struct sigaction act;
@@ -630,8 +647,10 @@ static void jobqueue_push(jobqueue* jobqueue_p, struct job* newjob){
 	bsem_post(jobqueue_p->has_jobs);
 	pthread_mutex_unlock(&jobqueue_p->rwmutex);
 #if THPOOL_DEBUG
-	printf("THPOOL_DEBUG: %s: job(%p) with uuid %d added to queue(%p) (on pthread:%u)\n",
-	       __func__, newjob, newjob->uuid, jobqueue_p, (unsigned int)pthread_self());
+	unsigned char uuid_str[37];
+	uuid_unparse(newjob->uuid, uuid_str);
+	printf("THPOOL_DEBUG: %s: job(%p), uuid=%s, queue(%p), pthread(%u))\n",
+	       __func__, newjob, uuid_str, jobqueue_p, (unsigned int)pthread_self());
 #endif
 }
 
@@ -667,10 +686,15 @@ static struct job* jobqueue_pull_front(jobqueue* jobqueue_p){
 
 	pthread_mutex_unlock(&jobqueue_p->rwmutex);
 #if THPOOL_DEBUG
-	int uuid = -1;
-	if (job_p) uuid = job_p->uuid;
-	printf("THPOOL_DEBUG: %s: job(%p) with uuid %d pulled from queue(%p) (on pthread:%u)\n",
-	       __func__, job_p, uuid, jobqueue_p, (unsigned int)pthread_self());
+	if (job_p){
+		unsigned char uuid_str[37];
+		uuid_unparse(job_p->uuid, uuid_str);
+		printf("THPOOL_DEBUG: %s: found job(%p), uuid=%s, queue(%p), pthread(%u))\n",
+		       __func__, job_p, uuid_str, jobqueue_p, (unsigned int)pthread_self());
+	}
+	else
+		printf("THPOOL_DEBUG: %s: NO jobs found, queue(%p), pthread(%u))\n",
+		       __func__, jobqueue_p, (unsigned int)pthread_self());
 #endif
 
 	return job_p;
@@ -681,7 +705,7 @@ static struct job* jobqueue_pull_front(jobqueue* jobqueue_p){
  * Notice: Caller MUST hold a mutex
  */
 // returned NULL indicates NOT FOUND
-static struct job* jobqueue_pull_by_uuid(jobqueue* jobqueue_p, int job_uuid){
+static struct job* jobqueue_pull_by_uuid(jobqueue* jobqueue_p, uuid_t uuid_job){
 
 /*
 TODO: Do I want to implement "trylock" like I did in POC?  If so, how?
@@ -697,7 +721,7 @@ TODO: Do I want to implement "trylock" like I did in POC?  If so, how?
 	job* last_job_p = NULL;  //Make queue a double-linked list?
 
 	while (curr_job_p){
-		if (curr_job_p->uuid == job_uuid){
+		if (uuid_compare(curr_job_p->uuid, uuid_job) == 0){
 			break;
 		}
 		last_job_p = curr_job_p;
@@ -742,10 +766,17 @@ TODO: Do I want to implement "trylock" like I did in POC?  If so, how?
 
 	pthread_mutex_unlock(&jobqueue_p->rwmutex);
 #if THPOOL_DEBUG
-	int uuid = -1;
-	if (curr_job_p) uuid = curr_job_p->uuid;
-	printf("THPOOL_DEBUG: %s: job(%p) with uuid %d pulled from queue(%p) (on pthread:%u)\n",
-	       __func__, curr_job_p, uuid, jobqueue_p, (unsigned int)pthread_self());
+	unsigned char uuid_str[37];
+	if (curr_job_p){
+		uuid_unparse(curr_job_p->uuid, uuid_str);
+		printf("THPOOL_DEBUG: %s: found job(%p), uuid=%s, queue(%p), pthread(%u))\n",
+		       __func__, curr_job_p, uuid_str, jobqueue_p, (unsigned int)pthread_self());
+	}
+	else{
+		uuid_unparse(uuid_job, uuid_str);
+		printf("THPOOL_DEBUG: %s: job NOT found, uuid=%s, queue(%p), pthread(%u))\n",
+		       __func__, uuid_str, jobqueue_p, (unsigned int)pthread_self());
+	}
 #endif
 	return curr_job_p;
 }
