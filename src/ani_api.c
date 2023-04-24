@@ -49,6 +49,7 @@
 
 #define MAX_TABLE_ENTRIES		8
 #define TABLE_ENTRY_DRIVE_BUFFER_SIZE	32
+#define NUM_POOL_THREADS		4
 
 
 /* ========================== STRUCTURES ============================ */
@@ -123,7 +124,7 @@ int ani_send_cmd(struct idm_nvme_request *request_idm, int fd_nvme,
 	entry = table_entry_find(request_idm->drive);
 	if (!entry){
 		//Auto-create new thpool for drive
-		ret = table_entry_add(request_idm->drive, 4);//TODO: Fix hardcoding
+		ret = table_entry_add(request_idm->drive, NUM_POOL_THREADS);
 		if (ret){
 			//TODO: log msg
 			goto EXIT;
@@ -149,14 +150,16 @@ int ani_send_cmd(struct idm_nvme_request *request_idm, int fd_nvme,
 
 	uuid_generate(request_idm->uuid_async_job);
 
-	// ret = thpool_add_work(entry->thpool,
-	// 		      request_idm->uuid_async_job,
-	// 		      (th_func_p)ani_ioctl,
-	// 		      (void*)arg);
-	// if (ret)
-	// 	error
+	ret = thpool_add_work(entry->thpool,
+			      request_idm->uuid_async_job,
+			      (th_func_p)ani_ioctl,
+			      (void*)arg);
+	if (ret){
+		//TODO: log msg
+		ret = FAILURE;
+	}
 EXIT:
-	free(arg); //TODO: temp while debugging this func
+free(arg); //TODO: temp while debugging this func
 
 	return ret;
 }

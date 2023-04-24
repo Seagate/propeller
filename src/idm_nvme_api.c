@@ -2781,13 +2781,7 @@ int main(int argc, char *argv[])
 		int             self;
 		int             i;
 
-		if(strcmp(argv[1], "async_get") == 0){
-			ret = nvme_idm_async_lock(lock_id, mode, host_id, drive, timeout, &handle); // dummy call, ignore error.
-			printf("'inserted lock' ret=%d\n", ret);
-			ret = nvme_idm_async_get_result(handle, &result);
-			printf("'%s' ret=%d, result=0x%X\n", argv[1], ret, result);
-		}
-		else if(strcmp(argv[1], "async_get_count") == 0){
+		if(strcmp(argv[1], "async_get_count") == 0){
 			ret = nvme_idm_async_read_lock_count(lock_id, host_id, drive, &handle); // dummy call, ignore error.
 			printf("'inserted read lock count' ret=%d\n", ret);
 			ret = nvme_idm_async_get_result_lock_count(handle, &count, &self, &result);
@@ -2806,7 +2800,11 @@ int main(int argc, char *argv[])
 			printf("'%s' ret=%d, result=0x%X\n", argv[1], ret, result);
 		}
 		else if(strcmp(argv[1], "async_lock") == 0){
-			ret = nvme_idm_async_lock(lock_id, mode, host_id, drive, timeout, &handle);
+			ret = nvme_idm_async_lock(lock_id, mode, host_id, drive, timeout, &handle); // dummy call, ignore error.
+			printf("'inserted lock' ret=%d\n", ret);
+			sleep(3);
+			ret = nvme_idm_async_get_result(handle, &result);
+			printf("'%s' ret=%d, result=0x%X\n", argv[1], ret, result);
 		}
 		else if(strcmp(argv[1], "async_lock_break") == 0){
 			ret = nvme_idm_async_lock_break(lock_id, mode, host_id, drive, timeout, &handle);
