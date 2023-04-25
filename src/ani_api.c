@@ -133,12 +133,21 @@ int ani_send_cmd(struct idm_nvme_request *request_idm, unsigned long ctrl)
 		//Auto-create new thpool for drive
 		ret = table_entry_add(request_idm->drive, NUM_POOL_THREADS);
 		if (ret){
-			//TODO: log msg
+			#if !defined(COMPILE_STANDALONE)
+			ilm_log_err("%s: add entry fail: %s", __func__, request_idm->drive);
+			#elif defined(COMPILE_STANDALONE)
+			printf("%s: add entry fail: %s\n", __func__, request_idm->drive);
+			#endif
+			ret = FAILURE;
 			goto EXIT;
 		}
 		entry = table_entry_find(request_idm->drive);
 		if (!entry){
-			//TODO: log msg
+			#if !defined(COMPILE_STANDALONE)
+			ilm_log_err("%s: find fail: %s", __func__, request_idm->drive);
+			#elif defined(COMPILE_STANDALONE)
+			printf("%s: find fail: %s\n", __func__, request_idm->drive);
+			#endif
 			ret = FAILURE;
 			goto EXIT;
 		}
@@ -150,13 +159,13 @@ int ani_send_cmd(struct idm_nvme_request *request_idm, unsigned long ctrl)
 	size_cmd = sizeof(*request_idm->arg_async_nvme);
 	request_idm->arg_async_nvme = (struct arg_ioctl*)calloc(1, size_cmd);
 	if (!request_idm->arg_async_nvme){
-		#ifndef COMPILE_STANDALONE
+		#if !defined(COMPILE_STANDALONE)
 		ilm_log_err("%s: arg calloc failure: drive %s",
 		            __func__, request_idm->drive);
-		#else
+		#elif defined(COMPILE_STANDALONE)
 		printf("%s: arg calloc failure: drive %s\n",
 		        __func__, request_idm->drive);
-		#endif //COMPILE_STANDALONE
+		#endif
 		ret = -ENOMEM;
 		goto EXIT;
 	}
@@ -165,13 +174,13 @@ int ani_send_cmd(struct idm_nvme_request *request_idm, unsigned long ctrl)
 	request_idm->cmd_nvme_passthru =
 		(struct nvme_passthru_cmd *)calloc(1, size_cmd);
 	if (!request_idm->cmd_nvme_passthru){
-		#ifndef COMPILE_STANDALONE
+		#if !defined(COMPILE_STANDALONE)
 		ilm_log_err("%s: cmd calloc failure: drive %s",
 		            __func__, request_idm->drive);
-		#else
+		#elif defined(COMPILE_STANDALONE)
 		printf("%s: cmd calloc failure: drive %s\n",
 		        __func__, request_idm->drive);
-		#endif //COMPILE_STANDALONE
+		#endif
 		ret = -ENOMEM;
 		goto EXIT;
 	}
@@ -192,7 +201,11 @@ int ani_send_cmd(struct idm_nvme_request *request_idm, unsigned long ctrl)
 			      (th_func_p)ani_ioctl,
 			      (void*)request_idm->arg_async_nvme);
 	if (ret){
-		//TODO: log msg
+		#if !defined(COMPILE_STANDALONE)
+		ilm_log_err("%s: add work fail: %s", __func__, request_idm->drive);
+		#elif defined(COMPILE_STANDALONE)
+		printf("%s: add work fail: %s\n", __func__, request_idm->drive);
+		#endif
 		ret = FAILURE;
 	}
 EXIT:
