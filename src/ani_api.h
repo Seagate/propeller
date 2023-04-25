@@ -25,6 +25,7 @@ struct arg_ioctl{
 /* ================== ASYNC NVME INTERFACE(ANI) ===================== */
 
 int  ani_init(void);
+int  ani_data_rcv(struct idm_nvme_request *request_idm, int *result);
 int  ani_send_cmd(struct idm_nvme_request *request_idm, unsigned long ctrl);
 void ani_destroy(void);
 

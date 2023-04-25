@@ -2753,6 +2753,8 @@ int _validate_input_write(char *lock_id, int mode, char *host_id, char *drive)
 #########################################################################################*/
 #define DRIVE_DEFAULT_DEVICE "/dev/nvme0n1"
 
+#define ASYNC_SLEEP_TIME_SEC	1
+
 //To compile:
 //gcc idm_nvme_io.c idm_nvme_api.c -o idm_nvme_api
 int main(int argc, char *argv[])
@@ -2788,57 +2790,138 @@ int main(int argc, char *argv[])
 		int             self;
 		int             i;
 
-		if(strcmp(argv[1], "async_get_count") == 0){
-			ret = nvme_idm_async_read_lock_count(lock_id, host_id, drive, &handle); // dummy call, ignore error.
-			printf("'inserted read lock count' ret=%d\n", ret);
-			ret = nvme_idm_async_get_result_lock_count(handle, &count, &self, &result);
-			printf("'%s' ret=%d, result=0x%X\n", argv[1], ret, result);
-		}
-		else if(strcmp(argv[1], "async_get_mode") == 0){
-			ret = nvme_idm_async_read_lock_mode(lock_id, drive, &handle); // dummy call, ignore error.
-			printf("'inserted read lock mode' ret=%d\n", ret);
-			ret = nvme_idm_async_get_result_lock_mode(handle, &mode, &result);
-			printf("'%s' ret=%d, result=0x%X\n", argv[1], ret, result);
-		}
-		else if(strcmp(argv[1], "async_get_lvb") == 0){
-			ret = nvme_idm_async_read_lvb(lock_id, host_id, drive, &handle); // dummy call, ignore error.
-			printf("'inserted read lvb' ret=%d\n", ret);
-			ret = nvme_idm_async_get_result_lvb(handle, lvb, lvb_size, &result);
-			printf("'%s' ret=%d, result=0x%X\n", argv[1], ret, result);
-		}
-		else if(strcmp(argv[1], "async_lock") == 0){
-			ret = nvme_idm_async_lock(lock_id, mode, host_id, drive, timeout, &handle); // dummy call, ignore error.
-			printf("'inserted lock' ret=%d\n", ret);
-			sleep(3);
-			ret = nvme_idm_async_get_result(handle, &result);
-			printf("'%s' ret=%d, result=0x%X\n", argv[1], ret, result);
+		if(strcmp(argv[1], "async_lock") == 0){
+			ret = nvme_idm_async_lock(lock_id, mode, host_id, drive, timeout, &handle);
+			if (ret){
+				printf("%s: send cmd fail: %d\n", argv[1], ret);
+				nvme_idm_async_free_result(handle);
+			}
+			else{
+				printf("%s: sent cmd pass:\n", argv[1]);
+				sleep(ASYNC_SLEEP_TIME_SEC);
+				ret = nvme_idm_async_get_result(handle, &result);
+				printf("'%s:' ret=%d, result=0x%X\n", argv[1], ret, result);
+			}
 		}
 		else if(strcmp(argv[1], "async_lock_break") == 0){
 			ret = nvme_idm_async_lock_break(lock_id, mode, host_id, drive, timeout, &handle);
+			if (ret){
+				printf("%s: send cmd fail: %d\n", argv[1], ret);
+				nvme_idm_async_free_result(handle);
+			}
+			else{
+				printf("%s: sent cmd pass:\n", argv[1]);
+				sleep(ASYNC_SLEEP_TIME_SEC);
+				ret = nvme_idm_async_get_result(handle, &result);
+				printf("'%s:' ret=%d, result=0x%X\n", argv[1], ret, result);
+			}
 		}
 		else if(strcmp(argv[1], "async_lock_convert") == 0){
 			ret = nvme_idm_async_lock_convert(lock_id, mode, host_id, drive, timeout, &handle);
+			if (ret){
+				printf("%s: send cmd fail: %d\n", argv[1], ret);
+				nvme_idm_async_free_result(handle);
+			}
+			else{
+				printf("%s: sent cmd pass:\n", argv[1]);
+				sleep(ASYNC_SLEEP_TIME_SEC);
+				ret = nvme_idm_async_get_result(handle, &result);
+				printf("'%s:' ret=%d, result=0x%X\n", argv[1], ret, result);
+			}
 		}
 		else if(strcmp(argv[1], "async_lock_destroy") == 0){
 			ret = nvme_idm_async_lock_destroy(lock_id, mode, host_id, drive, &handle);
+			if (ret){
+				printf("%s: send cmd fail: %d\n", argv[1], ret);
+				nvme_idm_async_free_result(handle);
+			}
+			else{
+				printf("%s: sent cmd pass:\n", argv[1]);
+				sleep(ASYNC_SLEEP_TIME_SEC);
+				ret = nvme_idm_async_get_result(handle, &result);
+				printf("'%s:' ret=%d, result=0x%X\n", argv[1], ret, result);
+			}
 		}
 		else if(strcmp(argv[1], "async_lock_refresh") == 0){
 			ret = nvme_idm_async_lock_refresh(lock_id, mode, host_id, drive, timeout, &handle);
+			if (ret){
+				printf("%s: send cmd fail: %d\n", argv[1], ret);
+				nvme_idm_async_free_result(handle);
+			}
+			else{
+				printf("%s: sent cmd pass:\n", argv[1]);
+				sleep(ASYNC_SLEEP_TIME_SEC);
+				ret = nvme_idm_async_get_result(handle, &result);
+				printf("'%s:' ret=%d, result=0x%X\n", argv[1], ret, result);
+			}
 		}
 		else if(strcmp(argv[1], "async_lock_renew") == 0){
 			ret = nvme_idm_async_lock_renew(lock_id, mode, host_id, drive, timeout, &handle);
-		}
-		else if(strcmp(argv[1], "async_read_count") == 0){
-			ret = nvme_idm_async_read_lock_count(lock_id, host_id, drive, &handle);
-		}
-		else if(strcmp(argv[1], "async_read_mode") == 0){
-			ret = nvme_idm_async_read_lock_mode(lock_id, drive, &handle);
-		}
-		else if(strcmp(argv[1], "async_read_lvb") == 0){
-			ret = nvme_idm_async_read_lvb(lock_id, host_id, drive, &handle);
+			if (ret){
+				printf("%s: send cmd fail: %d\n", argv[1], ret);
+				nvme_idm_async_free_result(handle);
+			}
+			else{
+				printf("%s: sent cmd pass:\n", argv[1]);
+				sleep(ASYNC_SLEEP_TIME_SEC);
+				ret = nvme_idm_async_get_result(handle, &result);
+				printf("'%s:' ret=%d, result=0x%X\n", argv[1], ret, result);
+			}
 		}
 		else if(strcmp(argv[1], "async_unlock") == 0){
 			ret = nvme_idm_async_unlock(lock_id, mode, host_id, lvb, lvb_size, drive, &handle);
+			if (ret){
+				printf("%s: send cmd fail: %d\n", argv[1], ret);
+				nvme_idm_async_free_result(handle);
+			}
+			else{
+				printf("%s: sent cmd pass:\n", argv[1]);
+				sleep(ASYNC_SLEEP_TIME_SEC);
+				ret = nvme_idm_async_get_result(handle, &result);
+				printf("'%s:' ret=%d, result=0x%X\n", argv[1], ret, result);
+			}
+		}
+		else if(strcmp(argv[1], "async_read_count") == 0){
+			ret = nvme_idm_async_read_lock_count(lock_id, host_id, drive, &handle);
+			if (ret){
+				printf("%s: send cmd fail: %d\n", argv[1], ret);
+				nvme_idm_async_free_result(handle);
+			}
+			else{
+				printf("%s: sent cmd pass:\n", argv[1]);
+				sleep(ASYNC_SLEEP_TIME_SEC);
+				ret = nvme_idm_async_get_result_lock_count(handle, &count, &self, &result);
+				printf("'%s:' ret=%d, result=0x%X, count:%d, self:%d\n",
+				       argv[1], ret, result, count, self);
+			}
+		}
+		else if(strcmp(argv[1], "async_read_mode") == 0){
+			ret = nvme_idm_async_read_lock_mode(lock_id, drive, &handle);
+			if (ret){
+				printf("%s: send cmd fail: %d\n", argv[1], ret);
+				nvme_idm_async_free_result(handle);
+			}
+			else{
+				printf("%s: sent cmd pass:\n", argv[1]);
+				sleep(ASYNC_SLEEP_TIME_SEC);
+				ret = nvme_idm_async_get_result_lock_mode(handle, &mode, &result);
+				printf("'%s:' ret=%d, result=0x%X, mode:%d\n",
+				       argv[1], ret, result, mode);
+			}
+		}
+		else if(strcmp(argv[1], "async_read_lvb") == 0){
+			ret = nvme_idm_async_read_lvb(lock_id, host_id, drive, &handle);
+			if (ret){
+				printf("%s: send cmd fail: %d\n", argv[1], ret);
+				nvme_idm_async_free_result(handle);
+			}
+			else{
+				printf("%s: sent cmd pass:\n", argv[1]);
+				sleep(ASYNC_SLEEP_TIME_SEC);
+				ret = nvme_idm_async_get_result_lvb(handle, lvb, lvb_size, &result);
+				printf("'%s:' ret=%d, result=0x%X, lvb:%s, size:%d\n",
+				       argv[1], ret, result, lvb, lvb_size);
+			}
 		}
 		else if(strcmp(argv[1], "sync_lock") == 0){
 			ret = nvme_idm_sync_lock(lock_id, mode, host_id, drive, timeout);
@@ -2858,6 +2941,9 @@ int main(int argc, char *argv[])
 		else if(strcmp(argv[1], "sync_lock_renew") == 0){
 			ret = nvme_idm_sync_lock_renew(lock_id, mode, host_id, drive, timeout);
 		}
+		else if(strcmp(argv[1], "sync_unlock") == 0){
+			ret = nvme_idm_sync_unlock(lock_id, mode, host_id, lvb, lvb_size, drive);
+		}
 		else if(strcmp(argv[1], "sync_read_state") == 0){
 			ret = nvme_idm_sync_read_host_state(lock_id, host_id, &host_state, drive);
 			printf("output: host_state=%d\n", host_state);
@@ -2871,8 +2957,6 @@ int main(int argc, char *argv[])
 			printf("output: lock_mode=%d\n", mode);
 		}
 		else if(strcmp(argv[1], "sync_read_lvb") == 0){
-			//TODO: Should "lvb" be passed in with "&lvb" instead???
-			//TODO: Technically, shouldn't ALL these param be passed in like that (ie - &lock_id, &host_id, etc)??
 			ret = nvme_idm_sync_read_lvb(lock_id, host_id, lvb, lvb_size, drive);
 		}
 		else if(strcmp(argv[1], "sync_read_group") == 0){
@@ -2882,9 +2966,6 @@ int main(int argc, char *argv[])
 		else if(strcmp(argv[1], "sync_read_num") == 0){
 			ret = nvme_idm_sync_read_mutex_num(drive, &mutex_num);
 			printf("output: mutex_num=%u\n", mutex_num);
-		}
-		else if(strcmp(argv[1], "sync_unlock") == 0){
-			ret = nvme_idm_sync_unlock(lock_id, mode, host_id, lvb, lvb_size, drive);
 		}
 		else {
 			printf("%s: invalid command option!\n", argv[1]);

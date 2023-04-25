@@ -97,56 +97,68 @@ int ani_init(void)
 	return table_init();
 }
 
-void ani_destroy(void)
+//The request_idm already points to the memory locations where the desired data will be stored
+//If the result is found, and shows success, then the data has already been written to those memory locations.
+//Just return and let the calling code retrieve what it needs.
+// Returns zero or a negative error (ie. EINVAL, ENOMEM, EBUSY, etc).
+int ani_data_rcv(struct idm_nvme_request *request_idm, int *result)
 {
-	table_destroy();
+	char *drive = request_idm->drive;
+	struct table_entry *entry;
+	int ret = FAILURE;
+
+	entry = table_entry_find(drive);
+	if (!entry){
+		#if !defined(COMPILE_STANDALONE)
+		ilm_log_err("%s: find fail: %s", __func__, drive);
+		#elif defined(COMPILE_STANDALONE)
+		printf("%s: find fail: %s\n", __func__, drive);
+		#endif
+		return FAILURE;
+	}
+
+	ret = thpool_find_result(entry->thpool, request_idm->uuid_async_job,
+	                         10000, 10000, result); //TODO: Fix hard-coded values
+	if (ret){
+		#if !defined(COMPILE_STANDALONE)
+		ilm_log_err("%s: add work fail: %s", __func__, drive);
+		#elif defined(COMPILE_STANDALONE)
+		printf("%s: add work fail: %s\n", __func__, drive);
+		#endif
+		ret = FAILURE;
+	}
+
+	return ret;
 }
-
-
-// //The request_idm already points to the memory locations where the desired data will be stored
-// //If the result is found, and shows success, then the data has already been written to those memory locations.
-// //Just return and let the calling code retrieve what it needs.
-// int async_nvme_data_rcv(request_idm, fd_nvme)	//comparable to scsi-side "read()" call.
-// 	//get thpool for drive
-// 		// need:   request_idm->drive
-// 		//if no thpool, ??????????   FAIL?  -OR-  create one?
-// 	int result;
-// 	ret = thpool_find_result(thpool,
-// 							request_idm->uuid_async_job,
-// 							10000,
-// 							10000,
-// 							&result)
-// 	if (ret)
-// 		error
-// 	return ret
-
 
 // Returns zero or a negative error (ie. EINVAL, ENOMEM, EBUSY, etc).
 int ani_send_cmd(struct idm_nvme_request *request_idm, unsigned long ctrl)
 {
-	size_t size_cmd;
+	char *drive                   = request_idm->drive;
+	struct arg_ioctl *arg         = request_idm->arg_async_nvme;
+	struct nvme_passthru_cmd *cmd = request_idm->cmd_nvme_passthru;
 	struct table_entry *entry;
 	int ret = FAILURE;
 
-	entry = table_entry_find(request_idm->drive);
+	entry = table_entry_find(drive);
 	if (!entry){
 		//Auto-create new thpool for drive
-		ret = table_entry_add(request_idm->drive, NUM_POOL_THREADS);
+		ret = table_entry_add(drive, NUM_POOL_THREADS);
 		if (ret){
 			#if !defined(COMPILE_STANDALONE)
-			ilm_log_err("%s: add entry fail: %s", __func__, request_idm->drive);
+			ilm_log_err("%s: add entry fail: %s", __func__, drive);
 			#elif defined(COMPILE_STANDALONE)
-			printf("%s: add entry fail: %s\n", __func__, request_idm->drive);
+			printf("%s: add entry fail: %s\n", __func__, drive);
 			#endif
 			ret = FAILURE;
 			goto EXIT;
 		}
-		entry = table_entry_find(request_idm->drive);
+		entry = table_entry_find(drive);
 		if (!entry){
 			#if !defined(COMPILE_STANDALONE)
-			ilm_log_err("%s: find fail: %s", __func__, request_idm->drive);
+			ilm_log_err("%s: find fail: %s", __func__, drive);
 			#elif defined(COMPILE_STANDALONE)
-			printf("%s: find fail: %s\n", __func__, request_idm->drive);
+			printf("%s: find fail: %s\n", __func__, drive);
 			#endif
 			ret = FAILURE;
 			goto EXIT;
@@ -154,62 +166,57 @@ int ani_send_cmd(struct idm_nvme_request *request_idm, unsigned long ctrl)
 	}
 
 	//This is kludgy, but needed to simplify how memory was freed for
-	//ANI use of struct arg_ioctl and struct nvme_passthru_cmd.
+	//ANI's use of 'struct arg_ioctl' and 'struct nvme_passthru_cmd'.
 	//This way, this memory will be freed when request_idm is freed.
-	size_cmd = sizeof(*request_idm->arg_async_nvme);
-	request_idm->arg_async_nvme = (struct arg_ioctl*)calloc(1, size_cmd);
-	if (!request_idm->arg_async_nvme){
+	arg = (struct arg_ioctl*)calloc(1, sizeof(*arg));
+	if (!arg){
 		#if !defined(COMPILE_STANDALONE)
-		ilm_log_err("%s: arg calloc failure: drive %s",
-		            __func__, request_idm->drive);
+		ilm_log_err("%s: arg calloc fail: drive %s", __func__, drive);
 		#elif defined(COMPILE_STANDALONE)
-		printf("%s: arg calloc failure: drive %s\n",
-		        __func__, request_idm->drive);
+		printf("%s: arg calloc fail: drive %s\n", __func__, drive);
 		#endif
 		ret = -ENOMEM;
 		goto EXIT;
 	}
 
-	size_cmd   = sizeof(*request_idm->cmd_nvme_passthru);
-	request_idm->cmd_nvme_passthru =
-		(struct nvme_passthru_cmd *)calloc(1, size_cmd);
-	if (!request_idm->cmd_nvme_passthru){
+	cmd = (struct nvme_passthru_cmd *)calloc(1, sizeof(*cmd));
+	if (!cmd){
 		#if !defined(COMPILE_STANDALONE)
-		ilm_log_err("%s: cmd calloc failure: drive %s",
-		            __func__, request_idm->drive);
+		ilm_log_err("%s: cmd calloc fai: drive %s", __func__, drive);
 		#elif defined(COMPILE_STANDALONE)
-		printf("%s: cmd calloc failure: drive %s\n",
-		        __func__, request_idm->drive);
+		printf("%s: cmd calloc fai: drive %s\n", __func__, drive);
 		#endif
 		ret = -ENOMEM;
 		goto EXIT;
 	}
 
-	request_idm->arg_async_nvme->fd   = request_idm->fd_nvme;
-	request_idm->arg_async_nvme->ctrl = ctrl;
-
-	fill_nvme_cmd(request_idm, request_idm->cmd_nvme_passthru);
-	request_idm->arg_async_nvme->cmd = request_idm->cmd_nvme_passthru;
+	fill_nvme_cmd(request_idm, cmd);
+	arg->fd   = request_idm->fd_nvme;
+	arg->ctrl = ctrl;
+	arg->cmd  = cmd;
 
 	uuid_generate(request_idm->uuid_async_job);
 
 	//TODO: Keep?  Add debug flag?
-	dumpNvmePassthruCmd(request_idm->cmd_nvme_passthru);
+	dumpNvmePassthruCmd(cmd);
 
-	ret = thpool_add_work(entry->thpool,
-			      request_idm->uuid_async_job,
-			      (th_func_p)ani_ioctl,
-			      (void*)request_idm->arg_async_nvme);
+	ret = thpool_add_work(entry->thpool, request_idm->uuid_async_job,
+	                      (th_func_p)ani_ioctl, (void*)arg);
 	if (ret){
 		#if !defined(COMPILE_STANDALONE)
-		ilm_log_err("%s: add work fail: %s", __func__, request_idm->drive);
+		ilm_log_err("%s: add work fail: %s", __func__, drive);
 		#elif defined(COMPILE_STANDALONE)
-		printf("%s: add work fail: %s\n", __func__, request_idm->drive);
+		printf("%s: add work fail: %s\n", __func__, drive);
 		#endif
 		ret = FAILURE;
 	}
 EXIT:
 	return ret;
+}
+
+void ani_destroy(void)
+{
+	table_destroy();
 }
 
 static int ani_ioctl(void* arg)
