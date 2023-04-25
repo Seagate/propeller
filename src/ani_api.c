@@ -43,6 +43,7 @@
 
 // #define MAIN_ACTIVATE		//TODO: Remove after async nvme integrations
 #define COMPILE_STANDALONE
+#define DEBUG_TABLE__DRIVE_TO_POOL
 
 
 /* ========================== DEFINES ============================ */
@@ -50,6 +51,13 @@
 #define MAX_TABLE_ENTRIES		8
 #define TABLE_ENTRY_DRIVE_BUFFER_SIZE	32
 #define NUM_POOL_THREADS		4
+
+//TODO: Implement cli compile flag????
+// #ifdef DEBUG_TABLE__DRIVE_TO_POOL
+// #define DEBUG_TABLE__DRIVE_TO_POOL 1
+// #else
+// #define DEBUG_TABLE__DRIVE_TO_POOL 0
+// #endif
 
 
 /* ========================== STRUCTURES ============================ */
@@ -227,8 +235,20 @@ static int _table_entry_find_empty(void)
 		}
 	}
 
-	if (ret >= 0) printf("%s: empty entry found at %d\n", __func__, ret);
-	else          printf("%s: empty entry NOT found\n", __func__);
+	if (ret >= 0){
+		#if !defined(COMPILE_STANDALONE) && defined(DEBUG_TABLE__DRIVE_TO_POOL)
+		ilm_log_dbg("%s: empty entry found at %d", __func__, ret);
+		#elif defined(COMPILE_STANDALONE) && defined(DEBUG_TABLE__DRIVE_TO_POOL)
+		printf("%s: empty entry found at %d\n", __func__, ret);
+		#endif
+	}
+	else{
+		#if !defined(COMPILE_STANDALONE) && defined(DEBUG_TABLE__DRIVE_TO_POOL)
+		ilm_log_dbg("%s: empty entry NOT found", __func__);
+		#elif defined(COMPILE_STANDALONE) && defined(DEBUG_TABLE__DRIVE_TO_POOL)
+		printf("%s: empty entry NOT found\n", __func__);
+		#endif
+	}
 	return ret;
 }
 
@@ -241,8 +261,12 @@ static int _table_entry_find_index(char *drive)
 	int ret = FAILURE;
 
 	if (!drive){
+		#if !defined(COMPILE_STANDALONE)
+		ilm_log_err("%s: invalid param", __func__);
+		#elif defined(COMPILE_STANDALONE)
 		printf("%s: invalid param\n", __func__);
-		goto EXIT;
+		#endif
+		return FAILURE;
 	}
 
 	for(i = 0; i < MAX_TABLE_ENTRIES; i++){
@@ -250,14 +274,25 @@ static int _table_entry_find_index(char *drive)
 		if (!_table_entry_is_empty(entry)){
 			if (strcmp(entry->drive, drive) == 0){
 				ret = i;
-				goto EXIT;
+				break;
 			}
 		}
 	}
 
-EXIT:
-	if (ret >= 0) printf("%s: %s found\n", __func__, entry->drive);
-	else          printf("%s: %s NOT found\n", __func__, drive);
+	if (ret >= 0){
+		#if !defined(COMPILE_STANDALONE) && defined(DEBUG_TABLE__DRIVE_TO_POOL)
+		ilm_log_dbg("%s: %s found", __func__, entry->drive);
+		#elif defined(COMPILE_STANDALONE) && defined(DEBUG_TABLE__DRIVE_TO_POOL)
+		printf("%s: %s found\n", __func__, entry->drive);
+		#endif
+	}
+	else{
+		#if !defined(COMPILE_STANDALONE) && defined(DEBUG_TABLE__DRIVE_TO_POOL)
+		ilm_log_dbg("%s: %s NOT found", __func__, drive);
+		#elif defined(COMPILE_STANDALONE) && defined(DEBUG_TABLE__DRIVE_TO_POOL)
+		printf("%s: %s NOT found\n", __func__, drive);
+		#endif
+	}
 	return ret;
 }
 
@@ -267,7 +302,7 @@ static int table_init(void)
 	int i;
 	struct table_entry *entry;
 
-	//If calloc() fails, known state for ALL "entry" if table_destroy() runs
+	//If calloc() fails, known state for ALL "entry" when table_destroy() runs
 	memset(&table_thpool, 0, MAX_TABLE_ENTRIES * sizeof(*table_thpool));
 
 	for (i = 0; i < MAX_TABLE_ENTRIES; i++){
@@ -275,6 +310,11 @@ static int table_init(void)
 		                                     sizeof(*table_thpool));
 		if (!entry) {
 			table_destroy();
+			#if !defined(COMPILE_STANDALONE)
+			ilm_log_err("%s: calloc failure", __func__);
+			#elif defined(COMPILE_STANDALONE)
+			printf("%s: calloc failure\n", __func__);
+			#endif
 			return FAILURE;
 		}
 		table_thpool[i] = entry;
@@ -288,27 +328,43 @@ static int table_init(void)
 static struct table_entry* table_entry_find(char *drive)
 {
 	int i;
-	struct table_entry *entry;
-	struct table_entry *entry_ret = NULL;
+	struct table_entry *entry = NULL;
 
 	if (!drive){
+		#if !defined(COMPILE_STANDALONE)
+		ilm_log_err("%s: invalid param", __func__);
+		#elif defined(COMPILE_STANDALONE)
 		printf("%s: invalid param\n", __func__);
-		return entry_ret;
+		#endif
+		return NULL;
 	}
 
-	for(i = 0; i < MAX_TABLE_ENTRIES; i++){
+	for (i = 0; i < MAX_TABLE_ENTRIES; i++){
 		entry = table_thpool[i];
 		if (!_table_entry_is_empty(entry)){
 			if (strcmp(entry->drive, drive) == 0){
-				entry_ret = entry;
 				break;
 			}
 		}
+		entry = NULL;
 	}
 
-	if (entry_ret) printf("%s: %s found\n", __func__, entry_ret->drive);
-	else           printf("%s: %s NOT found\n", __func__, drive);
-	return entry_ret;
+	if (entry){
+		#if !defined(COMPILE_STANDALONE) && defined(DEBUG_TABLE__DRIVE_TO_POOL)
+		ilm_log_dbg("%s: %s found", __func__, entry->drive);
+		#elif defined(COMPILE_STANDALONE) && defined(DEBUG_TABLE__DRIVE_TO_POOL)
+		printf("%s: %s found\n", __func__, entry->drive);
+		#endif
+	}
+	else{
+		#if !defined(COMPILE_STANDALONE) && defined(DEBUG_TABLE__DRIVE_TO_POOL)
+		ilm_log_dbg("%s: %s NOT found", __func__, drive);
+		#elif defined(COMPILE_STANDALONE) && defined(DEBUG_TABLE__DRIVE_TO_POOL)
+		printf("%s: %s NOT found\n", __func__, drive);
+		#endif
+	}
+
+	return entry;
 }
 
 //Adds to the table a NEW table entry, ONLY.
@@ -317,33 +373,47 @@ static int table_entry_add(char *drive, int n_pool_thrds)
 {
 	int index;
 	struct table_entry *entry;
-	int ret = FAILURE;	//assume table is full
 
 	index = _table_entry_find_empty();
-	if (index >= 0) {
-		entry = table_thpool[index];
-
-		entry->drive = (char *)calloc(TABLE_ENTRY_DRIVE_BUFFER_SIZE,
-		                              sizeof(char));
-		if (!entry->drive)
-			goto EXIT;
-		strcpy(entry->drive, drive);
-
-		entry->thpool = thpool_init(n_pool_thrds);
-		if (!entry->thpool){
-			goto EXIT;
-		}
-
-		printf("%s: %s{%d} added at %d\n",
-		       __func__, entry->drive,
-		       thpool_num_threads_alive(entry->thpool), index);
-		ret = 0;
-		goto EXIT;
+	if (index < 0) {
+		#if !defined(COMPILE_STANDALONE)
+		ilm_log_err("%s: %s{%d} NOT added", __func__, drive, n_pool_thrds);
+		#elif defined(COMPILE_STANDALONE)
+		printf("%s: %s{%d} NOT added\n", __func__, drive, n_pool_thrds);
+		#endif
+		return FAILURE;
 	}
 
-	printf("%s: %s{%d} NOT added\n", __func__, drive, n_pool_thrds);
-EXIT:
-	return ret;
+	entry = table_thpool[index];
+
+	entry->drive = (char *)calloc(TABLE_ENTRY_DRIVE_BUFFER_SIZE,
+					sizeof(char));
+	if (!entry->drive){
+		#if !defined(COMPILE_STANDALONE)
+		ilm_log_err("%s: drive calloc failure", __func__);
+		#elif defined(COMPILE_STANDALONE)
+		printf("%s: drive calloc failure\n", __func__);
+		#endif
+		return FAILURE;
+	}
+	strcpy(entry->drive, drive);
+
+	entry->thpool = thpool_init(n_pool_thrds);
+	if (!entry->thpool){
+		return FAILURE;
+	}
+
+	#if !defined(COMPILE_STANDALONE) && defined(DEBUG_TABLE__DRIVE_TO_POOL)
+	ilm_log_err("%s: %s{%d} added at %d",
+			__func__, entry->drive,
+			thpool_num_threads_alive(entry->thpool), index);
+	#elif defined(COMPILE_STANDALONE) && defined(DEBUG_TABLE__DRIVE_TO_POOL)
+	printf("%s: %s{%d} added at %d\n",
+		__func__, entry->drive,
+		thpool_num_threads_alive(entry->thpool), index);
+	#endif
+
+	return SUCCESS;
 }
 
 //Replaces in the table an EXISTING table entry, ONLY.
@@ -352,28 +422,36 @@ static int table_entry_replace(char *drive, int n_pool_thrds)
 {
 	int index;
 	struct table_entry *entry;
-	int ret = FAILURE;	//assume table is full
 
 	index = _table_entry_find_index(drive);  //find existing entry and update
-	if (index >= 0) {
-		entry = table_thpool[index];
-
-		thpool_destroy(entry->thpool);
-		entry->thpool = thpool_init(n_pool_thrds);
-		if (!entry->thpool){
-			goto EXIT;
-		}
-
-		printf("%s: %s{%d} replaced at %d\n",
-		       __func__, entry->drive,
-		       thpool_num_threads_alive(entry->thpool), index);
-		ret = 0;
-		goto EXIT;
+	if (index < 0) {
+		#if !defined(COMPILE_STANDALONE)
+		ilm_log_err("%s: %s{%d} NOT replaced", __func__, drive, n_pool_thrds);
+		#elif defined(COMPILE_STANDALONE)
+		printf("%s: %s{%d} NOT replaced\n", __func__, drive, n_pool_thrds);
+		#endif
+		return FAILURE;
 	}
 
-	printf("%s: %s{%d} NOT replaced\n", __func__, drive, n_pool_thrds);
-EXIT:
-	return ret;
+	entry = table_thpool[index];
+
+	thpool_destroy(entry->thpool);
+	entry->thpool = thpool_init(n_pool_thrds);
+	if (!entry->thpool){
+		return FAILURE;
+	}
+
+	#if !defined(COMPILE_STANDALONE) && defined(DEBUG_TABLE__DRIVE_TO_POOL)
+	ilm_log_dbg("%s: %s{%d} replaced at %d\n",
+	            __func__, entry->drive,
+	            thpool_num_threads_alive(entry->thpool), index);
+	#elif defined(COMPILE_STANDALONE) && defined(DEBUG_TABLE__DRIVE_TO_POOL)
+	printf("%s: %s{%d} replaced at %d\n",
+	       __func__, entry->drive,
+	       thpool_num_threads_alive(entry->thpool), index);
+	#endif
+
+	return SUCCESS;
 }
 
 //Updates the table with an existing entry, or, adds a new entry if not found.
@@ -383,20 +461,24 @@ static int table_entry_update(char *drive, int n_pool_thrds)
 	int ret = FAILURE;	//assume table is full
 
 	ret = table_entry_replace(drive, n_pool_thrds);  //find existing entry and update
-	if (!ret) {
-		printf("%s: %s updated\n", __func__, drive);
-		goto EXIT;
+	if (ret) {
+		ret = table_entry_add(drive, n_pool_thrds);  //find empty entry
+		if (ret) {
+			#if !defined(COMPILE_STANDALONE)
+			ilm_log_err("%s: %s NOT updated", __func__, drive);
+			#elif defined(COMPILE_STANDALONE)
+			printf("%s: %s NOT updated\n", __func__, drive);
+			#endif
+			return ret;
+		}
 	}
 
-	ret = table_entry_add(drive, n_pool_thrds);  //find empty entry
-	if (!ret) {
-		printf("%s: %s updated\n", __func__, drive);
-		goto EXIT;
-	}
-
-	printf("%s: %s NOT updated\n", __func__, drive);
-EXIT:
-	return ret;
+	#if !defined(COMPILE_STANDALONE) && defined(DEBUG_TABLE__DRIVE_TO_POOL)
+	ilm_log_dbg("%s: %s updated", __func__, drive);
+	#elif defined(COMPILE_STANDALONE) && defined(DEBUG_TABLE__DRIVE_TO_POOL)
+	printf("%s: %s updated\n", __func__, drive);
+	#endif
+	return SUCCESS;
 }
 
 //Removes from the table an existing entry.
@@ -415,7 +497,11 @@ static void table_entry_remove(char *drive)
 		thpool_destroy(entry->thpool);
 		entry->thpool = NULL;
 
+		#if !defined(COMPILE_STANDALONE) && defined(DEBUG_TABLE__DRIVE_TO_POOL)
+		ilm_log_dbg("%s: %s removed", __func__, drive);
+		#elif defined(COMPILE_STANDALONE) && defined(DEBUG_TABLE__DRIVE_TO_POOL)
 		printf("%s: %s removed\n", __func__, drive);
+		#endif
 	}
 }
 
@@ -480,7 +566,7 @@ int main(void){
 	assert(ret == 0);
 	entry = table_entry_find((char*)DRIVE1);
 	assert(strcmp(entry->drive, (char*)DRIVE1) == 0);
-	assert(entry->thpool->n_pool_thrds == 4);
+	assert(thpool_num_threads_alive(entry->thpool) == 4);
 
 	ret = _table_entry_find_empty();
 	assert(ret == 1);
@@ -492,7 +578,7 @@ int main(void){
 	assert(ret == 0);
 	entry = table_entry_find((char*)DRIVE1);
 	assert(strcmp(entry->drive, (char*)DRIVE1) == 0);
-	assert(entry->thpool->n_pool_thrds == 6);
+	assert(thpool_num_threads_alive(entry->thpool) == 6);
 
 	ret = _table_entry_find_empty();
 	assert(ret == 1);
@@ -504,13 +590,13 @@ int main(void){
 	assert(ret == 0);
 	entry = table_entry_find((char*)DRIVE1);
 	assert(strcmp(entry->drive, DRIVE1) == 0);
-	assert(entry->thpool->n_pool_thrds == 8);
+	assert(thpool_num_threads_alive(entry->thpool) == 8);
 
 	ret = table_entry_update((char*)DRIVE3, 10);
 	assert(ret == 0);
 	entry = table_entry_find((char*)DRIVE3);
 	assert(strcmp(entry->drive, (char*)DRIVE3) == 0);
-	assert(entry->thpool->n_pool_thrds == 10);
+	assert(thpool_num_threads_alive(entry->thpool) == 10);
 
 	ret = _table_entry_find_empty();
 	assert(ret == 2);
