@@ -207,8 +207,8 @@ struct threadpool* thpool_init(int num_threads){
 	thpool_p->threads = (struct thread**)malloc(num_threads * sizeof(struct thread *));
 	if (thpool_p->threads == NULL){
 		err("thpool_init(): Could not allocate memory for threads\n");
-		jobqueue_destroy(&thpool_p->queue_out);
 		jobqueue_destroy(&thpool_p->queue_in);
+		jobqueue_destroy(&thpool_p->queue_out);
 		free(thpool_p);
 		return NULL;
 	}
@@ -368,8 +368,8 @@ void thpool_destroy(struct threadpool *thpool_p){
 	}
 
 	/* Job queue cleanup */
-	jobqueue_destroy(&thpool_p->queue_out);
 	jobqueue_destroy(&thpool_p->queue_in);
+	jobqueue_destroy(&thpool_p->queue_out);
 	/* Deallocs */
 	int n;
 	for (n=0; n < threads_total; n++){

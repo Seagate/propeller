@@ -36,13 +36,13 @@
 
 #include "ani_api.h"
 #include "idm_nvme_utils.h"
-// #include "idm_nvme_io.h"
 #include "thpool.h"
 
 
 /* ======================= COMPILE SWITCHES========================== */
 
 // #define MAIN_ACTIVATE		//TODO: Remove after async nvme integrations
+#define COMPILE_STANDALONE
 
 
 /* ========================== DEFINES ============================ */
@@ -114,11 +114,10 @@ void ani_destroy(void)
 
 
 // Returns zero or a negative error (ie. EINVAL, ENOMEM, EBUSY, etc).
-int ani_send_cmd(struct idm_nvme_request *request_idm, int fd_nvme,
-                 unsigned long ctrl, struct nvme_admin_cmd *cmd)
+int ani_send_cmd(struct idm_nvme_request *request_idm, unsigned long ctrl)
 {
+	size_t size_cmd;
 	struct table_entry *entry;
-	struct arg_ioctl *arg;
 	int ret = FAILURE;
 
 	entry = table_entry_find(request_idm->drive);
@@ -137,30 +136,58 @@ int ani_send_cmd(struct idm_nvme_request *request_idm, int fd_nvme,
 		}
 	}
 
-	arg = (struct arg_ioctl*)calloc(1, sizeof(*arg));
-	if (!arg){
-		//TODO: log msg
+	//This is kludgy, but needed to simplify how memory was freed for
+	//ANI use of struct arg_ioctl and struct nvme_passthru_cmd.
+	//This way, this memory will be freed when request_idm is freed.
+	size_cmd = sizeof(*request_idm->arg_async_nvme);
+	request_idm->arg_async_nvme = (struct arg_ioctl*)calloc(1, size_cmd);
+	if (!request_idm->arg_async_nvme){
+		#ifndef COMPILE_STANDALONE
+		ilm_log_err("%s: arg calloc failure: drive %s",
+		            __func__, request_idm->drive);
+		#else
+		printf("%s: arg calloc failure: drive %s\n",
+		        __func__, request_idm->drive);
+		#endif //COMPILE_STANDALONE
 		ret = -ENOMEM;
 		goto EXIT;
 	}
 
-	arg->fd   = fd_nvme;
-	arg->ctrl = ctrl;
-	arg->cmd  = cmd;
+	size_cmd   = sizeof(*request_idm->cmd_nvme_passthru);
+	request_idm->cmd_nvme_passthru =
+		(struct nvme_passthru_cmd *)calloc(1, size_cmd);
+	if (!request_idm->cmd_nvme_passthru){
+		#ifndef COMPILE_STANDALONE
+		ilm_log_err("%s: cmd calloc failure: drive %s",
+		            __func__, request_idm->drive);
+		#else
+		printf("%s: cmd calloc failure: drive %s\n",
+		        __func__, request_idm->drive);
+		#endif //COMPILE_STANDALONE
+		ret = -ENOMEM;
+		goto EXIT;
+	}
+
+	request_idm->arg_async_nvme->fd   = request_idm->fd_nvme;
+	request_idm->arg_async_nvme->ctrl = ctrl;
+
+	fill_nvme_cmd(request_idm, request_idm->cmd_nvme_passthru);
+	request_idm->arg_async_nvme->cmd = request_idm->cmd_nvme_passthru;
 
 	uuid_generate(request_idm->uuid_async_job);
+
+	//TODO: Keep?  Add debug flag?
+	dumpNvmePassthruCmd(request_idm->cmd_nvme_passthru);
 
 	ret = thpool_add_work(entry->thpool,
 			      request_idm->uuid_async_job,
 			      (th_func_p)ani_ioctl,
-			      (void*)arg);
+			      (void*)request_idm->arg_async_nvme);
 	if (ret){
 		//TODO: log msg
 		ret = FAILURE;
 	}
 EXIT:
-free(arg); //TODO: temp while debugging this func
-
 	return ret;
 }
 

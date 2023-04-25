@@ -20,7 +20,6 @@
 #include <string.h>
 #include <unistd.h>
 
-#include "ani_api.h"
 #include "idm_nvme_api.h"
 #include "idm_nvme_io.h"
 #include "idm_nvme_utils.h"
@@ -2185,6 +2184,14 @@ void _memory_free_idm_request(struct idm_nvme_request *request_idm) {
 	#endif //FUNCTION_ENTRY_DEBUG
 
 	if (request_idm) {
+		if (request_idm->arg_async_nvme) {
+			free(request_idm->arg_async_nvme);
+			request_idm->arg_async_nvme = NULL;
+		}
+		if (request_idm->cmd_nvme_passthru) {
+			free(request_idm->cmd_nvme_passthru);
+			request_idm->cmd_nvme_passthru = NULL;
+		}
 		if (request_idm->data_idm) {
 			free(request_idm->data_idm);
 			request_idm->data_idm = NULL;

@@ -46,7 +46,6 @@
 
 #include "idm_nvme_io.h"
 #include "idm_nvme_utils.h"
-#include "ani_api.h"
 
 
 //////////////////////////////////////////
@@ -349,7 +348,6 @@ int _async_idm_cmd_send(struct idm_nvme_request *request_idm)
 	#endif //FUNCTION_ENTRY_DEBUG
 
 	int fd_nvme;
-	struct nvme_passthru_cmd *cmd_nvme_passthru = NULL;
 	int ret = FAILURE;
 
 	//TODO: Put this under a debug flag of some kind??
@@ -368,28 +366,9 @@ int _async_idm_cmd_send(struct idm_nvme_request *request_idm)
 		ret = fd_nvme;
 		goto EXIT;
 	}
+	request_idm->fd_nvme = fd_nvme;  //Used here and saved for later
 
-	size_t size_cmd   = sizeof(*cmd_nvme_passthru);
-	cmd_nvme_passthru = (struct nvme_passthru_cmd *)calloc(1, size_cmd);
-	if (!cmd_nvme_passthru){
-		#ifndef COMPILE_STANDALONE
-		ilm_log_err("%s: calloc failure: drive %s",
-		            __func__, request_idm->drive);
-		#else
-		printf("%s: calloc failure: drive %s\n",
-		        __func__, request_idm->drive);
-		#endif //COMPILE_STANDALONE
-		ret = -ENOMEM;
-		goto EXIT;
-	}
-
-	_fill_nvme_cmd(request_idm, cmd_nvme_passthru);
-
-	//TODO: Keep?  Add debug flag?
-	dumpNvmePassthruCmd(cmd_nvme_passthru);
-
-	ret = ani_send_cmd(request_idm, fd_nvme, NVME_IOCTL_ADMIN_CMD,
-	                   cmd_nvme_passthru);
+	ret = ani_send_cmd(request_idm, NVME_IOCTL_ADMIN_CMD);
 	if (ret) {
 		close(fd_nvme);
 		#ifndef COMPILE_STANDALONE
@@ -397,9 +376,7 @@ int _async_idm_cmd_send(struct idm_nvme_request *request_idm)
 		#else
 		printf("%s: send failed: %d(0x%X)\n", __func__, ret, ret);
 		#endif //COMPILE_STANDALONE
-		goto EXIT;
 	}
-	request_idm->fd_nvme = fd_nvme;  //async, so save fd_nvme for later
 EXIT:
 	return ret;
 }
@@ -443,7 +420,7 @@ int _async_idm_data_rcv(struct idm_nvme_request *request_idm, int *result)
 
 	//TODO: If emulate what SCSI-side is doing, this fill is NOT necessary.
 	//          ?? Does ONLY the opcode_nvme needs to be updated (to indicate the concept of "direction" (like SCSI-side))?????
-	// _fill_nvme_cmd(request_idm, &cmd_nvme_passthru);
+	// fill_nvme_cmd(request_idm, &cmd_nvme_passthru);
 
 	//Simplified command for result\data retrieval
 	//TODO: (SCSI-side equivalent).  Does NVMe follow this??
@@ -487,50 +464,6 @@ int _async_idm_data_rcv(struct idm_nvme_request *request_idm, int *result)
 
 EXIT:
 	return ret;
-}
-
-/**
- * _fill_nvme_cmd -  Transfer all the data in the "request" structure to the
- * prefined system NVMe command structure used by the system commands
- * (like ioctl()).
- *
- * @request_idm:        Struct containing all NVMe-specific command info for the
- *                      requested IDM action.
- * @cmd_nvme_passthru:  Predefined NVMe command struct to be filled.
- *
- * Returns zero or a negative error (ie. EINVAL, ENOMEM, EBUSY, etc).
- */
-void _fill_nvme_cmd(struct idm_nvme_request *request_idm,
-                    struct nvme_admin_cmd *cmd_nvme_passthru)
-{
-	//TODO: Leave this commented out section for nsid in-place for now.  May be needed in near future.
-	// request_idm->cmd_nvme.nsid = ioctl(fd_nvme, NVME_IOCTL_ID);
-	// if (request_idm->cmd_nvme.nsid <= 0)
-	// {
-	//     printf("%s: nsid ioctl fail: %d\n", __func__, request_idm->cmd_nvme.nsid);
-	//     ret = request_idm->cmd_nvme.nsid;
-	//     goto EXIT;
-	// }
-
-	cmd_nvme_passthru->opcode       = request_idm->cmd_nvme.opcode_nvme;
-	cmd_nvme_passthru->flags        = request_idm->cmd_nvme.flags;
-	cmd_nvme_passthru->rsvd1        = request_idm->cmd_nvme.command_id;
-	cmd_nvme_passthru->nsid         = request_idm->cmd_nvme.nsid;
-	cmd_nvme_passthru->cdw2         = request_idm->cmd_nvme.cdw2;
-	cmd_nvme_passthru->cdw3         = request_idm->cmd_nvme.cdw3;
-	cmd_nvme_passthru->metadata     = request_idm->cmd_nvme.metadata;
-	cmd_nvme_passthru->addr         = request_idm->cmd_nvme.addr;
-	cmd_nvme_passthru->metadata_len = request_idm->cmd_nvme.metadata_len;
-	cmd_nvme_passthru->data_len     = request_idm->cmd_nvme.data_len;
-	cmd_nvme_passthru->cdw10        = request_idm->cmd_nvme.ndt;
-	cmd_nvme_passthru->cdw11        = request_idm->cmd_nvme.ndm;
-	cmd_nvme_passthru->cdw12        = ((uint32_t)request_idm->cmd_nvme.rsvd2 << 16) |
-					((uint32_t)request_idm->cmd_nvme.group_idm << 8) |
-					(uint32_t)request_idm->cmd_nvme.opcode_idm_bits7_4;
-	cmd_nvme_passthru->cdw13        = request_idm->cmd_nvme.cdw13;
-	cmd_nvme_passthru->cdw14        = request_idm->cmd_nvme.cdw14;
-	cmd_nvme_passthru->cdw15        = request_idm->cmd_nvme.cdw15;
-	cmd_nvme_passthru->timeout_ms   = request_idm->cmd_nvme.timeout_ms;
 }
 
 /**
@@ -782,7 +715,7 @@ int _sync_idm_cmd_send(struct idm_nvme_request *request_idm)
 		return fd_nvme;
 	}
 
-	_fill_nvme_cmd(request_idm, &cmd_nvme_passthru);
+	fill_nvme_cmd(request_idm, &cmd_nvme_passthru);
 
 	//TODO: Keep?  Add debug flag?
 	dumpNvmePassthruCmd(&cmd_nvme_passthru);
