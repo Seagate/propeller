@@ -11,6 +11,7 @@ import pytest
 from . import ilm_util
 
 import idm_api
+import ani_api
 from test_conf import *     # Normally bad practice, but only importing 'constants' here
 
 _logger = logging.getLogger(__name__)
@@ -84,3 +85,30 @@ def pytest_addoption(parser):
 def pytest_configure(config):
     if not config.option.destroy:
         setattr(config.option, 'markexpr', 'not destroy')
+
+
+"""
+Fixture for manually creating, yielding and then destroying the
+async nvme interface (ANI).
+Used by the custom async nvme code.
+"""
+@pytest.fixture(scope="module")
+def ani_api_startup():
+    ret = -1
+
+    try:
+        # idm_api.idm_manual_init() #TODO: Move these to a "idm_manaul_startup" fixture??
+        ret = ani_api.ani_init()
+    except Exception as e:
+        _logger.error(f'ani_init failure:{e}')
+        raise e from None
+
+    yield ret #TODO: just yield init ec for now.  Remove?
+
+    try:
+        # idm_api.idm_manual_destroy() #TODO: Move these to a "idm_manaul_startup" fixture??
+        ani_api.ani_destroy()
+    except Exception as e:
+        _logger.error(f'ani_destroy failure:{e}')
+        raise e from None
+

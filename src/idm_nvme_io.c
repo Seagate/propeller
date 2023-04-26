@@ -39,6 +39,7 @@
 #include <inttypes.h>
 #include <linux/nvme_ioctl.h>
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 #include <sys/ioctl.h>
 #include <unistd.h>
@@ -346,15 +347,12 @@ int _async_idm_cmd_send(struct idm_nvme_request *request_idm)
 	printf("%s: START\n", __func__);
 	#endif //FUNCTION_ENTRY_DEBUG
 
-	struct nvme_passthru_cmd cmd_nvme_passthru;
 	int fd_nvme;
 	int ret = FAILURE;
 
 	//TODO: Put this under a debug flag of some kind??
 	dumpNvmeCmdStruct(&request_idm->cmd_nvme, 1, 1);
 	dumpIdmDataStruct(request_idm->data_idm);
-
-	memset(&cmd_nvme_passthru, 0, sizeof(struct nvme_passthru_cmd));
 
 	fd_nvme = open(request_idm->drive, O_RDWR | O_NONBLOCK);
 	if (fd_nvme < 0) {
@@ -365,30 +363,21 @@ int _async_idm_cmd_send(struct idm_nvme_request *request_idm)
 		printf("%s: error opening drive %s fd %d\n",
 		       __func__, request_idm->drive, fd_nvme);
 		#endif //COMPILE_STANDALONE
-		return fd_nvme;
+		ret = fd_nvme;
+		goto EXIT;
 	}
+	request_idm->fd_nvme = fd_nvme;  //Used here and saved for later
 
-	_fill_nvme_cmd(request_idm, &cmd_nvme_passthru);
-
-	//TODO: Keep?  Add debug flag?
-	dumpNvmePassthruCmd(&cmd_nvme_passthru);
-
-	//TODO: Don't know exactly how to do this async communication yet via NVMe.
-	//      This write() call is just a duplication of what scsi is doing
-	printf("%s: CORE NVME ASYNC WRITE IO NOT YET FUNCTIONAL!\n", __func__);
-	// ret = write(fd_nvme, &cmd_nvme_passthru, sizeof(cmd_nvme_passthru));
+	ret = ani_send_cmd(request_idm, NVME_IOCTL_ADMIN_CMD);
 	if (ret) {
 		close(fd_nvme);
 		#ifndef COMPILE_STANDALONE
-		ilm_log_err("%s: write failed: %d(0x%X)", __func__, ret, ret);
+		ilm_log_err("%s: sned failed: %d(0x%X)", __func__, ret, ret);
 		#else
-		printf("%s: write failed: %d(0x%X)\n", __func__, ret, ret);
+		printf("%s: send failed: %d(0x%X)\n", __func__, ret, ret);
 		#endif //COMPILE_STANDALONE
-		goto EXIT;
 	}
-
 EXIT:
-	request_idm->fd_nvme = fd_nvme;  //async, so save fd_nvme for later
 	return ret;
 }
 
@@ -409,15 +398,8 @@ int _async_idm_data_rcv(struct idm_nvme_request *request_idm, int *result)
 	printf("%s: START\n", __func__);
 	#endif //FUNCTION_ENTRY_DEBUG
 
-	struct nvme_passthru_cmd cmd_nvme_passthru;
-	int status_async_cmd;    //The status of the PREVIOUSLY issued async cmd
-	int ret = FAILURE;
-
-	//TODO: Put this under a debug flag of some kind??
-	dumpNvmeCmdStruct(&request_idm->cmd_nvme, 1, 1);
-	dumpIdmDataStruct(request_idm->data_idm);
-
-	memset(&cmd_nvme_passthru, 0, sizeof(struct nvme_passthru_cmd));
+	int result_ani;
+	int ret;
 
 	if (!request_idm->fd_nvme) {
 		#ifndef COMPILE_STANDALONE
@@ -429,96 +411,31 @@ int _async_idm_data_rcv(struct idm_nvme_request *request_idm, int *result)
 		goto EXIT;
 	}
 
-	//TODO: If emulate what SCSI-side is doing, this fill is NOT necessary.
-	//          ?? Does ONLY the opcode_nvme needs to be updated (to indicate the concept of "direction" (like SCSI-side))?????
-	// _fill_nvme_cmd(request_idm, &cmd_nvme_passthru);
-
-	//Simplified command for result\data retrieval
-	//TODO: (SCSI-side equivalent).  Does NVMe follow this??
-	//TODO: This is wrong.
-	//       Hardcode the opcode_nvme OR pass it in (if it could be a 0xC1 or 0xC2)????
-	cmd_nvme_passthru.opcode       = request_idm->cmd_nvme.opcode_nvme;
-
-	//TODO: Keep?  Add debug flag?
-	dumpNvmePassthruCmd(&cmd_nvme_passthru);
-
-	//TODO: Don't know exactly how to do this async communication yet via NVMe.
-	//      This read() call is just a duplication of what scsi is doing
-	printf("%s: CORE NVME ASYNC READ IO NOT YET FUNCTIONAL!\n", __func__);
-	// ret = read(request_idm->fd_nvme, &cmd_nvme_passthru, sizeof(cmd_nvme_passthru));
+	ret = ani_data_rcv(request_idm, &result_ani);
 	if (ret < 0) {
 		#ifndef COMPILE_STANDALONE
-		ilm_log_err("%s: read failed: %d(0x%X)", __func__, ret, ret);
+		ilm_log_err("%s: ani_data_rcv fail", __func__);
 		#else
-		printf("%s: read failed: %d(0x%X)\n", __func__, ret, ret);
+		printf("%s: ani_data_rcv fail\n", __func__);
 		#endif //COMPILE_STANDALONE
 		goto EXIT;
 	}
 
-	//TODO: Review _scsi_read() code for this part here
+	*result = _idm_cmd_check_status(result_ani, request_idm->opcode_idm);
 
-	//TODO: Where does "status_async_cmd" come from in NVMe?
-	//              ?? cmd_nvme_passthru.result?
-	//              ?? Somewhere in data_idm (.addr)?
-	//      There is no NVMe equivalent to:
-	//              1.) SCSI's "io_hdr.info & SG_INFO_OK_MASK" check, which determines Pass\Fail of the PREVIOUS async cmd, OR
-	//              2.) SCSI's "io_hdr.masked_status", which, on Fail, is used to determine the final "result" (ie - error\return code) from the PREVIOUS async cmd
-	// status_async_cmd = ?????????????????????????????????????????????????????????????????????????????
+	// //TODO: Put this under a debug flag of some kind??
+	// dumpIdmDataStruct(request_idm->data_idm);
 
-	//TODO: Broken until it's determined how to retrieve the P\F of PREVIOUS async cmd AND where the status code is passed back.
-	status_async_cmd = 0;	//To get rid of compile warning (for now).
-	*result = _idm_cmd_check_status(status_async_cmd,
-	                                request_idm->opcode_idm);
-
-	//TODO: Keep this printf()?  Switch to ilm_log_dbg??
-	printf("%s: found previous async result=%d\n", __func__, *result);
+	#ifndef COMPILE_STANDALONE
+	ilm_log_dbg("%s: result found: ani:%d(0x%X), final:%d(0x%X)",
+	       __func__, result_ani, result_ani, *result, *result);
+	#else
+	printf("%s: result found: ani:%d(0x%X), final:%d(0x%X)\n",
+	       __func__, result_ani, result_ani, *result, *result);
+	#endif //COMPILE_STANDALONE
 
 EXIT:
 	return ret;
-}
-
-/**
- * _fill_nvme_cmd -  Transfer all the data in the "request" structure to the
- * prefined system NVMe command structure used by the system commands
- * (like ioctl()).
- *
- * @request_idm:        Struct containing all NVMe-specific command info for the
- *                      requested IDM action.
- * @cmd_nvme_passthru:  Predefined NVMe command struct to be filled.
- *
- * Returns zero or a negative error (ie. EINVAL, ENOMEM, EBUSY, etc).
- */
-void _fill_nvme_cmd(struct idm_nvme_request *request_idm,
-                    struct nvme_admin_cmd *cmd_nvme_passthru)
-{
-	//TODO: Leave this commented out section for nsid in-place for now.  May be needed in near future.
-	// request_idm->cmd_nvme.nsid = ioctl(fd_nvme, NVME_IOCTL_ID);
-	// if (request_idm->cmd_nvme.nsid <= 0)
-	// {
-	//     printf("%s: nsid ioctl fail: %d\n", __func__, request_idm->cmd_nvme.nsid);
-	//     ret = request_idm->cmd_nvme.nsid;
-	//     goto EXIT;
-	// }
-
-	cmd_nvme_passthru->opcode       = request_idm->cmd_nvme.opcode_nvme;
-	cmd_nvme_passthru->flags        = request_idm->cmd_nvme.flags;
-	cmd_nvme_passthru->rsvd1        = request_idm->cmd_nvme.command_id;
-	cmd_nvme_passthru->nsid         = request_idm->cmd_nvme.nsid;
-	cmd_nvme_passthru->cdw2         = request_idm->cmd_nvme.cdw2;
-	cmd_nvme_passthru->cdw3         = request_idm->cmd_nvme.cdw3;
-	cmd_nvme_passthru->metadata     = request_idm->cmd_nvme.metadata;
-	cmd_nvme_passthru->addr         = request_idm->cmd_nvme.addr;
-	cmd_nvme_passthru->metadata_len = request_idm->cmd_nvme.metadata_len;
-	cmd_nvme_passthru->data_len     = request_idm->cmd_nvme.data_len;
-	cmd_nvme_passthru->cdw10        = request_idm->cmd_nvme.ndt;
-	cmd_nvme_passthru->cdw11        = request_idm->cmd_nvme.ndm;
-	cmd_nvme_passthru->cdw12        = ((uint32_t)request_idm->cmd_nvme.rsvd2 << 16) |
-					((uint32_t)request_idm->cmd_nvme.group_idm << 8) |
-					(uint32_t)request_idm->cmd_nvme.opcode_idm_bits7_4;
-	cmd_nvme_passthru->cdw13        = request_idm->cmd_nvme.cdw13;
-	cmd_nvme_passthru->cdw14        = request_idm->cmd_nvme.cdw14;
-	cmd_nvme_passthru->cdw15        = request_idm->cmd_nvme.cdw15;
-	cmd_nvme_passthru->timeout_ms   = request_idm->cmd_nvme.timeout_ms;
 }
 
 /**
@@ -770,7 +687,7 @@ int _sync_idm_cmd_send(struct idm_nvme_request *request_idm)
 		return fd_nvme;
 	}
 
-	_fill_nvme_cmd(request_idm, &cmd_nvme_passthru);
+	fill_nvme_cmd(request_idm, &cmd_nvme_passthru);
 
 	//TODO: Keep?  Add debug flag?
 	dumpNvmePassthruCmd(&cmd_nvme_passthru);

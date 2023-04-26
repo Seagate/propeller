@@ -20,6 +20,8 @@ void dumpIdmInfoStruct(struct idm_info *info);
 void dumpNvmeCmdStruct(struct nvme_idm_vendor_cmd *cmd_nvme, int view_fields,
                        int view_cdws);
 void dumpNvmePassthruCmd(struct nvme_passthru_cmd *cmd);
+void fill_nvme_cmd(struct idm_nvme_request *request_idm,
+                   struct nvme_passthru_cmd *cmd_nvme_passthru);
 
 void _print_char_arr(char *data, unsigned int len);
 #endif /*__IDM_NVME_UTILS_H__ */

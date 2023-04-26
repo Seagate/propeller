@@ -84,4 +84,7 @@ int idm_drive_get_fd(char *drive, uint64_t handle);
 
 void idm_drive_free_async_result(char *drive, uint64_t handle);
 
+int idm_manual_init(void);
+int idm_manual_destroy(void);
+
 #endif //__IDM_API_H__

@@ -50,6 +50,8 @@ int nvme_idm_async_unlock(char *lock_id, int mode, char *host_id,
                           uint64_t *handle);
 
 int nvme_idm_get_fd(uint64_t handle);
+int nvme_idm_manual_init(void);
+int nvme_idm_manual_destroy(void);
 int nvme_idm_read_version(int *version, char *drive);
 
 int nvme_idm_sync_lock(char *lock_id, int mode, char *host_id,
