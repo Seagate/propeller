@@ -41,8 +41,16 @@
 
 /* ======================= COMPILE SWITCHES========================== */
 
-// #define MAIN_ACTIVATE		//TODO: Remove after async nvme integrations
+//TODO: DELETE THESE 2 (AND ALL CORRESPONDING CODE) AFTER ASYNC NVME INTEGRATION
 #define COMPILE_STANDALONE
+#ifdef MAIN_ACTIVATE_ANI_API
+#define MAIN_ACTIVATE_ANI_API 1
+#else
+#define MAIN_ACTIVATE_ANI_API 0
+#endif
+
+#define FUNCTION_ENTRY_DEBUG    //TODO: Remove this entirely???
+
 #define DEBUG_TABLE__DRIVE_TO_POOL
 
 
@@ -546,7 +554,7 @@ static void table_destroy(void)
 
 /* ============================= MAIN =============================== */
 
-#ifdef MAIN_ACTIVATE
+#if MAIN_ACTIVATE_ANI_API
 #include <assert.h>
 
 #define DRIVE1	"/dev/nvme1n1"
@@ -642,4 +650,4 @@ int main(void){
 
 	return 0;
 }
-#endif
+#endif //MAIN_ACTIVATE_ANI_API

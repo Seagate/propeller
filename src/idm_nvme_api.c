@@ -30,7 +30,12 @@
 //////////////////////////////////////////
 //TODO: DELETE THESE 2 (AND ALL CORRESPONDING CODE) AFTER NVME FILES COMPILE WITH THE REST OF PROPELLER.
 #define COMPILE_STANDALONE
-// #define MAIN_ACTIVATE
+#ifdef MAIN_ACTIVATE_NVME_API
+#define MAIN_ACTIVATE_NVME_API 1
+#else
+#define MAIN_ACTIVATE_NVME_API 0
+#endif
+
 // #define FORCE_MUTEX_NUM    //TODO: HACK!!  This MUST be removed!!
 
 #define FUNCTION_ENTRY_DEBUG    //TODO: Remove this entirely???
@@ -2747,7 +2752,7 @@ int _validate_input_write(char *lock_id, int mode, char *host_id, char *drive)
 
 
 
-#ifdef MAIN_ACTIVATE
+#if MAIN_ACTIVATE_NVME_API
 /*#########################################################################################
 ########################### STAND-ALONE MAIN ##############################################
 #########################################################################################*/
@@ -2981,4 +2986,4 @@ int main(int argc, char *argv[])
 INIT_FAIL_EXIT:
 	return ret;
 }
-#endif//MAIN_ACTIVATE
+#endif//MAIN_ACTIVATE_NVME_API
