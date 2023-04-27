@@ -517,7 +517,7 @@ static int table_entry_replace(char *drive, int n_pool_thrds)
 
 //Updates the table with an existing entry, or, adds a new entry if not found.
 //returns: 0 on success, -1 on failure.
-static int table_entry_update(char *drive, int n_pool_thrds)
+__attribute__ ((unused)) static int table_entry_update(char *drive, int n_pool_thrds)
 {
 	#ifdef FUNCTION_ENTRY_DEBUG
 	printf("%s: START: %s\n", __func__, drive);
@@ -547,7 +547,7 @@ static int table_entry_update(char *drive, int n_pool_thrds)
 }
 
 //Removes from the table an existing entry.
-static void table_entry_remove(char *drive)
+__attribute__ ((unused)) static void table_entry_remove(char *drive)
 {
 	#ifdef FUNCTION_ENTRY_DEBUG
 	printf("%s: START: %s\n", __func__, drive);
@@ -598,7 +598,7 @@ static void table_destroy(void)
 	}
 }
 
-static void table_show(void)
+__attribute__ ((unused)) static void table_show(void)
 {
 	#ifdef FUNCTION_ENTRY_DEBUG
 	printf("%s: START\n", __func__);
@@ -610,7 +610,8 @@ static void table_show(void)
 	for(i = 0; i < MAX_TABLE_ENTRIES; i++){
 		entry = table_thpool[i];
 		if (entry)
-			printf("%s:     entry(%p): drive:'%s', pool(%p)\n", __func__, entry, entry->drive, entry->thpool);
+			printf("%s:     entry(%p): drive:'%s', pool(%p)\n",
+			       __func__, entry, entry->drive, entry->thpool);
 		else
 			printf("%s:     entry(%p)\n", __func__, entry);
 	}
