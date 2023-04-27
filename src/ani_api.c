@@ -395,7 +395,7 @@ static int table_entry_add(char *drive, int n_pool_thrds)
 	struct table_entry *entry;
 
 	index = _table_entry_find_empty();
-	if (index < 0) {
+	if (index <= 0) {
 		#if !defined(COMPILE_STANDALONE)
 		ilm_log_err("%s: %s{%d} NOT added", __func__, drive, n_pool_thrds);
 		#elif defined(COMPILE_STANDALONE)
@@ -444,7 +444,7 @@ static int table_entry_replace(char *drive, int n_pool_thrds)
 	struct table_entry *entry;
 
 	index = _table_entry_find_index(drive);  //find existing entry and update
-	if (index < 0) {
+	if (index <= 0) {
 		#if !defined(COMPILE_STANDALONE)
 		ilm_log_err("%s: %s{%d} NOT replaced", __func__, drive, n_pool_thrds);
 		#elif defined(COMPILE_STANDALONE)
