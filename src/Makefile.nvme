@@ -8,7 +8,7 @@ idm_nvme_api : $(SOURCE_API)
 	echo Compile $@
 	$(CC) -D THPOOL_DEBUG -D MAIN_ACTIVATE_NVME_API $(LDLIBS) $(SOURCE_API) -o $@
 
-idm_nvme_io : $(SOURCE_API)
+idm_nvme_io : $(SOURCE_IO)
 	echo Compile $@
 	$(CC) -D THPOOL_DEBUG -D MAIN_ACTIVATE_NVME_IO $(LDLIBS) $(SOURCE_IO) -o $@
 
