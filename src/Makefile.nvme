@@ -1,15 +1,20 @@
-SOURCE_IO := idm_cmd_common.c idm_nvme_io.c idm_nvme_utils.c ani_api.c thpool.c
+SOURCE_ANI := idm_nvme_utils.c ani_api.c thpool.c
+SOURCE_IO := $(SOURCE_ANI) idm_cmd_common.c idm_nvme_io.c
 SOURCE_API := $(SOURCE_IO) idm_nvme_api.c
-LDLIBS = -lpthread -luuid -lblkid -ludev
+LDLIBS = -lpthread -luuid
 
 
 idm_nvme_api : $(SOURCE_API)
 	echo Compile $@
-	$(CC) -D THPOOL_DEBUG $(LDLIBS) $(SOURCE_API) -o $@
+	$(CC) -D THPOOL_DEBUG -D MAIN_ACTIVATE_NVME_API $(LDLIBS) $(SOURCE_API) -o $@
 
 idm_nvme_io : $(SOURCE_IO)
 	echo Compile $@
-	$(CC) $(LDLIBS) $(SOURCE_IO) -o $@
+	$(CC) -D THPOOL_DEBUG -D MAIN_ACTIVATE_NVME_IO $(LDLIBS) $(SOURCE_IO) -o $@
+
+ani_api : $(SOURCE_ANI)
+	echo Compile $@
+	$(CC) -D THPOOL_DEBUG -D MAIN_ACTIVATE_ANI_API $(LDLIBS) $(SOURCE_ANI) -o $@
 
 idm_nvme_io_admin : idm_nvme_io_admin.c
 	echo Compile $@

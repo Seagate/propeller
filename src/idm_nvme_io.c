@@ -53,7 +53,11 @@
 //////////////////////////////////////////
 //TODO: DELETE THESE 2 (AND ALL CORRESPONDING CODE) AFTER NVME FILES COMPILE WITH THE REST OF PROPELLER.
 #define COMPILE_STANDALONE
-// #define MAIN_ACTIVATE
+#ifdef MAIN_ACTIVATE_NVME_IO
+#define MAIN_ACTIVATE_NVME_IO 1
+#else
+#define MAIN_ACTIVATE_NVME_IO 0
+#endif
 
 #define FUNCTION_ENTRY_DEBUG    //TODO: Remove this entirely???
 
@@ -729,7 +733,7 @@ int _sync_idm_cmd_send(struct idm_nvme_request *request_idm)
 
 
 
-#ifdef MAIN_ACTIVATE
+#if MAIN_ACTIVATE_NVME_IO
 /*#########################################################################################
 ########################### STAND-ALONE MAIN ##############################################
 #########################################################################################*/
@@ -763,11 +767,11 @@ int main(int argc, char *argv[])
             struct idm_nvme_request *request_idm;
             int ret = FAILURE;
 
-            ret = nvme_idm_write_init(lock_id, mode, host_id,drive, timeout, 0, 0,
+            ret = nvme_idm_write_init(lock_id, mode, host_id, drive, timeout,
                                       request_idm);
             printf("%s exiting with %d\n", argv[1], ret);
 
-            ret = nvme_idm_write(request_idm);
+            ret = nvme_idm_sync_write(request_idm);
             printf("%s exiting with %d\n", argv[1], ret);
         }
 
@@ -776,4 +780,4 @@ int main(int argc, char *argv[])
 
     return 0;
 }
-#endif//MAIN_ACTIVATE
+#endif//MAIN_ACTIVATE_NVME_IO

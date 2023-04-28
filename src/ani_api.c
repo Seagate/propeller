@@ -41,8 +41,16 @@
 
 /* ======================= COMPILE SWITCHES========================== */
 
-// #define MAIN_ACTIVATE		//TODO: Remove after async nvme integrations
+//TODO: DELETE THESE 2 (AND ALL CORRESPONDING CODE) AFTER ASYNC NVME INTEGRATION
 #define COMPILE_STANDALONE
+#ifdef MAIN_ACTIVATE_ANI_API
+#define MAIN_ACTIVATE_ANI_API 1
+#else
+#define MAIN_ACTIVATE_ANI_API 0
+#endif
+
+#define FUNCTION_ENTRY_DEBUG    //TODO: Remove this entirely???
+
 #define DEBUG_TABLE__DRIVE_TO_POOL
 
 
@@ -52,18 +60,11 @@
 #define TABLE_ENTRY_DRIVE_BUFFER_SIZE	32
 #define NUM_POOL_THREADS		4
 
-//TODO: Implement cli compile flag????
-// #ifdef DEBUG_TABLE__DRIVE_TO_POOL
-// #define DEBUG_TABLE__DRIVE_TO_POOL 1
-// #else
-// #define DEBUG_TABLE__DRIVE_TO_POOL 0
-// #endif
-
 
 /* ========================== STRUCTURES ============================ */
 
 struct table_entry {
-	char *drive;
+	char              drive[PATH_MAX];
 	struct threadpool *thpool;
 };
 
@@ -88,12 +89,17 @@ static int  table_entry_replace(char *drive, int n_pool_thrds);
 static int  table_entry_update(char *drive, int n_pool_thrds);
 static void table_entry_remove(char *drive);
 static void table_destroy(void);
+static void table_show(void);
 
 
 /* ================== ASYNC NVME INTERFACE(ANI) ===================== */
 
 int ani_init(void)
 {
+	#ifdef FUNCTION_ENTRY_DEBUG
+	printf("%s: START\n", __func__);
+	#endif //FUNCTION_ENTRY_DEBUG
+
 	return table_init();
 }
 
@@ -103,6 +109,10 @@ int ani_init(void)
 // Returns zero or a negative error (ie. EINVAL, ENOMEM, EBUSY, etc).
 int ani_data_rcv(struct idm_nvme_request *request_idm, int *result)
 {
+	#ifdef FUNCTION_ENTRY_DEBUG
+	printf("%s: START\n", __func__);
+	#endif //FUNCTION_ENTRY_DEBUG
+
 	char *drive = request_idm->drive;
 	struct table_entry *entry;
 	int ret = FAILURE;
@@ -134,6 +144,10 @@ int ani_data_rcv(struct idm_nvme_request *request_idm, int *result)
 // Returns zero or a negative error (ie. EINVAL, ENOMEM, EBUSY, etc).
 int ani_send_cmd(struct idm_nvme_request *request_idm, unsigned long ctrl)
 {
+	#ifdef FUNCTION_ENTRY_DEBUG
+	printf("%s: START\n", __func__);
+	#endif //FUNCTION_ENTRY_DEBUG
+
 	char *drive                   = request_idm->drive;
 	struct arg_ioctl *arg         = request_idm->arg_async_nvme;
 	struct nvme_passthru_cmd *cmd = request_idm->cmd_nvme_passthru;
@@ -216,11 +230,19 @@ EXIT:
 
 void ani_destroy(void)
 {
+	#ifdef FUNCTION_ENTRY_DEBUG
+	printf("%s: START\n", __func__);
+	#endif //FUNCTION_ENTRY_DEBUG
+
 	table_destroy();
 }
 
 static int ani_ioctl(void* arg)
 {
+	#ifdef FUNCTION_ENTRY_DEBUG
+	printf("%s: START\n", __func__);
+	#endif //FUNCTION_ENTRY_DEBUG
+
 	struct arg_ioctl *arg_ = (struct arg_ioctl *)arg;
 
 	return ioctl(arg_->fd, arg_->ctrl, arg_->cmd);
@@ -232,7 +254,11 @@ static int ani_ioctl(void* arg)
 //return: 1 when empty, 0 when NOT empty (so behaves like logical bool)
 static int _table_entry_is_empty(struct table_entry *entry)
 {
-	if (!entry) return 1;
+	#ifdef FUNCTION_ENTRY_DEBUG
+	printf("%s: START\n", __func__);
+	#endif //FUNCTION_ENTRY_DEBUG
+
+	if (!entry) return 1; //TODO: This is actually an error.  Should never happen
 
 	if ((!entry->drive) || (!entry->thpool)) return 1;
 
@@ -243,6 +269,10 @@ static int _table_entry_is_empty(struct table_entry *entry)
 //return: (int >= 0) on success, -1 on failure(table full)
 static int _table_entry_find_empty(void)
 {
+	#ifdef FUNCTION_ENTRY_DEBUG
+	printf("%s: START\n", __func__);
+	#endif //FUNCTION_ENTRY_DEBUG
+
 	int i;
 	struct table_entry *entry;
 	int ret = FAILURE;
@@ -276,6 +306,10 @@ static int _table_entry_find_empty(void)
 //return: (int >= 0) on success, -1 on failure
 static int _table_entry_find_index(char *drive)
 {
+	#ifdef FUNCTION_ENTRY_DEBUG
+	printf("%s: START: %s\n", __func__, drive);
+	#endif //FUNCTION_ENTRY_DEBUG
+
 	int i;
 	struct table_entry *entry;
 	int ret = FAILURE;
@@ -301,9 +335,9 @@ static int _table_entry_find_index(char *drive)
 
 	if (ret >= 0){
 		#if !defined(COMPILE_STANDALONE) && defined(DEBUG_TABLE__DRIVE_TO_POOL)
-		ilm_log_dbg("%s: %s found", __func__, entry->drive);
+		ilm_log_dbg("%s: %s found at %d", __func__, entry->drive, ret);
 		#elif defined(COMPILE_STANDALONE) && defined(DEBUG_TABLE__DRIVE_TO_POOL)
-		printf("%s: %s found\n", __func__, entry->drive);
+		printf("%s: %s found at %d\n", __func__, entry->drive, ret);
 		#endif
 	}
 	else{
@@ -319,15 +353,20 @@ static int _table_entry_find_index(char *drive)
 //returns: 0 on success, -1 on failure.
 static int table_init(void)
 {
+	#ifdef FUNCTION_ENTRY_DEBUG
+	printf("%s: START\n", __func__);
+	#endif //FUNCTION_ENTRY_DEBUG
+
 	int i;
 	struct table_entry *entry;
 
 	//If calloc() fails, known state for ALL "entry" when table_destroy() runs
-	memset(&table_thpool, 0, MAX_TABLE_ENTRIES * sizeof(*table_thpool));
+	for (i = 0; i < MAX_TABLE_ENTRIES; i++){
+		table_thpool[i] = NULL;		//use memset?
+	}
 
 	for (i = 0; i < MAX_TABLE_ENTRIES; i++){
-		entry = (struct table_entry *)calloc(MAX_TABLE_ENTRIES,
-		                                     sizeof(*table_thpool));
+		entry = (struct table_entry *)calloc(MAX_TABLE_ENTRIES, sizeof(*entry));
 		if (!entry) {
 			table_destroy();
 			#if !defined(COMPILE_STANDALONE)
@@ -347,6 +386,10 @@ static int table_init(void)
 //return: valid entry ptr on success, NULL on failure
 static struct table_entry* table_entry_find(char *drive)
 {
+	#ifdef FUNCTION_ENTRY_DEBUG
+	printf("%s: START: %s\n", __func__, drive);
+	#endif //FUNCTION_ENTRY_DEBUG
+
 	int i;
 	struct table_entry *entry = NULL;
 
@@ -391,6 +434,10 @@ static struct table_entry* table_entry_find(char *drive)
 //returns: 0 on success, -1 on failure.
 static int table_entry_add(char *drive, int n_pool_thrds)
 {
+	#ifdef FUNCTION_ENTRY_DEBUG
+	printf("%s: START: %s\n", __func__, drive);
+	#endif //FUNCTION_ENTRY_DEBUG
+
 	int index;
 	struct table_entry *entry;
 
@@ -406,16 +453,6 @@ static int table_entry_add(char *drive, int n_pool_thrds)
 
 	entry = table_thpool[index];
 
-	entry->drive = (char *)calloc(TABLE_ENTRY_DRIVE_BUFFER_SIZE,
-					sizeof(char));
-	if (!entry->drive){
-		#if !defined(COMPILE_STANDALONE)
-		ilm_log_err("%s: drive calloc failure", __func__);
-		#elif defined(COMPILE_STANDALONE)
-		printf("%s: drive calloc failure\n", __func__);
-		#endif
-		return FAILURE;
-	}
 	strcpy(entry->drive, drive);
 
 	entry->thpool = thpool_init(n_pool_thrds);
@@ -440,6 +477,10 @@ static int table_entry_add(char *drive, int n_pool_thrds)
 //returns: 0 on success, -1 on failure.
 static int table_entry_replace(char *drive, int n_pool_thrds)
 {
+	#ifdef FUNCTION_ENTRY_DEBUG
+	printf("%s: START: %s\n", __func__, drive);
+	#endif //FUNCTION_ENTRY_DEBUG
+
 	int index;
 	struct table_entry *entry;
 
@@ -476,8 +517,12 @@ static int table_entry_replace(char *drive, int n_pool_thrds)
 
 //Updates the table with an existing entry, or, adds a new entry if not found.
 //returns: 0 on success, -1 on failure.
-static int table_entry_update(char *drive, int n_pool_thrds)
+__attribute__ ((unused)) static int table_entry_update(char *drive, int n_pool_thrds)
 {
+	#ifdef FUNCTION_ENTRY_DEBUG
+	printf("%s: START: %s\n", __func__, drive);
+	#endif //FUNCTION_ENTRY_DEBUG
+
 	int ret = FAILURE;	//assume table is full
 
 	ret = table_entry_replace(drive, n_pool_thrds);  //find existing entry and update
@@ -502,8 +547,12 @@ static int table_entry_update(char *drive, int n_pool_thrds)
 }
 
 //Removes from the table an existing entry.
-static void table_entry_remove(char *drive)
+__attribute__ ((unused)) static void table_entry_remove(char *drive)
 {
+	#ifdef FUNCTION_ENTRY_DEBUG
+	printf("%s: START: %s\n", __func__, drive);
+	#endif //FUNCTION_ENTRY_DEBUG
+
 	int index;
 	struct table_entry *entry;
 
@@ -511,11 +560,13 @@ static void table_entry_remove(char *drive)
 	if (index >= 0) {
 		entry = table_thpool[index];
 
-		free(entry->drive);
-		entry->drive  = NULL;
+		if (entry->drive)
+			entry->drive[0]  = '\0';
 
-		thpool_destroy(entry->thpool);
-		entry->thpool = NULL;
+		if (entry->thpool){
+			thpool_destroy(entry->thpool);
+			entry->thpool = NULL;
+		}
 
 		#if !defined(COMPILE_STANDALONE) && defined(DEBUG_TABLE__DRIVE_TO_POOL)
 		ilm_log_dbg("%s: %s removed", __func__, drive);
@@ -527,26 +578,49 @@ static void table_entry_remove(char *drive)
 
 static void table_destroy(void)
 {
+	#ifdef FUNCTION_ENTRY_DEBUG
+	printf("%s: START\n", __func__);
+	#endif //FUNCTION_ENTRY_DEBUG
+
 	int i;
 	struct table_entry *entry;
 
 	for (i = 0; i < MAX_TABLE_ENTRIES; i++){
 		entry = table_thpool[i];
 		if (entry) {
-			if (entry->thpool)
+			entry->drive[0]  = '\0';
+			if (entry->thpool){
 				thpool_destroy(entry->thpool);
-			if (entry->drive)
-				free(entry->drive);
+			}
 			free(entry);
 			table_thpool[i] = NULL;
 		}
 	}
 }
 
+__attribute__ ((unused)) static void table_show(void)
+{
+	#ifdef FUNCTION_ENTRY_DEBUG
+	printf("%s: START\n", __func__);
+	#endif //FUNCTION_ENTRY_DEBUG
+
+	struct table_entry *entry;
+	int i;
+
+	for(i = 0; i < MAX_TABLE_ENTRIES; i++){
+		entry = table_thpool[i];
+		if (entry)
+			printf("%s:     entry(%p): drive:'%s', pool(%p)\n",
+			       __func__, entry, entry->drive, entry->thpool);
+		else
+			printf("%s:     entry(%p)\n", __func__, entry);
+	}
+}
+
 
 /* ============================= MAIN =============================== */
 
-#ifdef MAIN_ACTIVATE
+#if MAIN_ACTIVATE_ANI_API
 #include <assert.h>
 
 #define DRIVE1	"/dev/nvme1n1"
@@ -590,11 +664,13 @@ int main(void){
 
 	ret = _table_entry_find_empty();
 	assert(ret == 1);
+	table_show();
 	printf("\n");
 
 	// Test REPLACE & public FIND
 	printf("REPLACE test\n");
 	ret = table_entry_replace((char*)DRIVE1, 6);
+	table_show();
 	assert(ret == 0);
 	entry = table_entry_find((char*)DRIVE1);
 	assert(strcmp(entry->drive, (char*)DRIVE1) == 0);
@@ -607,12 +683,14 @@ int main(void){
 	// Test UPDATE & public FIND
 	printf("UPDATE test\n");
 	ret = table_entry_update((char*)DRIVE1, 8);
+	table_show();
 	assert(ret == 0);
 	entry = table_entry_find((char*)DRIVE1);
 	assert(strcmp(entry->drive, DRIVE1) == 0);
 	assert(thpool_num_threads_alive(entry->thpool) == 8);
 
 	ret = table_entry_update((char*)DRIVE3, 10);
+	table_show();
 	assert(ret == 0);
 	entry = table_entry_find((char*)DRIVE3);
 	assert(strcmp(entry->drive, (char*)DRIVE3) == 0);
@@ -624,6 +702,7 @@ int main(void){
 
 	// Just add another entry
 	ret = table_entry_update((char*)DRIVE2, 15);
+	table_show();
 	assert(ret == 0);
 
 	ret = _table_entry_find_empty();
@@ -633,6 +712,7 @@ int main(void){
 	// Test REMOVE
 	printf("REMOVE test\n");
 	table_entry_remove((char*)DRIVE3);
+	table_show();
 
 	ret = _table_entry_find_empty();
 	assert(ret == 1);
@@ -642,4 +722,4 @@ int main(void){
 
 	return 0;
 }
-#endif
+#endif //MAIN_ACTIVATE_ANI_API
