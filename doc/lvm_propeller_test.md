@@ -122,11 +122,15 @@ For testing without suppressing verbose console log:
 
 The section is about adding trace debug messages within the unit test methods themselves.
 
-Using print() does not appear to work with this unit test setup.  The location
-of the print() output could not be found.
-So, alternatively, the python logging module was used.
+Option #1: print()
+This option is only available if the pytest `-s` option is added when running the test.
+Caution should be used when tracing using print() as its' output can interfere with the
+regular pytest output, making the output difficult to read.
 
-At the top of the module, create the logger object.
+Option #2: import logging
+Another option is to use the python logging module.
+
+At the top of the unit test module, create the logger object.
 ```
   from logging import Logger
   _logger = Logger.getLogger(__name__)
