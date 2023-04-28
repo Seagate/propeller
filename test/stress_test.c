@@ -12,6 +12,7 @@
 #include <unistd.h>
 #include <string.h>
 
+#include "idm_cmd_common.h"
 #include <ilm.h>
 #include "test_conf.h"
 
