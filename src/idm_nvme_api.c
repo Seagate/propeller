@@ -1839,8 +1839,6 @@ int _init_read_lock_count(int async_on, char *lock_id, char *host_id,
 	ret = nvme_idm_sync_read_mutex_num(drive, &mutex_num);
 	if (ret < 0)
 		return -ENOENT;
-	else if (!mutex_num)
-		return SUCCESS;
 
 	if (async_on) {
 		/*
@@ -1854,12 +1852,12 @@ int _init_read_lock_count(int async_on, char *lock_id, char *host_id,
 		* read back 1 data block and defer to return count.
 		*/
 		if (!mutex_num)
-		mutex_num = 1;
+			mutex_num = 1;
 	}
 	else {
 		if (!mutex_num) {
-		request_idm = NULL;
-		return SUCCESS;
+			request_idm = NULL;
+			return SUCCESS;
 		}
 	}
 
