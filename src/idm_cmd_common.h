@@ -42,7 +42,7 @@
 #define ASYNC_ON    1
 
 // NOTE: These #define's are duplicated in ilm.h as well.
-// (which s the primary ILM include for LVM2)
+// (which is the primary ILM include for LVM2)
 #define IDM_MODE_UNLOCK			0
 #define IDM_MODE_EXCLUSIVE		1
 #define IDM_MODE_SHAREABLE		2
