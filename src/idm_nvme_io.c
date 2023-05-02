@@ -760,11 +760,10 @@ int main(int argc, char *argv[])
             char        lock_id[64] = "lock_id";
             int         mode        = IDM_MODE_EXCLUSIVE;
             char        host_id[32] = "host_id";
-            char        drive[256]  = "/dev/nvme0n1";
             uint64_t    timeout     = 10;
 
             //Create required input structs the IDM API would normally create
-            struct idm_nvme_request *request_idm;
+            struct idm_nvme_request *request_idm = NULL;
             int ret = FAILURE;
 
             ret = nvme_idm_write_init(lock_id, mode, host_id, drive, timeout,

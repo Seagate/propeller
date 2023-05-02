@@ -167,7 +167,7 @@ out:
 
 int ilm_disconnect(int sock)
 {
-	int s, ret;
+	int ret;
 
 	ret = send_header(sock, ILM_CMD_DEL_LOCKSPACE, 0);
 	if (ret < 0)
@@ -185,7 +185,7 @@ int ilm_version(int sock, char *drive, int *version)
 {
 	struct ilm_lock_payload payload;
 	char path[PATH_MAX];
-	int i, len, ret;
+	int len, ret;
 
 	len = sizeof(struct ilm_lock_payload) + PATH_MAX;
 
@@ -268,7 +268,7 @@ int ilm_lock(int sock, struct idm_lock_id *id, struct idm_lock_op *op)
 int ilm_unlock(int sock, struct idm_lock_id *id)
 {
 	struct ilm_lock_payload payload;
-	int i, len, ret;
+	int len, ret;
 
 	len = sizeof(struct ilm_lock_payload);
 
@@ -294,7 +294,7 @@ int ilm_unlock(int sock, struct idm_lock_id *id)
 int ilm_convert(int sock, struct idm_lock_id *id, uint32_t mode)
 {
 	struct ilm_lock_payload payload;
-	int i, len, ret;
+	int len, ret;
 
 	len = sizeof(struct ilm_lock_payload);
 
@@ -321,7 +321,7 @@ int ilm_convert(int sock, struct idm_lock_id *id, uint32_t mode)
 int ilm_write_lvb(int sock, struct idm_lock_id *id, char *lvb, int lvb_len)
 {
 	struct ilm_lock_payload payload;
-	int i, len, ret;
+	int len, ret;
 
 	len = sizeof(struct ilm_lock_payload);
 	len += lvb_len;
@@ -352,7 +352,7 @@ int ilm_write_lvb(int sock, struct idm_lock_id *id, char *lvb, int lvb_len)
 int ilm_read_lvb(int sock, struct idm_lock_id *id, char *lvb, int lvb_len)
 {
 	struct ilm_lock_payload payload;
-	int i, len, ret;
+	int len, ret;
 
 	len = sizeof(struct ilm_lock_payload);
 
