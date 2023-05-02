@@ -303,7 +303,7 @@ int thpool_find_result(struct threadpool *thpool_p, uuid_t uuid_job,
 	}
 
 #if THPOOL_DEBUG
-	unsigned char uuid_str[37];
+	char uuid_str[37];
 	uuid_unparse(uuid_job, uuid_str);
 #endif
 	if (result_found){
@@ -646,7 +646,7 @@ static void jobqueue_push(jobqueue* jobqueue_p, struct job* newjob){
 	bsem_post(jobqueue_p->has_jobs);
 	pthread_mutex_unlock(&jobqueue_p->rwmutex);
 #if THPOOL_DEBUG
-	unsigned char uuid_str[37];
+	char uuid_str[37];
 	uuid_unparse(newjob->uuid, uuid_str);
 	printf("THPOOL_DEBUG: %s: job(%p), uuid=%s, queue(%p), pthread(%u))\n",
 	       __func__, newjob, uuid_str, jobqueue_p, (unsigned int)pthread_self());
@@ -686,7 +686,7 @@ static struct job* jobqueue_pull_front(jobqueue* jobqueue_p){
 	pthread_mutex_unlock(&jobqueue_p->rwmutex);
 #if THPOOL_DEBUG
 	if (job_p){
-		unsigned char uuid_str[37];
+		char uuid_str[37];
 		uuid_unparse(job_p->uuid, uuid_str);
 		printf("THPOOL_DEBUG: %s: found job(%p), uuid=%s, queue(%p), pthread(%u))\n",
 		       __func__, job_p, uuid_str, jobqueue_p, (unsigned int)pthread_self());
@@ -765,7 +765,7 @@ TODO: Do I want to implement "trylock" like I did in POC?  If so, how?
 
 	pthread_mutex_unlock(&jobqueue_p->rwmutex);
 #if THPOOL_DEBUG
-	unsigned char uuid_str[37];
+	char uuid_str[37];
 	if (curr_job_p){
 		uuid_unparse(curr_job_p->uuid, uuid_str);
 		printf("THPOOL_DEBUG: %s: found job(%p), uuid=%s, queue(%p), pthread(%u))\n",

@@ -58,7 +58,7 @@ endif
 
 LIB_CFLAGS = -fPIC
 
-LDFLAGS = -Wl,-z,relro -pie
+LDFLAGS = -Wl,-z,relro -pie -Wall
 
 LDLIBS = -lpthread -luuid -lblkid -ludev
 

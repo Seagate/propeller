@@ -2791,7 +2791,6 @@ int main(int argc, char *argv[])
 		int             host_state;
 		int             count;
 		int             self;
-		int             i;
 
 		if(strcmp(argv[1], "async_lock") == 0){
 			ret = nvme_idm_async_lock(lock_id, mode, host_id, drive, timeout, &handle);

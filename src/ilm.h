@@ -10,9 +10,11 @@
 #include <stdio.h>
 #include <uuid/uuid.h>
 
-#include "idm_cmd_common.h"	//Need IDM modes
-
 #define ILM_DRIVE_MAX_NUM		512
+
+#define IDM_MODE_UNLOCK			0
+#define IDM_MODE_EXCLUSIVE		1
+#define IDM_MODE_SHAREABLE		2
 
 #define IDM_FAILURE_PATH_LEN		128
 #define IDM_FAILURE_ARGS_LEN		128
