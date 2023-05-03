@@ -1,7 +1,7 @@
 /* SPDX-License-Identifier: LGPL-2.1-only */
 /*
  * Copyright (C) 2010-2011 Red Hat, Inc.
- * Copyright (C) 2022 Seagate Technology LLC and/or its Affiliates.
+ * Copyright (C) 2023 Seagate Technology LLC and/or its Affiliates.
  *
  * idm_nvme_api.c - Primary NVMe interface for In-drive Mutex (IDM)
  *
@@ -31,8 +31,6 @@
 //////////////////////////////////////////
 // COMPILE FLAGS
 //////////////////////////////////////////
-//TODO: DELETE THESE 2 (AND ALL CORRESPONDING CODE) AFTER NVME FILES COMPILE WITH THE REST OF PROPELLER.
-// #define COMPILE_STANDALONE
 #ifdef MAIN_ACTIVATE_NVME_API
 #define MAIN_ACTIVATE_NVME_API 1
 #else
@@ -79,13 +77,8 @@ int nvme_idm_async_get_result(uint64_t handle, int *result)
 
 	ret = nvme_idm_async_data_rcv(request_idm, result);
 	if (ret < 0) {
-		#ifndef COMPILE_STANDALONE
 		ilm_log_err("%s: nvme_idm_async_data_rcv fail %d",
 		            __func__, ret);
-		#else
-		printf("%s: nvme_idm_async_data_rcv fail %d\n",
-		       __func__, ret);
-		#endif //COMPILE_STANDALONE
 		goto EXIT;
 	}
 
@@ -94,13 +87,8 @@ int nvme_idm_async_get_result(uint64_t handle, int *result)
 	//          Especially as compared to what the SCSI code does.
 	//          Talk to Tom.
 	if (*result < 0) {
-		#ifndef COMPILE_STANDALONE
 		ilm_log_err("%s: previous async cmd fail result=%d",
 		            __func__, *result);
-		#else
-		printf("%s: previous async cmd fail: result=%d\n",
-		       __func__, *result);
-		#endif //COMPILE_STANDALONE
 	}
 
 EXIT:
@@ -136,43 +124,25 @@ int nvme_idm_async_get_result_lock_count(uint64_t handle, int *count,
 
 	ret = nvme_idm_async_data_rcv(request_idm, result);
 	if (ret < 0) {
-		#ifndef COMPILE_STANDALONE
 		ilm_log_err("%s: nvme_idm_async_data_rcv fail %d",
 		            __func__, ret);
-		#else
-		printf("%s: nvme_idm_async_data_rcv fail %d\n", __func__, ret);
-		#endif //COMPILE_STANDALONE
 		goto EXIT_FAIL;
 	}
 
 	if (*result < 0) {
-		#ifndef COMPILE_STANDALONE
 		ilm_log_err("%s: previous async cmd fail: result=%d",
 		            __func__, *result);
-		#else
-		printf("%s: previous async cmd fail: result=%d\n",
-		       __func__, *result);
-		#endif //COMPILE_STANDALONE
 		goto EXIT_FAIL;
 	}
 
 	ret = _parse_lock_count(request_idm, count, self);
 	if (ret < 0) {
-		#ifndef COMPILE_STANDALONE
 		ilm_log_err("%s: _parse_lock_count fail %d", __func__, ret);
-		#else
-		printf("%s: _parse_lock_count fail %d\n", __func__, ret);
-		#endif //COMPILE_STANDALONE
 		goto EXIT_FAIL;
 	}
 
-	#ifndef COMPILE_STANDALONE
 	ilm_log_dbg("%s: found: lock_count=%d, self_count=%d",
 	            __func__, *count, *self);
-	#else
-	printf("%s: found: lock_count=%d, self_count=%d\n",
-	       __func__, *count, *self);
-	#endif //COMPILE_STANDALONE
 EXIT_FAIL:
 	_memory_free_idm_request(request_idm);
 	return ret;
@@ -205,41 +175,23 @@ int nvme_idm_async_get_result_lock_mode(uint64_t handle, int *mode,
 
 	ret = nvme_idm_async_data_rcv(request_idm, result);
 	if (ret < 0) {
-		#ifndef COMPILE_STANDALONE
 		ilm_log_err("%s: nvme_idm_async_data_rcv fail %d",
 		            __func__, ret);
-		#else
-		printf("%s: nvme_idm_async_data_rcv fail %d\n", __func__, ret);
-		#endif //COMPILE_STANDALONE
-		goto EXIT_FAIL;
 	}
 
 	if (*result < 0) {
-		#ifndef COMPILE_STANDALONE
 		ilm_log_err("%s: previous async cmd fail: result=%d",
 		            __func__, *result);
-		#else
-		printf("%s: previous async cmd fail: result=%d\n",
-		       __func__, *result);
-		#endif //COMPILE_STANDALONE
 		goto EXIT_FAIL;
 	}
 
 	ret = _parse_lock_mode(request_idm, mode);
 	if (ret < 0) {
-		#ifndef COMPILE_STANDALONE
 		ilm_log_err("%s: _parse_lock_mode fail %d", __func__, ret);
-		#else
-		printf("%s: _parse_lock_mode fail %d\n", __func__, ret);
-		#endif //COMPILE_STANDALONE
 		goto EXIT_FAIL;
 	}
 
-	#ifndef COMPILE_STANDALONE
 	ilm_log_dbg("%s: found: mode=%d", __func__, *mode);
-	#else
-	printf("%s: found: mode=%d\n", __func__, *mode);
-	#endif //COMPILE_STANDALONE
 EXIT_FAIL:
 	_memory_free_idm_request(request_idm);
 	return ret;
@@ -275,39 +227,24 @@ int nvme_idm_async_get_result_lvb(uint64_t handle, char *lvb, int lvb_size,
 
 	ret = nvme_idm_async_data_rcv(request_idm, result);
 	if (ret < 0) {
-		#ifndef COMPILE_STANDALONE
 		ilm_log_err("%s: nvme_idm_async_data_rcv fail %d",
 		            __func__, ret);
-		#else
-		printf("%s: nvme_idm_async_data_rcv fail %d\n", __func__, ret);
-		#endif //COMPILE_STANDALONE
 		goto EXIT_FAIL;
 	}
 
 	if (*result < 0) {
-		#ifndef COMPILE_STANDALONE
 		ilm_log_err("%s: previous async cmd fail: result=%d",
 		            __func__, *result);
-		#else
-		printf("%s: previous async cmd fail: result=%d\n",
-		       __func__, *result);
-		#endif //COMPILE_STANDALONE
 		goto EXIT_FAIL;
 	}
 
 	ret = _parse_lvb(request_idm, lvb, lvb_size);
 	if (ret < 0) {
-		#ifndef COMPILE_STANDALONE
 		ilm_log_err("%s: _parse_lvb fail %d", __func__, ret);
-		#else
-		printf("%s: _parse_lvb fail %d\n", __func__, ret);
-		#endif //COMPILE_STANDALONE
 		goto EXIT_FAIL;
 	}
 
-	#ifndef COMPILE_STANDALONE
 	ilm_log_array_dbg(" found: lvb", lvb, lvb_size);
-	#endif //COMPILE_STANDALONE
 EXIT_FAIL:
 	_memory_free_idm_request(request_idm);
 	return ret;
@@ -338,21 +275,13 @@ int nvme_idm_async_lock(char *lock_id, int mode, char *host_id,
 
 	ret = _init_lock(lock_id, mode, host_id, drive, timeout, &request_idm);
 	if (ret < 0) {
-		#ifndef COMPILE_STANDALONE
 		ilm_log_err("%s: _init_lock fail %d", __func__, ret);
-		#else
-		printf("%s: _init_lock fail %d\n", __func__, ret);
-		#endif //COMPILE_STANDALONE
 		goto EXIT_FAIL;
 	}
 
 	ret = nvme_idm_async_write(request_idm);
 	if (ret < 0) {
-		#ifndef COMPILE_STANDALONE
 		ilm_log_err("%s: nvme_idm_async_write fail %d", __func__, ret);
-		#else
-		printf("%s: nvme_idm_async_write fail %d\n", __func__, ret);
-		#endif //COMPILE_STANDALONE
 		goto EXIT_FAIL;
 	}
 
@@ -392,21 +321,13 @@ int nvme_idm_async_lock_break(char *lock_id, int mode, char *host_id,
 	ret = _init_lock_break(lock_id, mode, host_id, drive, timeout,
 	                       &request_idm);
 	if (ret < 0) {
-		#ifndef COMPILE_STANDALONE
 		ilm_log_err("%s: _init_lock_break fail %d", __func__, ret);
-		#else
-		printf("%s: _init_lock_break fail %d\n", __func__, ret);
-		#endif //COMPILE_STANDALONE
 		goto EXIT_FAIL;
 	}
 
 	ret = nvme_idm_async_write(request_idm);
 	if (ret < 0) {
-		#ifndef COMPILE_STANDALONE
 		ilm_log_err("%s: nvme_idm_async_write fail %d", __func__, ret);
-		#else
-		printf("%s: nvme_idm_async_write fail %d\n", __func__, ret);
-		#endif //COMPILE_STANDALONE
 		goto EXIT_FAIL;
 	}
 
@@ -463,21 +384,13 @@ int nvme_idm_async_lock_destroy(char *lock_id, int mode, char *host_id,
 
 	ret = _init_lock_destroy(lock_id, mode, host_id, drive, &request_idm);
 	if (ret < 0) {
-		#ifndef COMPILE_STANDALONE
 		ilm_log_err("%s: _init_lock_destroy fail %d", __func__, ret);
-		#else
-		printf("%s: _init_lock_destroy fail %d\n", __func__, ret);
-		#endif //COMPILE_STANDALONE
 		goto EXIT_FAIL;
 	}
 
 	ret = nvme_idm_async_write(request_idm);
 	if (ret < 0) {
-		#ifndef COMPILE_STANDALONE
 		ilm_log_err("%s: nvme_idm_async_write fail %d", __func__, ret);
-		#else
-		printf("%s: nvme_idm_async_write fail %d\n", __func__, ret);
-		#endif //COMPILE_STANDALONE
 		goto EXIT_FAIL;
 	}
 
@@ -516,21 +429,13 @@ int nvme_idm_async_lock_refresh(char *lock_id, int mode, char *host_id,
 	ret = _init_lock_refresh(lock_id, mode, host_id, drive, timeout,
 	                         &request_idm);
 	if (ret < 0) {
-		#ifndef COMPILE_STANDALONE
 		ilm_log_err("%s: _init_lock_refresh fail %d", __func__, ret);
-		#else
-		printf("%s: _init_lock_refresh fail %d\n", __func__, ret);
-		#endif //COMPILE_STANDALONE
 		goto EXIT_FAIL;
 	}
 
 	ret = nvme_idm_async_write(request_idm);
 	if (ret < 0) {
-		#ifndef COMPILE_STANDALONE
 		ilm_log_err("%s: nvme_idm_async_write fail %d", __func__, ret);
-		#else
-		printf("%s: nvme_idm_async_write fail %d\n", __func__, ret);
-		#endif //COMPILE_STANDALONE
 		goto EXIT_FAIL;
 	}
 
@@ -589,22 +494,14 @@ int nvme_idm_async_read_lock_count(char *lock_id, char *host_id, char *drive,
 	ret = _init_read_lock_count(ASYNC_ON, lock_id, host_id, drive,
 					&request_idm);
 	if (ret < 0) {
-		#ifndef COMPILE_STANDALONE
 		ilm_log_err("%s: _init_read_lock_count fail %d",
 		            __func__, ret);
-		#else
-		printf("%s: _init_read_lock_count fail %d\n", __func__, ret);
-		#endif //COMPILE_STANDALONE
 		goto EXIT_FAIL;
 	}
 
 	ret = nvme_idm_async_read(request_idm);
 	if (ret < 0) {
-		#ifndef COMPILE_STANDALONE
 		ilm_log_err("%s: nvme_idm_async_read fail %d", __func__, ret);
-		#else
-		printf("%s: nvme_idm_async_read fail %d\n", __func__, ret);
-		#endif //COMPILE_STANDALONE
 		goto EXIT_FAIL;
 	}
 
@@ -637,21 +534,13 @@ int nvme_idm_async_read_lock_mode(char *lock_id, char *drive, uint64_t *handle)
 
 	ret = _init_read_lock_mode(ASYNC_ON, lock_id, drive, &request_idm);
 	if (ret < 0) {
-		#ifndef COMPILE_STANDALONE
 		ilm_log_err("%s: _init_read_lock_mode fail %d", __func__, ret);
-		#else
-		printf("%s: _init_read_lock_mode fail %d\n", __func__, ret);
-		#endif //COMPILE_STANDALONE
 		goto EXIT_FAIL;
 	}
 
 	ret = nvme_idm_async_read(request_idm);
 	if (ret < 0) {
-		#ifndef COMPILE_STANDALONE
 		ilm_log_err("%s: nvme_idm_async_read fail %d", __func__, ret);
-		#else
-		printf("%s: nvme_idm_async_read fail %d\n", __func__, ret);
-		#endif //COMPILE_STANDALONE
 		goto EXIT_FAIL;
 	}
 
@@ -687,21 +576,13 @@ int nvme_idm_async_read_lvb(char *lock_id, char *host_id, char *drive,
 
 	ret = _init_read_lvb(ASYNC_ON, lock_id, host_id, drive, &request_idm);
 	if (ret < 0) {
-		#ifndef COMPILE_STANDALONE
 		ilm_log_err("%s: _init_read_lvb fail %d", __func__, ret);
-		#else
-		printf("%s: _init_read_lvb fail %d\n", __func__, ret);
-		#endif //COMPILE_STANDALONE
 		goto EXIT_FAIL;
 	}
 
 	ret = nvme_idm_async_read(request_idm);
 	if (ret < 0) {
-		#ifndef COMPILE_STANDALONE
 		ilm_log_err("%s: nvme_idm_async_read fail %d", __func__, ret);
-		#else
-		printf("%s: nvme_idm_async_read fail %d\n", __func__, ret);
-		#endif //COMPILE_STANDALONE
 		goto EXIT_FAIL;
 	}
 
@@ -740,22 +621,14 @@ int nvme_idm_async_unlock(char *lock_id, int mode, char *host_id,
 	ret = _init_unlock(lock_id, mode, host_id, lvb, lvb_size, drive,
 	                   &request_idm);
 	if (ret < 0) {
-		#ifndef COMPILE_STANDALONE
 		ilm_log_err("%s: _init_unlock fail %d", __func__, ret);
-		#else
-		printf("%s: _init_unlock fail %d\n", __func__, ret);
-		#endif //COMPILE_STANDALONE
 		goto EXIT_FAIL;
 	}
 
 	ret = nvme_idm_async_write(request_idm);
 	if (ret < 0) {
-		#ifndef COMPILE_STANDALONE
 		ilm_log_err("%s: nvme_idm_async_write fail %d",
 		            __func__, ret);
-		#else
-		printf("%s: nvme_idm_async_write fail %d\n", __func__, ret);
-		#endif //COMPILE_STANDALONE
 		goto EXIT_FAIL;
 	}
 
@@ -811,11 +684,7 @@ int nvme_idm_get_fd(uint64_t handle)
  */
 int nvme_idm_read_version(int *version, char *drive)
 {
-	#ifndef COMPILE_STANDALONE
 	ilm_log_dbg("%s: NOT IMPLEMENTED!!", __func__);
-	#else
-	printf("%s: NOT IMPLEMENTED!!\n", __func__);
-	#endif //COMPILE_STANDALONE
 	return FAILURE;
 }
 
@@ -842,21 +711,13 @@ int nvme_idm_sync_lock(char *lock_id, int mode, char *host_id,
 
 	ret = _init_lock(lock_id, mode, host_id, drive, timeout, &request_idm);
 	if (ret < 0) {
-		#ifndef COMPILE_STANDALONE
 		ilm_log_err("%s: _init_lock fail %d", __func__, ret);
-		#else
-		printf("%s: _init_lock fail %d\n", __func__, ret);
-		#endif //COMPILE_STANDALONE
 		goto EXIT;
 	}
 
 	ret = nvme_idm_sync_write(request_idm);
 	if (ret < 0) {
-		#ifndef COMPILE_STANDALONE
 		ilm_log_err("%s: nvme_idm_sync_write fail %d", __func__, ret);
-		#else
-		printf("%s: nvme_idm_sync_write fail %d\n", __func__, ret);
-		#endif //COMPILE_STANDALONE
 	}
 
 EXIT:
@@ -891,21 +752,13 @@ int nvme_idm_sync_lock_break(char *lock_id, int mode, char *host_id,
 	ret = _init_lock_break(lock_id, mode, host_id, drive, timeout,
 	                       &request_idm);
 	if (ret < 0) {
-		#ifndef COMPILE_STANDALONE
 		ilm_log_err("%s: _init_lock_break fail %d", __func__, ret);
-		#else
-		printf("%s: _init_lock_break fail %d\n", __func__, ret);
-		#endif //COMPILE_STANDALONE
 		goto EXIT;
 	}
 
 	ret = nvme_idm_sync_write(request_idm);
 	if (ret < 0) {
-		#ifndef COMPILE_STANDALONE
 		ilm_log_err("%s: nvme_idm_sync_write fail %d", __func__, ret);
-		#else
-		printf("%s: nvme_idm_sync_write fail %d\n", __func__, ret);
-		#endif //COMPILE_STANDALONE
 	}
 
 EXIT:
@@ -954,21 +807,13 @@ int nvme_idm_sync_lock_destroy(char *lock_id, int mode, char *host_id,
 
 	ret = _init_lock_destroy(lock_id, mode, host_id, drive, &request_idm);
 	if (ret < 0) {
-		#ifndef COMPILE_STANDALONE
 		ilm_log_err("%s: _init_lock_destroy fail %d", __func__, ret);
-		#else
-		printf("%s: _init_lock_destroy fail %d\n", __func__, ret);
-		#endif //COMPILE_STANDALONE
 		goto EXIT;
 	}
 
 	ret = nvme_idm_sync_write(request_idm);
 	if (ret < 0) {
-		#ifndef COMPILE_STANDALONE
 		ilm_log_err("%s: nvme_idm_sync_write fail %d", __func__, ret);
-		#else
-		printf("%s: nvme_idm_sync_write fail %d\n", __func__, ret);
-		#endif //COMPILE_STANDALONE
 	}
 
 EXIT:
@@ -1001,21 +846,13 @@ int nvme_idm_sync_lock_refresh(char *lock_id, int mode, char *host_id,
 	ret = _init_lock_refresh(lock_id, mode, host_id, drive, timeout,
 	                         &request_idm);
 	if (ret < 0) {
-		#ifndef COMPILE_STANDALONE
 		ilm_log_err("%s: _init_lock_refresh fail %d", __func__, ret);
-		#else
-		printf("%s: _init_lock_refresh fail %d\n", __func__, ret);
-		#endif //COMPILE_STANDALONE
 		goto EXIT;
 	}
 
 	ret = nvme_idm_sync_write(request_idm);
 	if (ret < 0) {
-		#ifndef COMPILE_STANDALONE
 		ilm_log_err("%s: nvme_idm_sync_write fail %d", __func__, ret);
-		#else
-		printf("%s: nvme_idm_sync_write fail %d\n", __func__, ret);
-		#endif //COMPILE_STANDALONE
 	}
 
 EXIT:
@@ -1071,42 +908,25 @@ int nvme_idm_sync_read_host_state(char *lock_id, char *host_id,
 
 	ret = _init_read_host_state(lock_id, host_id, drive, &request_idm);
 	if (ret < 0) {
-		#ifndef COMPILE_STANDALONE
 		ilm_log_err("%s: _init_read_host_state fail %d",
 		            __func__, ret);
-		#else
-		printf("%s: _init_read_host_state fail %d\n", __func__, ret);
-		#endif //COMPILE_STANDALONE
 		goto EXIT_FAIL;
 	}
 
 	ret = nvme_idm_sync_read(request_idm);
 	if (ret < 0) {
-		#ifndef COMPILE_STANDALONE
 		ilm_log_err("%s: nvme_idm_sync_read fail %d", __func__, ret);
-		#else
-		printf("%s: nvme_idm_sync_read fail %d\n", __func__, ret);
-		#endif //COMPILE_STANDALONE
 		goto EXIT_FAIL;
 	}
 
 	ret = _parse_host_state(request_idm, host_state);
 	if (ret < 0) {
-		#ifndef COMPILE_STANDALONE
 		ilm_log_err("%s: _parse_host_state fail %d", __func__, ret);
-		#else
-		printf("%s: _parse_host_state fail %d\n", __func__, ret);
-		#endif //COMPILE_STANDALONE
 		goto EXIT_FAIL;
 	}
 
-	#ifndef COMPILE_STANDALONE
 	ilm_log_dbg("%s: found: host_state=0x%X (%d)",
 	            __func__, *host_state, *host_state);
-	#else
-	printf("%s: found: host_state=0x%X (%d)\n",
-	       __func__, *host_state, *host_state);
-	#endif //COMPILE_STANDALONE
 EXIT_FAIL:
 	_memory_free_idm_request(request_idm);
 	return ret;
@@ -1140,12 +960,8 @@ int nvme_idm_sync_read_lock_count(char *lock_id, char *host_id, int *count,
 	ret = _init_read_lock_count(ASYNC_OFF, lock_id, host_id, drive,
 	                            &request_idm);
 	if (ret < 0) {
-		#ifndef COMPILE_STANDALONE
 		ilm_log_err("%s: _init_read_lock_count fail %d",
 		            __func__, ret);
-		#else
-		printf("%s: _init_read_lock_count fail %d\n", __func__, ret);
-		#endif //COMPILE_STANDALONE
 		goto EXIT_FAIL;
 	}
 
@@ -1155,31 +971,18 @@ int nvme_idm_sync_read_lock_count(char *lock_id, char *host_id, int *count,
 
 	ret = nvme_idm_sync_read(request_idm);
 	if (ret < 0) {
-		#ifndef COMPILE_STANDALONE
 		ilm_log_err("%s: nvme_idm_sync_read fail %d", __func__, ret);
-		#else
-		printf("%s: nvme_idm_sync_read fail %d\n", __func__, ret);
-		#endif //COMPILE_STANDALONE
 		goto EXIT_FAIL;
 	}
 
 	ret = _parse_lock_count(request_idm, count, self);
 	if (ret < 0) {
-		#ifndef COMPILE_STANDALONE
 		ilm_log_err("%s: _parse_lock_count fail %d", __func__, ret);
-		#else
-		printf("%s: _parse_lock_count fail %d\n", __func__, ret);
-		#endif //COMPILE_STANDALONE
 		goto EXIT_FAIL;
 	}
 
-	#ifndef COMPILE_STANDALONE
 	ilm_log_dbg("%s: found: lock_count=%d, self_count=%d",
 	            __func__, *count, *self);
-	#else
-	printf("%s: found: lock_count=%d, self_count=%d\n",
-	       __func__, *count, *self);
-	#endif //COMPILE_STANDALONE
 EXIT_FAIL:
 	_memory_free_idm_request(request_idm);
 	return ret;
@@ -1210,11 +1013,7 @@ int nvme_idm_sync_read_lock_mode(char *lock_id, int *mode, char *drive)
 
 	ret = _init_read_lock_mode(ASYNC_OFF, lock_id, drive, &request_idm);
 	if (ret < 0) {
-		#ifndef COMPILE_STANDALONE
 		ilm_log_err("%s: _init_read_lock_mode fail %d", __func__, ret);
-		#else
-		printf("%s: _init_read_lock_mode fail %d\n", __func__, ret);
-		#endif //COMPILE_STANDALONE
 		goto EXIT_FAIL;
 	}
 
@@ -1225,29 +1024,17 @@ int nvme_idm_sync_read_lock_mode(char *lock_id, int *mode, char *drive)
 
 	ret = nvme_idm_sync_read(request_idm);
 	if (ret < 0) {
-		#ifndef COMPILE_STANDALONE
 		ilm_log_err("%s: nvme_idm_sync_read fail %d", __func__, ret);
-		#else
-		printf("%s: nvme_idm_sync_read fail %d\n", __func__, ret);
-		#endif //COMPILE_STANDALONE
 		goto EXIT_FAIL;
 	}
 
 	ret = _parse_lock_mode(request_idm, mode);
 	if (ret < 0) {
-		#ifndef COMPILE_STANDALONE
 		ilm_log_err("%s: _parse_lock_mode fail %d", __func__, ret);
-		#else
-		printf("%s: _parse_lock_mode fail %d\n", __func__, ret);
-		#endif //COMPILE_STANDALONE
 		goto EXIT_FAIL;
 	}
 
-	#ifndef COMPILE_STANDALONE
 	ilm_log_dbg("%s: found: mode=%d", __func__, *mode);
-	#else
-	printf("%s: found: mode=%d\n", __func__, *mode);
-	#endif //COMPILE_STANDALONE
 EXIT_FAIL:
 	_memory_free_idm_request(request_idm);
 	return ret;
@@ -1284,11 +1071,7 @@ int nvme_idm_sync_read_lvb(char *lock_id, char *host_id, char *lvb,
 
 	ret = _init_read_lvb(ASYNC_OFF, lock_id, host_id, drive, &request_idm);
 	if (ret < 0) {
-		#ifndef COMPILE_STANDALONE
 		ilm_log_err("%s: _init_read_lvb fail %d", __func__, ret);
-		#else
-		printf("%s: _init_read_lvb fail %d\n", __func__, ret);
-		#endif //COMPILE_STANDALONE
 		goto EXIT_FAIL;
 	}
 
@@ -1299,27 +1082,17 @@ int nvme_idm_sync_read_lvb(char *lock_id, char *host_id, char *lvb,
 
 	ret = nvme_idm_sync_read(request_idm);
 	if (ret < 0) {
-		#ifndef COMPILE_STANDALONE
 		ilm_log_err("%s: nvme_idm_sync_read fail %d", __func__, ret);
-		#else
-		printf("%s: nvme_idm_sync_read fail %d\n", __func__, ret);
-		#endif //COMPILE_STANDALONE
 		goto EXIT_FAIL;
 	}
 
 	ret = _parse_lvb(request_idm, lvb, lvb_size);
 	if (ret < 0) {
-		#ifndef COMPILE_STANDALONE
 		ilm_log_err("%s: _parse_lvb fail %d", __func__, ret);
-		#else
-		printf("%s: _parse_lvb fail %d\n", __func__, ret);
-		#endif //COMPILE_STANDALONE
 		goto EXIT_FAIL;
 	}
 
-	#ifndef COMPILE_STANDALONE
 	ilm_log_array_dbg(" found: lvb", lvb, lvb_size);
-	#endif //COMPILE_STANDALONE
 EXIT_FAIL:
 	_memory_free_idm_request(request_idm);
 	return ret;
@@ -1353,43 +1126,27 @@ int nvme_idm_sync_read_mutex_group(char *drive, struct idm_info **info_ptr,
 
 	ret = _init_read_mutex_group(drive, &request_idm);
 	if (ret < 0) {
-		#ifndef COMPILE_STANDALONE
 		ilm_log_err("%s: _init_read_mutex_group fail %d",
 		            __func__, ret);
-		#else
-		printf("%s: _init_read_mutex_group fail %d\n", __func__, ret);
-		#endif //COMPILE_STANDALONE
 		goto EXIT_FAIL;
 	}
 
 	ret = nvme_idm_sync_read(request_idm);
 	if (ret < 0) {
-		#ifndef COMPILE_STANDALONE
 		ilm_log_err("%s: nvme_idm_sync_read fail %d", __func__, ret);
-		#else
-		printf("%s: nvme_idm_sync_read fail %d\n", __func__, ret);
-		#endif //COMPILE_STANDALONE
 		goto EXIT_FAIL;
 	}
 
 	ret = _parse_mutex_group(request_idm, info_ptr, info_num);
 	if (ret < 0) {
-		#ifndef COMPILE_STANDALONE
 		ilm_log_err("%s: _parse_mutex_group fail %d", __func__, ret);
-		#else
-		printf("%s: _parse_mutex_group fail %d\n", __func__, ret);
-		#endif //COMPILE_STANDALONE
 		goto EXIT_FAIL;
 	}
 
 	//TODO: Keep -OR- Add debug flag??
 	dumpIdmInfoStruct(*info_ptr);
 
-	#ifndef COMPILE_STANDALONE
 	ilm_log_dbg("%s: found: info_num=%d", __func__, *info_num);
-	#else
-	printf("%s: found: info_num=%d\n", __func__, *info_num);
-	#endif //COMPILE_STANDALONE
 EXIT_FAIL:
 	_memory_free_idm_request(request_idm);
 	return ret;
@@ -1421,31 +1178,19 @@ int nvme_idm_sync_read_mutex_num(char *drive, unsigned int *mutex_num)
 
 	ret = _init_read_mutex_num(drive, &request_idm);
 	if (ret < 0) {
-		#ifndef COMPILE_STANDALONE
 		ilm_log_err("%s: _init_read_mutex_num fail %d", __func__, ret);
-		#else
-		printf("%s: _init_read_mutex_num fail %d\n", __func__, ret);
-		#endif //COMPILE_STANDALONE
 		goto EXIT_FAIL;
 	}
 
 	ret = nvme_idm_sync_read(request_idm);
 	if (ret < 0) {
-		#ifndef COMPILE_STANDALONE
 		ilm_log_err("%s: nvme_idm_sync_read fail %d", __func__, ret);
-		#else
-		printf("%s: nvme_idm_sync_read fail %d\n", __func__, ret);
-		#endif
 		goto EXIT_FAIL;
 	}
 
 	_parse_mutex_num(request_idm, mutex_num);
 
-	#ifndef COMPILE_STANDALONE
 	ilm_log_dbg("%s: found: mutex_num=%d", __func__, *mutex_num);
-	#else
-	printf("%s: found: mutex_num=%d\n", __func__, *mutex_num);
-	#endif //COMPILE_STANDALONE
 EXIT_FAIL:
 	_memory_free_idm_request(request_idm);
 	return ret;
@@ -1476,21 +1221,13 @@ int nvme_idm_sync_unlock(char *lock_id, int mode, char *host_id,
 	ret = _init_unlock(lock_id, mode, host_id, lvb, lvb_size, drive,
 	                   &request_idm);
 	if (ret < 0) {
-		#ifndef COMPILE_STANDALONE
 		ilm_log_err("%s: _init_unlock fail %d", __func__, ret);
-		#else
-		printf("%s: _init_unlock fail %d\n", __func__, ret);
-		#endif //COMPILE_STANDALONE
 		goto EXIT;
 	}
 
 	ret = nvme_idm_sync_write(request_idm);
 	if (ret < 0) {
-		#ifndef COMPILE_STANDALONE
 		ilm_log_err("%s: nvme_idm_sync_write fail %d", __func__, ret);
-		#else
-		printf("%s: nvme_idm_sync_write fail %d\n", __func__, ret);
-		#endif //COMPILE_STANDALONE
 	}
 
 EXIT:
@@ -1523,35 +1260,22 @@ int _init_lock(char *lock_id, int mode, char *host_id, char *drive,
 
 	ret = _validate_input_write(lock_id, mode, host_id, drive);
 	if (ret < 0) {
-		#ifndef COMPILE_STANDALONE
 		ilm_log_err("%s: _validate_input_write fail %d",
 		            __func__, ret);
-		#else
-		printf("%s: _validate_input_write fail %d\n", __func__, ret);
-		#endif //COMPILE_STANDALONE
 		return ret;
 	}
 
 	ret = _memory_init_idm_request(request_idm, DFLT_NUM_IDM_DATA_BLOCKS);
 	if (ret < 0) {
-		#ifndef COMPILE_STANDALONE
 		ilm_log_err("%s: _memory_init_idm_request fail %d",
 		            __func__, ret);
-		#else
-		printf("%s: _memory_init_idm_request fail %d\n",
-		       __func__, ret);
-		#endif //COMPILE_STANDALONE
 		return ret;
 	}
 
 	ret = nvme_idm_write_init(lock_id, mode, host_id, drive, timeout,
 	                          (*request_idm));
 	if (ret < 0) {
-		#ifndef COMPILE_STANDALONE
 		ilm_log_err("%s: nvme_idm_write_init fail %d", __func__, ret);
-		#else
-		printf("%s: nvme_idm_write_init fail %d\n", __func__, ret);
-		#endif //COMPILE_STANDALONE
 		return ret;
 	}
 
@@ -1587,35 +1311,22 @@ int _init_lock_break(char *lock_id, int mode, char *host_id, char *drive,
 
 	ret = _validate_input_write(lock_id, mode, host_id, drive);
 	if (ret < 0) {
-		#ifndef COMPILE_STANDALONE
 		ilm_log_err("%s: _validate_input_write fail %d",
 		            __func__, ret);
-		#else
-		printf("%s: _validate_input_write fail %d\n", __func__, ret);
-		#endif //COMPILE_STANDALONE
 		return ret;
 	}
 
 	ret = _memory_init_idm_request(request_idm, DFLT_NUM_IDM_DATA_BLOCKS);
 	if (ret < 0) {
-		#ifndef COMPILE_STANDALONE
 		ilm_log_err("%s: _memory_init_idm_request fail %d",
 		            __func__, ret);
-		#else
-		printf("%s: _memory_init_idm_request fail %d\n",
-		       __func__, ret);
-		#endif //COMPILE_STANDALONE
 		return ret;
 	}
 
 	ret = nvme_idm_write_init(lock_id, mode, host_id, drive, timeout,
 	                          (*request_idm));
 	if (ret < 0) {
-		#ifndef COMPILE_STANDALONE
 		ilm_log_err("%s: nvme_idm_write_init fail %d", __func__, ret);
-		#else
-		printf("%s: nvme_idm_write_init fail %d\n", __func__, ret);
-		#endif //COMPILE_STANDALONE
 		return ret;
 	}
 
@@ -1650,35 +1361,22 @@ int _init_lock_destroy(char *lock_id, int mode, char *host_id, char *drive,
 
 	ret = _validate_input_write(lock_id, mode, host_id, drive);
 	if (ret < 0) {
-		#ifndef COMPILE_STANDALONE
 		ilm_log_err("%s: _validate_input_write fail %d",
 		            __func__, ret);
-		#else
-		printf("%s: _validate_input_write fail %d\n", __func__, ret);
-		#endif //COMPILE_STANDALONE
 		return ret;
 	}
 
 	ret = _memory_init_idm_request(request_idm, DFLT_NUM_IDM_DATA_BLOCKS);
 	if (ret < 0) {
-		#ifndef COMPILE_STANDALONE
 		ilm_log_err("%s: _memory_init_idm_request fail %d",
 		            __func__, ret);
-		#else
-		printf("%s: _memory_init_idm_request fail %d\n",
-		       __func__, ret);
-		#endif //COMPILE_STANDALONE
 		return ret;
 	}
 
 	ret = nvme_idm_write_init(lock_id, mode, host_id, drive, 0,
 	                          (*request_idm));
 	if (ret < 0) {
-		#ifndef COMPILE_STANDALONE
 		ilm_log_err("%s: nvme_idm_write_init fail %d", __func__, ret);
-		#else
-		printf("%s: nvme_idm_write_init fail %d\n", __func__, ret);
-		#endif //COMPILE_STANDALONE
 		return ret;
 	}
 
@@ -1714,35 +1412,22 @@ int _init_lock_refresh(char *lock_id, int mode, char *host_id, char *drive,
 
 	ret = _validate_input_write(lock_id, mode, host_id, drive);
 	if (ret < 0) {
-		#ifndef COMPILE_STANDALONE
 		ilm_log_err("%s: _validate_input_write fail %d",
 		            __func__, ret);
-		#else
-		printf("%s: _validate_input_write fail %d\n", __func__, ret);
-		#endif //COMPILE_STANDALONE
 		return ret;
 	}
 
 	ret = _memory_init_idm_request(request_idm, DFLT_NUM_IDM_DATA_BLOCKS);
 	if (ret < 0) {
-		#ifndef COMPILE_STANDALONE
 		ilm_log_err("%s: _memory_init_idm_request fail %d",
 		            __func__, ret);
-		#else
-		printf("%s: _memory_init_idm_request fail %d\n",
-		       __func__, ret);
-		#endif //COMPILE_STANDALONE
 		return ret;
 	}
 
 	ret = nvme_idm_write_init(lock_id, mode, host_id, drive, timeout,
 	                          (*request_idm));
 	if (ret < 0) {
-		#ifndef COMPILE_STANDALONE
 		ilm_log_err("%s: nvme_idm_write_init fail %d", __func__, ret);
-		#else
-		printf("%s: nvme_idm_write_init fail %d\n", __func__, ret);
-		#endif //COMPILE_STANDALONE
 		return ret;
 	}
 
@@ -1889,10 +1574,8 @@ int _init_read_lock_mode(int async_on, char *lock_id, char *drive,
 	unsigned int mutex_num = 0;
 	int ret;
 
-	#ifndef COMPILE_STANDALONE
 	if (ilm_inject_fault_is_hit())
 		return -EIO;
-	#endif //COMPILE_STANDALONE
 
 	if (!lock_id || !drive)
 		return -EINVAL;
@@ -2021,10 +1704,8 @@ int _init_read_mutex_group(char *drive, struct idm_nvme_request **request_idm)
 	unsigned int mutex_num = 0;
 	int ret;
 
-	#ifndef COMPILE_STANDALONE
 	if (ilm_inject_fault_is_hit())
 		return -EIO;
-	#endif //COMPILE_STANDALONE
 
 	if (!drive)
 		return -EINVAL;
@@ -2065,19 +1746,13 @@ int _init_read_mutex_num(char *drive, struct idm_nvme_request **request_idm)
 
 	int ret;
 
-	#ifndef COMPILE_STANDALONE
 	if (ilm_inject_fault_is_hit())
 		return -EIO;
-	#endif //COMPILE_STANDALONE
 
 	ret = _memory_init_idm_request(request_idm, DFLT_NUM_IDM_DATA_BLOCKS);
 	if (ret < 0) {
-		#ifndef COMPILE_STANDALONE
 		ilm_log_err("%s: _memory_init_idm_request fail %d",
 		            __func__, ret);
-		#else
-		printf("%s: _memory_init_idm_request fail %d\n", __func__, ret);
-		#endif //COMPILE_STANDALONE
 		return ret;
 	}
 
@@ -2121,24 +1796,15 @@ int _init_unlock(char *lock_id, int mode, char *host_id, char *lvb,
 
 	ret = _validate_input_write(lock_id, mode, host_id, drive);
 	if (ret < 0) {
-		#ifndef COMPILE_STANDALONE
 		ilm_log_err("%s: _validate_input_write fail %d",
 		            __func__, ret);
-		#else
-		printf("%s: _validate_input_write fail %d\n", __func__, ret);
-		#endif //COMPILE_STANDALONE
 		return ret;
 	}
 
 	ret = _memory_init_idm_request(request_idm, DFLT_NUM_IDM_DATA_BLOCKS);
 	if (ret < 0) {
-		#ifndef COMPILE_STANDALONE
 		ilm_log_err("%s: _memory_init_idm_request fail %d",
 		            __func__, ret);
-		#else
-		printf("%s: _memory_init_idm_request fail %d\n",
-		       __func__, ret);
-		#endif //COMPILE_STANDALONE
 		return ret;
 	}
 
@@ -2146,11 +1812,7 @@ int _init_unlock(char *lock_id, int mode, char *host_id, char *lvb,
 	ret = nvme_idm_write_init(lock_id, mode, host_id, drive, 0,
 	                          (*request_idm));
 	if (ret < 0) {
-		#ifndef COMPILE_STANDALONE
 		ilm_log_err("%s: nvme_idm_write_init fail %d", __func__, ret);
-		#else
-		printf("%s: nvme_idm_write_init fail %d\n", __func__, ret);
-		#endif //COMPILE_STANDALONE
 		return ret;
 	}
 
@@ -2220,11 +1882,7 @@ int _memory_init_idm_request(struct idm_nvme_request **request_idm,
 
 	*request_idm = malloc(sizeof(struct idm_nvme_request));
 	if (!request_idm) {
-		#ifndef COMPILE_STANDALONE
 		ilm_log_err("%s: request memory allocate fail", __func__);
-		#else
-		printf("%s: request memory allocate fail\n", __func__);
-		#endif //COMPILE_STANDALONE
 		return -ENOMEM;
 	}
 	memset((*request_idm), 0, sizeof(**request_idm));
@@ -2233,11 +1891,7 @@ int _memory_init_idm_request(struct idm_nvme_request **request_idm,
 	(*request_idm)->data_idm = malloc(data_len);
 	if (!(*request_idm)->data_idm) {
 		_memory_free_idm_request((*request_idm));
-		#ifndef COMPILE_STANDALONE
 		ilm_log_err("%s: request data memory allocate fail", __func__);
-		#else
-		printf("%s: request data memory allocate fail\n", __func__);
-		#endif //COMPILE_STANDALONE
 		return -ENOMEM;
 	}
 	memset((*request_idm)->data_idm, 0, data_len);
@@ -2279,23 +1933,11 @@ int _parse_host_state(struct idm_nvme_request *request_idm, int *host_state)
 
 	data_idm = request_idm->data_idm;
 	for (i = 0; i < mutex_num; i++) {
-		#ifndef COMPILE_STANDALONE
 		//TODO: Layout improvement over adhereing to 80 char limit??
 		ilm_log_array_dbg("resource_id",  data_idm[i].resource_id, IDM_LOCK_ID_LEN_BYTES);
 		ilm_log_array_dbg("lock_id",      bswap_lock_id,           IDM_LOCK_ID_LEN_BYTES);
 		ilm_log_array_dbg("data host_id", data_idm[i].host_id,     IDM_HOST_ID_LEN_BYTES);
 		ilm_log_array_dbg("host_id",      bswap_host_id,           IDM_HOST_ID_LEN_BYTES);
-		#else
-		printf("bswap_lock_id    = '");
-		_print_char_arr(bswap_lock_id, IDM_LOCK_ID_LEN_BYTES);
-		printf("data resource_id = '");
-		_print_char_arr(data_idm[i].resource_id,
-		                IDM_LOCK_ID_LEN_BYTES);
-		printf("bswap_host_id = '");
-		_print_char_arr(bswap_host_id, IDM_HOST_ID_LEN_BYTES);
-		printf("data host_id  = '");
-		_print_char_arr(data_idm[i].host_id, IDM_HOST_ID_LEN_BYTES);
-		#endif //COMPILE_STANDALONE
 
 		/* Skip for other locks */
 		if (memcmp(data_idm[i].resource_id, bswap_lock_id,
@@ -2354,7 +1996,6 @@ int _parse_lock_count(struct idm_nvme_request *request_idm, int *count,
 		if (!locked)
 			continue;
 
-		#ifndef COMPILE_STANDALONE
 		ilm_log_array_dbg("resource_id", data_idm[i].resource_id,
 		                  IDM_LOCK_ID_LEN_BYTES);
 		ilm_log_array_dbg("lock_id", bswap_lock_id,
@@ -2363,17 +2004,6 @@ int _parse_lock_count(struct idm_nvme_request *request_idm, int *count,
 		                  IDM_HOST_ID_LEN_BYTES);
 		ilm_log_array_dbg("host_id", bswap_host_id,
 		                  IDM_HOST_ID_LEN_BYTES);
-		#else
-		printf("bswap_lock_id    = '");
-		_print_char_arr(bswap_lock_id, IDM_LOCK_ID_LEN_BYTES);
-		printf("data resource_id = '");
-		_print_char_arr(data_idm[i].resource_id,
-		                IDM_LOCK_ID_LEN_BYTES);
-		printf("bswap_host_id = '");
-		_print_char_arr(bswap_host_id, IDM_HOST_ID_LEN_BYTES);
-		printf("data host_id  = '");
-		_print_char_arr(data_idm[i].host_id, IDM_HOST_ID_LEN_BYTES);
-		#endif //COMPILE_STANDALONE
 
 		/* Skip for other locks */
 		if (memcmp(data_idm[i].resource_id, bswap_lock_id,
@@ -2384,12 +2014,8 @@ int _parse_lock_count(struct idm_nvme_request *request_idm, int *count,
 		           IDM_HOST_ID_LEN_BYTES)) {
 			if (*self) {
 				/* Must be wrong if self has been accounted */
-				#ifndef COMPILE_STANDALONE
 				ilm_log_err("%s: account self %d > 1",
 					__func__, *self);
-				#else
-				printf("%s: account self %d > 1\n", __func__, *self);
-				#endif //COMPILE_STANDALONE
 				goto EXIT;
 			}
 			*self = 1;
@@ -2433,18 +2059,10 @@ int _parse_lock_mode(struct idm_nvme_request *request_idm, int *mode)
 	data_idm = request_idm->data_idm;
 	for (i = 0; i < mutex_num; i++) {
 
-		#ifndef COMPILE_STANDALONE
 		ilm_log_array_dbg("resource_id", data_idm[i].resource_id,
 		                  IDM_LOCK_ID_LEN_BYTES);
 		ilm_log_array_dbg("lock_id(bswap)", bswap_lock_id,
 		                  IDM_LOCK_ID_LEN_BYTES);
-		#else
-		printf("lock_id(bswap) = '");
-		_print_char_arr(bswap_lock_id, IDM_LOCK_ID_LEN_BYTES);
-		printf("resource_id    = '");
-		_print_char_arr(data_idm[i].resource_id,
-		                IDM_LOCK_ID_LEN_BYTES);
-		#endif //COMPILE_STANDALONE
 
 		/* Skip for other locks */
 		if (memcmp(data_idm[i].resource_id, bswap_lock_id,
@@ -2454,11 +2072,7 @@ int _parse_lock_mode(struct idm_nvme_request *request_idm, int *mode)
 		state = __bswap_64(data_idm[i].state);
 		class = __bswap_64(data_idm[i].class);
 
-		#ifndef COMPILE_STANDALONE
 		ilm_log_dbg("%s: state=%lx class=%lx", __func__, state, class);
-		#else
-		printf("%s: state=%lx class=%lx\n", __func__, state, class);
-		#endif //COMPILE_STANDALONE
 
 		if (state == IDM_STATE_UNINIT ||
 		    state == IDM_STATE_UNLOCKED ||
@@ -2469,20 +2083,12 @@ int _parse_lock_mode(struct idm_nvme_request *request_idm, int *mode)
 		} else if (class == IDM_CLASS_SHARED_PROTECTED_READ) {
 			*mode = IDM_MODE_SHAREABLE;
 		} else if (class == IDM_CLASS_PROTECTED_WRITE) {
-			#ifndef COMPILE_STANDALONE
 			ilm_log_err("%s: PROTECTED_WRITE is not unsupported", __func__);
-			#else
-			printf("%s: PROTECTED_WRITE is not unsupported\n", __func__);
-			#endif //COMPILE_STANDALONE
 			ret = -EFAULT;
 			goto EXIT;
 		}
 
-		#ifndef COMPILE_STANDALONE
 		ilm_log_dbg("%s: mode=%d", __func__, *mode);
-		#else
-		printf("%s: mode=%d\n", __func__, *mode);
-		#endif //COMPILE_STANDALONE
 
 		if (*mode == IDM_MODE_EXCLUSIVE || *mode == IDM_MODE_SHAREABLE)
 			break;
@@ -2605,13 +2211,8 @@ int _parse_mutex_group(struct idm_nvme_request *request_idm,
 			info->mode = IDM_MODE_SHAREABLE;
 			break;
 		default:
-			#ifndef COMPILE_STANDALONE
 			ilm_log_err("%s: IDM class is not unsupported %ld",
 			            __func__, class);
-			#else
-			printf("%s: IDM class is not unsupported %ld\n",
-			            __func__, class);
-			#endif //COMPILE_STANDALONE
 			ret = -EFAULT;
 			goto EXIT;
 		}
@@ -2685,13 +2286,8 @@ void _parse_mutex_num(struct idm_nvme_request *request_idm,
 	*mutex_num = ((data[1]) & 0xff);
 	*mutex_num |= ((data[0]) & 0xff) << 8;
 
-	#ifndef COMPILE_STANDALONE
 	ilm_log_dbg("%s: data[0]=%u data[1]=%u mutex mutex_num=%u",
 	            __func__, data[0], data[1], *mutex_num);
-	#else
-	printf("%s: data[0]=%u data[1]=%u mutex mutex_num=%u\n",
-	       __func__, data[0], data[1], *mutex_num);
-	#endif //COMPILE_STANDALONE
 }
 
 /**
@@ -2710,10 +2306,8 @@ int _validate_input_common(char *lock_id, char *host_id, char *drive)
 	printf("%s: START\n", __func__);
 	#endif //FUNCTION_ENTRY_DEBUG
 
-	#ifndef COMPILE_STANDALONE
 	if (ilm_inject_fault_is_hit())
 		return -EIO;
-	#endif //COMPILE_STANDALONE
 
 	if (!lock_id || !host_id || !drive)
 		return -EINVAL;
