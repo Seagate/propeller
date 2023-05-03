@@ -51,7 +51,8 @@
 /* Define for logging a function's name each time it is entered. */
 #define DBG__LOG_FUNC_ENTRY
 
-#define DEBUG_TABLE__DRIVE_TO_POOL
+/* Define for extra logging on drive-to-threadpool table interactions */
+#define DBG__THRD_POOL_TABLE
 
 
 /* ========================== DEFINES ============================ */
@@ -257,7 +258,7 @@ static int _table_entry_find_empty(void)
 		}
 	}
 
-	#ifdef DEBUG_TABLE__DRIVE_TO_POOL
+	#ifdef DBG__THRD_POOL_TABLE
 	if (ret >= 0)
 		ilm_log_dbg("%s: empty entry found at %d", __func__, ret);
 	else
@@ -294,7 +295,7 @@ static int _table_entry_find_index(char *drive)
 		}
 	}
 
-	#ifdef DEBUG_TABLE__DRIVE_TO_POOL
+	#ifdef DBG__THRD_POOL_TABLE
 	if (ret >= 0)
 		ilm_log_dbg("%s: %s found at %d", __func__, entry->drive, ret);
 	else
@@ -358,7 +359,7 @@ static struct table_entry* table_entry_find(char *drive)
 		entry = NULL;
 	}
 
-	#ifdef DEBUG_TABLE__DRIVE_TO_POOL
+	#ifdef DBG__THRD_POOL_TABLE
 	if (entry)
 		ilm_log_dbg("%s: %s found", __func__, entry->drive);
 	else
@@ -426,7 +427,7 @@ static int table_entry_replace(char *drive, int n_pool_thrds)
 		return FAILURE;
 	}
 
-	#ifdef DEBUG_TABLE__DRIVE_TO_POOL
+	#ifdef DBG__THRD_POOL_TABLE
 	ilm_log_dbg("%s: %s{%d} replaced at %d\n",
 	            __func__, entry->drive,
 	            thpool_num_threads_alive(entry->thpool), index);
@@ -454,7 +455,7 @@ __attribute__ ((unused)) static int table_entry_update(char *drive, int n_pool_t
 		}
 	}
 
-	#ifdef DEBUG_TABLE__DRIVE_TO_POOL
+	#ifdef DBG__THRD_POOL_TABLE
 	ilm_log_dbg("%s: %s updated", __func__, drive);
 	#endif
 
@@ -483,7 +484,7 @@ __attribute__ ((unused)) static void table_entry_remove(char *drive)
 			entry->thpool = NULL;
 		}
 
-		#ifdef DEBUG_TABLE__DRIVE_TO_POOL
+		#ifdef DBG__THRD_POOL_TABLE
 		ilm_log_dbg("%s: %s removed", __func__, drive);
 		#endif
 	}
