@@ -36,13 +36,14 @@
 
 #include "ani_api.h"
 #include "idm_nvme_utils.h"
+#include "log.h"
 #include "thpool.h"
 
 
 /* ======================= COMPILE SWITCHES========================== */
 
 //TODO: DELETE THESE 2 (AND ALL CORRESPONDING CODE) AFTER ASYNC NVME INTEGRATION
-#define COMPILE_STANDALONE
+// #define COMPILE_STANDALONE
 #ifdef MAIN_ACTIVATE_ANI_API
 #define MAIN_ACTIVATE_ANI_API 1
 #else

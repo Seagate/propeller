@@ -46,13 +46,15 @@
 
 #include "idm_nvme_io.h"
 #include "idm_nvme_utils.h"
+#include "log.h"
+#include "util.h"
 
 
 //////////////////////////////////////////
 // COMPILE FLAGS
 //////////////////////////////////////////
 //TODO: DELETE THESE 2 (AND ALL CORRESPONDING CODE) AFTER NVME FILES COMPILE WITH THE REST OF PROPELLER.
-#define COMPILE_STANDALONE
+// #define COMPILE_STANDALONE
 #ifdef MAIN_ACTIVATE_NVME_IO
 #define MAIN_ACTIVATE_NVME_IO 1
 #else

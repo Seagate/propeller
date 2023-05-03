@@ -23,13 +23,16 @@
 #include "idm_nvme_api.h"
 #include "idm_nvme_io.h"
 #include "idm_nvme_utils.h"
+#include "inject_fault.h"
+#include "log.h"
+#include "util.h"
 
 
 //////////////////////////////////////////
 // COMPILE FLAGS
 //////////////////////////////////////////
 //TODO: DELETE THESE 2 (AND ALL CORRESPONDING CODE) AFTER NVME FILES COMPILE WITH THE REST OF PROPELLER.
-#define COMPILE_STANDALONE
+// #define COMPILE_STANDALONE
 #ifdef MAIN_ACTIVATE_NVME_API
 #define MAIN_ACTIVATE_NVME_API 1
 #else
@@ -811,7 +814,7 @@ int nvme_idm_get_fd(uint64_t handle)
 int nvme_idm_read_version(int *version, char *drive)
 {
 	#ifndef COMPILE_STANDALONE
-	ilm_log_dbg("%s: NOT IMPLEMENTED!!", __func__,);
+	ilm_log_dbg("%s: NOT IMPLEMENTED!!", __func__);
 	#else
 	printf("%s: NOT IMPLEMENTED!!\n", __func__);
 	#endif //COMPILE_STANDALONE
