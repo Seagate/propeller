@@ -33,6 +33,23 @@
  *
  */
 
+////////////////////////////////////////////////////////////////////////////////
+// COMPILE FLAGS
+////////////////////////////////////////////////////////////////////////////////
+/* For using internal main() for stand-alone debug compilation.
+Setup to be gcc-defined (-D) in make file */
+#ifdef DBG__NVME_IO_MAIN_ENABLE
+#define DBG__NVME_IO_MAIN_ENABLE 1
+#else
+#define DBG__NVME_IO_MAIN_ENABLE 0
+#endif
+
+/* Define for logging a function's name each time it is entered. */
+#define DBG__LOG_FUNC_ENTRY
+
+////////////////////////////////////////////////////////////////////////////////
+// INCLUDES
+////////////////////////////////////////////////////////////////////////////////
 #include <byteswap.h>
 #include <errno.h>
 #include <fcntl.h>
@@ -49,25 +66,9 @@
 #include "log.h"
 #include "util.h"
 
-
-//////////////////////////////////////////
-// COMPILE FLAGS
-//////////////////////////////////////////
-/* For using internal main() for stand-alone debug compilation.
-Setup to be gcc-defined (-D) in make file */
-#ifdef DBG__NVME_IO_MAIN_ENABLE
-#define DBG__NVME_IO_MAIN_ENABLE 1
-#else
-#define DBG__NVME_IO_MAIN_ENABLE 0
-#endif
-
-/* Define for logging a function's name each time it is entered. */
-#define DBG__LOG_FUNC_ENTRY
-
-
-//////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////
 // FUNCTIONS
-//////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////
 
 /**
  * nvme_idm_async_data_rcv - Asynchronously retrieves the status word and
@@ -679,14 +680,10 @@ int _sync_idm_cmd_send(struct idm_nvme_request *request_idm)
 	return ret;
 }
 
-
-
-
-
+////////////////////////////////////////////////////////////////////////////////
+// DEBUG MAIN
+////////////////////////////////////////////////////////////////////////////////
 #if DBG__NVME_IO_MAIN_ENABLE
-/*#########################################################################################
-########################### STAND-ALONE MAIN ##############################################
-#########################################################################################*/
 #define DRIVE_DEFAULT_DEVICE "/dev/nvme0n1";
 
 //To compile:

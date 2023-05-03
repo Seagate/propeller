@@ -7,11 +7,32 @@
  *
  *
  * NOTES on IDM API:
- * The term IDM API is defined here as a "top" level interface consisting of functions that
- * interact with or manipulate the IDM.  The functions in this file represent the NVMe-specific versions
- * of the IDM APIs.  These IDM APIs are then intended to be called externally by programs such as linux's lvm2.
+ * The term IDM (In-Drive Mutex) API is defined here as the main interface to
+ * the "lower-level" of the Propeller code (in that "lower" is "closer" to
+ * the hardware).  These functions interact with the OS to write and\or read
+ * to the target device's IDM. The functions in this file represent the
+ * NVMe-specific versions of the IDM APIs.  These IDM APIs are intended to be
+ * called by the ILM "layer" of Propeller (which is, in turn, called by external
+ * programs such as Linux's lvm2.
  */
 
+////////////////////////////////////////////////////////////////////////////////
+// COMPILE FLAGS
+////////////////////////////////////////////////////////////////////////////////
+/* For using internal main() for stand-alone debug compilation.
+Setup to be gcc-defined (-D) in make file */
+#ifdef DBG__NVME_API_MAIN_ENABLE
+#define DBG__NVME_API_MAIN_ENABLE 1
+#else
+#define DBG__NVME_API_MAIN_ENABLE 0
+#endif
+
+/* Define for logging a function's name each time it is entered. */
+#define DBG__LOG_FUNC_ENTRY
+
+////////////////////////////////////////////////////////////////////////////////
+// INCLUDES
+////////////////////////////////////////////////////////////////////////////////
 #include <byteswap.h>
 #include <errno.h>
 #include <fcntl.h>
@@ -27,24 +48,9 @@
 #include "log.h"
 #include "util.h"
 
-
-//////////////////////////////////////////
-// COMPILE FLAGS
-//////////////////////////////////////////
-/* For using internal main() for stand-alone debug compilation.
-Setup to be gcc-defined (-D) in make file */
-#ifdef DBG__NVME_API_MAIN_ENABLE
-#define DBG__NVME_API_MAIN_ENABLE 1
-#else
-#define DBG__NVME_API_MAIN_ENABLE 0
-#endif
-
-/* Define for logging a function's name each time it is entered. */
-#define DBG__LOG_FUNC_ENTRY
-
-//////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////
 // FUNCTIONS
-//////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////
 
 /**
  * nvme_idm_async_free_result - Free the async result
@@ -2357,10 +2363,10 @@ int _validate_input_write(char *lock_id, int mode, char *host_id, char *drive)
 
 
 
+////////////////////////////////////////////////////////////////////////////////
+// DEBUG MAIN
+////////////////////////////////////////////////////////////////////////////////
 #if DBG__NVME_API_MAIN_ENABLE
-/*#########################################################################################
-########################### STAND-ALONE MAIN ##############################################
-#########################################################################################*/
 #define DRIVE_DEFAULT_DEVICE "/dev/nvme0n1"
 
 #define ASYNC_SLEEP_TIME_SEC	1

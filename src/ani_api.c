@@ -28,20 +28,9 @@
 				Other?
  */
 
-#include <errno.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <uuid/uuid.h>
-
-#include "ani_api.h"
-#include "idm_nvme_utils.h"
-#include "log.h"
-#include "thpool.h"
-
-
-/* ======================= COMPILE SWITCHES========================== */
-
+////////////////////////////////////////////////////////////////////////////////
+// COMPILE SWITCHES
+////////////////////////////////////////////////////////////////////////////////
 /* For using internal main() for stand-alone debug compilation.
 Setup to be gcc-defined (-D) in make file */
 #ifdef DBG__NVME_ANI_MAIN_ENABLE
@@ -56,30 +45,44 @@ Setup to be gcc-defined (-D) in make file */
 /* Define for extra logging on drive-to-threadpool table interactions */
 #define DBG__THRD_POOL_TABLE
 
+////////////////////////////////////////////////////////////////////////////////
+// INCLUDES
+////////////////////////////////////////////////////////////////////////////////
+#include <errno.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <uuid/uuid.h>
 
-/* ========================== DEFINES ============================ */
+#include "ani_api.h"
+#include "idm_nvme_utils.h"
+#include "log.h"
+#include "thpool.h"
 
+////////////////////////////////////////////////////////////////////////////////
+// DEFINES
+////////////////////////////////////////////////////////////////////////////////
 #define MAX_TABLE_ENTRIES		8
 #define TABLE_ENTRY_DRIVE_BUFFER_SIZE	32
 #define NUM_POOL_THREADS		4
 
-
-/* ========================== STRUCTURES ============================ */
-
+////////////////////////////////////////////////////////////////////////////////
+// STRUCTURES
+////////////////////////////////////////////////////////////////////////////////
 struct table_entry {
 	char              drive[PATH_MAX];
 	struct threadpool *thpool;
 };
 
-
-/* =========================== GLOBLALS ============================= */
-
+////////////////////////////////////////////////////////////////////////////////
+// GLOBALS
+////////////////////////////////////////////////////////////////////////////////
 //Primary drive-to-threadpool table
 struct table_entry *table_thpool[MAX_TABLE_ENTRIES];
 
-
-/* ========================== PROTOTYPES ============================ */
-
+////////////////////////////////////////////////////////////////////////////////
+// PROTOTYPES
+////////////////////////////////////////////////////////////////////////////////
 static int ani_ioctl(void* arg);
 
 static int  _table_entry_is_empty(struct table_entry *entry);
@@ -94,9 +97,9 @@ static void table_entry_remove(char *drive);
 static void table_destroy(void);
 static void table_show(void);
 
-
-/* ================== ASYNC NVME INTERFACE(ANI) ===================== */
-
+////////////////////////////////////////////////////////////////////////////////
+// ASYNC NVME INTERFACE(ANI)
+////////////////////////////////////////////////////////////////////////////////
 int ani_init(void)
 {
 	#ifdef DBG__LOG_FUNC_ENTRY
@@ -224,8 +227,9 @@ static int ani_ioctl(void* arg)
 }
 
 
-/* ========================== LOOKUP TABLE ============================ */
-
+////////////////////////////////////////////////////////////////////////////////
+// LOOKUP TABLE
+////////////////////////////////////////////////////////////////////////////////
 //return: 1 when empty, 0 when NOT empty (so behaves like logical bool)
 static int _table_entry_is_empty(struct table_entry *entry)
 {
@@ -533,9 +537,9 @@ __attribute__ ((unused)) static void table_show(void)
 	}
 }
 
-
-/* ============================= MAIN =============================== */
-
+////////////////////////////////////////////////////////////////////////////////
+// DEBUG MAIN
+////////////////////////////////////////////////////////////////////////////////
 #if DBG__NVME_ANI_MAIN_ENABLE
 #include <assert.h>
 
