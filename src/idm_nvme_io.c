@@ -1,7 +1,7 @@
 /* SPDX-License-Identifier: LGPL-2.1-only */
 /*
  * Copyright (C) 2010-2011 Red Hat, Inc.
- * Copyright (C) 2022 Seagate Technology LLC and/or its Affiliates.
+ * Copyright (C) 2023 Seagate Technology LLC and/or its Affiliates.
  *
  * idm_nvme_io.c - Contains the lowest-level function that allow the IDM In-drive Mutex (IDM)
  *                  to talk to the Linux kernel (via ioctl(), read() or write())
@@ -53,10 +53,12 @@
 //////////////////////////////////////////
 // COMPILE FLAGS
 //////////////////////////////////////////
-#ifdef MAIN_ACTIVATE_NVME_IO
-#define MAIN_ACTIVATE_NVME_IO 1
+/* For using internal main() for stand-alone debug compilation.
+Setup to be gcc-defined (-D) in make file */
+#ifdef DBG__NVME_IO_MAIN_ENABLE
+#define DBG__NVME_IO_MAIN_ENABLE 1
 #else
-#define MAIN_ACTIVATE_NVME_IO 0
+#define DBG__NVME_IO_MAIN_ENABLE 0
 #endif
 
 /* Define for logging a function's name each time it is entered. */
@@ -681,7 +683,7 @@ int _sync_idm_cmd_send(struct idm_nvme_request *request_idm)
 
 
 
-#if MAIN_ACTIVATE_NVME_IO
+#if DBG__NVME_IO_MAIN_ENABLE
 /*#########################################################################################
 ########################### STAND-ALONE MAIN ##############################################
 #########################################################################################*/
@@ -727,4 +729,4 @@ int main(int argc, char *argv[])
 
     return 0;
 }
-#endif//MAIN_ACTIVATE_NVME_IO
+#endif//DBG__NVME_IO_MAIN_ENABLE

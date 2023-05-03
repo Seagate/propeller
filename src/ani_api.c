@@ -42,10 +42,12 @@
 
 /* ======================= COMPILE SWITCHES========================== */
 
-#ifdef MAIN_ACTIVATE_ANI_API
-#define MAIN_ACTIVATE_ANI_API 1
+/* For using internal main() for stand-alone debug compilation.
+Setup to be gcc-defined (-D) in make file */
+#ifdef DBG__NVME_ANI_MAIN_ENABLE
+#define DBG__NVME_ANI_MAIN_ENABLE 1
 #else
-#define MAIN_ACTIVATE_ANI_API 0
+#define DBG__NVME_ANI_MAIN_ENABLE 0
 #endif
 
 /* Define for logging a function's name each time it is entered. */
@@ -534,7 +536,7 @@ __attribute__ ((unused)) static void table_show(void)
 
 /* ============================= MAIN =============================== */
 
-#if MAIN_ACTIVATE_ANI_API
+#if DBG__NVME_ANI_MAIN_ENABLE
 #include <assert.h>
 
 #define DRIVE1	"/dev/nvme1n1"
@@ -636,4 +638,4 @@ int main(void){
 
 	return 0;
 }
-#endif //MAIN_ACTIVATE_ANI_API
+#endif //DBG__NVME_ANI_MAIN_ENABLE

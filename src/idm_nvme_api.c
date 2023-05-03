@@ -31,10 +31,12 @@
 //////////////////////////////////////////
 // COMPILE FLAGS
 //////////////////////////////////////////
-#ifdef MAIN_ACTIVATE_NVME_API
-#define MAIN_ACTIVATE_NVME_API 1
+/* For using internal main() for stand-alone debug compilation.
+Setup to be gcc-defined (-D) in make file */
+#ifdef DBG__NVME_API_MAIN_ENABLE
+#define DBG__NVME_API_MAIN_ENABLE 1
 #else
-#define MAIN_ACTIVATE_NVME_API 0
+#define DBG__NVME_API_MAIN_ENABLE 0
 #endif
 
 /* Define for logging a function's name each time it is entered. */
@@ -2355,7 +2357,7 @@ int _validate_input_write(char *lock_id, int mode, char *host_id, char *drive)
 
 
 
-#if MAIN_ACTIVATE_NVME_API
+#if DBG__NVME_API_MAIN_ENABLE
 /*#########################################################################################
 ########################### STAND-ALONE MAIN ##############################################
 #########################################################################################*/
@@ -2588,4 +2590,4 @@ int main(int argc, char *argv[])
 INIT_FAIL_EXIT:
 	return ret;
 }
-#endif//MAIN_ACTIVATE_NVME_API
+#endif//DBG__NVME_API_MAIN_ENABLE
