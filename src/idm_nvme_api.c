@@ -37,7 +37,8 @@
 #define MAIN_ACTIVATE_NVME_API 0
 #endif
 
-#define FUNCTION_ENTRY_DEBUG    //TODO: Remove this entirely???
+/* Define for logging a function's name each time it is entered. */
+#define DBG__LOG_FUNC_ENTRY
 
 //////////////////////////////////////////
 // FUNCTIONS
@@ -52,6 +53,10 @@
  */
 void nvme_idm_async_free_result(uint64_t handle)
 {
+	#ifdef DBG__LOG_FUNC_ENTRY
+	ilm_log_dbg("%s: ENTRY", __func__);
+	#endif
+
 	struct idm_nvme_request *request_idm = (struct idm_nvme_request *)handle;
 
 	_memory_free_idm_request(request_idm);
@@ -68,9 +73,9 @@ void nvme_idm_async_free_result(uint64_t handle)
  */
 int nvme_idm_async_get_result(uint64_t handle, int *result)
 {
-	#ifdef FUNCTION_ENTRY_DEBUG
-	printf("%s: START\n", __func__);
-	#endif //FUNCTION_ENTRY_DEBUG
+	#ifdef DBG__LOG_FUNC_ENTRY
+	ilm_log_dbg("%s: ENTRY", __func__);
+	#endif
 
 	struct idm_nvme_request *request_idm = (struct idm_nvme_request *)handle;
 	int ret;
@@ -111,9 +116,9 @@ EXIT:
 int nvme_idm_async_get_result_lock_count(uint64_t handle, int *count,
                                          int *self, int *result)
 {
-	#ifdef FUNCTION_ENTRY_DEBUG
-	printf("%s: START\n", __func__);
-	#endif //FUNCTION_ENTRY_DEBUG
+	#ifdef DBG__LOG_FUNC_ENTRY
+	ilm_log_dbg("%s: ENTRY", __func__);
+	#endif
 
 	struct idm_nvme_request *request_idm = (struct idm_nvme_request *)handle;
 	int ret;
@@ -163,9 +168,9 @@ EXIT_FAIL:
 int nvme_idm_async_get_result_lock_mode(uint64_t handle, int *mode,
                                         int *result)
 {
-	#ifdef FUNCTION_ENTRY_DEBUG
-	printf("%s: START\n", __func__);
-	#endif //FUNCTION_ENTRY_DEBUG
+	#ifdef DBG__LOG_FUNC_ENTRY
+	ilm_log_dbg("%s: ENTRY", __func__);
+	#endif
 
 	struct idm_nvme_request *request_idm = (struct idm_nvme_request *)handle;
 	int ret;
@@ -213,9 +218,9 @@ EXIT_FAIL:
 int nvme_idm_async_get_result_lvb(uint64_t handle, char *lvb, int lvb_size,
                                   int *result)
 {
-	#ifdef FUNCTION_ENTRY_DEBUG
-	printf("%s: START\n", __func__);
-	#endif //FUNCTION_ENTRY_DEBUG
+	#ifdef DBG__LOG_FUNC_ENTRY
+	ilm_log_dbg("%s: ENTRY", __func__);
+	#endif
 
 	struct idm_nvme_request *request_idm = (struct idm_nvme_request *)handle;
 	int ret;
@@ -266,9 +271,9 @@ EXIT_FAIL:
 int nvme_idm_async_lock(char *lock_id, int mode, char *host_id,
                         char *drive, uint64_t timeout, uint64_t *handle)
 {
-	#ifdef FUNCTION_ENTRY_DEBUG
-	printf("%s: START\n", __func__);
-	#endif //FUNCTION_ENTRY_DEBUG
+	#ifdef DBG__LOG_FUNC_ENTRY
+	ilm_log_dbg("%s: ENTRY", __func__);
+	#endif
 
 	struct idm_nvme_request *request_idm = NULL;
 	int ret;
@@ -311,9 +316,9 @@ EXIT:
 int nvme_idm_async_lock_break(char *lock_id, int mode, char *host_id,
                               char *drive, uint64_t timeout, uint64_t *handle)
 {
-	#ifdef FUNCTION_ENTRY_DEBUG
-	printf("%s: START\n", __func__);
-	#endif //FUNCTION_ENTRY_DEBUG
+	#ifdef DBG__LOG_FUNC_ENTRY
+	ilm_log_dbg("%s: ENTRY", __func__);
+	#endif
 
 	struct idm_nvme_request *request_idm = NULL;
 	int ret;
@@ -375,9 +380,9 @@ int nvme_idm_async_lock_convert(char *lock_id, int mode, char *host_id,
 int nvme_idm_async_lock_destroy(char *lock_id, int mode, char *host_id,
                                 char *drive, uint64_t *handle)
 {
-	#ifdef FUNCTION_ENTRY_DEBUG
-	printf("%s: START\n", __func__);
-	#endif //FUNCTION_ENTRY_DEBUG
+	#ifdef DBG__LOG_FUNC_ENTRY
+	ilm_log_dbg("%s: ENTRY", __func__);
+	#endif
 
 	struct idm_nvme_request *request_idm = NULL;
 	int ret;
@@ -419,9 +424,9 @@ int nvme_idm_async_lock_refresh(char *lock_id, int mode, char *host_id,
                                 char *drive, uint64_t timeout,
                                 uint64_t *handle)
 {
-	#ifdef FUNCTION_ENTRY_DEBUG
-	printf("%s: START\n", __func__);
-	#endif //FUNCTION_ENTRY_DEBUG
+	#ifdef DBG__LOG_FUNC_ENTRY
+	ilm_log_dbg("%s: ENTRY", __func__);
+	#endif
 
 	struct idm_nvme_request *request_idm = NULL;
 	int ret;
@@ -484,9 +489,9 @@ int nvme_idm_async_lock_renew(char *lock_id, int mode, char *host_id,
 int nvme_idm_async_read_lock_count(char *lock_id, char *host_id, char *drive,
                                    uint64_t *handle)
 {
-	#ifdef FUNCTION_ENTRY_DEBUG
-	printf("%s: START\n", __func__);
-	#endif //FUNCTION_ENTRY_DEBUG
+	#ifdef DBG__LOG_FUNC_ENTRY
+	ilm_log_dbg("%s: ENTRY", __func__);
+	#endif
 
 	struct idm_nvme_request *request_idm = NULL;
 	int ret;
@@ -525,9 +530,9 @@ EXIT:
  */
 int nvme_idm_async_read_lock_mode(char *lock_id, char *drive, uint64_t *handle)
 {
-	#ifdef FUNCTION_ENTRY_DEBUG
-	printf("%s: START\n", __func__);
-	#endif //FUNCTION_ENTRY_DEBUG
+	#ifdef DBG__LOG_FUNC_ENTRY
+	ilm_log_dbg("%s: ENTRY", __func__);
+	#endif
 
 	struct idm_nvme_request *request_idm = NULL;
 	int ret;
@@ -567,9 +572,9 @@ EXIT:
 int nvme_idm_async_read_lvb(char *lock_id, char *host_id, char *drive,
                             uint64_t *handle)
 {
-	#ifdef FUNCTION_ENTRY_DEBUG
-	printf("%s: START\n", __func__);
-	#endif //FUNCTION_ENTRY_DEBUG
+	#ifdef DBG__LOG_FUNC_ENTRY
+	ilm_log_dbg("%s: ENTRY", __func__);
+	#endif
 
 	struct idm_nvme_request *request_idm = NULL;
 	int ret;
@@ -611,9 +616,9 @@ int nvme_idm_async_unlock(char *lock_id, int mode, char *host_id,
                           char *lvb, int lvb_size, char *drive,
                           uint64_t *handle)
 {
-	#ifdef FUNCTION_ENTRY_DEBUG
-	printf("%s: START\n", __func__);
-	#endif //FUNCTION_ENTRY_DEBUG
+	#ifdef DBG__LOG_FUNC_ENTRY
+	ilm_log_dbg("%s: ENTRY", __func__);
+	#endif
 
 	struct idm_nvme_request *request_idm = NULL;
 	int ret;
@@ -702,9 +707,9 @@ int nvme_idm_read_version(int *version, char *drive)
 int nvme_idm_sync_lock(char *lock_id, int mode, char *host_id,
                        char *drive, uint64_t timeout)
 {
-	#ifdef FUNCTION_ENTRY_DEBUG
-	printf("%s: START\n", __func__);
-	#endif //FUNCTION_ENTRY_DEBUG
+	#ifdef DBG__LOG_FUNC_ENTRY
+	ilm_log_dbg("%s: ENTRY", __func__);
+	#endif
 
 	struct idm_nvme_request *request_idm = NULL;
 	int ret;
@@ -742,9 +747,9 @@ EXIT:
 int nvme_idm_sync_lock_break(char *lock_id, int mode, char *host_id,
                              char *drive, uint64_t timeout)
 {
-	#ifdef FUNCTION_ENTRY_DEBUG
-	printf("%s: START\n", __func__);
-	#endif //FUNCTION_ENTRY_DEBUG
+	#ifdef DBG__LOG_FUNC_ENTRY
+	ilm_log_dbg("%s: ENTRY", __func__);
+	#endif
 
 	struct idm_nvme_request *request_idm = NULL;
 	int ret;
@@ -798,9 +803,9 @@ int nvme_idm_sync_lock_convert(char *lock_id, int mode, char *host_id,
 int nvme_idm_sync_lock_destroy(char *lock_id, int mode, char *host_id,
                                char *drive)
 {
-	#ifdef FUNCTION_ENTRY_DEBUG
-	printf("%s: START\n", __func__);
-	#endif //FUNCTION_ENTRY_DEBUG
+	#ifdef DBG__LOG_FUNC_ENTRY
+	ilm_log_dbg("%s: ENTRY", __func__);
+	#endif
 
 	struct idm_nvme_request *request_idm = NULL;
 	int ret;
@@ -836,9 +841,9 @@ EXIT:
 int nvme_idm_sync_lock_refresh(char *lock_id, int mode, char *host_id,
                                   char *drive, uint64_t timeout)
 {
-	#ifdef FUNCTION_ENTRY_DEBUG
-	printf("%s: START\n", __func__);
-	#endif //FUNCTION_ENTRY_DEBUG
+	#ifdef DBG__LOG_FUNC_ENTRY
+	ilm_log_dbg("%s: ENTRY", __func__);
+	#endif
 
 	struct idm_nvme_request *request_idm = NULL;
 	int ret;
@@ -893,9 +898,9 @@ int nvme_idm_sync_lock_renew(char *lock_id, int mode, char *host_id,
 int nvme_idm_sync_read_host_state(char *lock_id, char *host_id,
                                   int *host_state, char *drive)
 {
-	#ifdef FUNCTION_ENTRY_DEBUG
-	printf("%s: START\n", __func__);
-	#endif //FUNCTION_ENTRY_DEBUG
+	#ifdef DBG__LOG_FUNC_ENTRY
+	ilm_log_dbg("%s: ENTRY", __func__);
+	#endif
 
 	struct idm_nvme_request *request_idm = NULL;
 	int ret;
@@ -946,9 +951,9 @@ EXIT_FAIL:
 int nvme_idm_sync_read_lock_count(char *lock_id, char *host_id, int *count,
                                   int *self, char *drive)
 {
-	#ifdef FUNCTION_ENTRY_DEBUG
-	printf("%s: START\n", __func__);
-	#endif //FUNCTION_ENTRY_DEBUG
+	#ifdef DBG__LOG_FUNC_ENTRY
+	ilm_log_dbg("%s: ENTRY", __func__);
+	#endif
 
 	struct idm_nvme_request *request_idm = NULL;
 	int ret;
@@ -1001,9 +1006,9 @@ EXIT_FAIL:
  */
 int nvme_idm_sync_read_lock_mode(char *lock_id, int *mode, char *drive)
 {
-	#ifdef FUNCTION_ENTRY_DEBUG
-	printf("%s: START\n", __func__);
-	#endif //FUNCTION_ENTRY_DEBUG
+	#ifdef DBG__LOG_FUNC_ENTRY
+	ilm_log_dbg("%s: ENTRY", __func__);
+	#endif
 
 	struct idm_nvme_request *request_idm = NULL;
 	int ret;
@@ -1057,9 +1062,9 @@ EXIT_FAIL:
 int nvme_idm_sync_read_lvb(char *lock_id, char *host_id, char *lvb,
                            int lvb_size, char *drive)
 {
-	#ifdef FUNCTION_ENTRY_DEBUG
-	printf("%s: START\n", __func__);
-	#endif //FUNCTION_ENTRY_DEBUG
+	#ifdef DBG__LOG_FUNC_ENTRY
+	ilm_log_dbg("%s: ENTRY", __func__);
+	#endif
 
 	struct idm_nvme_request *request_idm = NULL;
 	int ret;
@@ -1113,9 +1118,9 @@ EXIT_FAIL:
 int nvme_idm_sync_read_mutex_group(char *drive, struct idm_info **info_ptr,
                                    int *info_num)
 {
-	#ifdef FUNCTION_ENTRY_DEBUG
-	printf("%s: START\n", __func__);
-	#endif //FUNCTION_ENTRY_DEBUG
+	#ifdef DBG__LOG_FUNC_ENTRY
+	ilm_log_dbg("%s: ENTRY", __func__);
+	#endif
 
 	struct idm_nvme_request *request_idm = NULL;
 	int ret;
@@ -1165,9 +1170,9 @@ EXIT_FAIL:
  */
 int nvme_idm_sync_read_mutex_num(char *drive, unsigned int *mutex_num)
 {
-	#ifdef FUNCTION_ENTRY_DEBUG
-	printf("%s: START\n", __func__);
-	#endif //FUNCTION_ENTRY_DEBUG
+	#ifdef DBG__LOG_FUNC_ENTRY
+	ilm_log_dbg("%s: ENTRY", __func__);
+	#endif
 
 	struct idm_nvme_request *request_idm = NULL;
 	int ret;
@@ -1211,9 +1216,9 @@ EXIT_FAIL:
 int nvme_idm_sync_unlock(char *lock_id, int mode, char *host_id,
                          char *lvb, int lvb_size, char *drive)
 {
-	#ifdef FUNCTION_ENTRY_DEBUG
-	printf("%s: START\n", __func__);
-	#endif //FUNCTION_ENTRY_DEBUG
+	#ifdef DBG__LOG_FUNC_ENTRY
+	ilm_log_dbg("%s: ENTRY", __func__);
+	#endif
 
 	struct idm_nvme_request *request_idm = NULL;
 	int ret;
@@ -1252,9 +1257,9 @@ EXIT:
 int _init_lock(char *lock_id, int mode, char *host_id, char *drive,
                uint64_t timeout, struct idm_nvme_request **request_idm)
 {
-	#ifdef FUNCTION_ENTRY_DEBUG
-	printf("%s: START\n", __func__);
-	#endif //FUNCTION_ENTRY_DEBUG
+	#ifdef DBG__LOG_FUNC_ENTRY
+	ilm_log_dbg("%s: ENTRY", __func__);
+	#endif
 
 	int ret;
 
@@ -1303,9 +1308,9 @@ int _init_lock(char *lock_id, int mode, char *host_id, char *drive,
 int _init_lock_break(char *lock_id, int mode, char *host_id, char *drive,
                      uint64_t timeout, struct idm_nvme_request **request_idm)
 {
-	#ifdef FUNCTION_ENTRY_DEBUG
-	printf("%s: START\n", __func__);
-	#endif //FUNCTION_ENTRY_DEBUG
+	#ifdef DBG__LOG_FUNC_ENTRY
+	ilm_log_dbg("%s: ENTRY", __func__);
+	#endif
 
 	int ret;
 
@@ -1353,9 +1358,9 @@ int _init_lock_break(char *lock_id, int mode, char *host_id, char *drive,
 int _init_lock_destroy(char *lock_id, int mode, char *host_id, char *drive,
                        struct idm_nvme_request **request_idm)
 {
-	#ifdef FUNCTION_ENTRY_DEBUG
-	printf("%s: START\n", __func__);
-	#endif //FUNCTION_ENTRY_DEBUG
+	#ifdef DBG__LOG_FUNC_ENTRY
+	ilm_log_dbg("%s: ENTRY", __func__);
+	#endif
 
 	int ret;
 
@@ -1404,9 +1409,9 @@ int _init_lock_destroy(char *lock_id, int mode, char *host_id, char *drive,
 int _init_lock_refresh(char *lock_id, int mode, char *host_id, char *drive,
                        uint64_t timeout, struct idm_nvme_request **request_idm)
 {
-	#ifdef FUNCTION_ENTRY_DEBUG
-	printf("%s: START\n", __func__);
-	#endif //FUNCTION_ENTRY_DEBUG
+	#ifdef DBG__LOG_FUNC_ENTRY
+	ilm_log_dbg("%s: ENTRY", __func__);
+	#endif
 
 	int ret;
 
@@ -1453,9 +1458,9 @@ int _init_lock_refresh(char *lock_id, int mode, char *host_id, char *drive,
 int _init_read_host_state(char *lock_id, char *host_id, char *drive,
                           struct idm_nvme_request **request_idm)
 {
-	#ifdef FUNCTION_ENTRY_DEBUG
-	printf("%s: START\n", __func__);
-	#endif //FUNCTION_ENTRY_DEBUG
+	#ifdef DBG__LOG_FUNC_ENTRY
+	ilm_log_dbg("%s: ENTRY", __func__);
+	#endif
 
 	unsigned int mutex_num = 0;
 	int ret;
@@ -1501,9 +1506,9 @@ int _init_read_host_state(char *lock_id, char *host_id, char *drive,
 int _init_read_lock_count(int async_on, char *lock_id, char *host_id,
                           char *drive, struct idm_nvme_request **request_idm)
 {
-	#ifdef FUNCTION_ENTRY_DEBUG
-	printf("%s: START\n", __func__);
-	#endif //FUNCTION_ENTRY_DEBUG
+	#ifdef DBG__LOG_FUNC_ENTRY
+	ilm_log_dbg("%s: ENTRY", __func__);
+	#endif
 
 	unsigned int mutex_num = 0;
 	int ret;
@@ -1567,9 +1572,9 @@ int _init_read_lock_count(int async_on, char *lock_id, char *host_id,
 int _init_read_lock_mode(int async_on, char *lock_id, char *drive,
                          struct idm_nvme_request **request_idm)
 {
-	#ifdef FUNCTION_ENTRY_DEBUG
-	printf("%s: START\n", __func__);
-	#endif //FUNCTION_ENTRY_DEBUG
+	#ifdef DBG__LOG_FUNC_ENTRY
+	ilm_log_dbg("%s: ENTRY", __func__);
+	#endif
 
 	unsigned int mutex_num = 0;
 	int ret;
@@ -1635,9 +1640,9 @@ int _init_read_lock_mode(int async_on, char *lock_id, char *drive,
 int _init_read_lvb(int async_on, char *lock_id, char *host_id, char *drive,
                    struct idm_nvme_request **request_idm)
 {
-	#ifdef FUNCTION_ENTRY_DEBUG
-	printf("%s: START\n", __func__);
-	#endif //FUNCTION_ENTRY_DEBUG
+	#ifdef DBG__LOG_FUNC_ENTRY
+	ilm_log_dbg("%s: ENTRY", __func__);
+	#endif
 
 	unsigned int mutex_num = 0;
 	int ret;
@@ -1697,9 +1702,9 @@ int _init_read_lvb(int async_on, char *lock_id, char *host_id, char *drive,
  */
 int _init_read_mutex_group(char *drive, struct idm_nvme_request **request_idm)
 {
-	#ifdef FUNCTION_ENTRY_DEBUG
-	printf("%s: START\n", __func__);
-	#endif //FUNCTION_ENTRY_DEBUG
+	#ifdef DBG__LOG_FUNC_ENTRY
+	ilm_log_dbg("%s: ENTRY", __func__);
+	#endif
 
 	unsigned int mutex_num = 0;
 	int ret;
@@ -1740,9 +1745,9 @@ int _init_read_mutex_group(char *drive, struct idm_nvme_request **request_idm)
  */
 int _init_read_mutex_num(char *drive, struct idm_nvme_request **request_idm)
 {
-	#ifdef FUNCTION_ENTRY_DEBUG
-	printf("%s: START\n", __func__);
-	#endif //FUNCTION_ENTRY_DEBUG
+	#ifdef DBG__LOG_FUNC_ENTRY
+	ilm_log_dbg("%s: ENTRY", __func__);
+	#endif
 
 	int ret;
 
@@ -1783,9 +1788,9 @@ int _init_unlock(char *lock_id, int mode, char *host_id, char *lvb,
                  int lvb_size, char *drive,
 		 struct idm_nvme_request **request_idm)
 {
-	#ifdef FUNCTION_ENTRY_DEBUG
-	printf("%s: START\n", __func__);
-	#endif //FUNCTION_ENTRY_DEBUG
+	#ifdef DBG__LOG_FUNC_ENTRY
+	ilm_log_dbg("%s: ENTRY", __func__);
+	#endif
 
 	int ret;
 
@@ -1835,9 +1840,9 @@ int _init_unlock(char *lock_id, int mode, char *host_id, char *lvb,
  */
 void _memory_free_idm_request(struct idm_nvme_request *request_idm) {
 
-	#ifdef FUNCTION_ENTRY_DEBUG
-	printf("%s: START\n", __func__);
-	#endif //FUNCTION_ENTRY_DEBUG
+	#ifdef DBG__LOG_FUNC_ENTRY
+	ilm_log_dbg("%s: ENTRY", __func__);
+	#endif
 
 	if (request_idm) {
 		if (request_idm->arg_async_nvme) {
@@ -1874,9 +1879,9 @@ void _memory_free_idm_request(struct idm_nvme_request *request_idm) {
 int _memory_init_idm_request(struct idm_nvme_request **request_idm,
                              unsigned int data_num)
 {
-	#ifdef FUNCTION_ENTRY_DEBUG
-	printf("%s: START\n", __func__);
-	#endif //FUNCTION_ENTRY_DEBUG
+	#ifdef DBG__LOG_FUNC_ENTRY
+	ilm_log_dbg("%s: ENTRY", __func__);
+	#endif
 
 	int data_len;
 
@@ -1916,9 +1921,9 @@ int _memory_init_idm_request(struct idm_nvme_request **request_idm,
  */
 int _parse_host_state(struct idm_nvme_request *request_idm, int *host_state)
 {
-	#ifdef FUNCTION_ENTRY_DEBUG
-	printf("%s: START\n", __func__);
-	#endif //FUNCTION_ENTRY_DEBUG
+	#ifdef DBG__LOG_FUNC_ENTRY
+	ilm_log_dbg("%s: ENTRY", __func__);
+	#endif
 
 	struct idm_data    *data_idm;
 	char               bswap_lock_id[IDM_LOCK_ID_LEN_BYTES];
@@ -1969,9 +1974,9 @@ int _parse_host_state(struct idm_nvme_request *request_idm, int *host_state)
 int _parse_lock_count(struct idm_nvme_request *request_idm, int *count,
                       int *self)
 {
-	#ifdef FUNCTION_ENTRY_DEBUG
-	printf("%s: START\n", __func__);
-	#endif //FUNCTION_ENTRY_DEBUG
+	#ifdef DBG__LOG_FUNC_ENTRY
+	ilm_log_dbg("%s: ENTRY", __func__);
+	#endif
 
 	struct idm_data    *data_idm;
 	char               bswap_lock_id[IDM_LOCK_ID_LEN_BYTES];
@@ -2043,9 +2048,9 @@ EXIT:
  */
 int _parse_lock_mode(struct idm_nvme_request *request_idm, int *mode)
 {
-	#ifdef FUNCTION_ENTRY_DEBUG
-	printf("%s: START\n", __func__);
-	#endif //FUNCTION_ENTRY_DEBUG
+	#ifdef DBG__LOG_FUNC_ENTRY
+	ilm_log_dbg("%s: ENTRY", __func__);
+	#endif
 
 	struct idm_data    *data_idm;
 	char               bswap_lock_id[IDM_LOCK_ID_LEN_BYTES];
@@ -2117,9 +2122,9 @@ EXIT:
  */
 int _parse_lvb(struct idm_nvme_request *request_idm, char *lvb, int lvb_size)
 {
-	#ifdef FUNCTION_ENTRY_DEBUG
-	printf("%s: START\n", __func__);
-	#endif //FUNCTION_ENTRY_DEBUG
+	#ifdef DBG__LOG_FUNC_ENTRY
+	ilm_log_dbg("%s: ENTRY", __func__);
+	#endif
 
 	struct idm_data    *data_idm;
 	char               bswap_lock_id[IDM_LOCK_ID_LEN_BYTES];
@@ -2169,9 +2174,9 @@ int _parse_lvb(struct idm_nvme_request *request_idm, char *lvb, int lvb_size)
 int _parse_mutex_group(struct idm_nvme_request *request_idm,
                        struct idm_info **info_ptr, int *info_num)
 {
-	#ifdef FUNCTION_ENTRY_DEBUG
-	printf("%s: START\n", __func__);
-	#endif //FUNCTION_ENTRY_DEBUG
+	#ifdef DBG__LOG_FUNC_ENTRY
+	ilm_log_dbg("%s: ENTRY", __func__);
+	#endif
 
 	struct idm_data    *data_idm;
 	unsigned int       mutex_num = request_idm->data_num;
@@ -2253,9 +2258,9 @@ EXIT:
 void _parse_mutex_num(struct idm_nvme_request *request_idm,
                       unsigned int *mutex_num)
 {
-	#ifdef FUNCTION_ENTRY_DEBUG
-	printf("%s: START\n", __func__);
-	#endif //FUNCTION_ENTRY_DEBUG
+	#ifdef DBG__LOG_FUNC_ENTRY
+	ilm_log_dbg("%s: ENTRY", __func__);
+	#endif
 
 	/*
 	NOTE: Propeller firmware returns the mutex counts in a unique format.
@@ -2302,9 +2307,9 @@ void _parse_mutex_num(struct idm_nvme_request *request_idm,
  */
 int _validate_input_common(char *lock_id, char *host_id, char *drive)
 {
-	#ifdef FUNCTION_ENTRY_DEBUG
-	printf("%s: START\n", __func__);
-	#endif //FUNCTION_ENTRY_DEBUG
+	#ifdef DBG__LOG_FUNC_ENTRY
+	ilm_log_dbg("%s: ENTRY", __func__);
+	#endif
 
 	if (ilm_inject_fault_is_hit())
 		return -EIO;
@@ -2328,9 +2333,9 @@ int _validate_input_common(char *lock_id, char *host_id, char *drive)
  */
 int _validate_input_write(char *lock_id, int mode, char *host_id, char *drive)
 {
-	#ifdef FUNCTION_ENTRY_DEBUG
-	printf("%s: START\n", __func__);
-	#endif //FUNCTION_ENTRY_DEBUG
+	#ifdef DBG__LOG_FUNC_ENTRY
+	ilm_log_dbg("%s: ENTRY", __func__);
+	#endif
 
 	int ret = FAILURE;
 

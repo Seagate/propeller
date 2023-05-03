@@ -48,7 +48,8 @@
 #define MAIN_ACTIVATE_ANI_API 0
 #endif
 
-#define FUNCTION_ENTRY_DEBUG    //TODO: Remove this entirely???
+/* Define for logging a function's name each time it is entered. */
+#define DBG__LOG_FUNC_ENTRY
 
 #define DEBUG_TABLE__DRIVE_TO_POOL
 
@@ -95,9 +96,9 @@ static void table_show(void);
 
 int ani_init(void)
 {
-	#ifdef FUNCTION_ENTRY_DEBUG
-	printf("%s: START\n", __func__);
-	#endif //FUNCTION_ENTRY_DEBUG
+	#ifdef DBG__LOG_FUNC_ENTRY
+	ilm_log_dbg("%s: ENTRY", __func__);
+	#endif
 
 	return table_init();
 }
@@ -108,9 +109,9 @@ int ani_init(void)
 // Returns zero or a negative error (ie. EINVAL, ENOMEM, EBUSY, etc).
 int ani_data_rcv(struct idm_nvme_request *request_idm, int *result)
 {
-	#ifdef FUNCTION_ENTRY_DEBUG
-	printf("%s: START\n", __func__);
-	#endif //FUNCTION_ENTRY_DEBUG
+	#ifdef DBG__LOG_FUNC_ENTRY
+	ilm_log_dbg("%s: ENTRY", __func__);
+	#endif
 
 	char *drive = request_idm->drive;
 	struct table_entry *entry;
@@ -135,9 +136,9 @@ int ani_data_rcv(struct idm_nvme_request *request_idm, int *result)
 // Returns zero or a negative error (ie. EINVAL, ENOMEM, EBUSY, etc).
 int ani_send_cmd(struct idm_nvme_request *request_idm, unsigned long ctrl)
 {
-	#ifdef FUNCTION_ENTRY_DEBUG
-	printf("%s: START\n", __func__);
-	#endif //FUNCTION_ENTRY_DEBUG
+	#ifdef DBG__LOG_FUNC_ENTRY
+	ilm_log_dbg("%s: ENTRY", __func__);
+	#endif
 
 	char *drive                   = request_idm->drive;
 	struct arg_ioctl *arg         = request_idm->arg_async_nvme;
@@ -201,18 +202,18 @@ EXIT:
 
 void ani_destroy(void)
 {
-	#ifdef FUNCTION_ENTRY_DEBUG
-	printf("%s: START\n", __func__);
-	#endif //FUNCTION_ENTRY_DEBUG
+	#ifdef DBG__LOG_FUNC_ENTRY
+	ilm_log_dbg("%s: ENTRY", __func__);
+	#endif
 
 	table_destroy();
 }
 
 static int ani_ioctl(void* arg)
 {
-	#ifdef FUNCTION_ENTRY_DEBUG
-	printf("%s: START\n", __func__);
-	#endif //FUNCTION_ENTRY_DEBUG
+	#ifdef DBG__LOG_FUNC_ENTRY
+	ilm_log_dbg("%s: ENTRY", __func__);
+	#endif
 
 	struct arg_ioctl *arg_ = (struct arg_ioctl *)arg;
 
@@ -225,9 +226,9 @@ static int ani_ioctl(void* arg)
 //return: 1 when empty, 0 when NOT empty (so behaves like logical bool)
 static int _table_entry_is_empty(struct table_entry *entry)
 {
-	#ifdef FUNCTION_ENTRY_DEBUG
-	printf("%s: START\n", __func__);
-	#endif //FUNCTION_ENTRY_DEBUG
+	#ifdef DBG__LOG_FUNC_ENTRY
+	ilm_log_dbg("%s: ENTRY", __func__);
+	#endif
 
 	if (!entry) return 1; //TODO: This is actually an error.  Should never happen
 
@@ -240,9 +241,9 @@ static int _table_entry_is_empty(struct table_entry *entry)
 //return: (int >= 0) on success, -1 on failure(table full)
 static int _table_entry_find_empty(void)
 {
-	#ifdef FUNCTION_ENTRY_DEBUG
-	printf("%s: START\n", __func__);
-	#endif //FUNCTION_ENTRY_DEBUG
+	#ifdef DBG__LOG_FUNC_ENTRY
+	ilm_log_dbg("%s: ENTRY", __func__);
+	#endif
 
 	int i;
 	struct table_entry *entry;
@@ -270,9 +271,9 @@ static int _table_entry_find_empty(void)
 //return: (int >= 0) on success, -1 on failure
 static int _table_entry_find_index(char *drive)
 {
-	#ifdef FUNCTION_ENTRY_DEBUG
-	printf("%s: START: %s\n", __func__, drive);
-	#endif //FUNCTION_ENTRY_DEBUG
+	#ifdef DBG__LOG_FUNC_ENTRY
+	ilm_log_dbg("%s: ENTRY w\\ %s\n", __func__, drive);
+	#endif
 
 	int i;
 	struct table_entry *entry;
@@ -306,9 +307,9 @@ static int _table_entry_find_index(char *drive)
 //returns: 0 on success, -1 on failure.
 static int table_init(void)
 {
-	#ifdef FUNCTION_ENTRY_DEBUG
-	printf("%s: START\n", __func__);
-	#endif //FUNCTION_ENTRY_DEBUG
+	#ifdef DBG__LOG_FUNC_ENTRY
+	ilm_log_dbg("%s: ENTRY", __func__);
+	#endif
 
 	int i;
 	struct table_entry *entry;
@@ -335,9 +336,9 @@ static int table_init(void)
 //return: valid entry ptr on success, NULL on failure
 static struct table_entry* table_entry_find(char *drive)
 {
-	#ifdef FUNCTION_ENTRY_DEBUG
-	printf("%s: START: %s\n", __func__, drive);
-	#endif //FUNCTION_ENTRY_DEBUG
+	#ifdef DBG__LOG_FUNC_ENTRY
+	ilm_log_dbg("%s: ENTRY w\\ %s\n", __func__, drive);
+	#endif
 
 	int i;
 	struct table_entry *entry = NULL;
@@ -371,9 +372,9 @@ static struct table_entry* table_entry_find(char *drive)
 //returns: 0 on success, -1 on failure.
 static int table_entry_add(char *drive, int n_pool_thrds)
 {
-	#ifdef FUNCTION_ENTRY_DEBUG
-	printf("%s: START: %s\n", __func__, drive);
-	#endif //FUNCTION_ENTRY_DEBUG
+	#ifdef DBG__LOG_FUNC_ENTRY
+	ilm_log_dbg("%s: ENTRY w\\ %s\n", __func__, drive);
+	#endif
 
 	int index;
 	struct table_entry *entry;
@@ -404,9 +405,9 @@ static int table_entry_add(char *drive, int n_pool_thrds)
 //returns: 0 on success, -1 on failure.
 static int table_entry_replace(char *drive, int n_pool_thrds)
 {
-	#ifdef FUNCTION_ENTRY_DEBUG
-	printf("%s: START: %s\n", __func__, drive);
-	#endif //FUNCTION_ENTRY_DEBUG
+	#ifdef DBG__LOG_FUNC_ENTRY
+	ilm_log_dbg("%s: ENTRY w\\ %s\n", __func__, drive);
+	#endif
 
 	int index;
 	struct table_entry *entry;
@@ -438,9 +439,9 @@ static int table_entry_replace(char *drive, int n_pool_thrds)
 //returns: 0 on success, -1 on failure.
 __attribute__ ((unused)) static int table_entry_update(char *drive, int n_pool_thrds)
 {
-	#ifdef FUNCTION_ENTRY_DEBUG
-	printf("%s: START: %s\n", __func__, drive);
-	#endif //FUNCTION_ENTRY_DEBUG
+	#ifdef DBG__LOG_FUNC_ENTRY
+	ilm_log_dbg("%s: ENTRY w\\ %s\n", __func__, drive);
+	#endif
 
 	int ret = FAILURE;	//assume table is full
 
@@ -463,9 +464,9 @@ __attribute__ ((unused)) static int table_entry_update(char *drive, int n_pool_t
 //Removes from the table an existing entry.
 __attribute__ ((unused)) static void table_entry_remove(char *drive)
 {
-	#ifdef FUNCTION_ENTRY_DEBUG
-	printf("%s: START: %s\n", __func__, drive);
-	#endif //FUNCTION_ENTRY_DEBUG
+	#ifdef DBG__LOG_FUNC_ENTRY
+	ilm_log_dbg("%s: ENTRY w\\ %s\n", __func__, drive);
+	#endif
 
 	int index;
 	struct table_entry *entry;
@@ -490,9 +491,9 @@ __attribute__ ((unused)) static void table_entry_remove(char *drive)
 
 static void table_destroy(void)
 {
-	#ifdef FUNCTION_ENTRY_DEBUG
-	printf("%s: START\n", __func__);
-	#endif //FUNCTION_ENTRY_DEBUG
+	#ifdef DBG__LOG_FUNC_ENTRY
+	ilm_log_dbg("%s: ENTRY", __func__);
+	#endif
 
 	int i;
 	struct table_entry *entry;
@@ -512,9 +513,9 @@ static void table_destroy(void)
 
 __attribute__ ((unused)) static void table_show(void)
 {
-	#ifdef FUNCTION_ENTRY_DEBUG
-	printf("%s: START\n", __func__);
-	#endif //FUNCTION_ENTRY_DEBUG
+	#ifdef DBG__LOG_FUNC_ENTRY
+	ilm_log_dbg("%s: ENTRY", __func__);
+	#endif
 
 	struct table_entry *entry;
 	int i;

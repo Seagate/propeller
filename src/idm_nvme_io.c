@@ -59,7 +59,8 @@
 #define MAIN_ACTIVATE_NVME_IO 0
 #endif
 
-#define FUNCTION_ENTRY_DEBUG    //TODO: Remove this entirely???
+/* Define for logging a function's name each time it is entered. */
+#define DBG__LOG_FUNC_ENTRY
 
 
 //////////////////////////////////////////
@@ -79,9 +80,9 @@
  */
 int nvme_idm_async_data_rcv(struct idm_nvme_request *request_idm, int *result)
 {
-	#ifdef FUNCTION_ENTRY_DEBUG
-	printf("%s: START\n", __func__);
-	#endif //FUNCTION_ENTRY_DEBUG
+	#ifdef DBG__LOG_FUNC_ENTRY
+	ilm_log_dbg("%s: ENTRY", __func__);
+	#endif
 
 	int ret;
 
@@ -110,9 +111,9 @@ int nvme_idm_async_data_rcv(struct idm_nvme_request *request_idm, int *result)
  */
 int nvme_idm_async_read(struct idm_nvme_request *request_idm)
 {
-	#ifdef FUNCTION_ENTRY_DEBUG
-	printf("%s: START\n", __func__);
-	#endif //FUNCTION_ENTRY_DEBUG
+	#ifdef DBG__LOG_FUNC_ENTRY
+	ilm_log_dbg("%s: ENTRY", __func__);
+	#endif
 
 	int ret;
 
@@ -150,9 +151,9 @@ int nvme_idm_async_read(struct idm_nvme_request *request_idm)
  */
 int nvme_idm_async_write(struct idm_nvme_request *request_idm)
 {
-	#ifdef FUNCTION_ENTRY_DEBUG
-	printf("%s: START\n", __func__);
-	#endif //FUNCTION_ENTRY_DEBUG
+	#ifdef DBG__LOG_FUNC_ENTRY
+	ilm_log_dbg("%s: ENTRY", __func__);
+	#endif
 
 	int ret;
 
@@ -187,9 +188,9 @@ int nvme_idm_async_write(struct idm_nvme_request *request_idm)
  */
 void nvme_idm_read_init(char *drive, struct idm_nvme_request *request_idm)
 {
-	#ifdef FUNCTION_ENTRY_DEBUG
-	printf("%s: START\n", __func__);
-	#endif //FUNCTION_ENTRY_DEBUG
+	#ifdef DBG__LOG_FUNC_ENTRY
+	ilm_log_dbg("%s: ENTRY", __func__);
+	#endif
 
 	request_idm->opcode_idm = IDM_OPCODE_INIT;  //Ignored, but default for all idm reads.
 	strncpy(request_idm->drive, drive, PATH_MAX);
@@ -215,9 +216,9 @@ void nvme_idm_read_init(char *drive, struct idm_nvme_request *request_idm)
 int nvme_idm_write_init(char *lock_id, int mode, char *host_id, char *drive,
                         uint64_t timeout, struct idm_nvme_request *request_idm)
 {
-	#ifdef FUNCTION_ENTRY_DEBUG
-	printf("%s: START\n", __func__);
-	#endif //FUNCTION_ENTRY_DEBUG
+	#ifdef DBG__LOG_FUNC_ENTRY
+	ilm_log_dbg("%s: ENTRY", __func__);
+	#endif
 
 	//Cache the input params
 //TODO: memcpy() -OR- strncpy() HERE?? (and everywhere else for that matter)
@@ -260,9 +261,9 @@ int nvme_idm_write_init(char *lock_id, int mode, char *host_id, char *drive,
  */
 int nvme_idm_sync_read(struct idm_nvme_request *request_idm)
 {
-	#ifdef FUNCTION_ENTRY_DEBUG
-	printf("%s: START\n", __func__);
-	#endif //FUNCTION_ENTRY_DEBUG
+	#ifdef DBG__LOG_FUNC_ENTRY
+	ilm_log_dbg("%s: ENTRY", __func__);
+	#endif
 
 	int ret;
 
@@ -302,9 +303,9 @@ int nvme_idm_sync_read(struct idm_nvme_request *request_idm)
  */
 int nvme_idm_sync_write(struct idm_nvme_request *request_idm)
 {
-	#ifdef FUNCTION_ENTRY_DEBUG
-	printf("%s: START\n", __func__);
-	#endif //FUNCTION_ENTRY_DEBUG
+	#ifdef DBG__LOG_FUNC_ENTRY
+	ilm_log_dbg("%s: ENTRY", __func__);
+	#endif
 
 	int ret;
 
@@ -339,9 +340,9 @@ int nvme_idm_sync_write(struct idm_nvme_request *request_idm)
  */
 int _async_idm_cmd_send(struct idm_nvme_request *request_idm)
 {
-	#ifdef FUNCTION_ENTRY_DEBUG
-	printf("%s: START\n", __func__);
-	#endif //FUNCTION_ENTRY_DEBUG
+	#ifdef DBG__LOG_FUNC_ENTRY
+	ilm_log_dbg("%s: ENTRY", __func__);
+	#endif
 
 	int fd_nvme;
 	int ret = FAILURE;
@@ -381,9 +382,9 @@ EXIT:
  */
 int _async_idm_data_rcv(struct idm_nvme_request *request_idm, int *result)
 {
-	#ifdef FUNCTION_ENTRY_DEBUG
-	printf("%s: START\n", __func__);
-	#endif //FUNCTION_ENTRY_DEBUG
+	#ifdef DBG__LOG_FUNC_ENTRY
+	ilm_log_dbg("%s: ENTRY", __func__);
+	#endif
 
 	int result_ani;
 	int ret;
@@ -424,9 +425,9 @@ EXIT:
  */
 int _idm_cmd_check_status(int status, uint8_t opcode_idm)
 {
-	#ifdef FUNCTION_ENTRY_DEBUG
-	printf("%s: START\n", __func__);
-	#endif //FUNCTION_ENTRY_DEBUG
+	#ifdef DBG__LOG_FUNC_ENTRY
+	ilm_log_dbg("%s: ENTRY", __func__);
+	#endif
 
 	uint16_t sct, sc;   // status code type, status code
 	int ret;
@@ -538,9 +539,9 @@ int _idm_cmd_check_status(int status, uint8_t opcode_idm)
  */
 int _idm_cmd_init(struct idm_nvme_request *request_idm, uint8_t opcode_nvme)
 {
-	#ifdef FUNCTION_ENTRY_DEBUG
-	printf("%s: START\n", __func__);
-	#endif //FUNCTION_ENTRY_DEBUG
+	#ifdef DBG__LOG_FUNC_ENTRY
+	ilm_log_dbg("%s: ENTRY", __func__);
+	#endif
 
 	struct nvme_idm_vendor_cmd *cmd_nvme = &request_idm->cmd_nvme;
 
@@ -566,9 +567,9 @@ int _idm_cmd_init(struct idm_nvme_request *request_idm, uint8_t opcode_nvme)
  */
 int _idm_data_init_wrt(struct idm_nvme_request *request_idm)
 {
-	#ifdef FUNCTION_ENTRY_DEBUG
-	printf("%s: START\n", __func__);
-	#endif //FUNCTION_ENTRY_DEBUG
+	#ifdef DBG__LOG_FUNC_ENTRY
+	ilm_log_dbg("%s: ENTRY", __func__);
+	#endif
 
 	struct idm_data *data_idm = request_idm->data_idm;
 
@@ -621,9 +622,9 @@ int _idm_data_init_wrt(struct idm_nvme_request *request_idm)
  */
 int _sync_idm_cmd_send(struct idm_nvme_request *request_idm)
 {
-	#ifdef FUNCTION_ENTRY_DEBUG
-	printf("%s: START\n", __func__);
-	#endif //FUNCTION_ENTRY_DEBUG
+	#ifdef DBG__LOG_FUNC_ENTRY
+	ilm_log_dbg("%s: ENTRY", __func__);
+	#endif
 
 	struct nvme_passthru_cmd cmd_nvme_passthru;
 	int fd_nvme;
