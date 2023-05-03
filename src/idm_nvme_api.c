@@ -39,8 +39,6 @@
 #define MAIN_ACTIVATE_NVME_API 0
 #endif
 
-// #define FORCE_MUTEX_NUM    //TODO: HACK!!  This MUST be removed!!
-
 #define FUNCTION_ENTRY_DEBUG    //TODO: Remove this entirely???
 
 //////////////////////////////////////////
@@ -1433,22 +1431,12 @@ int nvme_idm_sync_read_mutex_num(char *drive, unsigned int *mutex_num)
 
 	ret = nvme_idm_sync_read(request_idm);
 	if (ret < 0) {
-//TODO: !!!! Temp HACK!!!!! For stand alone AND forced mutex_num, to get the reads working.
-		#if !defined COMPILE_STANDALONE && defined FORCE_MUTEX_NUM
-		ilm_log_err("%s: nvme_idm_sync_read fail %d, Continuing",
-		       __func__, ret);
-		ret = SUCCESS;
-		#elif defined COMPILE_STANDALONE && defined FORCE_MUTEX_NUM
-		printf("%s: nvme_idm_sync_read fail %d, Continuing\n",
-		       __func__, ret);
-		ret = SUCCESS;
-		#elif !defined COMPILE_STANDALONE && !defined FORCE_MUTEX_NUM
+		#ifndef COMPILE_STANDALONE
 		ilm_log_err("%s: nvme_idm_sync_read fail %d", __func__, ret);
-		goto EXIT_FAIL;
-		#elif defined COMPILE_STANDALONE && !defined FORCE_MUTEX_NUM
+		#else
 		printf("%s: nvme_idm_sync_read fail %d\n", __func__, ret);
-		goto EXIT_FAIL;
 		#endif
+		goto EXIT_FAIL;
 	}
 
 	_parse_mutex_num(request_idm, mutex_num);
@@ -2668,19 +2656,34 @@ void _parse_mutex_num(struct idm_nvme_request *request_idm,
 	printf("%s: START\n", __func__);
 	#endif //FUNCTION_ENTRY_DEBUG
 
-	unsigned char  *data;
+	/*
+	NOTE: Propeller firmware returns the mutex counts in a unique format.
+	From the Propeller spec, the order of the counts are as follows:
+		data[1:0], Number of Mutexes (Total)
+		data[3:2], Number of Exclusive Mutexes
+		data[5:4], Number of Protected Write Mutexes
+		data[7:6], Number of Shared Mutexes
+		data[9:8], Number of Exclusive LOCKED Mutexes
+		data[11:10], Number of Exclusive UNLOCKED Mutexes
+		data[13:12], Number of Exclusive MULTILOCK Mutexes (not a valid state)
+		data[15:14], Number of Exclusive TIMEOUT Mutexes
+		data[17:16], Number of Protected Write LOCKED Mutexes
+		data[19:18], Number of Protected Write UNLOCKED Mutexes
+		data[21:20], Number of Protected Write MULTILOCK Mutexes
+		data[23:22], Number of Protected Write TIMEOUT Mutexes
+		data[25:24], Number of Shared LOCKED Mutexes
+		data[27:26], Number of Shared UNLOCKED Mutexes
+		data[29:28], Number of Shared MULTILOCK Mutexes
+		data[31:30], Number of Shared TIMEOUT Mutexes
 
-	printf("%s: mutex mutex_num=%u\n", __func__, *mutex_num);
-//TODO: Ported from scsi-side as-is.  Need to verify if this even makes sense for nvme.
-//TODO: Why is "unsigned char" being used here??
-	data = (unsigned char *)request_idm->data_idm;
-	#ifdef FORCE_MUTEX_NUM
-//TODO: This can't stay. Necessary for stand-alone code
-	*mutex_num = 1;     //For debug. This func called by many others.
-	#else
+	Each count is 16-bits and is read here as 2 unsigned char's.
+	NOTE: the byte-order is REVERSED for each count.
+	Currently, only the total mutex count is used.
+	*/
+	unsigned char  *data = (unsigned char *)request_idm->data_idm;
+
 	*mutex_num = ((data[1]) & 0xff);
 	*mutex_num |= ((data[0]) & 0xff) << 8;
-	#endif //FORCE_MUTEX_NUM
 
 	#ifndef COMPILE_STANDALONE
 	ilm_log_dbg("%s: data[0]=%u data[1]=%u mutex mutex_num=%u",
