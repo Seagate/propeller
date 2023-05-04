@@ -26,6 +26,7 @@
  */
 void dumpIdmDataStruct(struct idm_data *d)
 {
+	ilm_log_dbg("=======================");
 	ilm_log_dbg("struct idm_data: fields");
 	ilm_log_dbg("=======================");
 	ilm_log_dbg("state\\ignored0     = 0x%.16"PRIX64" (%lu)", d->state,    d->state);
@@ -48,6 +49,7 @@ void dumpIdmDataStruct(struct idm_data *d)
  */
 void dumpIdmInfoStruct(struct idm_info *info)
 {
+	ilm_log_dbg("======================");
 	ilm_log_dbg("struct idm_info: fields");
 	ilm_log_dbg("======================");
 	ilm_log_array_dbg("id", info->id, IDM_LOCK_ID_LEN_BYTES);
@@ -73,6 +75,7 @@ void dumpNvmeCmdStruct(struct nvme_idm_vendor_cmd *cmd_nvme, int view_fields,
 	if(view_fields){
 		struct nvme_idm_vendor_cmd *c = cmd_nvme;
 
+		ilm_log_dbg("===========================");
 		ilm_log_dbg("struct nvme_idm_vendor_cmd: fields");
 		ilm_log_dbg("===========================");
 		ilm_log_dbg("opcode_nvme  (CDW0[ 7:0])  = 0x%.2X (%u)", c->opcode_nvme,  c->opcode_nvme);
@@ -102,10 +105,11 @@ void dumpNvmeCmdStruct(struct nvme_idm_vendor_cmd *cmd_nvme, int view_fields,
 		uint32_t *cdw = (uint32_t*)cmd_nvme;
 		int i;
 
+		ilm_log_dbg("===============================");
 		ilm_log_dbg("struct nvme_idm_vendor_cmd: CDWs (hex)");
 		ilm_log_dbg("===============================");
 		for(i = 0; i <= 17; i++) {
-			ilm_log_dbg("cdw%.2d = 0x%.8X\n", i, cdw[i]);
+			ilm_log_dbg("cdw%.2d = 0x%.8X", i, cdw[i]);
 		}
 		ilm_log_dbg("\n");
 	}
@@ -113,7 +117,7 @@ void dumpNvmeCmdStruct(struct nvme_idm_vendor_cmd *cmd_nvme, int view_fields,
 
 void dumpNvmePassthruCmd(struct nvme_passthru_cmd *cmd)
 {
-	ilm_log_dbg("\n");
+	ilm_log_dbg("================================");
 	ilm_log_dbg("struct nvme_passthru_cmd: fields");
 	ilm_log_dbg("================================");
 	ilm_log_dbg("opcode       (CDW0[ 7:0])  = 0x%.2X (%u)", cmd->opcode,       cmd->opcode);
@@ -155,7 +159,7 @@ void fill_nvme_cmd(struct idm_nvme_request *request_idm,
 	// request_idm->cmd_nvme.nsid = ioctl(fd_nvme, NVME_IOCTL_ID);
 	// if (request_idm->cmd_nvme.nsid <= 0)
 	// {
-	//     ilm_log_dbg("%s: nsid ioctl fail: %d\n", __func__, request_idm->cmd_nvme.nsid);
+	//     ilm_log_dbg("%s: nsid ioctl fail: %d", __func__, request_idm->cmd_nvme.nsid);
 	//     ret = request_idm->cmd_nvme.nsid;
 	//     goto EXIT;
 	// }
