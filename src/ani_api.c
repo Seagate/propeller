@@ -283,7 +283,7 @@ static int _table_entry_find_empty(void)
 static int _table_entry_find_index(char *drive)
 {
 	#ifdef DBG__LOG_FUNC_ENTRY
-	ilm_log_dbg("%s: ENTRY w\\ %s\n", __func__, drive);
+	ilm_log_dbg("%s: ENTRY w\\ %s", __func__, drive);
 	#endif
 
 	int i;
@@ -348,7 +348,7 @@ static int table_init(void)
 static struct table_entry* table_entry_find(char *drive)
 {
 	#ifdef DBG__LOG_FUNC_ENTRY
-	ilm_log_dbg("%s: ENTRY w\\ %s\n", __func__, drive);
+	ilm_log_dbg("%s: ENTRY w\\ %s", __func__, drive);
 	#endif
 
 	int i;
@@ -384,7 +384,7 @@ static struct table_entry* table_entry_find(char *drive)
 static int table_entry_add(char *drive, int n_pool_thrds)
 {
 	#ifdef DBG__LOG_FUNC_ENTRY
-	ilm_log_dbg("%s: ENTRY w\\ %s\n", __func__, drive);
+	ilm_log_dbg("%s: ENTRY w\\ %s", __func__, drive);
 	#endif
 
 	int index;
@@ -417,7 +417,7 @@ static int table_entry_add(char *drive, int n_pool_thrds)
 static int table_entry_replace(char *drive, int n_pool_thrds)
 {
 	#ifdef DBG__LOG_FUNC_ENTRY
-	ilm_log_dbg("%s: ENTRY w\\ %s\n", __func__, drive);
+	ilm_log_dbg("%s: ENTRY w\\ %s", __func__, drive);
 	#endif
 
 	int index;
@@ -438,7 +438,7 @@ static int table_entry_replace(char *drive, int n_pool_thrds)
 	}
 
 	#ifdef DBG__THRD_POOL_TABLE
-	ilm_log_dbg("%s: %s{%d} replaced at %d\n",
+	ilm_log_dbg("%s: %s{%d} replaced at %d",
 	            __func__, entry->drive,
 	            thpool_num_threads_alive(entry->thpool), index);
 	#endif
@@ -451,7 +451,7 @@ static int table_entry_replace(char *drive, int n_pool_thrds)
 __attribute__ ((unused)) static int table_entry_update(char *drive, int n_pool_thrds)
 {
 	#ifdef DBG__LOG_FUNC_ENTRY
-	ilm_log_dbg("%s: ENTRY w\\ %s\n", __func__, drive);
+	ilm_log_dbg("%s: ENTRY w\\ %s", __func__, drive);
 	#endif
 
 	int ret = FAILURE;	//assume table is full
@@ -476,7 +476,7 @@ __attribute__ ((unused)) static int table_entry_update(char *drive, int n_pool_t
 __attribute__ ((unused)) static void table_entry_remove(char *drive)
 {
 	#ifdef DBG__LOG_FUNC_ENTRY
-	ilm_log_dbg("%s: ENTRY w\\ %s\n", __func__, drive);
+	ilm_log_dbg("%s: ENTRY w\\ %s", __func__, drive);
 	#endif
 
 	int index;
@@ -534,10 +534,10 @@ __attribute__ ((unused)) static void table_show(void)
 	for(i = 0; i < MAX_TABLE_ENTRIES; i++){
 		entry = table_thpool[i];
 		if (entry)
-			printf("%s:     entry(%p): drive:'%s', pool(%p)\n",
-			       __func__, entry, entry->drive, entry->thpool);
+			ilm_log_dbg("%s:     entry(%p): drive:'%s', pool(%p)",
+			             __func__, entry, entry->drive, entry->thpool);
 		else
-			printf("%s:     entry(%p)\n", __func__, entry);
+			ilm_log_dbg("%s:     entry(%p)", __func__, entry);
 	}
 }
 
