@@ -30,6 +30,9 @@ Setup to be gcc-defined (-D) in make file */
 /* Define for logging a function's name each time it is entered. */
 #define DBG__LOG_FUNC_ENTRY
 
+/* Defines for logging struct field data for important data structs */
+#define DBG__DUMP_STRUCTS
+
 ////////////////////////////////////////////////////////////////////////////////
 // INCLUDES
 ////////////////////////////////////////////////////////////////////////////////
@@ -1156,8 +1159,9 @@ int nvme_idm_sync_read_mutex_group(char *drive, struct idm_info **info_ptr,
 		goto EXIT_FAIL;
 	}
 
-	//TODO: Keep -OR- Add debug flag??
+	#ifdef DBG__DUMP_STRUCTS
 	dumpIdmInfoStruct(*info_ptr);
+	#endif
 
 	ilm_log_dbg("%s: found: info_num=%d", __func__, *info_num);
 EXIT_FAIL:

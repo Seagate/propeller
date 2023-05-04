@@ -45,6 +45,9 @@ Setup to be gcc-defined (-D) in make file */
 /* Define for extra logging on drive-to-threadpool table interactions */
 #define DBG__THRD_POOL_TABLE
 
+/* Defines for logging struct field data for important data structs */
+#define DBG__DUMP_STRUCTS
+
 ////////////////////////////////////////////////////////////////////////////////
 // INCLUDES
 ////////////////////////////////////////////////////////////////////////////////
@@ -193,8 +196,9 @@ int ani_send_cmd(struct idm_nvme_request *request_idm, unsigned long ctrl)
 
 	uuid_generate(request_idm->uuid_async_job);
 
-	//TODO: Keep?  Add debug flag?
+	#ifdef DBG__DUMP_STRUCTS
 	dumpNvmePassthruCmd(cmd);
+	#endif
 
 	ret = thpool_add_work(entry->thpool, request_idm->uuid_async_job,
 	                      (th_func_p)ani_ioctl, (void*)arg);

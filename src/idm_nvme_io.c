@@ -47,6 +47,9 @@ Setup to be gcc-defined (-D) in make file */
 /* Define for logging a function's name each time it is entered. */
 #define DBG__LOG_FUNC_ENTRY
 
+/* Defines for logging struct field data for important data structs */
+#define DBG__DUMP_STRUCTS
+
 ////////////////////////////////////////////////////////////////////////////////
 // INCLUDES
 ////////////////////////////////////////////////////////////////////////////////
@@ -286,8 +289,9 @@ int nvme_idm_sync_read(struct idm_nvme_request *request_idm)
 	}
 
 	ilm_log_dbg("%s: retrieved struct idm_data", __func__);
-//TODO: Put on debug flag OR remove??
+	#ifdef DBG__DUMP_STRUCTS
 	dumpIdmDataStruct(request_idm->data_idm);
+	#endif
 
 	return ret;
 }
@@ -350,9 +354,10 @@ int _async_idm_cmd_send(struct idm_nvme_request *request_idm)
 	int fd_nvme;
 	int ret = FAILURE;
 
-	//TODO: Put this under a debug flag of some kind??
+	#ifdef DBG__DUMP_STRUCTS
 	dumpNvmeCmdStruct(&request_idm->cmd_nvme, 1, 1);
 	dumpIdmDataStruct(request_idm->data_idm);
+	#endif
 
 	fd_nvme = open(request_idm->drive, O_RDWR | O_NONBLOCK);
 	if (fd_nvme < 0) {
@@ -406,8 +411,9 @@ int _async_idm_data_rcv(struct idm_nvme_request *request_idm, int *result)
 
 	*result = _idm_cmd_check_status(result_ani, request_idm->opcode_idm);
 
-	// //TODO: Put this under a debug flag of some kind??
-	// dumpIdmDataStruct(request_idm->data_idm);
+	#ifdef DBG__DUMP_STRUCTS
+	dumpIdmDataStruct(request_idm->data_idm);
+	#endif
 
 	ilm_log_dbg("%s: result found: ani:%d(0x%X), final:%d(0x%X)",
 	       __func__, result_ani, result_ani, *result, *result);
@@ -633,9 +639,10 @@ int _sync_idm_cmd_send(struct idm_nvme_request *request_idm)
 	int fd_nvme;
 	int ret = FAILURE;
 
-	//TODO: Put this under a debug flag of some kind??
+	#ifdef DBG__DUMP_STRUCTS
 	dumpNvmeCmdStruct(&request_idm->cmd_nvme, 1, 1);
 	dumpIdmDataStruct(request_idm->data_idm);
+	#endif
 
 	memset(&cmd_nvme_passthru, 0, sizeof(struct nvme_passthru_cmd));
 
@@ -648,8 +655,9 @@ int _sync_idm_cmd_send(struct idm_nvme_request *request_idm)
 
 	fill_nvme_cmd(request_idm, &cmd_nvme_passthru);
 
-	//TODO: Keep?  Add debug flag?
+	#ifdef DBG__DUMP_STRUCTS
 	dumpNvmePassthruCmd(&cmd_nvme_passthru);
+	#endif
 
 	//ioctl()'s return value comes from:
 	//  NVMe Completion Queue Entry (CQE) DWORD3:
