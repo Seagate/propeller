@@ -6,17 +6,21 @@ CFLAGS := -fPIE -DPIE -D_GNU_SOURCE
 LDFLAGS = -Wl,-z,relro -pie -Wall
 LDLIBS = -lpthread -luuid
 
+DBG_FLAGS := \
+	-D TEST \
+	-D THPOOL_DEBUG
+
 idm_nvme_api : $(SOURCE_API)
 	echo Compile $@
-	$(CC) $(CFLAGS) $(LDFLAGS) -D THPOOL_DEBUG -D MAIN_ACTIVATE_NVME_API $(SOURCE_API) $(LDLIBS) -o $@
+	$(CC) $(CFLAGS) $(LDFLAGS) $(DBG_FLAGS) -D DBG__NVME_API_MAIN_ENABLE $(SOURCE_API) $(LDLIBS) -o $@
 
 idm_nvme_io : $(SOURCE_IO)
 	echo Compile $@
-	$(CC) $(CFLAGS) $(LDFLAGS) -D THPOOL_DEBUG -D MAIN_ACTIVATE_NVME_IO $(SOURCE_IO) $(LDLIBS) -o $@
+	$(CC) $(CFLAGS) $(LDFLAGS) $(DBG_FLAGS) -D DBG__NVME_IO_MAIN_ENABLE $(SOURCE_IO) $(LDLIBS) -o $@
 
 ani_api : $(SOURCE_ANI)
 	echo Compile $@
-	$(CC) $(CFLAGS) $(LDFLAGS) -D THPOOL_DEBUG -D MAIN_ACTIVATE_ANI_API $(SOURCE_ANI) $(LDLIBS) -o $@
+	$(CC) $(CFLAGS) $(LDFLAGS) $(DBG_FLAGS) -D DBG__NVME_ANI_MAIN_ENABLE $(SOURCE_ANI) $(LDLIBS) -o $@
 
 idm_nvme_io_admin : idm_nvme_io_admin.c
 	echo Compile $@

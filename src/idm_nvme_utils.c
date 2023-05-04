@@ -1,7 +1,7 @@
 /* SPDX-License-Identifier: LGPL-2.1-only */
 /*
  * Copyright (C) 2010-2011 Red Hat, Inc.
- * Copyright (C) 2022 Seagate Technology LLC and/or its Affiliates.
+ * Copyright (C) 2023 Seagate Technology LLC and/or its Affiliates.
  *
  * idm_nvme_utils.c - Contains nvme-related helper utility functions.
  *
@@ -14,8 +14,9 @@
 #include <stdio.h>
 
 #include "idm_nvme_utils.h"
+#include "log.h"
 
-//TODO: switch all "printf" to appropriate log functions from this project's log.h
+//TODO: switch all "ilm_log_dbg" to appropriate log functions from this project's log.h
 
 /**
  * dumpIdmDataStruct - Convenience function for pretty printing the contends of
@@ -25,22 +26,19 @@
  */
 void dumpIdmDataStruct(struct idm_data *d)
 {
-	printf("struct idm_data: fields\n");
-	printf("=======================\n");
-	printf("state\\ignored0     = 0x%.16"PRIX64" (%lu)\n", d->state,    d->state);
-	printf("modified\\time_now  = 0x%.16"PRIX64" (%lu)\n", d->modified, d->modified);
-	printf("countdown          = 0x%.16"PRIX64" (%lu)\n", d->countdown, d->countdown);
-	printf("class              = 0x%.16"PRIX64" (%lu)\n", d->class,     d->class);
-	printf("resource_ver = '");
-	_print_char_arr(d->resource_ver, IDM_LVB_LEN_BYTES);
-	printf("res_ver_type = 0x%X\n", d->resource_ver[0]);
-	printf("resource_id = '");
-	_print_char_arr(d->resource_id, IDM_LOCK_ID_LEN_BYTES);
-	printf("metadata    = '");
-	_print_char_arr(d->metadata, IDM_DATA_METADATA_LEN_BYTES);
-	printf("host_id     = '");
-	_print_char_arr(d->host_id, IDM_HOST_ID_LEN_BYTES);
-	printf("\n");
+	ilm_log_dbg("=======================");
+	ilm_log_dbg("struct idm_data: fields");
+	ilm_log_dbg("=======================");
+	ilm_log_dbg("state\\ignored0     = 0x%.16"PRIX64" (%lu)", d->state,    d->state);
+	ilm_log_dbg("modified\\time_now  = 0x%.16"PRIX64" (%lu)", d->modified, d->modified);
+	ilm_log_dbg("countdown          = 0x%.16"PRIX64" (%lu)", d->countdown, d->countdown);
+	ilm_log_dbg("class              = 0x%.16"PRIX64" (%lu)", d->class,     d->class);
+	ilm_log_array_dbg("resource_ver", d->resource_ver, IDM_LVB_LEN_BYTES);
+	ilm_log_dbg("res_ver_type = 0x%X", d->resource_ver[0]);
+	ilm_log_array_dbg("resource_id", d->resource_id, IDM_LOCK_ID_LEN_BYTES);
+	ilm_log_array_dbg("metadata", d->metadata, IDM_DATA_METADATA_LEN_BYTES);
+	ilm_log_array_dbg("host_id", d->host_id, IDM_HOST_ID_LEN_BYTES);
+	ilm_log_dbg("\n");
 }
 
 /**
@@ -51,17 +49,16 @@ void dumpIdmDataStruct(struct idm_data *d)
  */
 void dumpIdmInfoStruct(struct idm_info *info)
 {
-	printf("struct idm_info: fields\n");
-	printf("======================\n");
-	printf("id      = '");
-	_print_char_arr(info->id, IDM_LOCK_ID_LEN_BYTES);
-	printf("state   = 0x%X (%d)\n", info->state, info->state);
-	printf("mode    = 0x%X (%d)\n", info->mode, info->mode);
-	printf("host_id = '");
-	_print_char_arr(info->host_id, IDM_HOST_ID_LEN_BYTES);
-	printf("last_renew_time  = 0x%.16"PRIX64" (%lu)\n", info->last_renew_time,
+	ilm_log_dbg("======================");
+	ilm_log_dbg("struct idm_info: fields");
+	ilm_log_dbg("======================");
+	ilm_log_array_dbg("id", info->id, IDM_LOCK_ID_LEN_BYTES);
+	ilm_log_dbg("state   = 0x%X (%d)", info->state, info->state);
+	ilm_log_dbg("mode    = 0x%X (%d)", info->mode, info->mode);
+	ilm_log_array_dbg("host_id", info->host_id, IDM_HOST_ID_LEN_BYTES);
+	ilm_log_dbg("last_renew_time  = 0x%.16"PRIX64" (%lu)", info->last_renew_time,
 	                                                    info->last_renew_time);
-	printf("\n");
+	ilm_log_dbg("\n");
 }
 
 /**
@@ -78,80 +75,70 @@ void dumpNvmeCmdStruct(struct nvme_idm_vendor_cmd *cmd_nvme, int view_fields,
 	if(view_fields){
 		struct nvme_idm_vendor_cmd *c = cmd_nvme;
 
-		printf("struct nvme_idm_vendor_cmd: fields\n");
-		printf("===========================\n");
-		printf("opcode_nvme  (CDW0[ 7:0])  = 0x%.2X (%u)\n", c->opcode_nvme,  c->opcode_nvme);
-		printf("flags        (CDW0[15:8])  = 0x%.2X (%u)\n", c->flags,        c->flags);
-		printf("command_id   (CDW0[32:16]) = 0x%.4X (%u)\n", c->command_id,   c->command_id);
-		printf("nsid         (CDW1[32:0])  = 0x%.8X (%u)\n", c->nsid,         c->nsid);
-		printf("cdw2         (CDW2[32:0])  = 0x%.8X (%u)\n", c->cdw2,         c->cdw2);
-		printf("cdw3         (CDW3[32:0])  = 0x%.8X (%u)\n", c->cdw3,         c->cdw3);
-		printf("metadata     (CDW5&4[64:0])= 0x%.16"PRIX64" (%lu)\n",c->metadata, c->metadata);
-		printf("addr         (CDW7&6[64:0])= 0x%.16"PRIX64" (%lu)\n",c->addr, c->addr);
-		printf("metadata_len (CDW8[32:0])  = 0x%.8X (%u)\n", c->metadata_len, c->metadata_len);
-		printf("data_len     (CDW9[32:0])  = 0x%.8X (%u)\n", c->data_len,     c->data_len);
-		printf("ndt          (CDW10[32:0]) = 0x%.8X (%u)\n", c->ndt,          c->ndt);
-		printf("ndm          (CDW11[32:0]) = 0x%.8X (%u)\n", c->ndm,          c->ndm);
-		printf("opcode_idm_bits7_4(CDW12[ 7:0]) = 0x%.2X (%u)\n", c->opcode_idm_bits7_4, c->opcode_idm_bits7_4);
-		printf("group_idm    (CDW12[15:8]) = 0x%.2X (%u)\n", c->group_idm,    c->group_idm);
-		printf("rsvd2        (CDW12[32:16])= 0x%.4X (%u)\n", c->rsvd2,        c->rsvd2);
-		printf("cdw13        (CDW13[32:0]) = 0x%.8X (%u)\n", c->cdw13,        c->cdw13);
-		printf("cdw14        (CDW14[32:0]) = 0x%.8X (%u)\n", c->cdw14,        c->cdw14);
-		printf("cdw15        (CDW15[32:0]) = 0x%.8X (%u)\n", c->cdw15,        c->cdw15);
-		printf("timeout_ms   (CDW16[32:0]) = 0x%.8X (%u)\n", c->timeout_ms,   c->timeout_ms);
-		printf("result       (CDW17[32:0]) = 0x%.8X (%u)\n", c->result,       c->result);
-		printf("\n");
+		ilm_log_dbg("===========================");
+		ilm_log_dbg("struct nvme_idm_vendor_cmd: fields");
+		ilm_log_dbg("===========================");
+		ilm_log_dbg("opcode_nvme  (CDW0[ 7:0])  = 0x%.2X (%u)", c->opcode_nvme,  c->opcode_nvme);
+		ilm_log_dbg("flags        (CDW0[15:8])  = 0x%.2X (%u)", c->flags,        c->flags);
+		ilm_log_dbg("command_id   (CDW0[32:16]) = 0x%.4X (%u)", c->command_id,   c->command_id);
+		ilm_log_dbg("nsid         (CDW1[32:0])  = 0x%.8X (%u)", c->nsid,         c->nsid);
+		ilm_log_dbg("cdw2         (CDW2[32:0])  = 0x%.8X (%u)", c->cdw2,         c->cdw2);
+		ilm_log_dbg("cdw3         (CDW3[32:0])  = 0x%.8X (%u)", c->cdw3,         c->cdw3);
+		ilm_log_dbg("metadata     (CDW5&4[64:0])= 0x%.16"PRIX64" (%lu)",c->metadata, c->metadata);
+		ilm_log_dbg("addr         (CDW7&6[64:0])= 0x%.16"PRIX64" (%lu)",c->addr, c->addr);
+		ilm_log_dbg("metadata_len (CDW8[32:0])  = 0x%.8X (%u)", c->metadata_len, c->metadata_len);
+		ilm_log_dbg("data_len     (CDW9[32:0])  = 0x%.8X (%u)", c->data_len,     c->data_len);
+		ilm_log_dbg("ndt          (CDW10[32:0]) = 0x%.8X (%u)", c->ndt,          c->ndt);
+		ilm_log_dbg("ndm          (CDW11[32:0]) = 0x%.8X (%u)", c->ndm,          c->ndm);
+		ilm_log_dbg("opcode_idm_bits7_4(CDW12[ 7:0]) = 0x%.2X (%u)", c->opcode_idm_bits7_4, c->opcode_idm_bits7_4);
+		ilm_log_dbg("group_idm    (CDW12[15:8]) = 0x%.2X (%u)", c->group_idm,    c->group_idm);
+		ilm_log_dbg("rsvd2        (CDW12[32:16])= 0x%.4X (%u)", c->rsvd2,        c->rsvd2);
+		ilm_log_dbg("cdw13        (CDW13[32:0]) = 0x%.8X (%u)", c->cdw13,        c->cdw13);
+		ilm_log_dbg("cdw14        (CDW14[32:0]) = 0x%.8X (%u)", c->cdw14,        c->cdw14);
+		ilm_log_dbg("cdw15        (CDW15[32:0]) = 0x%.8X (%u)", c->cdw15,        c->cdw15);
+		ilm_log_dbg("timeout_ms   (CDW16[32:0]) = 0x%.8X (%u)", c->timeout_ms,   c->timeout_ms);
+		ilm_log_dbg("result       (CDW17[32:0]) = 0x%.8X (%u)", c->result,       c->result);
+		ilm_log_dbg("\n");
 	}
 
 	if(view_cdws){
 		uint32_t *cdw = (uint32_t*)cmd_nvme;
 		int i;
 
-		printf("struct nvme_idm_vendor_cmd: CDWs (hex)\n");
-		printf("===============================\n");
+		ilm_log_dbg("===============================");
+		ilm_log_dbg("struct nvme_idm_vendor_cmd: CDWs (hex)");
+		ilm_log_dbg("===============================");
 		for(i = 0; i <= 17; i++) {
-			printf("cdw%.2d = 0x%.8X\n", i, cdw[i]);
+			ilm_log_dbg("cdw%.2d = 0x%.8X", i, cdw[i]);
 		}
-		printf("\n");
+		ilm_log_dbg("\n");
 	}
 }
 
 void dumpNvmePassthruCmd(struct nvme_passthru_cmd *cmd)
 {
-	printf("\n");
-	printf("struct nvme_passthru_cmd: fields\n");
-	printf("================================\n");
-	printf("opcode       (CDW0[ 7:0])  = 0x%.2X (%u)\n", cmd->opcode,       cmd->opcode);
-	printf("flags        (CDW0[15:8])  = 0x%.2X (%u)\n", cmd->flags,        cmd->flags);
-	printf("rsvd1        (CDW0[32:16]) = 0x%.4X (%u)\n", cmd->rsvd1,        cmd->rsvd1);
-	printf("nsid         (CDW1[32:0])  = 0x%.8X (%u)\n", cmd->nsid,         cmd->nsid);
-	printf("cdw2         (CDW2[32:0])  = 0x%.8X (%u)\n", cmd->cdw2,         cmd->cdw2);
-	printf("cdw3         (CDW3[32:0])  = 0x%.8X (%u)\n", cmd->cdw3,         cmd->cdw3);
-	printf("metadata     (CDW5&4[64:0])= 0x%.16llX (%llu)\n",cmd->metadata, cmd->metadata);
-	printf("addr         (CDW7&6[64:0])= 0x%.16llX (%llu)\n",cmd->addr,     cmd->addr);
-	printf("metadata_len (CDW8[32:0])  = 0x%.8X (%u)\n", cmd->metadata_len, cmd->metadata_len);
-	printf("data_len     (CDW9[32:0])  = 0x%.8X (%u)\n", cmd->data_len,     cmd->data_len);
-	printf("cdw10        (CDW10[32:0]) = 0x%.8X (%u)\n", cmd->cdw10,        cmd->cdw10);
-	printf("cdw11        (CDW11[32:0]) = 0x%.8X (%u)\n", cmd->cdw11,        cmd->cdw11);
-	printf("cdw12        (CDW12[32:0]) = 0x%.8X (%u)\n", cmd->cdw12,        cmd->cdw12);
-	printf("cdw13        (CDW13[32:0]) = 0x%.8X (%u)\n", cmd->cdw13,        cmd->cdw13);
-	printf("cdw14        (CDW14[32:0]) = 0x%.8X (%u)\n", cmd->cdw14,        cmd->cdw14);
-	printf("cdw15        (CDW15[32:0]) = 0x%.8X (%u)\n", cmd->cdw15,        cmd->cdw15);
-	printf("timeout_ms   (CDW16[32:0]) = 0x%.8X (%u)\n", cmd->timeout_ms,   cmd->timeout_ms);
-	printf("result       (CDW17[32:0]) = 0x%.8X (%u)\n", cmd->result,       cmd->result);
-	printf("\n");
-}
-
-void _print_char_arr(char *data, unsigned int len)
-{
-	int i;
-	for(i=0; i<len; i++) {
-		if(data[i])
-			printf("%c", data[i]);
-		else
-			printf(" ");
-	}
-	printf("'\n");
+	ilm_log_dbg("================================");
+	ilm_log_dbg("struct nvme_passthru_cmd: fields");
+	ilm_log_dbg("================================");
+	ilm_log_dbg("opcode       (CDW0[ 7:0])  = 0x%.2X (%u)", cmd->opcode,       cmd->opcode);
+	ilm_log_dbg("flags        (CDW0[15:8])  = 0x%.2X (%u)", cmd->flags,        cmd->flags);
+	ilm_log_dbg("rsvd1        (CDW0[32:16]) = 0x%.4X (%u)", cmd->rsvd1,        cmd->rsvd1);
+	ilm_log_dbg("nsid         (CDW1[32:0])  = 0x%.8X (%u)", cmd->nsid,         cmd->nsid);
+	ilm_log_dbg("cdw2         (CDW2[32:0])  = 0x%.8X (%u)", cmd->cdw2,         cmd->cdw2);
+	ilm_log_dbg("cdw3         (CDW3[32:0])  = 0x%.8X (%u)", cmd->cdw3,         cmd->cdw3);
+	ilm_log_dbg("metadata     (CDW5&4[64:0])= 0x%.16llX (%llu)",cmd->metadata, cmd->metadata);
+	ilm_log_dbg("addr         (CDW7&6[64:0])= 0x%.16llX (%llu)",cmd->addr,     cmd->addr);
+	ilm_log_dbg("metadata_len (CDW8[32:0])  = 0x%.8X (%u)", cmd->metadata_len, cmd->metadata_len);
+	ilm_log_dbg("data_len     (CDW9[32:0])  = 0x%.8X (%u)", cmd->data_len,     cmd->data_len);
+	ilm_log_dbg("cdw10        (CDW10[32:0]) = 0x%.8X (%u)", cmd->cdw10,        cmd->cdw10);
+	ilm_log_dbg("cdw11        (CDW11[32:0]) = 0x%.8X (%u)", cmd->cdw11,        cmd->cdw11);
+	ilm_log_dbg("cdw12        (CDW12[32:0]) = 0x%.8X (%u)", cmd->cdw12,        cmd->cdw12);
+	ilm_log_dbg("cdw13        (CDW13[32:0]) = 0x%.8X (%u)", cmd->cdw13,        cmd->cdw13);
+	ilm_log_dbg("cdw14        (CDW14[32:0]) = 0x%.8X (%u)", cmd->cdw14,        cmd->cdw14);
+	ilm_log_dbg("cdw15        (CDW15[32:0]) = 0x%.8X (%u)", cmd->cdw15,        cmd->cdw15);
+	ilm_log_dbg("timeout_ms   (CDW16[32:0]) = 0x%.8X (%u)", cmd->timeout_ms,   cmd->timeout_ms);
+	ilm_log_dbg("result       (CDW17[32:0]) = 0x%.8X (%u)", cmd->result,       cmd->result);
+	ilm_log_dbg("\n");
 }
 
 /**
@@ -172,7 +159,7 @@ void fill_nvme_cmd(struct idm_nvme_request *request_idm,
 	// request_idm->cmd_nvme.nsid = ioctl(fd_nvme, NVME_IOCTL_ID);
 	// if (request_idm->cmd_nvme.nsid <= 0)
 	// {
-	//     printf("%s: nsid ioctl fail: %d\n", __func__, request_idm->cmd_nvme.nsid);
+	//     ilm_log_dbg("%s: nsid ioctl fail: %d", __func__, request_idm->cmd_nvme.nsid);
 	//     ret = request_idm->cmd_nvme.nsid;
 	//     goto EXIT;
 	// }

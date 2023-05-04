@@ -1,7 +1,7 @@
 /* SPDX-License-Identifier: LGPL-2.1-only */
 /*
  * Copyright (C) 2010-2011 Red Hat, Inc.
- * Copyright (C) 2022 Seagate Technology LLC and/or its Affiliates.
+ * Copyright (C) 2023 Seagate Technology LLC and/or its Affiliates.
  *
  * idm_nvme_utils.h - Contains nvme-related helper utility functions.
   */
@@ -23,5 +23,4 @@ void dumpNvmePassthruCmd(struct nvme_passthru_cmd *cmd);
 void fill_nvme_cmd(struct idm_nvme_request *request_idm,
                    struct nvme_passthru_cmd *cmd_nvme_passthru);
 
-void _print_char_arr(char *data, unsigned int len);
 #endif /*__IDM_NVME_UTILS_H__ */

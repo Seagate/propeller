@@ -1,7 +1,7 @@
 /* SPDX-License-Identifier: LGPL-2.1-only */
 /*
  * Copyright (C) 2010-2011 Red Hat, Inc.
- * Copyright (C) 2022 Seagate Technology LLC and/or its Affiliates.
+ * Copyright (C) 2023 Seagate Technology LLC and/or its Affiliates.
  *
  * idm_nvme_io.c - Contains the lowest-level function that allow the IDM In-drive Mutex (IDM)
  *                  to talk to the Linux kernel (via ioctl(), read() or write())
@@ -33,6 +33,26 @@
  *
  */
 
+////////////////////////////////////////////////////////////////////////////////
+// COMPILE FLAGS
+////////////////////////////////////////////////////////////////////////////////
+/* For using internal main() for stand-alone debug compilation.
+Setup to be gcc-defined (-D) in make file */
+#ifdef DBG__NVME_IO_MAIN_ENABLE
+#define DBG__NVME_IO_MAIN_ENABLE 1
+#else
+#define DBG__NVME_IO_MAIN_ENABLE 0
+#endif
+
+/* Define for logging a function's name each time it is entered. */
+#define DBG__LOG_FUNC_ENTRY
+
+/* Defines for logging struct field data for important data structs */
+#define DBG__DUMP_STRUCTS
+
+////////////////////////////////////////////////////////////////////////////////
+// INCLUDES
+////////////////////////////////////////////////////////////////////////////////
 #include <byteswap.h>
 #include <errno.h>
 #include <fcntl.h>
@@ -46,25 +66,12 @@
 
 #include "idm_nvme_io.h"
 #include "idm_nvme_utils.h"
+#include "log.h"
+#include "util.h"
 
-
-//////////////////////////////////////////
-// COMPILE FLAGS
-//////////////////////////////////////////
-//TODO: DELETE THESE 2 (AND ALL CORRESPONDING CODE) AFTER NVME FILES COMPILE WITH THE REST OF PROPELLER.
-#define COMPILE_STANDALONE
-#ifdef MAIN_ACTIVATE_NVME_IO
-#define MAIN_ACTIVATE_NVME_IO 1
-#else
-#define MAIN_ACTIVATE_NVME_IO 0
-#endif
-
-#define FUNCTION_ENTRY_DEBUG    //TODO: Remove this entirely???
-
-
-//////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////
 // FUNCTIONS
-//////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////
 
 /**
  * nvme_idm_async_data_rcv - Asynchronously retrieves the status word and
@@ -79,19 +86,15 @@
  */
 int nvme_idm_async_data_rcv(struct idm_nvme_request *request_idm, int *result)
 {
-	#ifdef FUNCTION_ENTRY_DEBUG
-	printf("%s: START\n", __func__);
-	#endif //FUNCTION_ENTRY_DEBUG
+	#ifdef DBG__LOG_FUNC_ENTRY
+	ilm_log_dbg("%s: ENTRY", __func__);
+	#endif
 
 	int ret;
 
 	ret = _async_idm_data_rcv(request_idm, result);
 	if (ret < 0) {
-		#ifndef COMPILE_STANDALONE
 		ilm_log_err("%s: _async_idm_data_rcv fail %d", __func__, ret);
-		#else
-		printf("%s: _async_idm_data_rcv fail %d\n", __func__, ret);
-		#endif //COMPILE_STANDALONE
 	}
 
 	close(request_idm->fd_nvme);
@@ -114,9 +117,9 @@ int nvme_idm_async_data_rcv(struct idm_nvme_request *request_idm, int *result)
  */
 int nvme_idm_async_read(struct idm_nvme_request *request_idm)
 {
-	#ifdef FUNCTION_ENTRY_DEBUG
-	printf("%s: START\n", __func__);
-	#endif //FUNCTION_ENTRY_DEBUG
+	#ifdef DBG__LOG_FUNC_ENTRY
+	ilm_log_dbg("%s: ENTRY", __func__);
+	#endif
 
 	int ret;
 
@@ -154,9 +157,9 @@ int nvme_idm_async_read(struct idm_nvme_request *request_idm)
  */
 int nvme_idm_async_write(struct idm_nvme_request *request_idm)
 {
-	#ifdef FUNCTION_ENTRY_DEBUG
-	printf("%s: START\n", __func__);
-	#endif //FUNCTION_ENTRY_DEBUG
+	#ifdef DBG__LOG_FUNC_ENTRY
+	ilm_log_dbg("%s: ENTRY", __func__);
+	#endif
 
 	int ret;
 
@@ -191,9 +194,9 @@ int nvme_idm_async_write(struct idm_nvme_request *request_idm)
  */
 void nvme_idm_read_init(char *drive, struct idm_nvme_request *request_idm)
 {
-	#ifdef FUNCTION_ENTRY_DEBUG
-	printf("%s: START\n", __func__);
-	#endif //FUNCTION_ENTRY_DEBUG
+	#ifdef DBG__LOG_FUNC_ENTRY
+	ilm_log_dbg("%s: ENTRY", __func__);
+	#endif
 
 	request_idm->opcode_idm = IDM_OPCODE_INIT;  //Ignored, but default for all idm reads.
 	strncpy(request_idm->drive, drive, PATH_MAX);
@@ -219,9 +222,9 @@ void nvme_idm_read_init(char *drive, struct idm_nvme_request *request_idm)
 int nvme_idm_write_init(char *lock_id, int mode, char *host_id, char *drive,
                         uint64_t timeout, struct idm_nvme_request *request_idm)
 {
-	#ifdef FUNCTION_ENTRY_DEBUG
-	printf("%s: START\n", __func__);
-	#endif //FUNCTION_ENTRY_DEBUG
+	#ifdef DBG__LOG_FUNC_ENTRY
+	ilm_log_dbg("%s: ENTRY", __func__);
+	#endif
 
 	//Cache the input params
 //TODO: memcpy() -OR- strncpy() HERE?? (and everywhere else for that matter)
@@ -264,9 +267,9 @@ int nvme_idm_write_init(char *lock_id, int mode, char *host_id, char *drive,
  */
 int nvme_idm_sync_read(struct idm_nvme_request *request_idm)
 {
-	#ifdef FUNCTION_ENTRY_DEBUG
-	printf("%s: START\n", __func__);
-	#endif //FUNCTION_ENTRY_DEBUG
+	#ifdef DBG__LOG_FUNC_ENTRY
+	ilm_log_dbg("%s: ENTRY", __func__);
+	#endif
 
 	int ret;
 
@@ -285,13 +288,10 @@ int nvme_idm_sync_read(struct idm_nvme_request *request_idm)
 		return ret;
 	}
 
-//TODO: Put on debug flag OR remove??
-	#ifndef COMPILE_STANDALONE
 	ilm_log_dbg("%s: retrieved struct idm_data", __func__);
-	#else
-	printf("%s: retrieved struct idm_data\n", __func__);
-	#endif //COMPILE_STANDALONE
+	#ifdef DBG__DUMP_STRUCTS
 	dumpIdmDataStruct(request_idm->data_idm);
+	#endif
 
 	return ret;
 }
@@ -310,9 +310,9 @@ int nvme_idm_sync_read(struct idm_nvme_request *request_idm)
  */
 int nvme_idm_sync_write(struct idm_nvme_request *request_idm)
 {
-	#ifdef FUNCTION_ENTRY_DEBUG
-	printf("%s: START\n", __func__);
-	#endif //FUNCTION_ENTRY_DEBUG
+	#ifdef DBG__LOG_FUNC_ENTRY
+	ilm_log_dbg("%s: ENTRY", __func__);
+	#endif
 
 	int ret;
 
@@ -347,26 +347,22 @@ int nvme_idm_sync_write(struct idm_nvme_request *request_idm)
  */
 int _async_idm_cmd_send(struct idm_nvme_request *request_idm)
 {
-	#ifdef FUNCTION_ENTRY_DEBUG
-	printf("%s: START\n", __func__);
-	#endif //FUNCTION_ENTRY_DEBUG
+	#ifdef DBG__LOG_FUNC_ENTRY
+	ilm_log_dbg("%s: ENTRY", __func__);
+	#endif
 
 	int fd_nvme;
 	int ret = FAILURE;
 
-	//TODO: Put this under a debug flag of some kind??
+	#ifdef DBG__DUMP_STRUCTS
 	dumpNvmeCmdStruct(&request_idm->cmd_nvme, 1, 1);
 	dumpIdmDataStruct(request_idm->data_idm);
+	#endif
 
 	fd_nvme = open(request_idm->drive, O_RDWR | O_NONBLOCK);
 	if (fd_nvme < 0) {
-		#ifndef COMPILE_STANDALONE
 		ilm_log_err("%s: error opening drive %s fd %d",
 		            __func__, request_idm->drive, fd_nvme);
-		#else
-		printf("%s: error opening drive %s fd %d\n",
-		       __func__, request_idm->drive, fd_nvme);
-		#endif //COMPILE_STANDALONE
 		ret = fd_nvme;
 		goto EXIT;
 	}
@@ -375,11 +371,7 @@ int _async_idm_cmd_send(struct idm_nvme_request *request_idm)
 	ret = ani_send_cmd(request_idm, NVME_IOCTL_ADMIN_CMD);
 	if (ret) {
 		close(fd_nvme);
-		#ifndef COMPILE_STANDALONE
-		ilm_log_err("%s: sned failed: %d(0x%X)", __func__, ret, ret);
-		#else
-		printf("%s: send failed: %d(0x%X)\n", __func__, ret, ret);
-		#endif //COMPILE_STANDALONE
+		ilm_log_err("%s: send failed: %d(0x%X)", __func__, ret, ret);
 	}
 EXIT:
 	return ret;
@@ -398,46 +390,33 @@ EXIT:
  */
 int _async_idm_data_rcv(struct idm_nvme_request *request_idm, int *result)
 {
-	#ifdef FUNCTION_ENTRY_DEBUG
-	printf("%s: START\n", __func__);
-	#endif //FUNCTION_ENTRY_DEBUG
+	#ifdef DBG__LOG_FUNC_ENTRY
+	ilm_log_dbg("%s: ENTRY", __func__);
+	#endif
 
 	int result_ani;
 	int ret;
 
 	if (!request_idm->fd_nvme) {
-		#ifndef COMPILE_STANDALONE
 		ilm_log_err("%s: invalid device handle", __func__);
-		#else
-		printf("%s: invalid device handle\n", __func__);
-		#endif //COMPILE_STANDALONE
 		ret = FAILURE;
 		goto EXIT;
 	}
 
 	ret = ani_data_rcv(request_idm, &result_ani);
 	if (ret < 0) {
-		#ifndef COMPILE_STANDALONE
 		ilm_log_err("%s: ani_data_rcv fail", __func__);
-		#else
-		printf("%s: ani_data_rcv fail\n", __func__);
-		#endif //COMPILE_STANDALONE
 		goto EXIT;
 	}
 
 	*result = _idm_cmd_check_status(result_ani, request_idm->opcode_idm);
 
-	// //TODO: Put this under a debug flag of some kind??
-	// dumpIdmDataStruct(request_idm->data_idm);
+	#ifdef DBG__DUMP_STRUCTS
+	dumpIdmDataStruct(request_idm->data_idm);
+	#endif
 
-	#ifndef COMPILE_STANDALONE
 	ilm_log_dbg("%s: result found: ani:%d(0x%X), final:%d(0x%X)",
 	       __func__, result_ani, result_ani, *result, *result);
-	#else
-	printf("%s: result found: ani:%d(0x%X), final:%d(0x%X)\n",
-	       __func__, result_ani, result_ani, *result, *result);
-	#endif //COMPILE_STANDALONE
-
 EXIT:
 	return ret;
 }
@@ -455,9 +434,9 @@ EXIT:
  */
 int _idm_cmd_check_status(int status, uint8_t opcode_idm)
 {
-	#ifdef FUNCTION_ENTRY_DEBUG
-	printf("%s: START\n", __func__);
-	#endif //FUNCTION_ENTRY_DEBUG
+	#ifdef DBG__LOG_FUNC_ENTRY
+	ilm_log_dbg("%s: ENTRY", __func__);
+	#endif
 
 	uint16_t sct, sc;   // status code type, status code
 	int ret;
@@ -467,11 +446,7 @@ int _idm_cmd_check_status(int status, uint8_t opcode_idm)
 
 	sc  = status & STATUS_CODE_MASK;
 	sct = (status & STATUS_CODE_TYPE_MASK) >> STATUS_CODE_TYPE_RSHIFT;
-	#ifndef COMPILE_STANDALONE
 	ilm_log_dbg("%s: for opcode_idm=0x%X: sct=0x%X, sc=0x%X", __func__, opcode_idm, sct, sc);
-	#else
-	printf("%s: for opcode_idm=0x%X: sct=0x%X, sc=0x%X\n", __func__, opcode_idm, sct, sc);
-	#endif //COMPILE_STANDALONE
 
 	switch(sc) {
 		case NVME_IDM_ERR_MUTEX_OP_FAILURE:
@@ -552,13 +527,8 @@ int _idm_cmd_check_status(int status, uint8_t opcode_idm)
 			ret = -EBUSY;
 			break;
 		default:
-			#ifndef COMPILE_STANDALONE
 			ilm_log_err("%s: unknown status code %d(0x%X)",
 			            __func__, sc, sc);
-			#else
-			printf("%s: unknown status code %d(0x%X)\n",
-			       __func__, sc, sc);
-			#endif //COMPILE_STANDALONE
 			ret = -EINVAL;
 	}
 
@@ -578,9 +548,9 @@ int _idm_cmd_check_status(int status, uint8_t opcode_idm)
  */
 int _idm_cmd_init(struct idm_nvme_request *request_idm, uint8_t opcode_nvme)
 {
-	#ifdef FUNCTION_ENTRY_DEBUG
-	printf("%s: START\n", __func__);
-	#endif //FUNCTION_ENTRY_DEBUG
+	#ifdef DBG__LOG_FUNC_ENTRY
+	ilm_log_dbg("%s: ENTRY", __func__);
+	#endif
 
 	struct nvme_idm_vendor_cmd *cmd_nvme = &request_idm->cmd_nvme;
 
@@ -606,17 +576,13 @@ int _idm_cmd_init(struct idm_nvme_request *request_idm, uint8_t opcode_nvme)
  */
 int _idm_data_init_wrt(struct idm_nvme_request *request_idm)
 {
-	#ifdef FUNCTION_ENTRY_DEBUG
-	printf("%s: START\n", __func__);
-	#endif //FUNCTION_ENTRY_DEBUG
+	#ifdef DBG__LOG_FUNC_ENTRY
+	ilm_log_dbg("%s: ENTRY", __func__);
+	#endif
 
 	struct idm_data *data_idm = request_idm->data_idm;
 
-	#ifndef COMPILE_STANDALONE
 	data_idm->time_now  = __bswap_64(ilm_read_utc_time());
-	#else
-	data_idm->time_now  = __bswap_64(1234567890);
-	#endif //COMPILE_STANDALONE
 	data_idm->countdown = __bswap_64(request_idm->timeout);
 	data_idm->class     = __bswap_64(request_idm->class);
 
@@ -665,36 +631,33 @@ int _idm_data_init_wrt(struct idm_nvme_request *request_idm)
  */
 int _sync_idm_cmd_send(struct idm_nvme_request *request_idm)
 {
-	#ifdef FUNCTION_ENTRY_DEBUG
-	printf("%s: START\n", __func__);
-	#endif //FUNCTION_ENTRY_DEBUG
+	#ifdef DBG__LOG_FUNC_ENTRY
+	ilm_log_dbg("%s: ENTRY", __func__);
+	#endif
 
 	struct nvme_passthru_cmd cmd_nvme_passthru;
 	int fd_nvme;
 	int ret = FAILURE;
 
-	//TODO: Put this under a debug flag of some kind??
+	#ifdef DBG__DUMP_STRUCTS
 	dumpNvmeCmdStruct(&request_idm->cmd_nvme, 1, 1);
 	dumpIdmDataStruct(request_idm->data_idm);
+	#endif
 
 	memset(&cmd_nvme_passthru, 0, sizeof(struct nvme_passthru_cmd));
 
 	fd_nvme = open(request_idm->drive, O_RDWR | O_NONBLOCK);
 	if (fd_nvme < 0) {
-		#ifndef COMPILE_STANDALONE
 		ilm_log_err("%s: error opening drive %s fd %d",
 		            __func__, request_idm->drive, fd_nvme);
-		#else
-		printf("%s: error opening drive %s fd %d\n",
-		       __func__, request_idm->drive, fd_nvme);
-		#endif //COMPILE_STANDALONE
 		return fd_nvme;
 	}
 
 	fill_nvme_cmd(request_idm, &cmd_nvme_passthru);
 
-	//TODO: Keep?  Add debug flag?
+	#ifdef DBG__DUMP_STRUCTS
 	dumpNvmePassthruCmd(&cmd_nvme_passthru);
+	#endif
 
 	//ioctl()'s return value comes from:
 	//  NVMe Completion Queue Entry (CQE) DWORD3:
@@ -716,11 +679,7 @@ int _sync_idm_cmd_send(struct idm_nvme_request *request_idm)
 	//          The rest are "normally" 0.  However, the system can use them.
 	ret = ioctl(fd_nvme, NVME_IOCTL_ADMIN_CMD, &cmd_nvme_passthru);
 	if(ret) {
-		#ifndef COMPILE_STANDALONE
 		ilm_log_err("%s: ioctl failed: %d(0x%X)", __func__, ret, ret);
-		#else
-		printf("%s: ioctl failed: %d(0x%X)\n", __func__, ret, ret);
-		#endif //COMPILE_STANDALONE
 	}
 
 	ret = _idm_cmd_check_status(ret, request_idm->opcode_idm);
@@ -729,14 +688,10 @@ int _sync_idm_cmd_send(struct idm_nvme_request *request_idm)
 	return ret;
 }
 
-
-
-
-
-#if MAIN_ACTIVATE_NVME_IO
-/*#########################################################################################
-########################### STAND-ALONE MAIN ##############################################
-#########################################################################################*/
+////////////////////////////////////////////////////////////////////////////////
+// DEBUG MAIN
+////////////////////////////////////////////////////////////////////////////////
+#if DBG__NVME_IO_MAIN_ENABLE
 #define DRIVE_DEFAULT_DEVICE "/dev/nvme0n1";
 
 //To compile:
@@ -779,4 +734,4 @@ int main(int argc, char *argv[])
 
     return 0;
 }
-#endif//MAIN_ACTIVATE_NVME_IO
+#endif//DBG__NVME_IO_MAIN_ENABLE
