@@ -2379,6 +2379,8 @@ int _validate_input_write(char *lock_id, int mode, char *host_id, char *drive)
 //gcc idm_nvme_io.c idm_nvme_api.c -o idm_nvme_api
 int main(int argc, char *argv[])
 {
+	printf("main - idm_nvme_api\n");
+
 	char drive[PATH_MAX];
 	int  ret = 0;
 

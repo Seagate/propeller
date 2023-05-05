@@ -38,7 +38,6 @@ void dumpIdmDataStruct(struct idm_data *d)
 	ilm_log_array_dbg("resource_id", d->resource_id, IDM_LOCK_ID_LEN_BYTES);
 	ilm_log_array_dbg("metadata", d->metadata, IDM_DATA_METADATA_LEN_BYTES);
 	ilm_log_array_dbg("host_id", d->host_id, IDM_HOST_ID_LEN_BYTES);
-	ilm_log_dbg("\n");
 }
 
 /**
@@ -58,7 +57,6 @@ void dumpIdmInfoStruct(struct idm_info *info)
 	ilm_log_array_dbg("host_id", info->host_id, IDM_HOST_ID_LEN_BYTES);
 	ilm_log_dbg("last_renew_time  = 0x%.16"PRIX64" (%lu)", info->last_renew_time,
 	                                                    info->last_renew_time);
-	ilm_log_dbg("\n");
 }
 
 /**
@@ -98,7 +96,6 @@ void dumpNvmeCmdStruct(struct nvme_idm_vendor_cmd *cmd_nvme, int view_fields,
 		ilm_log_dbg("cdw15        (CDW15[32:0]) = 0x%.8X (%u)", c->cdw15,        c->cdw15);
 		ilm_log_dbg("timeout_ms   (CDW16[32:0]) = 0x%.8X (%u)", c->timeout_ms,   c->timeout_ms);
 		ilm_log_dbg("result       (CDW17[32:0]) = 0x%.8X (%u)", c->result,       c->result);
-		ilm_log_dbg("\n");
 	}
 
 	if(view_cdws){
@@ -111,7 +108,6 @@ void dumpNvmeCmdStruct(struct nvme_idm_vendor_cmd *cmd_nvme, int view_fields,
 		for(i = 0; i <= 17; i++) {
 			ilm_log_dbg("cdw%.2d = 0x%.8X", i, cdw[i]);
 		}
-		ilm_log_dbg("\n");
 	}
 }
 
@@ -138,7 +134,6 @@ void dumpNvmePassthruCmd(struct nvme_passthru_cmd *cmd)
 	ilm_log_dbg("cdw15        (CDW15[32:0]) = 0x%.8X (%u)", cmd->cdw15,        cmd->cdw15);
 	ilm_log_dbg("timeout_ms   (CDW16[32:0]) = 0x%.8X (%u)", cmd->timeout_ms,   cmd->timeout_ms);
 	ilm_log_dbg("result       (CDW17[32:0]) = 0x%.8X (%u)", cmd->result,       cmd->result);
-	ilm_log_dbg("\n");
 }
 
 /**

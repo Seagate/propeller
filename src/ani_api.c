@@ -552,7 +552,7 @@ __attribute__ ((unused)) static void table_show(void)
 #define DRIVE3	"/dev/nvme3n1"
 
 int main(void){
-	printf("main\n");
+	printf("main - ani_api\n");
 
 	int ret;
 	struct table_entry* entry;
