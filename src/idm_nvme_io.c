@@ -425,6 +425,10 @@ EXIT:
  * _idm_cmd_check_status -  Evaluates the NVMe command status word returned
  * from a device.
  *
+ * The function processes any positive integer errors returned from
+ * the system (via ioctl()) and recharacterizes them into common errno.h
+ * values.
+ *
  * @status:     The status code returned by a system device after the
  *              completed NVMe command request.
  * @opcode_idm: IDM-specific opcode specifying the desired IDM action
@@ -442,88 +446,102 @@ int _idm_cmd_check_status(int status, uint8_t opcode_idm)
 	int ret;
 
 	if (status <= 0)
-		return status;  // Just return the status code on success or pre-existing negative error.
+		return status;
 
 	sc  = status & STATUS_CODE_MASK;
 	sct = (status & STATUS_CODE_TYPE_MASK) >> STATUS_CODE_TYPE_RSHIFT;
-	ilm_log_dbg("%s: for opcode_idm=0x%X: sct=0x%X, sc=0x%X", __func__, opcode_idm, sct, sc);
+	ilm_log_dbg("%s: for opcode_idm=0x%X: sct=0x%X, sc=0x%X",
+	            __func__, opcode_idm, sct, sc);
 
 	switch(sc) {
 		case NVME_IDM_ERR_MUTEX_OP_FAILURE:
-//TODO: Replace all these with ilm_log_dbg() calls????? (If so, remove the "\n")
-			printf("NVME_IDM_ERR_MUTEX_OP_FAILURE\n");
+			ilm_log_err("%s: NVME_IDM_ERR_MUTEX_OP_FAILURE",
+			            __func__);
 			ret = -EINVAL;
 			break;
 		case NVME_IDM_ERR_MUTEX_REVERSE_OWNER_CHECK_FAILURE:
-			printf("NVME_IDM_ERR_MUTEX_REVERSE_OWNER_CHECK_FAILURE\n");
+			ilm_log_err("%s: NVME_IDM_ERR_MUTEX_REVERSE_OWNER_CHECK_FAILURE",
+			            __func__);
 			ret = -EINVAL;
 			break;
 		case NVME_IDM_ERR_MUTEX_OP_FAILURE_STATE:
-			printf("NVME_IDM_ERR_MUTEX_OP_FAILURE_STATE\n");
+			ilm_log_err("%s: NVME_IDM_ERR_MUTEX_OP_FAILURE_STATE",
+			            __func__);
 			ret = -EINVAL;
 			break;
 		case NVME_IDM_ERR_MUTEX_OP_FAILURE_CLASS:
-			printf("NVME_IDM_ERR_MUTEX_OP_FAILURE_CLASS\n");
+			ilm_log_err("%s: NVME_IDM_ERR_MUTEX_OP_FAILURE_CLASS",
+			            __func__);
 			ret = -EINVAL;
 			break;
 		case NVME_IDM_ERR_MUTEX_OP_FAILURE_OWNER:
-			printf("NVME_IDM_ERR_MUTEX_OP_FAILURE_OWNER\n");
+			ilm_log_err("%s: NVME_IDM_ERR_MUTEX_OP_FAILURE_OWNER",
+			            __func__);
 			ret = -EINVAL;
 			break;
 		case NVME_IDM_ERR_MUTEX_OPCODE_INVALID:
-			printf("NVME_IDM_ERR_MUTEX_OPCODE_INVALID\n");
+			ilm_log_err("%s: NVME_IDM_ERR_MUTEX_OPCODE_INVALID",
+			            __func__);
 			ret = -EINVAL;
 			break;
 		case NVME_IDM_ERR_MUTEX_LIMIT_EXCEEDED:
-			printf("NVME_IDM_ERR_MUTEX_LIMIT_EXCEEDED\n");
+			ilm_log_err("%s: NVME_IDM_ERR_MUTEX_LIMIT_EXCEEDED",
+			            __func__);
 			ret = -ENOMEM;
 			break;
 		case NVME_IDM_ERR_MUTEX_LIMIT_EXCEEDED_HOST:
-			printf("NVME_IDM_ERR_MUTEX_LIMIT_EXCEEDED_HOST\n");
+			ilm_log_err("%s: NVME_IDM_ERR_MUTEX_LIMIT_EXCEEDED_HOST",
+			            __func__);
 			ret = -ENOMEM;
 			break;
 		case NVME_IDM_ERR_MUTEX_LIMIT_EXCEEDED_SHARED_HOST:
-			printf("NVME_IDM_ERR_MUTEX_LIMIT_EXCEEDED_SHARED_HOST\n");
+			ilm_log_err("%s: NVME_IDM_ERR_MUTEX_LIMIT_EXCEEDED_SHARED_HOST",
+			            __func__);
 			ret = -ENOMEM;
 			break;
 		case NVME_IDM_ERR_MUTEX_GROUP_INVALID:
-			printf("NVME_IDM_ERR_MUTEX_GROUP_INVALID\n");
+			ilm_log_err("%s: NVME_IDM_ERR_MUTEX_GROUP_INVALID",
+			            __func__);
 			ret = -ENOENT;
 			break;
 		case NVME_IDM_ERR_MUTEX_RESERVATION_CONFLICT:
-			printf("NVME_IDM_ERR_MUTEX_RESERVATION_CONFLICT\n");
+			ilm_log_err("%s: NVME_IDM_ERR_MUTEX_RESERVATION_CONFLICT",
+			            __func__);
 			switch(opcode_idm) {
 				case IDM_OPCODE_REFRESH:
-					printf("Bad refresh: timeout\n");
+					ilm_log_err("%s: Bad refresh: timeout",
+					            __func__);
 					ret = -ETIME;
 					break;
 				case IDM_OPCODE_UNLOCK:
-					printf("Bad unlock\n");
+					ilm_log_err("%s: Bad unlock", __func__);
 					ret = -ENOENT;
 					break;
 				default:
-					printf("Busy\n");
+					ilm_log_err("%s: Busy", __func__);
 					ret = -EBUSY;
 			}
 			break;
 		case NVME_IDM_ERR_MUTEX_COMMAND_TERMINATED:
-			printf("NVME_IDM_ERR_MUTEX_COMMAND_TERMINATED\n");
+			ilm_log_err("%s: NVME_IDM_ERR_MUTEX_COMMAND_TERMINATED",
+			            __func__);
 			switch(opcode_idm) {
 				case IDM_OPCODE_REFRESH:
-					printf("Bad refresh: timeout\n");
+					ilm_log_err("%s: Bad refresh: timeout",
+					            __func__);
 					ret = -EPERM;
 					break;
 				case IDM_OPCODE_UNLOCK:
-					printf("Bad unlock\n");
+					ilm_log_err("%s: Bad unlock", __func__);
 					ret = -EINVAL;
 					break;
 				default:
-					printf("Try again\n");
+					ilm_log_err("%s: Try again", __func__);
 					ret = -EAGAIN;
 			}
 			break;
 		case NVME_IDM_ERR_MUTEX_BUSY:
-			printf("NVME_IDM_ERR_MUTEX_BUSY\n");
+			ilm_log_err("%s: NVME_IDM_ERR_MUTEX_BUSY", __func__);
 			ret = -EBUSY;
 			break;
 		default:
@@ -698,6 +716,8 @@ int _sync_idm_cmd_send(struct idm_nvme_request *request_idm)
 //gcc idm_nvme_io.c -o idm_nvme_io
 int main(int argc, char *argv[])
 {
+    printf("main - idm_nvme_io\n");
+
     char *drive;
 
     if(argc >= 3){

@@ -46,6 +46,7 @@
 #include <sys/prctl.h>
 #endif
 
+#include "log.h"
 #include "thpool.h"
 
 #ifdef THPOOL_DEBUG
@@ -55,22 +56,10 @@
 #endif
 
 #if !defined(DISABLE_PRINT) || defined(THPOOL_DEBUG)
-#define err(str) fprintf(stderr, str)
+#define err(str) ilm_log_err("%s", str)
 #else
 #define err(str)
 #endif
-
-
-
-//TODO DUMPING GROUND
-//===================
-//TODO:(captured) add queue metrics
-//TODO: AFTER INTEGRATION: all printf() and err() calls must be replaced will appropriate logging function calls
-
-
-
-
-
 
 /* ========================== STRUCTURES ============================ */
 
@@ -181,7 +170,7 @@ struct threadpool* thpool_init(int num_threads){
 	struct threadpool *thpool_p;
 	thpool_p = (struct threadpool*)malloc(sizeof(struct threadpool));
 	if (thpool_p == NULL){
-		err("thpool_init(): Could not allocate memory for thread pool\n");
+		err("thpool_init(): Could not allocate memory for thread pool");
 		return NULL;
 	}
 	thpool_p->num_threads_alive   = 0;
@@ -191,13 +180,13 @@ struct threadpool* thpool_init(int num_threads){
 
 	/* Initialise the job queue */
 	if (jobqueue_init(&thpool_p->queue_in) == -1){
-		err("thpool_init(): Could not allocate memory for input job queue\n");
+		err("thpool_init(): Could not allocate memory for input job queue");
 		free(thpool_p);
 		return NULL;
 	}
 
 	if (jobqueue_init(&thpool_p->queue_out) == -1){
-		err("thpool_init(): Could not allocate memory for output job queue\n");
+		err("thpool_init(): Could not allocate memory for output job queue");
 		jobqueue_destroy(&thpool_p->queue_in);
 		free(thpool_p);
 		return NULL;
@@ -206,7 +195,7 @@ struct threadpool* thpool_init(int num_threads){
 	/* Make threads in pool */
 	thpool_p->threads = (struct thread**)malloc(num_threads * sizeof(struct thread *));
 	if (thpool_p->threads == NULL){
-		err("thpool_init(): Could not allocate memory for threads\n");
+		err("thpool_init(): Could not allocate memory for threads");
 		jobqueue_destroy(&thpool_p->queue_in);
 		jobqueue_destroy(&thpool_p->queue_out);
 		free(thpool_p);
@@ -239,8 +228,8 @@ struct threadpool* thpool_init(int num_threads){
 		wait_count++;
 		if (wait_count > 100000000){//Kludge to give 10 sec max wait
 #if THPOOL_DEBUG
-			printf("THPOOL_DEBUG: %s: Timeout waiting for all threads\n",
-			       __func__);
+			ilm_log_dbg("%s: Timeout waiting for all threads",
+			            __func__);
 #endif
 			thpool_destroy(thpool_p);
 			return NULL;
@@ -258,7 +247,7 @@ int thpool_add_work(struct threadpool *thpool_p, uuid_t uuid_job,
 
 	newjob=(struct job*)malloc(sizeof(struct job));
 	if (newjob==NULL){
-		err("thpool_add_work(): Could not allocate memory for new job\n");
+		err("thpool_add_work(): Could not allocate memory for new job");
 		return -1;
 	}
 
@@ -308,15 +297,15 @@ int thpool_find_result(struct threadpool *thpool_p, uuid_t uuid_job,
 #endif
 	if (result_found){
 #if THPOOL_DEBUG
-		printf("THPOOL_DEBUG: %s: job(%p) found: uuid %s\n",
-		       __func__, completed_job, uuid_str);
+		ilm_log_dbg("%s: job(%p) found: uuid %s",
+		            __func__, completed_job, uuid_str);
 #endif
 		return 0;
 	}
 	else{
 #if THPOOL_DEBUG
-		printf("THPOOL_DEBUG: %s: job NOT found: uuid %s\n",
-		       __func__, uuid_str);
+		ilm_log_dbg("%s: job NOT found: uuid %s",
+		            __func__, uuid_str);
 #endif
 		return -1;
 	}
@@ -450,7 +439,7 @@ static int thread_init (struct threadpool *thpool_p, struct thread** thread_p, i
 
 	*thread_p = (struct thread*)malloc(sizeof(struct thread));
 	if (*thread_p == NULL){
-		err("thread_init(): Could not allocate memory for thread\n");
+		err("thread_init(): Could not allocate memory for thread");
 		return -1;
 	}
 
@@ -460,7 +449,7 @@ static int thread_init (struct threadpool *thpool_p, struct thread** thread_p, i
 	pthread_create(&(*thread_p)->pthread, NULL, (void * (*)(void *)) thread_do, (*thread_p));
 	pthread_detach((*thread_p)->pthread);
 #if THPOOL_DEBUG
-	printf("THPOOL_DEBUG: %s: Thread created (id:%d)\n", __func__, id);
+	ilm_log_dbg("%s: Thread created (id:%d)", __func__, id);
 #endif
 	return 0;
 }
@@ -496,8 +485,8 @@ static void* thread_do(struct thread* thread_p){
 	snprintf(thread_name, 16, "thpool-%d", thread_p->id);
 //TODO: Set thread "id" here instead (using pthread_self())????  Use both??
 #if THPOOL_DEBUG
-	printf("THPOOL_DEBUG: %s: Thread started (id:%d, pthread:%u)\n",
-	       __func__, thread_p->id, (unsigned int)pthread_self());
+	ilm_log_dbg("%s: Thread started (id:%d, pthread:%u)",
+	            __func__, thread_p->id, (unsigned int)pthread_self());
 #endif
 
 #if defined(__linux__)
@@ -640,16 +629,17 @@ static void jobqueue_push(jobqueue* jobqueue_p, struct job* newjob){
 	}
 	jobqueue_p->len++;
 	if (jobqueue_p->len > MAX_QUEUE_SIZE_WITHOUT_WARNING)
-		printf("%s: WARNING: queue len > %d\n",
-		       __func__, MAX_QUEUE_SIZE_WITHOUT_WARNING);
+		ilm_log_warn("%s: queue len > %d",
+		             __func__, MAX_QUEUE_SIZE_WITHOUT_WARNING);
 
 	bsem_post(jobqueue_p->has_jobs);
 	pthread_mutex_unlock(&jobqueue_p->rwmutex);
 #if THPOOL_DEBUG
 	char uuid_str[37];
 	uuid_unparse(newjob->uuid, uuid_str);
-	printf("THPOOL_DEBUG: %s: job(%p), uuid=%s, queue(%p), pthread(%u))\n",
-	       __func__, newjob, uuid_str, jobqueue_p, (unsigned int)pthread_self());
+	ilm_log_dbg("%s: job(%p), uuid=%s, queue(%p), pthread(%u))",
+	            __func__, newjob, uuid_str, jobqueue_p,
+	            (unsigned int)pthread_self());
 #endif
 }
 
@@ -677,8 +667,8 @@ static struct job* jobqueue_pull_front(jobqueue* jobqueue_p){
 			jobqueue_p->front = job_p->prev;
 			jobqueue_p->len--;
 			if (jobqueue_p->len > MAX_QUEUE_SIZE_WITHOUT_WARNING)
-				printf("%s: WARNING: queue len > %d\n",
-				       __func__, MAX_QUEUE_SIZE_WITHOUT_WARNING);
+				ilm_log_warn("%s: queue len > %d",
+				             __func__, MAX_QUEUE_SIZE_WITHOUT_WARNING);
 			/* more than one job in queue -> post it */
 			bsem_post(jobqueue_p->has_jobs);
 	}
@@ -688,12 +678,12 @@ static struct job* jobqueue_pull_front(jobqueue* jobqueue_p){
 	if (job_p){
 		char uuid_str[37];
 		uuid_unparse(job_p->uuid, uuid_str);
-		printf("THPOOL_DEBUG: %s: found job(%p), uuid=%s, queue(%p), pthread(%u))\n",
-		       __func__, job_p, uuid_str, jobqueue_p, (unsigned int)pthread_self());
+		ilm_log_dbg("%s: found job(%p), uuid=%s, queue(%p), pthread(%u))",
+		            __func__, job_p, uuid_str, jobqueue_p, (unsigned int)pthread_self());
 	}
 	else
-		printf("THPOOL_DEBUG: %s: NO jobs found, queue(%p), pthread(%u))\n",
-		       __func__, jobqueue_p, (unsigned int)pthread_self());
+		ilm_log_dbg("%s: NO jobs found, queue(%p), pthread(%u))",
+		            __func__, jobqueue_p, (unsigned int)pthread_self());
 #endif
 
 	return job_p;
@@ -701,7 +691,6 @@ static struct job* jobqueue_pull_front(jobqueue* jobqueue_p){
 
 
 /* Search for job uuid
- * Notice: Caller MUST hold a mutex
  */
 // returned NULL indicates NOT FOUND
 static struct job* jobqueue_pull_by_uuid(jobqueue* jobqueue_p, uuid_t uuid_job){
@@ -756,8 +745,8 @@ TODO: Do I want to implement "trylock" like I did in POC?  If so, how?
 
 				jobqueue_p->len--;
 				if (jobqueue_p->len > MAX_QUEUE_SIZE_WITHOUT_WARNING)
-					printf("%s: WARNING: queue len > %d\n",
-					       __func__, MAX_QUEUE_SIZE_WITHOUT_WARNING);
+					ilm_log_warn("%s: queue len > %d",
+					             __func__, MAX_QUEUE_SIZE_WITHOUT_WARNING);
 				/* more than one job in queue -> post it */
 				bsem_post(jobqueue_p->has_jobs);
 		}
@@ -768,13 +757,15 @@ TODO: Do I want to implement "trylock" like I did in POC?  If so, how?
 	char uuid_str[37];
 	if (curr_job_p){
 		uuid_unparse(curr_job_p->uuid, uuid_str);
-		printf("THPOOL_DEBUG: %s: found job(%p), uuid=%s, queue(%p), pthread(%u))\n",
-		       __func__, curr_job_p, uuid_str, jobqueue_p, (unsigned int)pthread_self());
+		ilm_log_dbg("%s: found job(%p), uuid=%s, queue(%p), pthread(%u))",
+		            __func__, curr_job_p, uuid_str, jobqueue_p,
+		            (unsigned int)pthread_self());
 	}
 	else{
 		uuid_unparse(uuid_job, uuid_str);
-		printf("THPOOL_DEBUG: %s: job NOT found, uuid=%s, queue(%p), pthread(%u))\n",
-		       __func__, uuid_str, jobqueue_p, (unsigned int)pthread_self());
+		ilm_log_dbg("%s: job NOT found, uuid=%s, queue(%p), pthread(%u))",
+		            __func__, uuid_str, jobqueue_p,
+		            (unsigned int)pthread_self());
 	}
 #endif
 	return curr_job_p;
