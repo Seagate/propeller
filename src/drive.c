@@ -558,7 +558,7 @@ char *ilm_convert_sg(char *blk_dev)
 // }
 
 /* Read out the SG path strings */
-int ilm_scsi_get_all_sgs(unsigned long wwn, char **sg_node, int sg_num)
+int ilm_drive_get_all_sgs(unsigned long wwn, char **sg_node, int sg_num)
 {
 	struct ilm_hw_drive_node *pos, *found = NULL;
 	int i;

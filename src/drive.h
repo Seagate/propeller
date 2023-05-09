@@ -21,7 +21,7 @@ int ilm_read_device_wwn(char *dev, unsigned long *wwn);
 // char *ilm_scsi_get_first_sg(char *dev);
 char *ilm_drive_convert_blk_name(char *blk_dev);
 //int ilm_scsi_get_part_table_uuid(char *dev, uuid_t *id);
-int ilm_scsi_get_all_sgs(unsigned long wwn, char **sg_node, int sg_num);
+int ilm_drive_get_all_sgs(unsigned long wwn, char **sg_node, int sg_num);
 int ilm_drive_list_init(void);
 void ilm_drive_list_exit(void);
 int ilm_drive_list_rescan(void);
