@@ -24,6 +24,7 @@
 #include "cmd.h"
 #include "client.h"
 #include "drive.h"
+#include "idm_api.h"
 #include "ilm_internal.h"
 #include "log.h"
 
@@ -254,12 +255,17 @@ int main(int argc, char *argv[])
 	if (ret < 0)
 		goto queue_fail;
 
+	ret = idm_environ_init();
+	if (ret < 0)
+		goto idm_setup_fail;
+
 	uuid_generate(ilm_uuid);
 
 	ilm_main_loop();
 
+	idm_environ_destroy();
+idm_setup_fail:
 	ilm_cmd_queue_free();
-
 queue_fail:
 	ilm_client_listener_exit();
 client_fail:

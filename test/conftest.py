@@ -96,16 +96,16 @@ def idm_daemon():
     ret = -1
 
     try:
-        ret = idm_api.idm_manual_init()
+        ret = idm_api.idm_environ_init()
     except Exception as e:
-        _logger.error(f'idm_manual_init failure:{e}')
+        _logger.error(f'idm_environ_init failure:{e}')
         raise e from None
 
     yield ret #TODO: just yield init ec for now.  Remove?
 
     try:
-        idm_api.idm_manual_destroy()
+        idm_api.idm_environ_destroy()
     except Exception as e:
-        _logger.error(f'idm_manual_destroy failure:{e}')
+        _logger.error(f'idm_environ_destroy failure:{e}')
         raise e from None
 

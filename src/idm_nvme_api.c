@@ -656,26 +656,28 @@ EXIT:
 	return ret;
 }
 
-//TODO: Needed this init\destroy for stand-alone main.  Keep??
-int nvme_idm_manual_init(void)
+/**
+ * nvme_idm_environ_init - Convenience functions for running IDM-specific
+ * code, for NVMe, required at seagate_ilm service startup.
+ *
+ * Currently, just used for initializing the NVMe's IDM async threadpool.
+ *
+ * Returns zero or a negative error (ie. EINVAL, ENOMEM, EBUSY, etc).
+ */
+int nvme_idm_environ_init(void)
 {
-	int ret;
-
-	//TODO: Add ilm logging setup
-		//Want for nvme & scsi
-
-	ret  = ani_init();
-
-	return ret;
+	return ani_init();
 }
 
-int nvme_idm_manual_destroy(void)
+/**
+ * nvme_idm_environ_destroy - Convenience functions for running IDM-specific,
+ * code, for NVMe, required at seagate_ilm service shutdown.
+ *
+ * Currently, just used for destroying the NVMe's IDM async threadpool.
+ */
+void nvme_idm_environ_destroy(void)
 {
-	//TODO: Add ilm logging teardown
-
 	ani_destroy();
-
-	return 0;
 }
 
 /**
@@ -2391,7 +2393,7 @@ int main(int argc, char *argv[])
 		strcpy(drive, DRIVE_DEFAULT_DEVICE);
 	}
 
-	ret = nvme_idm_manual_init();
+	ret = nvme_idm_environ_init();
 	if (ret) goto INIT_FAIL_EXIT;
 
 	//cli usage: idm_nvme_api lock
@@ -2598,7 +2600,7 @@ int main(int argc, char *argv[])
 		printf("No command option given\n");
 	}
 
-	nvme_idm_manual_destroy();
+	nvme_idm_environ_destroy();
 INIT_FAIL_EXIT:
 	return ret;
 }
