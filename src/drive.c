@@ -379,9 +379,6 @@ out:
 //similar to ilm_find_sg_scsi()?
 static char *ilm_find_sg_nvme(char *blk_dev)
 {
-	//assume blk_dev is an nvme namespace, NOT a partition
-	//assume is /dev/blk_dev is present, we're good to go
-
 	char devs_path[PATH_MAX];
 	char dev_path[PATH_MAX];
 	int fd;
