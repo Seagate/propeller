@@ -19,20 +19,14 @@ char *ilm_convert_sg(char *blk_dev);
 int ilm_read_parttable_id(char *dev, uuid_t *uuid);
 int ilm_read_device_wwn(char *dev, unsigned long *wwn);
 char *ilm_scsi_get_first_sg(char *dev);
-char *ilm_scsi_convert_blk_name(char *blk_dev);
+char *ilm_drive_convert_blk_name(char *blk_dev);
 int ilm_scsi_get_part_table_uuid(char *dev, uuid_t *id);
 int ilm_scsi_get_all_sgs(unsigned long wwn, char **sg_node, int sg_num);
-// int ilm_scsi_list_init(void);
-int ilm_drive_list_init(void);//wraps/replaces: int ilm_scsi_list_init(void);
-// void ilm_scsi_list_exit(void);
-void ilm_drive_list_exit(void);//wraps/replaces: int ilm_scsi_list_exit(void);
-// int ilm_scsi_list_rescan(void);
-int ilm_drive_list_rescan(void);//wraps/replaces: int ilm_scsi_list_rescan(void);
-// int ilm_scsi_list_refresh(void);
-int ilm_drive_list_refresh(void);//wraps/replaces: int ilm_scsi_list_refresh(void);
-//TODO: refresh is used in places that have SG interactions.  Possible Problems??
-// int ilm_scsi_drive_version(void);
-int ilm_drive_list_version(void);//wraps/replaces: int ilm_scsi_drive_version(void);
+int ilm_drive_list_init(void);
+void ilm_drive_list_exit(void);
+int ilm_drive_list_rescan(void);
+int ilm_drive_list_refresh(void);
+int ilm_drive_list_version(void);
 #endif /* __DRIVE_H__ */
 
 //TODO: move static functions to top of .c file??

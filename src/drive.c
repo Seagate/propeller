@@ -469,7 +469,7 @@ failed:
 	return -1;
 }
 
-char *ilm_scsi_convert_blk_name(char *blk_dev)
+char *ilm_drive_convert_blk_name(char *blk_dev)
 {
 	char in_tmp[PATH_MAX], tmp[PATH_MAX];
 	char *base_name;
