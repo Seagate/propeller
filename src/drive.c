@@ -371,6 +371,12 @@ out:
  * Returns char* pointinf to malloc'd memory containing the sg path for blk_dev,
  * or, NULL if blk_dev is not found.
  */
+//TODO: NOTE: This function is a simplified version of ilm_find_sg_scsi()
+//This code needs to be re-evaluated relative to how ilm_find_sg_scsi()
+//normally operates.
+//Specifically, this function does NOT rely on anything within /sys, it just
+//blindly uses what's in /dev.  The question is, should it be using /sys,
+//similar to ilm_find_sg_scsi()?
 static char *ilm_find_sg_nvme(char *blk_dev)
 {
 	//assume blk_dev is an nvme namespace, NOT a partition
