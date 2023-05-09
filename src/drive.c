@@ -471,7 +471,7 @@ failed:
 
 char *ilm_scsi_convert_blk_name(char *blk_dev)
 {
-	char in_tmp[128], tmp[128];
+	char in_tmp[PATH_MAX], tmp[PATH_MAX];
 	char *base_name;
 	char *blk_name;
 	int i;
@@ -483,11 +483,22 @@ char *ilm_scsi_convert_blk_name(char *blk_dev)
 	if (!i)
 		return NULL;
 
-	/* Iterate all digital */
-	while ((i > 0) && isdigit(tmp[i-1]))
-		i--;
+	//If present, remove parition-portion on device name
+	if (strstr(tmp, NVME_NAME)){ //Assumes nvmeXnX
+		//Assumes nvmeXnXpX partition name format
+		if (strstr(tmp, NVME_PARTITION_TAG)) {
+			char *pos = strchr(tmp, 'p');
+			if (pos)
+				*pos = '\0';
+		}
+	}
+	else{
+		/* Iterate all digital */
+		while ((i > 0) && isdigit(tmp[i-1]))
+			i--;
 
-	tmp[i] = '\0';
+		tmp[i] = '\0';
+	}
 
 	base_name = basename(tmp);
 	blk_name = malloc(strlen(base_name) + 1);
