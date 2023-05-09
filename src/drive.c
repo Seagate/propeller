@@ -527,34 +527,35 @@ char *ilm_convert_sg(char *blk_dev)
 #endif
 }
 
-char *ilm_scsi_get_first_sg(char *dev)
-{
-	struct ilm_hw_drive_node *pos, *found = NULL;
-	char *tmp;
-	int i;
+//SCSI-specific function found unused during NVMe implementation
+// char *ilm_scsi_get_first_sg(char *dev)
+// {
+// 	struct ilm_hw_drive_node *pos, *found = NULL;
+// 	char *tmp;
+// 	int i;
 
-	pthread_mutex_lock(&drive_list_mutex);
+// 	pthread_mutex_lock(&drive_list_mutex);
 
-	list_for_each_entry(pos, &drive_list, list) {
-		for (i = 0; i < pos->drive.path_num; i++) {
-			if (!strcmp(dev, basename(pos->drive.path[i].blk_path))) {
-				found = pos;
-				break;
-			}
-		}
-	}
+// 	list_for_each_entry(pos, &drive_list, list) {
+// 		for (i = 0; i < pos->drive.path_num; i++) {
+// 			if (!strcmp(dev, basename(pos->drive.path[i].blk_path))) {
+// 				found = pos;
+// 				break;
+// 			}
+// 		}
+// 	}
 
-	if (!found) {
-		tmp = NULL;
-		goto out;
-	}
+// 	if (!found) {
+// 		tmp = NULL;
+// 		goto out;
+// 	}
 
-	tmp = strdup(found->drive.path[0].sg_path);
+// 	tmp = strdup(found->drive.path[0].sg_path);
 
-out:
-	pthread_mutex_unlock(&drive_list_mutex);
-	return tmp;
-}
+// out:
+// 	pthread_mutex_unlock(&drive_list_mutex);
+// 	return tmp;
+// }
 
 /* Read out the SG path strings */
 int ilm_scsi_get_all_sgs(unsigned long wwn, char **sg_node, int sg_num)
@@ -588,6 +589,7 @@ out:
 }
 
 #if 0
+//SCSI-specific function found unused during NVMe implementation
 int ilm_scsi_get_part_table_uuid(char *dev, uuid_t *id)
 {
 	struct ilm_hw_drive_node *pos, *found = NULL;
