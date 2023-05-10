@@ -740,7 +740,7 @@ int idm_drive_get_fd(char *drive, uint64_t handle)
 }
 
 /**
- * idm_manual_init - This init\destroy pair were created solely for
+ * idm_environ_init - This init\destroy pair were created solely for
  * the project's unit test environ.
  * The IDM unit tests are run WITHOUT starting the ilm_seagate service.
  * The unit tests call directly into the idm_api.so lib.
@@ -752,18 +752,22 @@ int idm_drive_get_fd(char *drive, uint64_t handle)
  *
  * Returns zero or a -1 error
  */
-int idm_manual_init(void)
+/**
+ * idm_environ_init - Convenience functions for running IDM-specific
+ * code required at seagate_ilm service startup.
+ *
+ * Returns zero or a negative error (ie. EINVAL, ENOMEM, EBUSY, etc).
+ */
+int idm_environ_init(void)
 {
-	int ret;
-	ret = common_idm_manual_init();
-	if (ret) return ret;
-	ret = nvme_idm_manual_init();
-	return ret;
+	return nvme_idm_environ_init();
 }
 
-int idm_manual_destroy(void)
+/**
+ * idm_environ_destroy - Convenience functions for running IDM-specific,
+ * code required at seagate_ilm service shutdown.
+ */
+void idm_environ_destroy(void)
 {
-	common_idm_manual_destroy();
-	nvme_idm_manual_destroy();
-	return 0;
+	nvme_idm_environ_destroy();
 }

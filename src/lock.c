@@ -110,13 +110,13 @@ int ilm_update_drive_multi_paths(struct ilm_lock *lock)
 				drive->path[j] = NULL;
 			}
 
-			drive->path_num = ilm_scsi_get_all_sgs(drive->wwn,
+			drive->path_num = ilm_drive_get_all_sgs(drive->wwn,
 				drive->path, IDM_DRIVE_PATH_NUM);
 
 			/* Failed to retrieve any SG path for drive, refresh block list and retry */
 			if (!drive->path_num) {
 				ilm_drive_list_refresh();
-				drive->path_num = ilm_scsi_get_all_sgs(drive->wwn,
+				drive->path_num = ilm_drive_get_all_sgs(drive->wwn,
 					drive->path, IDM_DRIVE_PATH_NUM);
 			}
 		}
@@ -177,13 +177,13 @@ static int ilm_insert_drive_multi_paths(struct ilm_lock *lock,
 
 		drive = &lock->drive[lock->good_drive_num];
 		drive->wwn = wwn[i];
-		drive->path_num = ilm_scsi_get_all_sgs(drive->wwn, drive->path,
+		drive->path_num = ilm_drive_get_all_sgs(drive->wwn, drive->path,
 						       IDM_DRIVE_PATH_NUM);
 
 		/* Failed to retrieve any SG path for drive, refresh block list and retry */
 		if (!drive->path_num) {
 			ilm_drive_list_refresh();
-			drive->path_num = ilm_scsi_get_all_sgs(drive->wwn,
+			drive->path_num = ilm_drive_get_all_sgs(drive->wwn,
 				drive->path, IDM_DRIVE_PATH_NUM);
 		}
 
@@ -217,11 +217,13 @@ static char *ilm_find_sg_path(char *path, unsigned long *wwn)
 	char *tmp, *sg_path;
 	int ret;
 
-	tmp = ilm_scsi_convert_blk_name(path);
+	ilm_log_dbg("SCOTT_DEBUG: %s: path: %s", __func__, path);
+	tmp = ilm_drive_convert_blk_name(path);
 	if (!tmp) {
 		ilm_log_err("Fail to convert block name %s", path);
 		goto try_cached_dev_map;
 	}
+	ilm_log_dbg("SCOTT_DEBUG: %s: tmp: %s", __func__, tmp);
 
 	sg_path = ilm_convert_sg(tmp);
 	if (!sg_path) {
@@ -229,6 +231,7 @@ static char *ilm_find_sg_path(char *path, unsigned long *wwn)
 		free(tmp);
 		goto try_cached_dev_map;
 	}
+	ilm_log_dbg("SCOTT_DEBUG: %s: sg_path: %s", __func__, sg_path);
 
 	snprintf(dev_path, sizeof(dev_path), "/dev/%s", tmp);
 	free(tmp);

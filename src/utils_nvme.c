@@ -11,8 +11,8 @@
 /**
  * ilm_nvme_dir_select - Helper function for finding active nvme devices
  *
- * Search for "nvmeXnX", where "X" is any integer.
- * Ignore "nvmeX" and "nmveXnXpX".
+ * Search for "nvmeXnX", where "X" is an int (be it 1 or 100)
+ * Ignore "nvmeX" and "nvmeXnXpX".
  */
 int ilm_nvme_dir_select(const struct dirent *s)
 {

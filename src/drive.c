@@ -6,6 +6,7 @@
 #include <blkid/blkid.h>
 #include <ctype.h>
 #include <dirent.h>
+#include <fcntl.h>
 #include <libudev.h>
 #include <pthread.h>
 #include <stdio.h>
@@ -30,11 +31,6 @@
 #define SYSFS_ROOT		"/sys"
 #define BUS_SCSI_DEVS		"/bus/scsi/devices"
 
-enum ilm_drive_type {
-	ILM_DRIVE_TYPE_SCSI = 0,
-	ILM_DRIVE_TYPE_NVME = 1,
-};
-
 struct ilm_hw_drive_path {
 	char *blk_path;
 	char *sg_path;
@@ -44,7 +40,6 @@ struct ilm_hw_drive {
 	unsigned long wwn;
 	uint32_t path_num;
 	struct ilm_hw_drive_path path[ILM_DRIVE_MAX_NUM];
-	enum ilm_drive_type drive_type;
 };
 
 struct ilm_hw_drive_node {
@@ -282,7 +277,7 @@ int ilm_read_device_wwn(char *dev, unsigned long *wwn)
 }
 
 #ifndef IDM_PTHREAD_EMULATION
-static char *ilm_find_sg(char *blk_dev)
+static char *ilm_find_sg_scsi(char *blk_dev)
 {
 	struct dirent **namelist;
 	char devs_path[PATH_MAX];
@@ -300,7 +295,7 @@ static char *ilm_find_sg(char *blk_dev)
 
 	num = scandir(devs_path, &namelist, ilm_scsi_dir_select, NULL);
 	if (num < 0) {  /* scsi mid level may not be loaded */
-		ilm_log_err("Attached devices: none");
+		ilm_log_err("Attached SCSI devices: none");
 		return NULL;
 	}
 
@@ -359,46 +354,72 @@ out:
 }
 
 /**
- * ilm_find_sg_with_nvme_hack - NVMe-specific wrapper function (with a terrible
- * name) for handling the scsi sg path.
+ * ilm_find_sg_nvme - NVMe-specific work-around function for handling
+ * the scsi sg path.
  *
- * The SG(scsi-generic) path doesn't really have an equivalent in the nvme
- * world.  However, it currently exists in many places throughout the code base.
- * To handle this situation, the NVMe device /dev path is just
- * duplicated in the SG path, for now.
+ * The SG(scsi-generic) path doesn't really have an equivalent in the NVMe
+ * world.  However, there is currently a SG dependency throughout the code base.
+ * To handle this situation, for now, the NVMe device /dev path is just
+ * duplicated for use as the SG path.
  *
- * This function malloc's the returned string, just like ilm_find_sg() does.
- * This way, scsi and nvme device BOTH require free() calls on this string
- * downstream.
+ * This function returns a malloc'd string, just like ilm_find_sg()_scsi does.
+ * This way, scsi and nvme device BOTH require the same free() calls on this
+ * string downstream.
  *
  * @blk_dev:	String containing the block device path.
- * @drive_type:	enum value specifiying the drive type (scsi vs nvme).
  *
- * Returns malloc'd char* of sg path or NULL if it's not found.
+ * Returns char* pointinf to malloc'd memory containing the sg path for blk_dev,
+ * or, NULL if blk_dev is not found.
  */
-static char *ilm_find_sg_with_nvme_hack(char *blk_dev,
-                                        enum ilm_drive_type drive_type)
+//TODO: NOTE: This function is a simplified version of ilm_find_sg_scsi()
+//This code needs to be re-evaluated relative to how ilm_find_sg_scsi()
+//normally operates.
+//Specifically, this function does NOT rely on anything within /sys, it just
+//blindly uses what's in /dev.  The question is, should it be using /sys,
+//similar to ilm_find_sg_scsi()?
+static char *ilm_find_sg_nvme(char *blk_dev)
 {
-	char dev_node[64];
+	char devs_path[PATH_MAX];
+	char dev_path[PATH_MAX];
+	int fd;
+	int ret;
 	char *result = NULL;
 
-	switch (drive_type) {
-		case ILM_DRIVE_TYPE_NVME:
-			snprintf(dev_node, sizeof(dev_node),
-			         "/dev/%s", blk_dev);
-			result = strdup(dev_node);
-			break;
-		default://ILM_DRIVE_TYPE_SCSI
-			result = ilm_find_sg(blk_dev);
+	snprintf(devs_path, sizeof(devs_path), "/dev");
+
+	ret = snprintf(dev_path, sizeof(dev_path), "%s/%s",
+		       devs_path, blk_dev);
+	if (ret < 0) {
+		ilm_log_err("%s: string is out of memory\n", __func__);
+		goto out;
 	}
 
+	fd = open(dev_path, O_RDWR | O_NONBLOCK);
+	if (fd < 0) {
+		ilm_log_err("%s: invalid block device %s, fd %d",
+		            __func__, dev_path, fd);
+		goto out;
+	}
+	close(fd);
+
+	result = strdup(dev_path);
+
+out:
 	return result;
+}
+
+static char *ilm_find_sg(char *blk_dev)
+{
+	if (strstr(blk_dev, NVME_NAME))
+		return ilm_find_sg_nvme(blk_dev);
+	else
+		return ilm_find_sg_scsi(blk_dev);
 }
 #endif
 
 static int ilm_find_deepest_device_mapping(char *in, char *out)
 {
-	char in_tmp[128], out_tmp[128], tmp[128];
+	char in_tmp[256], out_tmp[128], tmp[128];
 	struct stat stats;
 	char cmd[128];
 	char buf[512];
@@ -451,9 +472,9 @@ failed:
 	return -1;
 }
 
-char *ilm_scsi_convert_blk_name(char *blk_dev)
+char *ilm_drive_convert_blk_name(char *blk_dev)
 {
-	char in_tmp[128], tmp[128];
+	char in_tmp[PATH_MAX], tmp[PATH_MAX];
 	char *base_name;
 	char *blk_name;
 	int i;
@@ -465,11 +486,22 @@ char *ilm_scsi_convert_blk_name(char *blk_dev)
 	if (!i)
 		return NULL;
 
-	/* Iterate all digital */
-	while ((i > 0) && isdigit(tmp[i-1]))
-		i--;
+	//If present, remove parition-portion on device name
+	if (strstr(tmp, NVME_NAME)){ //Assumes nvmeXnX
+		//Assumes nvmeXnXpX partition name format
+		if (strstr(tmp, NVME_PARTITION_TAG)) {
+			char *pos = strchr(tmp, 'p');
+			if (pos)
+				*pos = '\0';
+		}
+	}
+	else{
+		/* Iterate all digital */
+		while ((i > 0) && isdigit(tmp[i-1]))
+			i--;
 
-	tmp[i] = '\0';
+		tmp[i] = '\0';
+	}
 
 	base_name = basename(tmp);
 	blk_name = malloc(strlen(base_name) + 1);
@@ -495,37 +527,38 @@ char *ilm_convert_sg(char *blk_dev)
 #endif
 }
 
-char *ilm_scsi_get_first_sg(char *dev)
-{
-	struct ilm_hw_drive_node *pos, *found = NULL;
-	char *tmp;
-	int i;
+//SCSI-specific function found unused during NVMe implementation
+// char *ilm_scsi_get_first_sg(char *dev)
+// {
+// 	struct ilm_hw_drive_node *pos, *found = NULL;
+// 	char *tmp;
+// 	int i;
 
-	pthread_mutex_lock(&drive_list_mutex);
+// 	pthread_mutex_lock(&drive_list_mutex);
 
-	list_for_each_entry(pos, &drive_list, list) {
-		for (i = 0; i < pos->drive.path_num; i++) {
-			if (!strcmp(dev, basename(pos->drive.path[i].blk_path))) {
-				found = pos;
-				break;
-			}
-		}
-	}
+// 	list_for_each_entry(pos, &drive_list, list) {
+// 		for (i = 0; i < pos->drive.path_num; i++) {
+// 			if (!strcmp(dev, basename(pos->drive.path[i].blk_path))) {
+// 				found = pos;
+// 				break;
+// 			}
+// 		}
+// 	}
 
-	if (!found) {
-		tmp = NULL;
-		goto out;
-	}
+// 	if (!found) {
+// 		tmp = NULL;
+// 		goto out;
+// 	}
 
-	tmp = strdup(found->drive.path[0].sg_path);
+// 	tmp = strdup(found->drive.path[0].sg_path);
 
-out:
-	pthread_mutex_unlock(&drive_list_mutex);
-	return tmp;
-}
+// out:
+// 	pthread_mutex_unlock(&drive_list_mutex);
+// 	return tmp;
+// }
 
 /* Read out the SG path strings */
-int ilm_scsi_get_all_sgs(unsigned long wwn, char **sg_node, int sg_num)
+int ilm_drive_get_all_sgs(unsigned long wwn, char **sg_node, int sg_num)
 {
 	struct ilm_hw_drive_node *pos, *found = NULL;
 	int i;
@@ -556,6 +589,7 @@ out:
 }
 
 #if 0
+//SCSI-specific function found unused during NVMe implementation
 int ilm_scsi_get_part_table_uuid(char *dev, uuid_t *id)
 {
 	struct ilm_hw_drive_node *pos, *found = NULL;
@@ -660,10 +694,6 @@ static int ilm_add_drive_path(char *dev_node, char *sg_node,
 	drive->path[drive->path_num].blk_path = strdup(dev_node);
 	drive->path[drive->path_num].sg_path = strdup(sg_node);
 	drive->path_num++;
-	if (strstr(dev_node, NVME_NAME))
-		drive->drive_type = ILM_DRIVE_TYPE_NVME;
-	else
-		drive->drive_type = ILM_DRIVE_TYPE_SCSI;
 
 	drive_list_version++;
 	pthread_mutex_unlock(&drive_list_mutex);
@@ -787,7 +817,6 @@ static void *drive_thd_fn(void *arg __maybe_unused)
 			char *sg = NULL;
 			char dev_node[64];
 			unsigned long wwn;
-			enum ilm_drive_type drive_type;
 			int i;
 
 			dev = udev_monitor_receive_device(mon);
@@ -805,29 +834,21 @@ static void *drive_thd_fn(void *arg __maybe_unused)
 			ilm_log_dbg("%s: action=%s dev_name=%s", __func__,
 				    action, dev_name);
 
-			if (strstr(dev_name, NVME_NAME)) //Assumes nvmeXnX
-				drive_type = ILM_DRIVE_TYPE_NVME;
-			else
-				drive_type = ILM_DRIVE_TYPE_SCSI;
-
 			//If present, remove parition-portion on device name
-			switch (drive_type) {
-				case ILM_DRIVE_TYPE_NVME:
-					//Assumes nvmeXnXpX partition name format
-					if (strstr(dev_name, NVME_PARTITION_TAG)) {
-						char *pos = strchr(dev_name, 'p');
-						while (pos) {
-							*pos = '\0';
-							pos = strchr(pos, 'p');
-						}
-					}
-					break;
-				default://ILM_DRIVE_TYPE_SCSI
-					/* Iterate all digital */
-					while ((i > 0) && isdigit(dev_name[i-1]))
-						i--;
+			if (strstr(dev_name, NVME_NAME)){ //Assumes nvmeXnX
+				//Assumes nvmeXnXpX partition name format
+				if (strstr(dev_name, NVME_PARTITION_TAG)) {
+					char *pos = strchr(dev_name, 'p');
+					if (pos)
+						*pos = '\0';
+				}
+			}
+			else{
+				/* Iterate all digital */
+				while ((i > 0) && isdigit(dev_name[i-1]))
+					i--;
 
-					dev_name[i] = '\0';
+				dev_name[i] = '\0';
 			}
 
 			ilm_log_dbg("%s: action=%s stripped dev_name=%s", __func__,
@@ -837,7 +858,7 @@ static void *drive_thd_fn(void *arg __maybe_unused)
 
 			if (!strcmp(action, "add")) {
 
-				sg = ilm_find_sg_with_nvme_hack(dev_name, drive_type);
+				sg = ilm_find_sg(dev_name);
 				if (!sg) {
 					ilm_log_warn("%s: Fail to find sg for %s",
 					             __func__, dev_name);
@@ -858,7 +879,7 @@ static void *drive_thd_fn(void *arg __maybe_unused)
 				/* Remove block device from node */
 				ilm_del_drive_path(dev_node);
 
-				sg = ilm_find_sg_with_nvme_hack(dev_name, drive_type);
+				sg = ilm_find_sg(dev_name);
 				if (!sg) {
 					ilm_log_warn("%s: Fail to find sg for %s",
 					             __func__, dev_name);
@@ -1028,7 +1049,6 @@ out:
 	return ret;
 }
 
-//TODO: Sort out how deal with "static"(private) functions.  Use leading_?
 static int ilm_drive_list_rescan_nvme(void)
 {
 	struct dirent **namelist;
@@ -1068,7 +1088,7 @@ static int ilm_drive_list_rescan_nvme(void)
 			goto out;
 		}
 	}
-	/* After scanning, reset return value so service stays operational even if some SCSI devices fail */
+	/* After scanning, reset return value so service stays operational even if some NVMe devices fail */
 	ret = 0;
 
 out:
