@@ -69,7 +69,7 @@ int main(void)
 	if (ret == 0) {
 		printf("ilm_connect: SUCCESS\n");
 	} else {
-		printf("ilm_connect: FAIL\n");
+		printf("ilm_connect: FAIL: %d\n", ret);
 		exit(-1);
 	}
 
@@ -86,7 +86,7 @@ int main(void)
 	if (ret == 0) {
 		printf("ilm_set_killpath: SUCCESS\n");
 	} else {
-		printf("ilm_set_killpath: FAIL\n");
+		printf("ilm_set_killpath: FAIL: %d\n", ret);
 		exit(-1);
 	}
 
@@ -105,7 +105,7 @@ int main(void)
 	if (ret == 0) {
 		printf("ilm_lock: SUCCESS\n");
 	} else {
-		printf("ilm_lock: FAIL\n");
+		printf("ilm_lock: FAIL: %d\n", ret);
 		exit(-1);
 	}
 
@@ -113,7 +113,7 @@ int main(void)
 	if (ret == 0) {
 		printf("ilm_inject_fault (100): SUCCESS\n");
 	} else {
-		printf("ilm_inject_fault (100): FAIL\n");
+		printf("ilm_inject_fault (100): FAIL: %d\n", ret);
 		exit(-1);
 	}
 
@@ -121,7 +121,7 @@ int main(void)
 	if (ret == 0) {
 		printf("wait_for_notify: Recieved notification\n");
 	} else {
-		printf("wait_for_notify: FAIL\n");
+		printf("wait_for_notify: FAIL: %d\n", ret);
 		exit(-1);
 	}
 
@@ -129,7 +129,7 @@ int main(void)
 	if (ret == 0) {
 		printf("ilm_inject_fault (0): SUCCESS\n");
 	} else {
-		printf("ilm_inject_fault (0): FAIL\n");
+		printf("ilm_inject_fault (0): FAIL: %d\n", ret);
 		exit(-1);
 	}
 
@@ -137,7 +137,7 @@ int main(void)
 	if (ret == 0) {
 		printf("ilm_unlock: SUCCESS\n");
 	} else {
-		printf("ilm_unlock: FAIL %d\n", ret);
+		printf("ilm_unlock: FAIL: %d\n", ret);
 		exit(-1);
 	}
 
@@ -145,7 +145,7 @@ int main(void)
 	if (ret == 0) {
 		printf("ilm_disconnect: SUCCESS\n");
 	} else {
-		printf("ilm_disconnect: FAIL\n");
+		printf("ilm_disconnect: FAIL: %d\n", ret);
 		exit(-1);
 	}
 
