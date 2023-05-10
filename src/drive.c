@@ -419,7 +419,7 @@ static char *ilm_find_sg(char *blk_dev)
 
 static int ilm_find_deepest_device_mapping(char *in, char *out)
 {
-	char in_tmp[128], out_tmp[128], tmp[128];
+	char in_tmp[256], out_tmp[128], tmp[128];
 	struct stat stats;
 	char cmd[128];
 	char buf[512];
