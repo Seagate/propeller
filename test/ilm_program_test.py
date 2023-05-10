@@ -11,6 +11,11 @@ import subprocess
 
 import pytest
 
+def test_smoke_test(ilm_daemon):
+    process = subprocess.Popen("./smoke_test", shell=True, stdout=subprocess.PIPE)
+    process.wait()
+    assert process.returncode == 0
+
 def test_killsignal(ilm_daemon):
     process = subprocess.Popen("./killsignal_test", shell=True, stdout=subprocess.PIPE)
     process.wait()
