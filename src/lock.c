@@ -217,13 +217,11 @@ static char *ilm_find_sg_path(char *path, unsigned long *wwn)
 	char *tmp, *sg_path;
 	int ret;
 
-	ilm_log_dbg("SCOTT_DEBUG: %s: path: %s", __func__, path);
 	tmp = ilm_drive_convert_blk_name(path);
 	if (!tmp) {
 		ilm_log_err("Fail to convert block name %s", path);
 		goto try_cached_dev_map;
 	}
-	ilm_log_dbg("SCOTT_DEBUG: %s: tmp: %s", __func__, tmp);
 
 	sg_path = ilm_convert_sg(tmp);
 	if (!sg_path) {
@@ -231,7 +229,6 @@ static char *ilm_find_sg_path(char *path, unsigned long *wwn)
 		free(tmp);
 		goto try_cached_dev_map;
 	}
-	ilm_log_dbg("SCOTT_DEBUG: %s: sg_path: %s", __func__, sg_path);
 
 	snprintf(dev_path, sizeof(dev_path), "/dev/%s", tmp);
 	free(tmp);
