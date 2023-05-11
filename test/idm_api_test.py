@@ -15,12 +15,12 @@ import pytest
 import idm_api
 from test_conf import *     # Normally bad practice, but only importing 'constants' here
 
-def test_idm_version(idm_cleanup):
+def test_idm_version(reset_devices):
     ret, version = idm_api.idm_drive_version(SG_DEVICE1)
     assert ret == 0
     assert version == 0x100
 
-def test_idm__sync_lock_exclusive(idm_cleanup):
+def test_idm__sync_lock_exclusive(reset_devices):
 
     lock_id0 = "0000000000000000000000000000000000000000000000000000000000000000"
     host_id0 = "00000000000000000000000000000000"
@@ -43,7 +43,7 @@ def test_idm__sync_lock_exclusive(idm_cleanup):
 		    		    host_id0, a, 8, SG_DEVICE1)
     assert ret == 0
 
-def test_idm__sync_lock_shareable(idm_cleanup):
+def test_idm__sync_lock_shareable(reset_devices):
 
     lock_id0 = "0000000000000000000000000000000000000000000000000000000000000000"
     host_id0 = "00000000000000000000000000000000"
@@ -66,7 +66,7 @@ def test_idm__sync_lock_shareable(idm_cleanup):
 		    		    host_id0, a, 8, SG_DEVICE1)
     assert ret == 0
 
-def test_idm__sync_lock_exclusive_twice(idm_cleanup):
+def test_idm__sync_lock_exclusive_twice(reset_devices):
 
     lock_id0 = "0000000000000000000000000000000000000000000000000000000000000000"
     host_id0 = "00000000000000000000000000000000"
@@ -97,7 +97,7 @@ def test_idm__sync_lock_exclusive_twice(idm_cleanup):
 		    		    host_id0, a, 8, SG_DEVICE1)
     assert ret == 0
 
-def test_idm__sync_lock_shareable_twice(idm_cleanup):
+def test_idm__sync_lock_shareable_twice(reset_devices):
 
     lock_id0 = "0000000000000000000000000000000000000000000000000000000000000000"
     host_id0 = "00000000000000000000000000000000"
@@ -128,7 +128,7 @@ def test_idm__sync_lock_shareable_twice(idm_cleanup):
 		    		    host_id0, a, 8, SG_DEVICE1)
     assert ret == -2
 
-def test_idm__sync_lock_exclusive_two_hosts(idm_cleanup):
+def test_idm__sync_lock_exclusive_two_hosts(reset_devices):
 
     lock_id0 = "0000000000000000000000000000000000000000000000000000000000000000"
     host_id0 = "00000000000000000000000000000000"
@@ -160,7 +160,7 @@ def test_idm__sync_lock_exclusive_two_hosts(idm_cleanup):
 		    		    host_id1, a, 8, SG_DEVICE1)
     assert ret == 0
 
-def test_idm__sync_lock_shareable_two_hosts(idm_cleanup):
+def test_idm__sync_lock_shareable_two_hosts(reset_devices):
 
     lock_id0 = "0000000000000000000000000000000000000000000000000000000000000000"
     host_id0 = "00000000000000000000000000000000"
@@ -192,7 +192,7 @@ def test_idm__sync_lock_shareable_two_hosts(idm_cleanup):
 		    		    host_id1, a, 8, SG_DEVICE1)
     assert ret == 0
 
-def test_idm__sync_break_lock_1(idm_cleanup):
+def test_idm__sync_break_lock_1(reset_devices):
 
     lock_id0 = "0000000000000000000000000000000000000000000000000000000000000000"
     host_id0 = "00000000000000000000000000000000"
@@ -231,7 +231,7 @@ def test_idm__sync_break_lock_1(idm_cleanup):
                                    host_id1, a, 8, SG_DEVICE1)
     assert ret == 0
 
-def test_idm__sync_break_lock_2(idm_cleanup):
+def test_idm__sync_break_lock_2(reset_devices):
 
     lock_id0 = "0000000000000000000000000000000000000000000000000000000000000000"
     host_id0 = "00000000000000000000000000000000"
@@ -270,7 +270,7 @@ def test_idm__sync_break_lock_2(idm_cleanup):
                                    host_id1, a, 8, SG_DEVICE1)
     assert ret == 0
 
-def test_idm__sync_break_lock_3(idm_cleanup):
+def test_idm__sync_break_lock_3(reset_devices):
 
     lock_id0 = "0000000000000000000000000000000000000000000000000000000000000000"
     host_id0 = "00000000000000000000000000000000"
@@ -309,7 +309,7 @@ def test_idm__sync_break_lock_3(idm_cleanup):
                                    host_id1, a, 8, SG_DEVICE1)
     assert ret == 0
 
-def test_idm__sync_convert_1(idm_cleanup):
+def test_idm__sync_convert_1(reset_devices):
 
     lock_id0 = "0000000000000000000000000000000000000000000000000000000000000000"
     host_id0 = "00000000000000000000000000000000"
@@ -336,7 +336,7 @@ def test_idm__sync_convert_1(idm_cleanup):
 		    		    host_id0, a, 8, SG_DEVICE1)
     assert ret == 0
 
-def test_idm__sync_convert_2(idm_cleanup):
+def test_idm__sync_convert_2(reset_devices):
 
     lock_id0 = "0000000000000000000000000000000000000000000000000000000000000000"
     host_id0 = "00000000000000000000000000000000"
@@ -363,7 +363,7 @@ def test_idm__sync_convert_2(idm_cleanup):
 		    		    host_id0, a, 8, SG_DEVICE1)
     assert ret == 0
 
-def test_idm__sync_convert_3(idm_cleanup):
+def test_idm__sync_convert_3(reset_devices):
 
     lock_id0 = "0000000000000000000000000000000000000000000000000000000000000000"
     host_id0 = "00000000000000000000000000000000"
@@ -400,7 +400,7 @@ def test_idm__sync_convert_3(idm_cleanup):
 		    		    host_id1, a, 8, SG_DEVICE1)
     assert ret == 0
 
-def test_idm__sync_renew_1(idm_cleanup):
+def test_idm__sync_renew_1(reset_devices):
 
     lock_id0 = "0000000000000000000000000000000000000000000000000000000000000000"
     host_id0 = "00000000000000000000000000000000"
@@ -441,7 +441,7 @@ def test_idm__sync_renew_1(idm_cleanup):
 		    		    host_id0, a, 8, SG_DEVICE1)
     assert ret == 0
 
-def test_idm__sync_renew_2(idm_cleanup):
+def test_idm__sync_renew_2(reset_devices):
 
     lock_id0 = "0000000000000000000000000000000000000000000000000000000000000000"
     host_id0 = "00000000000000000000000000000000"
@@ -482,7 +482,7 @@ def test_idm__sync_renew_2(idm_cleanup):
 		    		    host_id0, a, 8, SG_DEVICE1)
     assert ret == 0
 
-def test_idm__sync_renew_timeout_1(idm_cleanup):
+def test_idm__sync_renew_timeout_1(reset_devices):
 
     lock_id0 = "0000000000000000000000000000000000000000000000000000000000000000"
     host_id0 = "00000000000000000000000000000000"
@@ -511,7 +511,7 @@ def test_idm__sync_renew_timeout_1(idm_cleanup):
 		    		    host_id0, a, 8, SG_DEVICE1)
     assert ret == 0         # -ETIME or 0
 
-def test_idm__sync_renew_timeout_2(idm_cleanup):
+def test_idm__sync_renew_timeout_2(reset_devices):
 
     lock_id0 = "0000000000000000000000000000000000000000000000000000000000000000"
     host_id0 = "00000000000000000000000000000000"
@@ -540,7 +540,7 @@ def test_idm__sync_renew_timeout_2(idm_cleanup):
 		    		    host_id0, a, 8, SG_DEVICE1)
     assert ret == 0         # -ETIME or 0
 
-def test_idm__sync_renew_timeout_3(idm_cleanup):
+def test_idm__sync_renew_timeout_3(reset_devices):
 
     lock_id0 = "0000000000000000000000000000000000000000000000000000000000000000"
     host_id0 = "00000000000000000000000000000000"
@@ -569,7 +569,7 @@ def test_idm__sync_renew_timeout_3(idm_cleanup):
 		    	            host_id0, a, 8, SG_DEVICE1)
     assert ret == 0         # -ETIME or 0
 
-def test_idm__sync_renew_timeout_4(idm_cleanup):
+def test_idm__sync_renew_timeout_4(reset_devices):
 
     lock_id0 = "0000000000000000000000000000000000000000000000000000000000000000"
     host_id0 = "00000000000000000000000000000000"
@@ -598,7 +598,7 @@ def test_idm__sync_renew_timeout_4(idm_cleanup):
 		    		    host_id0, a, 8, SG_DEVICE1)
     assert ret == 0         # -ETIME or 0
 
-def test_idm__sync_read_lvb_1(idm_cleanup):
+def test_idm__sync_read_lvb_1(reset_devices):
 
     lock_id0 = "0000000000000000000000000000000000000000000000000000000000000000"
     host_id0 = "00000000000000000000000000000000"
@@ -632,7 +632,7 @@ def test_idm__sync_read_lvb_1(idm_cleanup):
 		    		    host_id0, a, 8, SG_DEVICE1)
     assert ret == 0
 
-def test_idm__sync_read_lvb_2(idm_cleanup):
+def test_idm__sync_read_lvb_2(reset_devices):
 
     lock_id0 = "0000000000000000000000000000000000000000000000000000000000000000"
     host_id0 = "00000000000000000000000000000000"
@@ -675,7 +675,7 @@ def test_idm__sync_read_lvb_2(idm_cleanup):
 		    	            host_id0, a, 8, SG_DEVICE1)
     assert ret == 0
 
-def test_idm__sync_read_lvb_3(idm_cleanup):
+def test_idm__sync_read_lvb_3(reset_devices):
 
     lock_id0 = "0000000000000000000000000000000000000000000000000000000000000000"
     host_id0 = "00000000000000000000000000000000"
@@ -717,7 +717,7 @@ def test_idm__sync_read_lvb_3(idm_cleanup):
 		    		    host_id0, a, 8, SG_DEVICE1)
     assert ret == 0
 
-def test_idm__sync_get_host_count(idm_cleanup):
+def test_idm__sync_get_host_count(reset_devices):
 
     lock_id0 = "0000000000000000000000000000000000000000000000000000000000000000"
     host_id0 = "00000000000000000000000000000000"
@@ -750,7 +750,7 @@ def test_idm__sync_get_host_count(idm_cleanup):
     assert count == 0
     assert self == 0
 
-def test_idm__sync_two_hosts_get_host_count(idm_cleanup):
+def test_idm__sync_two_hosts_get_host_count(reset_devices):
 
     lock_id0 = "0000000000000000000000000000000000000000000000000000000000000000"
     host_id0 = "00000000000000000000000000000000"
@@ -803,7 +803,7 @@ def test_idm__sync_two_hosts_get_host_count(idm_cleanup):
     assert count == 0
     assert self == 0
 
-def test_idm__sync_three_hosts_get_host_count(idm_cleanup):
+def test_idm__sync_three_hosts_get_host_count(reset_devices):
 
     lock_id0 = "0000000000000000000000000000000000000000000000000000000000000000"
     host_id0 = "00000000000000000000000000000000"
@@ -864,7 +864,7 @@ def test_idm__sync_three_hosts_get_host_count(idm_cleanup):
     assert count == 0
     assert self == 0
 
-def test_idm__sync_get_lock_mode(idm_cleanup):
+def test_idm__sync_get_lock_mode(reset_devices):
 
     lock_id0 = "0000000000000000000000000000000000000000000000000000000000000000"
     host_id0 = "00000000000000000000000000000000"
@@ -873,7 +873,7 @@ def test_idm__sync_get_lock_mode(idm_cleanup):
     assert ret == 0
     assert mode == idm_api.IDM_MODE_UNLOCK
 
-def test_idm__sync_get_lock_exclusive_mode(idm_cleanup):
+def test_idm__sync_get_lock_exclusive_mode(reset_devices):
 
     lock_id0 = "0000000000000000000000000000000000000000000000000000000000000000"
     host_id0 = "00000000000000000000000000000000"
@@ -900,7 +900,7 @@ def test_idm__sync_get_lock_exclusive_mode(idm_cleanup):
 		    		    host_id0, a, 8, SG_DEVICE1)
     assert ret == 0
 
-def test_idm__sync_get_lock_shareable_mode(idm_cleanup):
+def test_idm__sync_get_lock_shareable_mode(reset_devices):
 
     lock_id0 = "0000000000000000000000000000000000000000000000000000000000000000"
     host_id0 = "00000000000000000000000000000000"

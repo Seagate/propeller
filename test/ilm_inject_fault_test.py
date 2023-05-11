@@ -13,7 +13,7 @@ import pytest
 import ilm
 from test_conf import *     # Normally bad practice, but only importing 'constants' here
 
-def test_inject_fault__2_drives_lock(ilm_daemon):
+def test_inject_fault__2_drives_lock(ilm_daemon, reset_devices):
     ret, s = ilm.ilm_connect()
     assert ret == 0
     assert s > 0
@@ -53,7 +53,7 @@ def test_inject_fault__2_drives_lock(ilm_daemon):
     ret = ilm.ilm_disconnect(s)
     assert ret == 0
 
-def test_inject_fault__3_drives_lock(ilm_daemon):
+def test_inject_fault__3_drives_lock(ilm_daemon, reset_devices):
     ret, s = ilm.ilm_connect()
     assert ret == 0
     assert s > 0
@@ -115,7 +115,7 @@ def test_inject_fault__3_drives_lock(ilm_daemon):
     ret = ilm.ilm_disconnect(s)
     assert ret == 0
 
-def test_inject_fault__4_drives_lock(ilm_daemon):
+def test_inject_fault__4_drives_lock(ilm_daemon, reset_devices):
     ret, s = ilm.ilm_connect()
     assert ret == 0
     assert s > 0
@@ -172,7 +172,7 @@ def test_inject_fault__4_drives_lock(ilm_daemon):
     ret = ilm.ilm_disconnect(s)
     assert ret == 0
 
-def test_inject_fault__2_drives_unlock(ilm_daemon):
+def test_inject_fault__2_drives_unlock(ilm_daemon, reset_devices):
     ret, s = ilm.ilm_connect()
     assert ret == 0
     assert s > 0
@@ -187,6 +187,9 @@ def test_inject_fault__2_drives_unlock(ilm_daemon):
     lock_op.set_drive_names(0, BLK_DEVICE1)
     lock_op.set_drive_names(1, BLK_DEVICE2)
     lock_op.timeout = 60000     # Timeout: 60s
+
+    ret = ilm.ilm_inject_fault(s, 0) # Reset initial fault to 0
+    assert ret == 0
 
     ret = ilm.ilm_lock(s, lock_id, lock_op)
     assert ret == 0
@@ -210,7 +213,7 @@ def test_inject_fault__2_drives_unlock(ilm_daemon):
     ret = ilm.ilm_disconnect(s)
     assert ret == 0
 
-def test_inject_fault__3_drives_unlock(ilm_daemon):
+def test_inject_fault__3_drives_unlock(ilm_daemon, reset_devices):
     ret, s = ilm.ilm_connect()
     assert ret == 0
     assert s > 0
@@ -226,6 +229,9 @@ def test_inject_fault__3_drives_unlock(ilm_daemon):
     lock_op.set_drive_names(1, BLK_DEVICE2)
     lock_op.set_drive_names(2, BLK_DEVICE3)
     lock_op.timeout = 60000     # Timeout: 60s
+
+    ret = ilm.ilm_inject_fault(s, 0) # Reset initial fault to 0
+    assert ret == 0
 
     ret = ilm.ilm_lock(s, lock_id, lock_op)
     assert ret == 0
@@ -260,7 +266,7 @@ def test_inject_fault__3_drives_unlock(ilm_daemon):
     ret = ilm.ilm_disconnect(s)
     assert ret == 0
 
-def test_inject_fault__4_drives_unlock(ilm_daemon):
+def test_inject_fault__4_drives_unlock(ilm_daemon, reset_devices):
     ret, s = ilm.ilm_connect()
     assert ret == 0
     assert s > 0
@@ -278,6 +284,9 @@ def test_inject_fault__4_drives_unlock(ilm_daemon):
     lock_op.set_drive_names(3, BLK_DEVICE4)
     lock_op.timeout = 60000     # Timeout: 60s
 
+    ret = ilm.ilm_inject_fault(s, 0) # Reset initial fault to 0
+    assert ret == 0
+
     ret = ilm.ilm_lock(s, lock_id, lock_op)
     assert ret == 0
 
@@ -317,7 +326,7 @@ def test_inject_fault__4_drives_unlock(ilm_daemon):
     ret = ilm.ilm_disconnect(s)
     assert ret == 0
 
-def test_inject_fault__2_drives_convert(ilm_daemon):
+def test_inject_fault__2_drives_convert(ilm_daemon, reset_devices):
     ret, s = ilm.ilm_connect()
     assert ret == 0
     assert s > 0
@@ -333,6 +342,9 @@ def test_inject_fault__2_drives_convert(ilm_daemon):
     lock_op.set_drive_names(1, BLK_DEVICE2)
     lock_op.timeout = 60000     # Timeout: 60s
 
+    ret = ilm.ilm_inject_fault(s, 0) # Reset initial fault to 0
+    assert ret == 0
+
     ret = ilm.ilm_lock(s, lock_id, lock_op)
     assert ret == 0
 
@@ -360,7 +372,7 @@ def test_inject_fault__2_drives_convert(ilm_daemon):
     ret = ilm.ilm_disconnect(s)
     assert ret == 0
 
-def test_inject_fault__3_drives_convert(ilm_daemon):
+def test_inject_fault__3_drives_convert(ilm_daemon, reset_devices):
     ret, s = ilm.ilm_connect()
     assert ret == 0
     assert s > 0
@@ -377,6 +389,9 @@ def test_inject_fault__3_drives_convert(ilm_daemon):
     lock_op.set_drive_names(2, BLK_DEVICE3)
     lock_op.timeout = 60000     # Timeout: 60s
 
+    ret = ilm.ilm_inject_fault(s, 0) # Reset initial fault to 0
+    assert ret == 0
+
     ret = ilm.ilm_lock(s, lock_id, lock_op)
     assert ret == 0
 
@@ -404,7 +419,7 @@ def test_inject_fault__3_drives_convert(ilm_daemon):
     ret = ilm.ilm_disconnect(s)
     assert ret == 0
 
-def test_inject_fault__4_drives_convert(ilm_daemon):
+def test_inject_fault__4_drives_convert(ilm_daemon, reset_devices):
     ret, s = ilm.ilm_connect()
     assert ret == 0
     assert s > 0
@@ -422,6 +437,9 @@ def test_inject_fault__4_drives_convert(ilm_daemon):
     lock_op.set_drive_names(3, BLK_DEVICE4)
     lock_op.timeout = 60000     # Timeout: 60s
 
+    ret = ilm.ilm_inject_fault(s, 0) # Reset initial fault to 0
+    assert ret == 0
+
     ret = ilm.ilm_lock(s, lock_id, lock_op)
     assert ret == 0
 
@@ -449,7 +467,7 @@ def test_inject_fault__4_drives_convert(ilm_daemon):
     ret = ilm.ilm_disconnect(s)
     assert ret == 0
 
-def test_inject_fault_100_percent__1_drive_renew(ilm_daemon):
+def test_inject_fault_100_percent__1_drive_renew(ilm_daemon, reset_devices):
     ret, s = ilm.ilm_connect()
     assert ret == 0
     assert s > 0
@@ -463,6 +481,9 @@ def test_inject_fault_100_percent__1_drive_renew(ilm_daemon):
     lock_op.drive_num = 1
     lock_op.set_drive_names(0, BLK_DEVICE1)
     lock_op.timeout = 3000     # Timeout: 3s
+
+    ret = ilm.ilm_inject_fault(s, 0) # Reset initial fault to 0
+    assert ret == 0
 
     ret = ilm.ilm_lock(s, lock_id, lock_op)
     assert ret == 0
@@ -485,7 +506,7 @@ def test_inject_fault_100_percent__1_drive_renew(ilm_daemon):
     ret = ilm.ilm_disconnect(s)
     assert ret == 0
 
-def test_inject_fault_50_percent__1_drive_renew(ilm_daemon):
+def test_inject_fault_50_percent__1_drive_renew(ilm_daemon, reset_devices):
     ret, s = ilm.ilm_connect()
     assert ret == 0
     assert s > 0
@@ -499,6 +520,9 @@ def test_inject_fault_50_percent__1_drive_renew(ilm_daemon):
     lock_op.drive_num = 1
     lock_op.set_drive_names(0, BLK_DEVICE1)
     lock_op.timeout = 3000     # Timeout: 3s
+
+    ret = ilm.ilm_inject_fault(s, 0) # Reset initial fault to 0
+    assert ret == 0
 
     ret = ilm.ilm_lock(s, lock_id, lock_op)
     assert ret == 0
@@ -521,7 +545,7 @@ def test_inject_fault_50_percent__1_drive_renew(ilm_daemon):
     ret = ilm.ilm_disconnect(s)
     assert ret == 0
 
-def test_inject_fault_10_percent__1_drive_renew(ilm_daemon):
+def test_inject_fault_10_percent__1_drive_renew(ilm_daemon, reset_devices):
     ret, s = ilm.ilm_connect()
     assert ret == 0
     assert s > 0
@@ -535,6 +559,9 @@ def test_inject_fault_10_percent__1_drive_renew(ilm_daemon):
     lock_op.drive_num = 1
     lock_op.set_drive_names(0, BLK_DEVICE1)
     lock_op.timeout = 3000     # Timeout: 3s
+
+    ret = ilm.ilm_inject_fault(s, 0) # Reset initial fault to 0
+    assert ret == 0
 
     ret = ilm.ilm_lock(s, lock_id, lock_op)
     assert ret == 0
@@ -556,7 +583,7 @@ def test_inject_fault_10_percent__1_drive_renew(ilm_daemon):
     ret = ilm.ilm_disconnect(s)
     assert ret == 0
 
-def test_inject_fault__1_drive_renew(ilm_daemon):
+def test_inject_fault__1_drive_renew(ilm_daemon, reset_devices):
     ret, s = ilm.ilm_connect()
     assert ret == 0
     assert s > 0
@@ -570,6 +597,9 @@ def test_inject_fault__1_drive_renew(ilm_daemon):
     lock_op.drive_num = 1
     lock_op.set_drive_names(0, BLK_DEVICE1)
     lock_op.timeout = 3000     # Timeout: 3s
+
+    ret = ilm.ilm_inject_fault(s, 0) # Reset initial fault to 0
+    assert ret == 0
 
     ## Test for 100 percentage fault
     ret = ilm.ilm_lock(s, lock_id, lock_op)
@@ -636,7 +666,7 @@ def test_inject_fault__1_drive_renew(ilm_daemon):
     ret = ilm.ilm_disconnect(s)
     assert ret == 0
 
-def test_inject_fault_100_percent__2_drives_renew(ilm_daemon):
+def test_inject_fault_100_percent__2_drives_renew(ilm_daemon, reset_devices):
     ret, s = ilm.ilm_connect()
     assert ret == 0
     assert s > 0
@@ -651,6 +681,9 @@ def test_inject_fault_100_percent__2_drives_renew(ilm_daemon):
     lock_op.set_drive_names(0, BLK_DEVICE1)
     lock_op.set_drive_names(1, BLK_DEVICE2)
     lock_op.timeout = 3000     # Timeout: 3s
+
+    ret = ilm.ilm_inject_fault(s, 0) # Reset initial fault to 0
+    assert ret == 0
 
     ret = ilm.ilm_lock(s, lock_id, lock_op)
     assert ret == 0
@@ -673,7 +706,7 @@ def test_inject_fault_100_percent__2_drives_renew(ilm_daemon):
     ret = ilm.ilm_disconnect(s)
     assert ret == 0
 
-def test_inject_fault_50_percent__2_drives_renew(ilm_daemon):
+def test_inject_fault_50_percent__2_drives_renew(ilm_daemon, reset_devices):
     ret, s = ilm.ilm_connect()
     assert ret == 0
     assert s > 0
@@ -688,6 +721,9 @@ def test_inject_fault_50_percent__2_drives_renew(ilm_daemon):
     lock_op.set_drive_names(0, BLK_DEVICE1)
     lock_op.set_drive_names(1, BLK_DEVICE2)
     lock_op.timeout = 3000     # Timeout: 3s
+
+    ret = ilm.ilm_inject_fault(s, 0) # Reset initial fault to 0
+    assert ret == 0
 
     ret = ilm.ilm_lock(s, lock_id, lock_op)
     assert ret == 0
@@ -710,7 +746,7 @@ def test_inject_fault_50_percent__2_drives_renew(ilm_daemon):
     ret = ilm.ilm_disconnect(s)
     assert ret == 0
 
-def test_inject_fault_10_percent__2_drives_renew(ilm_daemon):
+def test_inject_fault_10_percent__2_drives_renew(ilm_daemon, reset_devices):
     ret, s = ilm.ilm_connect()
     assert ret == 0
     assert s > 0
@@ -725,6 +761,9 @@ def test_inject_fault_10_percent__2_drives_renew(ilm_daemon):
     lock_op.set_drive_names(0, BLK_DEVICE1)
     lock_op.set_drive_names(1, BLK_DEVICE2)
     lock_op.timeout = 3000     # Timeout: 3s
+
+    ret = ilm.ilm_inject_fault(s, 0) # Reset initial fault to 0
+    assert ret == 0
 
     ret = ilm.ilm_lock(s, lock_id, lock_op)
     assert ret == 0
@@ -746,7 +785,7 @@ def test_inject_fault_10_percent__2_drives_renew(ilm_daemon):
     ret = ilm.ilm_disconnect(s)
     assert ret == 0
 
-def test_inject_fault__2_drives_renew(ilm_daemon):
+def test_inject_fault__2_drives_renew(ilm_daemon, reset_devices):
     ret, s = ilm.ilm_connect()
     assert ret == 0
     assert s > 0
@@ -761,6 +800,9 @@ def test_inject_fault__2_drives_renew(ilm_daemon):
     lock_op.set_drive_names(0, BLK_DEVICE1)
     lock_op.set_drive_names(1, BLK_DEVICE2)
     lock_op.timeout = 3000     # Timeout: 3s
+
+    ret = ilm.ilm_inject_fault(s, 0) # Reset initial fault to 0
+    assert ret == 0
 
     ## Test for 100 percentage fault
     ret = ilm.ilm_lock(s, lock_id, lock_op)
@@ -827,7 +869,7 @@ def test_inject_fault__2_drives_renew(ilm_daemon):
     ret = ilm.ilm_disconnect(s)
     assert ret == 0
 
-def test_inject_fault_100_percent__3_drives_renew(ilm_daemon):
+def test_inject_fault_100_percent__3_drives_renew(ilm_daemon, reset_devices):
     ret, s = ilm.ilm_connect()
     assert ret == 0
     assert s > 0
@@ -843,6 +885,9 @@ def test_inject_fault_100_percent__3_drives_renew(ilm_daemon):
     lock_op.set_drive_names(1, BLK_DEVICE2)
     lock_op.set_drive_names(2, BLK_DEVICE3)
     lock_op.timeout = 3000     # Timeout: 3s
+
+    ret = ilm.ilm_inject_fault(s, 0) # Reset initial fault to 0
+    assert ret == 0
 
     ret = ilm.ilm_lock(s, lock_id, lock_op)
     assert ret == 0
@@ -865,7 +910,7 @@ def test_inject_fault_100_percent__3_drives_renew(ilm_daemon):
     ret = ilm.ilm_disconnect(s)
     assert ret == 0
 
-def test_inject_fault_50_percent__3_drives_renew(ilm_daemon):
+def test_inject_fault_50_percent__3_drives_renew(ilm_daemon, reset_devices):
     ret, s = ilm.ilm_connect()
     assert ret == 0
     assert s > 0
@@ -881,6 +926,9 @@ def test_inject_fault_50_percent__3_drives_renew(ilm_daemon):
     lock_op.set_drive_names(1, BLK_DEVICE2)
     lock_op.set_drive_names(2, BLK_DEVICE3)
     lock_op.timeout = 3000     # Timeout: 3s
+
+    ret = ilm.ilm_inject_fault(s, 0) # Reset initial fault to 0
+    assert ret == 0
 
     ret = ilm.ilm_lock(s, lock_id, lock_op)
     assert ret == 0
@@ -903,7 +951,7 @@ def test_inject_fault_50_percent__3_drives_renew(ilm_daemon):
     ret = ilm.ilm_disconnect(s)
     assert ret == 0
 
-def test_inject_fault_10_percent__3_drives_renew(ilm_daemon):
+def test_inject_fault_10_percent__3_drives_renew(ilm_daemon, reset_devices):
     ret, s = ilm.ilm_connect()
     assert ret == 0
     assert s > 0
@@ -919,6 +967,9 @@ def test_inject_fault_10_percent__3_drives_renew(ilm_daemon):
     lock_op.set_drive_names(1, BLK_DEVICE2)
     lock_op.set_drive_names(2, BLK_DEVICE3)
     lock_op.timeout = 3000     # Timeout: 3s
+
+    ret = ilm.ilm_inject_fault(s, 0) # Reset initial fault to 0
+    assert ret == 0
 
     ret = ilm.ilm_lock(s, lock_id, lock_op)
     assert ret == 0
@@ -940,7 +991,7 @@ def test_inject_fault_10_percent__3_drives_renew(ilm_daemon):
     ret = ilm.ilm_disconnect(s)
     assert ret == 0
 
-def test_inject_fault__3_drives_renew(ilm_daemon):
+def test_inject_fault__3_drives_renew(ilm_daemon, reset_devices):
     ret, s = ilm.ilm_connect()
     assert ret == 0
     assert s > 0
@@ -956,6 +1007,9 @@ def test_inject_fault__3_drives_renew(ilm_daemon):
     lock_op.set_drive_names(1, BLK_DEVICE2)
     lock_op.set_drive_names(2, BLK_DEVICE3)
     lock_op.timeout = 3000     # Timeout: 3s
+
+    ret = ilm.ilm_inject_fault(s, 0) # Reset initial fault to 0
+    assert ret == 0
 
     ## Test for 100 percentage fault
     ret = ilm.ilm_lock(s, lock_id, lock_op)
@@ -1022,7 +1076,7 @@ def test_inject_fault__3_drives_renew(ilm_daemon):
     ret = ilm.ilm_disconnect(s)
     assert ret == 0
 
-def test_inject_fault_100_percent__4_drives_renew(ilm_daemon):
+def test_inject_fault_100_percent__4_drives_renew(ilm_daemon, reset_devices):
     ret, s = ilm.ilm_connect()
     assert ret == 0
     assert s > 0
@@ -1039,6 +1093,9 @@ def test_inject_fault_100_percent__4_drives_renew(ilm_daemon):
     lock_op.set_drive_names(2, BLK_DEVICE3)
     lock_op.set_drive_names(3, BLK_DEVICE4)
     lock_op.timeout = 3000     # Timeout: 3s
+
+    ret = ilm.ilm_inject_fault(s, 0) # Reset initial fault to 0
+    assert ret == 0
 
     ret = ilm.ilm_lock(s, lock_id, lock_op)
     assert ret == 0
@@ -1061,7 +1118,7 @@ def test_inject_fault_100_percent__4_drives_renew(ilm_daemon):
     ret = ilm.ilm_disconnect(s)
     assert ret == 0
 
-def test_inject_fault_50_percent__4_drives_renew(ilm_daemon):
+def test_inject_fault_50_percent__4_drives_renew(ilm_daemon, reset_devices):
     ret, s = ilm.ilm_connect()
     assert ret == 0
     assert s > 0
@@ -1078,6 +1135,9 @@ def test_inject_fault_50_percent__4_drives_renew(ilm_daemon):
     lock_op.set_drive_names(2, BLK_DEVICE3)
     lock_op.set_drive_names(3, BLK_DEVICE4)
     lock_op.timeout = 3000     # Timeout: 3s
+
+    ret = ilm.ilm_inject_fault(s, 0) # Reset initial fault to 0
+    assert ret == 0
 
     ret = ilm.ilm_lock(s, lock_id, lock_op)
     assert ret == 0
@@ -1100,7 +1160,7 @@ def test_inject_fault_50_percent__4_drives_renew(ilm_daemon):
     ret = ilm.ilm_disconnect(s)
     assert ret == 0
 
-def test_inject_fault_10_percent__4_drives_renew(ilm_daemon):
+def test_inject_fault_10_percent__4_drives_renew(ilm_daemon, reset_devices):
     ret, s = ilm.ilm_connect()
     assert ret == 0
     assert s > 0
@@ -1117,6 +1177,9 @@ def test_inject_fault_10_percent__4_drives_renew(ilm_daemon):
     lock_op.set_drive_names(2, BLK_DEVICE3)
     lock_op.set_drive_names(3, BLK_DEVICE4)
     lock_op.timeout = 3000     # Timeout: 3s
+
+    ret = ilm.ilm_inject_fault(s, 0) # Reset initial fault to 0
+    assert ret == 0
 
     ret = ilm.ilm_lock(s, lock_id, lock_op)
     assert ret == 0
@@ -1138,7 +1201,7 @@ def test_inject_fault_10_percent__4_drives_renew(ilm_daemon):
     ret = ilm.ilm_disconnect(s)
     assert ret == 0
 
-def test_inject_fault__4_drives_renew(ilm_daemon):
+def test_inject_fault__4_drives_renew(ilm_daemon, reset_devices):
     ret, s = ilm.ilm_connect()
     assert ret == 0
     assert s > 0
@@ -1155,6 +1218,9 @@ def test_inject_fault__4_drives_renew(ilm_daemon):
     lock_op.set_drive_names(2, BLK_DEVICE3)
     lock_op.set_drive_names(3, BLK_DEVICE4)
     lock_op.timeout = 3000     # Timeout: 3s
+
+    ret = ilm.ilm_inject_fault(s, 0) # Reset initial fault to 0
+    assert ret == 0
 
     ## Test for 100 percentage fault
     ret = ilm.ilm_lock(s, lock_id, lock_op)
