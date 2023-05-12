@@ -30,8 +30,8 @@ RAW_DEVICES = [SG_DEVICE1,
                SG_DEVICE6,
                SG_DEVICE7,
                SG_DEVICE8]
-# Globals filled each time tests are run with only devices that are active
-active_devices = []
+# List of active devices to be put under test.  Filled each time tests are run.
+test_devices = []
 
 # Command-related strings for hard resetting drives
 SG_CMD    = 'sg_raw -v -s 512 -i zero.bin'
@@ -108,15 +108,15 @@ def _init_devices():
 
     _logger.info("_init_devices start")
 
-    # Find active devices
-    active_devices.clear()
+    # Find test devices
+    test_devices.clear()
     for device in RAW_DEVICES:
         try:
-            f = open(device, "r")
-            f.close()
-        except OSError as e:
+            with open(device, "r") as _:
+                _logger.info(f'test device found: {device}')
+                test_devices.append(device)
+        except IOError:
             continue
-        active_devices.append(device)
 
      # Needed by _reset_drives() but only need to run once.
     os.system('dd if=/dev/zero of=zero.bin count=1 bs=512')
@@ -124,7 +124,7 @@ def _init_devices():
     _reset_devices()
 
     LOCK_ID0 ='0000000000000000000000000000000000000000000000000000000000000000'
-    for device in active_devices:
+    for device in test_devices:
         try:
             idm_api.idm_drive_lock_mode(LOCK_ID0, device)
         except Exception as e:
@@ -135,16 +135,14 @@ def _reset_devices():
 
     _logger.info("_reset_devices start")
 
-    for device in active_devices:
+    for device in test_devices:
         try:
             if device.find('nvme') >= 0:
-                _logger.info(f'possible nvme device found: {device}')
                 os.system(f'{NVME_CMD} {device} {NVME_DATA}')
             else:
-                _logger.info(f'possible scsi device found: {device}')
                 os.system(f'{SG_CMD} {device} {SG_DATA}')
         except Exception as e:
-            _logger.error(f'{device} reset failure')
+            _logger.error(f'reset failure: {device}')
             raise e from None
 
 ###############################################################################
