@@ -9,8 +9,10 @@ Instructions for setting device paths:
     For RAW_DEVICEX:
         For SCSI, use the cooresponding 'sg' 'dev' path (e.g.: /dev/sg1) for a given BLK_DEVICE path.
         For NVMe, use SAME PATH used in BLK_DEVICE path
-"""
 
+The default device paths below are intended to be nonsense.
+Currently, the user must manually setup these path per the system they intend to test on.
+"""
 UNUSED_BLK_DEV_DEFAULT_NAME = '/dev/sdxxxxx'
 UNUSED_RAW_DEV_DEFAULT_NAME = '/dev/sgxxxxx'
 
