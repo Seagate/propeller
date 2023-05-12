@@ -13,7 +13,7 @@ import pytest
 import ilm
 from test_conf import *     # Normally bad practice, but only importing 'constants' here
 
-def test_lock__lvb_read(ilm_daemon):
+def test_lock__lvb_read(ilm_daemon, reset_devices):
     ret, s = ilm.ilm_connect()
     assert ret == 0
     assert s > 0
@@ -51,7 +51,7 @@ def test_lock__lvb_read(ilm_daemon):
     ret = ilm.ilm_disconnect(s)
     assert ret == 0
 
-def test_lock__lvb_read_two_hosts(ilm_daemon):
+def test_lock__lvb_read_two_hosts(ilm_daemon, reset_devices):
     ret, s1 = ilm.ilm_connect()
     assert ret == 0
     assert s1 > 0
@@ -162,7 +162,7 @@ def test_lock__lvb_read_two_hosts(ilm_daemon):
     ret = ilm.ilm_disconnect(s2)
     assert ret == 0
 
-def test_lock__lvb_write(ilm_daemon):
+def test_lock__lvb_write(ilm_daemon, reset_devices):
     ret, s = ilm.ilm_connect()
     assert ret == 0
     assert s > 0
@@ -207,7 +207,7 @@ def test_lock__lvb_write(ilm_daemon):
     ret = ilm.ilm_disconnect(s)
     assert ret == 0
 
-def test_lock__lvb_write_two_hosts(ilm_daemon):
+def test_lock__lvb_write_two_hosts(ilm_daemon, reset_devices):
     ret, s1 = ilm.ilm_connect()
     assert ret == 0
     assert s1 > 0
@@ -310,7 +310,7 @@ def test_lock__lvb_write_two_hosts(ilm_daemon):
     ret = ilm.ilm_disconnect(s2)
     assert ret == 0
 
-def test_lock__lvb_read_timeout(ilm_daemon):
+def test_lock__lvb_read_timeout(ilm_daemon, reset_devices):
     ret, s1 = ilm.ilm_connect()
     assert ret == 0
     assert s1 > 0

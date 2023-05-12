@@ -13,7 +13,7 @@ import pytest
 import ilm
 from test_conf import *     # Normally bad practice, but only importing 'constants' here
 
-def test_lockspace(ilm_daemon):
+def test_lockspace(ilm_daemon, reset_devices):
     ret, s = ilm.ilm_connect()
     assert ret == 0
     assert s > 0
@@ -21,7 +21,7 @@ def test_lockspace(ilm_daemon):
     ret = ilm.ilm_disconnect(s)
     assert ret == 0
 
-def test_version(ilm_daemon):
+def test_version(ilm_daemon, reset_devices):
     ret, s = ilm.ilm_connect()
     assert ret == 0
     assert s > 0
@@ -33,7 +33,7 @@ def test_version(ilm_daemon):
     ret = ilm.ilm_disconnect(s)
     assert ret == 0
 
-def test_lock__shareable_smoke_test(ilm_daemon):
+def test_lock__shareable_smoke_test(ilm_daemon, reset_devices):
     ret, s = ilm.ilm_connect()
     assert ret == 0
     assert s > 0
@@ -58,7 +58,7 @@ def test_lock__shareable_smoke_test(ilm_daemon):
     ret = ilm.ilm_disconnect(s)
     assert ret == 0
 
-def test_lock__shareable_100_times(ilm_daemon):
+def test_lock__shareable_100_times(ilm_daemon, reset_devices):
     ret, s = ilm.ilm_connect()
     assert ret == 0
     assert s > 0
@@ -84,7 +84,7 @@ def test_lock__shareable_100_times(ilm_daemon):
     ret = ilm.ilm_disconnect(s)
     assert ret == 0
 
-def test_lock__exclusive_smoke_test(ilm_daemon):
+def test_lock__exclusive_smoke_test(ilm_daemon, reset_devices):
     ret, s = ilm.ilm_connect()
     assert ret == 0
     assert s > 0
@@ -109,7 +109,7 @@ def test_lock__exclusive_smoke_test(ilm_daemon):
     ret = ilm.ilm_disconnect(s)
     assert ret == 0
 
-def test_lock__exclusive_100_times(ilm_daemon):
+def test_lock__exclusive_100_times(ilm_daemon, reset_devices):
     ret, s = ilm.ilm_connect()
     assert ret == 0
     assert s > 0
@@ -135,7 +135,7 @@ def test_lock__exclusive_100_times(ilm_daemon):
     ret = ilm.ilm_disconnect(s)
     assert ret == 0
 
-def test_lock__wrong_mode(ilm_daemon):
+def test_lock__wrong_mode(ilm_daemon, reset_devices):
     ret, s = ilm.ilm_connect()
     assert ret == 0
     assert s > 0
@@ -157,7 +157,7 @@ def test_lock__wrong_mode(ilm_daemon):
     ret = ilm.ilm_disconnect(s)
     assert ret == 0
 
-def test_lock__one_host_exclusive_twice(ilm_daemon):
+def test_lock__one_host_exclusive_twice(ilm_daemon, reset_devices):
     ret, s = ilm.ilm_connect()
     assert ret == 0
     assert s > 0
@@ -185,7 +185,7 @@ def test_lock__one_host_exclusive_twice(ilm_daemon):
     ret = ilm.ilm_disconnect(s)
     assert ret == 0
 
-def test_lock__one_host_shareable_twice(ilm_daemon):
+def test_lock__one_host_shareable_twice(ilm_daemon, reset_devices):
     ret, s = ilm.ilm_connect()
     assert ret == 0
     assert s > 0
@@ -213,7 +213,7 @@ def test_lock__one_host_shareable_twice(ilm_daemon):
     ret = ilm.ilm_disconnect(s)
     assert ret == 0
 
-def test_lock__one_host_release_twice(ilm_daemon):
+def test_lock__one_host_release_twice(ilm_daemon, reset_devices):
     ret, s = ilm.ilm_connect()
     assert ret == 0
     assert s > 0
@@ -241,7 +241,7 @@ def test_lock__one_host_release_twice(ilm_daemon):
     ret = ilm.ilm_disconnect(s)
     assert ret == 0
 
-def test_lock__two_hosts_exclusive_success_exclusive_fail(ilm_daemon):
+def test_lock__two_hosts_exclusive_success_exclusive_fail(ilm_daemon, reset_devices):
     ret, s1 = ilm.ilm_connect()
     assert ret == 0
     assert s1 > 0
@@ -283,7 +283,7 @@ def test_lock__two_hosts_exclusive_success_exclusive_fail(ilm_daemon):
     assert ret == 0
 
 
-def test_lock__two_hosts_shareable_success_shareable_success(ilm_daemon):
+def test_lock__two_hosts_shareable_success_shareable_success(ilm_daemon, reset_devices):
     ret, s1 = ilm.ilm_connect()
     assert ret == 0
     assert s1 > 0
@@ -327,7 +327,7 @@ def test_lock__two_hosts_shareable_success_shareable_success(ilm_daemon):
     ret = ilm.ilm_disconnect(s2)
     assert ret == 0
 
-def test_lock__two_hosts_shareable_success_exclusive_fail(ilm_daemon):
+def test_lock__two_hosts_shareable_success_exclusive_fail(ilm_daemon, reset_devices):
     ret, s1 = ilm.ilm_connect()
     assert ret == 0
     assert s1 > 0
@@ -378,7 +378,7 @@ def test_lock__two_hosts_shareable_success_exclusive_fail(ilm_daemon):
     ret = ilm.ilm_disconnect(s2)
     assert ret == 0
 
-def test_lock__two_hosts_exclusive_success_shareable_fail(ilm_daemon):
+def test_lock__two_hosts_exclusive_success_shareable_fail(ilm_daemon, reset_devices):
     ret, s1 = ilm.ilm_connect()
     assert ret == 0
     assert s1 > 0
@@ -429,7 +429,7 @@ def test_lock__two_hosts_exclusive_success_shareable_fail(ilm_daemon):
     ret = ilm.ilm_disconnect(s2)
     assert ret == 0
 
-def test_lock__two_hosts_exclusive_wrong_release_ahead(ilm_daemon):
+def test_lock__two_hosts_exclusive_wrong_release_ahead(ilm_daemon, reset_devices):
     ret, s1 = ilm.ilm_connect()
     assert ret == 0
     assert s1 > 0
@@ -470,7 +470,7 @@ def test_lock__two_hosts_exclusive_wrong_release_ahead(ilm_daemon):
     ret = ilm.ilm_disconnect(s2)
     assert ret == 0
 
-def test_lock__two_hosts_exclusive_wrong_release_after(ilm_daemon):
+def test_lock__two_hosts_exclusive_wrong_release_after(ilm_daemon, reset_devices):
     ret, s1 = ilm.ilm_connect()
     assert ret == 0
     assert s1 > 0
@@ -511,7 +511,7 @@ def test_lock__two_hosts_exclusive_wrong_release_after(ilm_daemon):
     ret = ilm.ilm_disconnect(s2)
     assert ret == 0
 
-def test_lock__convert_shareable_to_shareable(ilm_daemon):
+def test_lock__convert_shareable_to_shareable(ilm_daemon, reset_devices):
     ret, s = ilm.ilm_connect()
     assert ret == 0
     assert s > 0
@@ -539,7 +539,7 @@ def test_lock__convert_shareable_to_shareable(ilm_daemon):
     ret = ilm.ilm_disconnect(s)
     assert ret == 0
 
-def test_lock__convert_shareable_to_exclusive(ilm_daemon):
+def test_lock__convert_shareable_to_exclusive(ilm_daemon, reset_devices):
     ret, s = ilm.ilm_connect()
     assert ret == 0
     assert s > 0
@@ -567,7 +567,7 @@ def test_lock__convert_shareable_to_exclusive(ilm_daemon):
     ret = ilm.ilm_disconnect(s)
     assert ret == 0
 
-def test_lock__convert_exclusive_to_shareable(ilm_daemon):
+def test_lock__convert_exclusive_to_shareable(ilm_daemon, reset_devices):
     ret, s = ilm.ilm_connect()
     assert ret == 0
     assert s > 0
@@ -595,7 +595,7 @@ def test_lock__convert_exclusive_to_shareable(ilm_daemon):
     ret = ilm.ilm_disconnect(s)
     assert ret == 0
 
-def test_lock__convert_exclusive_to_exclusive(ilm_daemon):
+def test_lock__convert_exclusive_to_exclusive(ilm_daemon, reset_devices):
     ret, s = ilm.ilm_connect()
     assert ret == 0
     assert s > 0
@@ -623,7 +623,7 @@ def test_lock__convert_exclusive_to_exclusive(ilm_daemon):
     ret = ilm.ilm_disconnect(s)
     assert ret == 0
 
-def test_lock__two_hosts_convert_shareable_to_exclusive(ilm_daemon):
+def test_lock__two_hosts_convert_shareable_to_exclusive(ilm_daemon, reset_devices):
     ret, s1 = ilm.ilm_connect()
     assert ret == 0
     assert s1 > 0
@@ -673,7 +673,7 @@ def test_lock__two_hosts_convert_shareable_to_exclusive(ilm_daemon):
     ret = ilm.ilm_disconnect(s2)
     assert ret == 0
 
-def test_lock__two_hosts_convert_shareable_to_exclusive_success(ilm_daemon):
+def test_lock__two_hosts_convert_shareable_to_exclusive_success(ilm_daemon, reset_devices):
     ret, s1 = ilm.ilm_connect()
     assert ret == 0
     assert s1 > 0
@@ -723,7 +723,7 @@ def test_lock__two_hosts_convert_shareable_to_exclusive_success(ilm_daemon):
     ret = ilm.ilm_disconnect(s2)
     assert ret == 0
 
-def test_lock__two_hosts_convert_shareable_timeout_to_exclusive_success(ilm_daemon):
+def test_lock__two_hosts_convert_shareable_timeout_to_exclusive_success(ilm_daemon, reset_devices):
     ret, s1 = ilm.ilm_connect()
     assert ret == 0
     assert s1 > 0
@@ -776,7 +776,7 @@ def test_lock__two_hosts_convert_shareable_timeout_to_exclusive_success(ilm_daem
     ret = ilm.ilm_disconnect(s2)
     assert ret == 0
 
-def test_lock__two_hosts_convert_shareable_timeout_to_shareable_success(ilm_daemon):
+def test_lock__two_hosts_convert_shareable_timeout_to_shareable_success(ilm_daemon, reset_devices):
     ret, s1 = ilm.ilm_connect()
     assert ret == 0
     assert s1 > 0
@@ -846,7 +846,7 @@ def test_lock__two_hosts_convert_shareable_timeout_to_shareable_success(ilm_daem
     ret = ilm.ilm_disconnect(s3)
     assert ret == 0
 
-def test_lock__two_hosts_convert_exclusive_timeout_to_exclusive_success(ilm_daemon):
+def test_lock__two_hosts_convert_exclusive_timeout_to_exclusive_success(ilm_daemon, reset_devices):
     ret, s1 = ilm.ilm_connect()
     assert ret == 0
     assert s1 > 0
@@ -899,7 +899,7 @@ def test_lock__two_hosts_convert_exclusive_timeout_to_exclusive_success(ilm_daem
     ret = ilm.ilm_disconnect(s2)
     assert ret == 0
 
-def test_lock__two_hosts_convert_exclusive_timeout_to_shareable_success(ilm_daemon):
+def test_lock__two_hosts_convert_exclusive_timeout_to_shareable_success(ilm_daemon, reset_devices):
     ret, s1 = ilm.ilm_connect()
     assert ret == 0
     assert s1 > 0
@@ -951,7 +951,7 @@ def test_lock__two_hosts_convert_exclusive_timeout_to_shareable_success(ilm_daem
     ret = ilm.ilm_disconnect(s2)
     assert ret == 0
 
-def test_lock__timeout(ilm_daemon):
+def test_lock__timeout(ilm_daemon, reset_devices):
     ret, s = ilm.ilm_connect()
     assert ret == 0
     assert s > 0
@@ -982,7 +982,7 @@ def test_lock__timeout(ilm_daemon):
     ret = ilm.ilm_disconnect(s)
     assert ret == 0
 
-def test_lock__timeout_convert1(ilm_daemon):
+def test_lock__timeout_convert1(ilm_daemon, reset_devices):
     ret, s = ilm.ilm_connect()
     assert ret == 0
     assert s > 0
@@ -1017,7 +1017,7 @@ def test_lock__timeout_convert1(ilm_daemon):
     ret = ilm.ilm_disconnect(s)
     assert ret == 0
 
-def test_lock__timeout_convert2(ilm_daemon):
+def test_lock__timeout_convert2(ilm_daemon, reset_devices):
     ret, s = ilm.ilm_connect()
     assert ret == 0
     assert s > 0
@@ -1057,7 +1057,7 @@ def test_lock__timeout_convert2(ilm_daemon):
     ret = ilm.ilm_disconnect(s)
     assert ret == 0
 
-def test_lock__get_mode(ilm_daemon):
+def test_lock__get_mode(ilm_daemon, reset_devices):
     ret, s = ilm.ilm_connect()
     assert ret == 0
     assert s > 0
@@ -1093,7 +1093,7 @@ def test_lock__get_mode(ilm_daemon):
     ret = ilm.ilm_disconnect(s)
     assert ret == 0
 
-def test_lock__get_mode_not_existed(ilm_daemon):
+def test_lock__get_mode_not_existed(ilm_daemon, reset_devices):
     ret, s = ilm.ilm_connect()
     assert ret == 0
     assert s > 0
@@ -1116,7 +1116,7 @@ def test_lock__get_mode_not_existed(ilm_daemon):
     ret = ilm.ilm_disconnect(s)
     assert ret == 0
 
-def test_lock__two_hosts_get_mode(ilm_daemon):
+def test_lock__two_hosts_get_mode(ilm_daemon, reset_devices):
     ret, s1 = ilm.ilm_connect()
     assert ret == 0
     assert s1 > 0
@@ -1178,7 +1178,7 @@ def test_lock__two_hosts_get_mode(ilm_daemon):
     ret = ilm.ilm_disconnect(s2)
     assert ret == 0
 
-def test_lock__get_host_count(ilm_daemon):
+def test_lock__get_host_count(ilm_daemon, reset_devices):
     ret, s = ilm.ilm_connect()
     assert ret == 0
     assert s > 0
@@ -1213,7 +1213,7 @@ def test_lock__get_host_count(ilm_daemon):
     ret = ilm.ilm_disconnect(s)
     assert ret == 0
 
-def test_lock__two_hosts_get_host_count(ilm_daemon):
+def test_lock__two_hosts_get_host_count(ilm_daemon, reset_devices):
     ret, s1 = ilm.ilm_connect()
     assert ret == 0
     assert s1 > 0
@@ -1272,7 +1272,7 @@ def test_lock__two_hosts_get_host_count(ilm_daemon):
     ret = ilm.ilm_disconnect(s2)
     assert ret == 0
 
-def test_lock__three_hosts_get_host_count(ilm_daemon):
+def test_lock__three_hosts_get_host_count(ilm_daemon, reset_devices):
     ret, s1 = ilm.ilm_connect()
     assert ret == 0
     assert s1 > 0
@@ -1367,7 +1367,7 @@ def test_lock__three_hosts_get_host_count(ilm_daemon):
     assert ret == 0
 
 @pytest.mark.destroy
-def test_lock__destroy(ilm_daemon):
+def test_lock__destroy(ilm_daemon, reset_devices):
     ret, s1 = ilm.ilm_connect()
     assert ret == 0
     assert s1 > 0

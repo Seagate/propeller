@@ -29,7 +29,7 @@ def wait_for_scsi_response(device, handle):
 
     poll.unregister(sg_fd)
 
-def test_idm__async_lock_exclusive(idm_cleanup, idm_daemon):
+def test_idm__async_lock_exclusive(idm_async_daemon, reset_devices):
 
     lock_id0 = "0000000000000000000000000000000000000000000000000000000000000000"
     host_id0 = "00000000000000000000000000000000"
@@ -65,7 +65,7 @@ def test_idm__async_lock_exclusive(idm_cleanup, idm_daemon):
     assert ret == 0
     assert result == 0
 
-def test_idm__async_lock_shareable(idm_cleanup, idm_daemon):
+def test_idm__async_lock_shareable(idm_async_daemon, reset_devices):
 
     lock_id0 = "0000000000000000000000000000000000000000000000000000000000000000"
     host_id0 = "00000000000000000000000000000000"
@@ -101,7 +101,7 @@ def test_idm__async_lock_shareable(idm_cleanup, idm_daemon):
     assert ret == 0
     assert result == 0
 
-def test_idm__async_lock_exclusive_two_drives(idm_cleanup, idm_daemon):
+def test_idm__async_lock_exclusive_two_drives(idm_async_daemon, reset_devices):
 
     lock_id0 = "0000000000000000000000000000000000000000000000000000000000000000"
     host_id0 = "00000000000000000000000000000000"
@@ -154,7 +154,7 @@ def test_idm__async_lock_exclusive_two_drives(idm_cleanup, idm_daemon):
     assert ret == 0
     assert result == 0
 
-def test_idm__async_lock_shareable_two_drives(idm_cleanup, idm_daemon):
+def test_idm__async_lock_shareable_two_drives(idm_async_daemon, reset_devices):
 
     lock_id0 = "0000000000000000000000000000000000000000000000000000000000000000"
     host_id0 = "00000000000000000000000000000000"
@@ -207,7 +207,7 @@ def test_idm__async_lock_shareable_two_drives(idm_cleanup, idm_daemon):
     assert ret == 0
     assert result == 0
 
-def test_idm__async_lock_shareable_two_locks(idm_cleanup, idm_daemon):
+def test_idm__async_lock_shareable_two_locks(idm_async_daemon, reset_devices):
 
     lock_id0 = "0000000000000000000000000000000000000000000000000000000000000000"
     lock_id1 = "0000000000000000000000000000000000000000000000000000000000000001"
@@ -261,7 +261,7 @@ def test_idm__async_lock_shareable_two_locks(idm_cleanup, idm_daemon):
     assert ret == 0
     assert result == 0
 
-def test_idm__async_break_lock_1(idm_cleanup, idm_daemon):
+def test_idm__async_break_lock_1(idm_async_daemon, reset_devices):
 
     lock_id0 = "0000000000000000000000000000000000000000000000000000000000000000"
     host_id0 = "00000000000000000000000000000000"
@@ -327,7 +327,7 @@ def test_idm__async_break_lock_1(idm_cleanup, idm_daemon):
     assert ret == 0
     assert result == 0
 
-def test_idm__async_break_lock_2(idm_cleanup, idm_daemon):
+def test_idm__async_break_lock_2(idm_async_daemon, reset_devices):
 
     lock_id0 = "0000000000000000000000000000000000000000000000000000000000000000"
     host_id0 = "00000000000000000000000000000000"
@@ -393,7 +393,7 @@ def test_idm__async_break_lock_2(idm_cleanup, idm_daemon):
     assert ret == 0
     assert result == 0
 
-def test_idm__async_break_lock_3(idm_cleanup, idm_daemon):
+def test_idm__async_break_lock_3(idm_async_daemon, reset_devices):
 
     lock_id0 = "0000000000000000000000000000000000000000000000000000000000000000"
     host_id0 = "00000000000000000000000000000000"
@@ -459,7 +459,7 @@ def test_idm__async_break_lock_3(idm_cleanup, idm_daemon):
     assert ret == 0
     assert result == 0
 
-def test_idm__async_convert_1(idm_cleanup, idm_daemon):
+def test_idm__async_convert_1(idm_async_daemon, reset_devices):
 
     lock_id0 = "0000000000000000000000000000000000000000000000000000000000000000"
     host_id0 = "00000000000000000000000000000000"
@@ -504,7 +504,7 @@ def test_idm__async_convert_1(idm_cleanup, idm_daemon):
     assert ret == 0
     assert result == 0
 
-def test_idm__async_convert_2(idm_cleanup, idm_daemon):
+def test_idm__async_convert_2(idm_async_daemon, reset_devices):
 
     lock_id0 = "0000000000000000000000000000000000000000000000000000000000000000"
     host_id0 = "00000000000000000000000000000000"
@@ -549,7 +549,7 @@ def test_idm__async_convert_2(idm_cleanup, idm_daemon):
     assert ret == 0
     assert result == 0
 
-def test_idm__async_convert_3(idm_cleanup, idm_daemon):
+def test_idm__async_convert_3(idm_async_daemon, reset_devices):
 
     lock_id0 = "0000000000000000000000000000000000000000000000000000000000000000"
     host_id0 = "00000000000000000000000000000000"
@@ -613,7 +613,7 @@ def test_idm__async_convert_3(idm_cleanup, idm_daemon):
     assert ret == 0
     assert result == 0
 
-def test_idm__async_renew_1(idm_cleanup, idm_daemon):
+def test_idm__async_renew_1(idm_async_daemon, reset_devices):
 
     lock_id0 = "0000000000000000000000000000000000000000000000000000000000000000"
     host_id0 = "00000000000000000000000000000000"
@@ -684,7 +684,7 @@ def test_idm__async_renew_1(idm_cleanup, idm_daemon):
     assert ret == 0
     assert result == 0
 
-def test_idm__async_renew_2(idm_cleanup, idm_daemon):
+def test_idm__async_renew_2(idm_async_daemon, reset_devices):
 
     lock_id0 = "0000000000000000000000000000000000000000000000000000000000000000"
     host_id0 = "00000000000000000000000000000000"
@@ -755,7 +755,7 @@ def test_idm__async_renew_2(idm_cleanup, idm_daemon):
     assert ret == 0
     assert result == 0
 
-def test_idm__async_renew_timout_1(idm_cleanup, idm_daemon):
+def test_idm__async_renew_timout_1(idm_async_daemon, reset_devices):
 
     lock_id0 = "0000000000000000000000000000000000000000000000000000000000000000"
     host_id0 = "00000000000000000000000000000000"
@@ -802,7 +802,7 @@ def test_idm__async_renew_timout_1(idm_cleanup, idm_daemon):
     assert ret == 0
     assert result == 0          # -ETIME or 0
 
-def test_idm__async_renew_timeout_2(idm_cleanup, idm_daemon):
+def test_idm__async_renew_timeout_2(idm_async_daemon, reset_devices):
 
     lock_id0 = "0000000000000000000000000000000000000000000000000000000000000000"
     host_id0 = "00000000000000000000000000000000"
@@ -849,7 +849,7 @@ def test_idm__async_renew_timeout_2(idm_cleanup, idm_daemon):
     assert ret == 0
     assert result == 0          # -ETIME or 0
 
-def test_idm__async_read_lvb_1(idm_cleanup, idm_daemon):
+def test_idm__async_read_lvb_1(idm_async_daemon, reset_devices):
 
     lock_id0 = "0000000000000000000000000000000000000000000000000000000000000000"
     host_id0 = "00000000000000000000000000000000"
@@ -894,7 +894,7 @@ def test_idm__async_read_lvb_1(idm_cleanup, idm_daemon):
     assert ret == 0
     assert result == 0
 
-def test_idm__async_read_lvb_2(idm_cleanup, idm_daemon):
+def test_idm__async_read_lvb_2(idm_async_daemon, reset_devices):
 
     lock_id0 = "0000000000000000000000000000000000000000000000000000000000000000"
     host_id0 = "00000000000000000000000000000000"
@@ -986,7 +986,7 @@ def test_idm__async_read_lvb_2(idm_cleanup, idm_daemon):
     assert ret == 0
     assert result == 0
 
-def test_idm__async_get_host_count(idm_cleanup, idm_daemon):
+def test_idm__async_get_host_count(idm_async_daemon, reset_devices):
 
     lock_id0 = "0000000000000000000000000000000000000000000000000000000000000000"
     host_id0 = "00000000000000000000000000000000"
@@ -1043,7 +1043,7 @@ def test_idm__async_get_host_count(idm_cleanup, idm_daemon):
     assert count == 0
     assert self == 0
 
-def test_idm__async_two_hosts_get_host_count(idm_cleanup, idm_daemon):
+def test_idm__async_two_hosts_get_host_count(idm_async_daemon, reset_devices):
 
     lock_id0 = "0000000000000000000000000000000000000000000000000000000000000000"
     host_id0 = "00000000000000000000000000000000"
@@ -1144,7 +1144,7 @@ def test_idm__async_two_hosts_get_host_count(idm_cleanup, idm_daemon):
     assert count == 0
     assert self == 0
 
-def test_idm__async_three_hosts_get_host_count(idm_cleanup, idm_daemon):
+def test_idm__async_three_hosts_get_host_count(idm_async_daemon, reset_devices):
 
     lock_id0 = "0000000000000000000000000000000000000000000000000000000000000000"
     host_id0 = "00000000000000000000000000000000"
@@ -1265,7 +1265,7 @@ def test_idm__async_three_hosts_get_host_count(idm_cleanup, idm_daemon):
     assert count == 0
     assert self == 0
 
-def test_idm__async_get_lock_mode(idm_cleanup, idm_daemon):
+def test_idm__async_get_lock_mode(idm_async_daemon, reset_devices):
 
     lock_id0 = "0000000000000000000000000000000000000000000000000000000000000000"
     host_id0 = "00000000000000000000000000000000"
@@ -1280,7 +1280,7 @@ def test_idm__async_get_lock_mode(idm_cleanup, idm_daemon):
     assert mode == idm_api.IDM_MODE_UNLOCK
     assert result == 0
 
-def test_idm__async_get_lock_exclusive_mode(idm_cleanup, idm_daemon):
+def test_idm__async_get_lock_exclusive_mode(idm_async_daemon, reset_devices):
 
     lock_id0 = "0000000000000000000000000000000000000000000000000000000000000000"
     host_id0 = "00000000000000000000000000000000"
@@ -1325,7 +1325,7 @@ def test_idm__async_get_lock_exclusive_mode(idm_cleanup, idm_daemon):
     assert ret == 0
     assert result == 0
 
-def test_idm__async_get_lock_shareable_mode(idm_cleanup, idm_daemon):
+def test_idm__async_get_lock_shareable_mode(idm_async_daemon, reset_devices):
 
     lock_id0 = "0000000000000000000000000000000000000000000000000000000000000000"
     host_id0 = "00000000000000000000000000000000"

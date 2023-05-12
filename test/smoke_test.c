@@ -21,7 +21,7 @@ int main(void)
 	if (ret == 0) {
 		printf("ilm_connect: SUCCESS\n");
 	} else {
-		printf("ilm_connect: FAIL\n");
+		printf("ilm_connect: FAIL: %d\n", ret);
 		exit(-1);
 	}
 
@@ -38,7 +38,7 @@ int main(void)
 	if (ret == 0) {
 		printf("ilm_lock: SUCCESS\n");
 	} else {
-		printf("ilm_lock: FAIL\n");
+		printf("ilm_lock: FAIL: %d\n", ret);
 		exit(-1);
 	}
 
@@ -46,7 +46,7 @@ int main(void)
 	if (ret == 0) {
 		printf("ilm_unlock: SUCCESS\n");
 	} else {
-		printf("ilm_unlock: FAIL\n");
+		printf("ilm_unlock: FAIL: %d\n", ret);
 		exit(-1);
 	}
 
@@ -54,7 +54,7 @@ int main(void)
 	if (ret == 0) {
 		printf("ilm_disconnect: SUCCESS\n");
 	} else {
-		printf("ilm_disconnect: FAIL\n");
+		printf("ilm_disconnect: FAIL: %d\n", ret);
 		exit(-1);
 	}
 

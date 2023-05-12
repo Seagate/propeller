@@ -9,26 +9,32 @@ Instructions for setting device paths:
     For RAW_DEVICEX:
         For SCSI, use the cooresponding 'sg' 'dev' path (e.g.: /dev/sg1) for a given BLK_DEVICE path.
         For NVMe, use SAME PATH used in BLK_DEVICE path
+
+The default device paths below are intended to be nonsense.
+Currently, the user must manually setup these path per the system they intend to test on.
 """
+UNUSED_BLK_DEV_DEFAULT_NAME = '/dev/sdxxxxx'
+UNUSED_RAW_DEV_DEFAULT_NAME = '/dev/sgxxxxx'
 
 #TODO: Consolidate these settings, along with the duplicate c-code settings, in a .json file
-BLK_DEVICE1 = '/dev/sd'
-BLK_DEVICE2 = '/dev/sd'
-BLK_DEVICE3 = '/dev/sd'
-BLK_DEVICE4 = '/dev/sd'
-BLK_DEVICE5 = '/dev/sd'
-BLK_DEVICE6 = '/dev/sd'
-BLK_DEVICE7 = '/dev/sd'
-BLK_DEVICE8 = '/dev/sd'
+BLK_DEVICE1 = UNUSED_BLK_DEV_DEFAULT_NAME
+BLK_DEVICE2 = UNUSED_BLK_DEV_DEFAULT_NAME
+BLK_DEVICE3 = UNUSED_BLK_DEV_DEFAULT_NAME
+BLK_DEVICE4 = UNUSED_BLK_DEV_DEFAULT_NAME
+BLK_DEVICE5 = UNUSED_BLK_DEV_DEFAULT_NAME
+BLK_DEVICE6 = UNUSED_BLK_DEV_DEFAULT_NAME
+BLK_DEVICE7 = UNUSED_BLK_DEV_DEFAULT_NAME
+BLK_DEVICE8 = UNUSED_BLK_DEV_DEFAULT_NAME
 
-SG_DEVICE1 = '/dev/sg'
-SG_DEVICE2 = '/dev/sg'
-SG_DEVICE3 = '/dev/sg'
-SG_DEVICE4 = '/dev/sg'
-SG_DEVICE5 = '/dev/sg'
-SG_DEVICE6 = '/dev/sg'
-SG_DEVICE7 = '/dev/sg'
-SG_DEVICE8 = '/dev/sg'
+SG_DEVICE1 = UNUSED_RAW_DEV_DEFAULT_NAME
+SG_DEVICE2 = UNUSED_RAW_DEV_DEFAULT_NAME
+SG_DEVICE3 = UNUSED_RAW_DEV_DEFAULT_NAME
+SG_DEVICE4 = UNUSED_RAW_DEV_DEFAULT_NAME
+SG_DEVICE5 = UNUSED_RAW_DEV_DEFAULT_NAME
+SG_DEVICE6 = UNUSED_RAW_DEV_DEFAULT_NAME
+SG_DEVICE7 = UNUSED_RAW_DEV_DEFAULT_NAME
+SG_DEVICE8 = UNUSED_RAW_DEV_DEFAULT_NAME
+
 
 LOCK1_VG_UUID = '00000000000000000000000000000001'
 LOCK1_LV_UUID = '0123456789abcdef0123456789abcdef'
