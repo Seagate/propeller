@@ -109,7 +109,7 @@ def _init_devices():
     _logger.info("_init_devices start")
 
     # Find active devices
-    active_devices = []
+    active_devices.clear()
     for device in RAW_DEVICES:
         try:
             f = open(device, "r")
