@@ -622,16 +622,19 @@ int ilm_scsi_get_part_table_uuid(char *dev, uuid_t *id)
 static void ilm_drive_list_dump(void)
 {
 	struct ilm_hw_drive_node *pos;
-	int i;
+	int i, ver;
+
+	ver = ilm_drive_list_version();
 
 	pthread_mutex_lock(&drive_list_mutex);
 
+	ilm_log_dbg("Device List Version: %d", ver);
 	list_for_each_entry(pos, &drive_list, list) {
-		ilm_log_dbg("Device WWN: 0x%lx", pos->drive.wwn);
+		ilm_log_dbg(" Device WWN: 0x%lx", pos->drive.wwn);
 
 		for (i = 0; i < pos->drive.path_num; i++) {
-			ilm_log_dbg("blk_path %s", pos->drive.path[i].blk_path);
-			ilm_log_dbg("sg_path %s", pos->drive.path[i].sg_path);
+			ilm_log_dbg("  blk_path %s", pos->drive.path[i].blk_path);
+			ilm_log_dbg("  sg_path %s", pos->drive.path[i].sg_path);
 		}
 	}
 
