@@ -828,7 +828,7 @@ static void *drive_thd_fn(void *arg __maybe_unused)
 	}
 
 	mon = udev_monitor_new_from_netlink(udev, "udev");
-	udev_monitor_filter_add_match_subsystem_devtype(mon, "block", NULL);
+	udev_monitor_filter_add_match_subsystem_devtype(mon, "block", "disk");
 	udev_monitor_enable_receiving(mon);
 	fd = udev_monitor_get_fd(mon);
 
