@@ -123,14 +123,6 @@ def _init_devices():
 
     _reset_devices()
 
-    LOCK_ID0 ='0000000000000000000000000000000000000000000000000000000000000000'
-    for device in test_devices:
-        try:
-            idm_api.idm_drive_lock_mode(LOCK_ID0, device)
-        except Exception as e:
-            _logger.error(f'{device} read lock mode failure')
-            raise e from None
-
 def _reset_devices():
 
     _logger.info("_reset_devices start")
