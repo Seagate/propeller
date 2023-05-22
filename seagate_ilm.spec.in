@@ -18,16 +18,8 @@ BuildRequires: libudev-devel
 BuildRequires: systemd
 %endif
 
-%if 0%{?rhel} || 0%{?centos}
+%if 0%{?rhel} || 0%{?rocky}
 BuildRequires: libblkid
-%endif
-
-%if 0%{?suse_version} || 0%{?centos} == 7
-BuildRequires: python-pytest
-%endif
-
-%if 0%{?rhel} == 7
-BuildRequires: pytest
 %endif
 
 %if 0%{?rhel} == 8
@@ -36,17 +28,18 @@ BuildRequires: python36-devel
 BuildRequires: swig
 %endif
 
-%if 0%{?centos} == 8
+%if 0%{?rocky} == 8
 BuildRequires: python3-pytest
 %endif
 
-%if 0%{?centos} != 8 && 0%{?rhel} != 8
+%if 0%{?rocky} != 8 && 0%{?rhel} != 8
 BuildRequires: python-devel
 BuildRequires: swig
 %endif
 
 %description
 The Seagate IDM Lock Manager (ILM) manages lease for the host using the mutexes that exist in the drive.
+
 
 %prep
 %setup -q -n seagate_ilm.%{version}
@@ -64,30 +57,38 @@ ln -sf %{_sbindir}/service %{buildroot}%{_sbindir}/rcseagate_ilm
 %clean
 rm -rf $RPM_BUILD_ROOT
 
+
+
 %pre
-%service_add_pre seagate_ilm.service
+/bin/echo "Installing Seagate IDM Lock Manager...."
+#%service_add_pre seagate_ilm.service
 
 %post
 /sbin/ldconfig
-%systemd_post seagate_ilm.service
-%service_add_post seagate_ilm.service
+#%systemd_post seagate_ilm.service
+#%service_add_post seagate_ilm.service
 
-%if 0%{?rhel} || 0%{?centos}
+%if 0%{?rhel} || 0%{?rocky}
 if [ "$1" = "1" ] ; then
   #enable and start seagate_ilm.service on completely new installation only, not on upgrades
   systemctl enable seagate_ilm.service
   systemctl start seagate_ilm.service
 fi
 %endif
+/bin/echo "Install Complete."
 
 %preun
-%service_del_preun seagate_ilm.service
-%systemd_preun seagate_ilm.service
+#%service_del_preun seagate_ilm.service
+#%systemd_preun seagate_ilm.service
+/bin/echo "Uninstalling Seagate IDM Lock Manager...."
+systemctl stop seagate_ilm.service
+systemctl disable seagate_ilm.service
 
 %postun
 /sbin/ldconfig
-%service_del_postun seagate_ilm.service
-%systemd_postun seagate_ilm.service
+#%service_del_postun seagate_ilm.service
+#%systemd_postun seagate_ilm.service
+/bin/echo "Uninstall Complete."
 
 %files
 %defattr(-,root,root,755)
