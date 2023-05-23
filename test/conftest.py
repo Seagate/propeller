@@ -66,7 +66,7 @@ def ilm_daemon():
 Fixture for manually creating, yielding and then destroying the
 async nvme interface (ANI), which is the custom NVMe IDM async code.
 """
-@pytest.fixture(scope="session")
+@pytest.fixture(scope="module")
 def idm_async_daemon():
 
     _logger.info("fixture start: idm_async_daemon")
@@ -87,7 +87,7 @@ def idm_async_daemon():
         _logger.error(f'idm_environ_destroy failure:{e}')
         raise e from None
 
-@pytest.fixture(scope="session")
+@pytest.fixture(scope="module")
 def idm_sync_daemon():
 
     _logger.info("fixture start: idm_sync_daemon")
@@ -122,14 +122,6 @@ def _init_devices():
     os.system('dd if=/dev/zero of=zero.bin count=1 bs=512')
 
     _reset_devices()
-
-    LOCK_ID0 ='0000000000000000000000000000000000000000000000000000000000000000'
-    for device in test_devices:
-        try:
-            idm_api.idm_drive_lock_mode(LOCK_ID0, device)
-        except Exception as e:
-            _logger.error(f'{device} read lock mode failure')
-            raise e from None
 
 def _reset_devices():
 

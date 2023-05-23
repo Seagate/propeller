@@ -622,16 +622,19 @@ int ilm_scsi_get_part_table_uuid(char *dev, uuid_t *id)
 static void ilm_drive_list_dump(void)
 {
 	struct ilm_hw_drive_node *pos;
-	int i;
+	int i, ver;
+
+	ver = ilm_drive_list_version();
 
 	pthread_mutex_lock(&drive_list_mutex);
 
+	ilm_log_dbg("Device List Version: %d", ver);
 	list_for_each_entry(pos, &drive_list, list) {
-		ilm_log_dbg("Device WWN: 0x%lx", pos->drive.wwn);
+		ilm_log_dbg(" Device WWN: 0x%lx", pos->drive.wwn);
 
 		for (i = 0; i < pos->drive.path_num; i++) {
-			ilm_log_dbg("blk_path %s", pos->drive.path[i].blk_path);
-			ilm_log_dbg("sg_path %s", pos->drive.path[i].sg_path);
+			ilm_log_dbg("  blk_path %s", pos->drive.path[i].blk_path);
+			ilm_log_dbg("  sg_path %s", pos->drive.path[i].sg_path);
 		}
 	}
 
@@ -649,14 +652,12 @@ int ilm_drive_list_version(void)
 	return version;
 }
 
-static int ilm_add_drive_path(char *dev_node, char *sg_node,
-				   unsigned long wwn)
+static int ilm_add_drive_path_unsafe(char *dev_node, char *sg_node,
+				     unsigned long wwn)
 {
 	struct ilm_hw_drive_node *pos, *found = NULL;
 	struct ilm_hw_drive *drive;
 	int i;
-
-	pthread_mutex_lock(&drive_list_mutex);
 
 	list_for_each_entry(pos, &drive_list, list) {
 		if (pos->drive.wwn == wwn) {
@@ -680,14 +681,13 @@ static int ilm_add_drive_path(char *dev_node, char *sg_node,
 		 * avoid to add the duplicate path.
 		 */
 		if (!strcmp(drive->path[i].blk_path, dev_node)) {
-			pthread_mutex_unlock(&drive_list_mutex);
 			return 0;
 		}
 	}
 
 	/* Detect if it's overflow for the drive path array */
 	if (drive->path_num >= (ILM_DRIVE_MAX_NUM - 1)) {
-		pthread_mutex_unlock(&drive_list_mutex);
+		ilm_log_err("%s: ILM_DRIVE_MAX_NUM limit exceeded", __func__);
 		return -1;
 	}
 
@@ -696,17 +696,26 @@ static int ilm_add_drive_path(char *dev_node, char *sg_node,
 	drive->path_num++;
 
 	drive_list_version++;
-	pthread_mutex_unlock(&drive_list_mutex);
 	return 0;
 }
 
-static int ilm_del_drive_path(char *dev_node)
+static int ilm_add_drive_path(char *dev_node, char *sg_node,
+				   unsigned long wwn)
+{
+	int ret;
+
+	pthread_mutex_lock(&drive_list_mutex);
+	ret = ilm_add_drive_path_unsafe(dev_node, sg_node, wwn);
+	pthread_mutex_unlock(&drive_list_mutex);
+
+	return ret;
+}
+
+static int ilm_del_drive_path_unsafe(char *dev_node)
 {
 	struct ilm_hw_drive_node *pos, *found = NULL;
 	struct ilm_hw_drive *drive;
 	int i;
-
-	pthread_mutex_lock(&drive_list_mutex);
 
 	list_for_each_entry(pos, &drive_list, list) {
 		drive = &pos->drive;
@@ -725,7 +734,6 @@ static int ilm_del_drive_path(char *dev_node)
 	}
 
 	if (!found) {
-		pthread_mutex_unlock(&drive_list_mutex);
 		ilm_log_warn("%s: fail to find dev node %s", __func__, dev_node);
 		return -1;
 	}
@@ -749,8 +757,36 @@ clean_node:
 	}
 
 	drive_list_version++;
-	pthread_mutex_unlock(&drive_list_mutex);
 	return 0;
+}
+
+static int ilm_del_drive_path(char *dev_node)
+{
+	int ret;
+
+	pthread_mutex_lock(&drive_list_mutex);
+	ret = ilm_del_drive_path_unsafe(dev_node);
+	pthread_mutex_unlock(&drive_list_mutex);
+
+	return ret;
+}
+
+static int ilm_replace_drive_path(char *dev_node, char *sg_node,
+				  unsigned long wwn)
+{
+	int ret;
+
+	pthread_mutex_lock(&drive_list_mutex);
+
+	/* Remove block device from node */
+	ilm_del_drive_path_unsafe(dev_node);
+
+	/* Add the block device with updated SG and WWN */
+	ret = ilm_add_drive_path_unsafe(dev_node, sg_node, wwn);
+
+	pthread_mutex_unlock(&drive_list_mutex);
+
+	return ret;
 }
 
 static int ilm_drive_list_release(void)
@@ -792,7 +828,7 @@ static void *drive_thd_fn(void *arg __maybe_unused)
 	}
 
 	mon = udev_monitor_new_from_netlink(udev, "udev");
-	udev_monitor_filter_add_match_subsystem_devtype(mon, "block", NULL);
+	udev_monitor_filter_add_match_subsystem_devtype(mon, "block", "disk");
 	udev_monitor_enable_receiving(mon);
 	fd = udev_monitor_get_fd(mon);
 
@@ -876,8 +912,6 @@ static void *drive_thd_fn(void *arg __maybe_unused)
 			} else if (!strcmp(action, "remove")) {
 				ilm_del_drive_path(dev_node);
 			} else if (!strcmp(action, "change")) {
-				/* Remove block device from node */
-				ilm_del_drive_path(dev_node);
 
 				sg = ilm_find_sg(dev_name);
 				if (!sg) {
@@ -892,8 +926,8 @@ static void *drive_thd_fn(void *arg __maybe_unused)
 					goto free_dev_ref;
 				}
 
-				/* Add the block device with updated SG and WWN */
-				ilm_add_drive_path(dev_node, sg, wwn);
+				/* Repalce the block device with updated SG and WWN */
+				ilm_replace_drive_path(dev_node, sg, wwn);
 			}
 
 			ilm_drive_list_dump();
