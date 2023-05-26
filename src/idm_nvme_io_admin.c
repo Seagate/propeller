@@ -101,7 +101,7 @@ int _send_nvme_cmd_admin(char *drive, struct nvme_admin_cmd *cmd_admin)
 		goto out;
 	}
 
-	ilm_log_dbg("%s: ioctl ret=%d\n", __func__, ret);
+	ilm_log_dbg("%s: ioctl ret=%d", __func__, ret);
 out:
 	close(nvme_fd);
 	return ret;
