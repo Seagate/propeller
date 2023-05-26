@@ -1,6 +1,7 @@
 SOURCE_ANI := idm_nvme_utils.c ani_api.c thpool.c
 SOURCE_IO := $(SOURCE_ANI) idm_cmd_common.c idm_nvme_io.c
 SOURCE_API := $(SOURCE_IO) idm_nvme_api.c
+SOURCE_ADMIN := idm_nvme_io_admin.c
 
 CFLAGS := -fPIE -DPIE -D_GNU_SOURCE
 LDFLAGS = -Wl,-z,relro -pie -Wall
@@ -24,5 +25,5 @@ ani_api : $(SOURCE_ANI)
 
 idm_nvme_io_admin : idm_nvme_io_admin.c
 	echo Compile $@
-	$(CC) idm_nvme_io_admin.c -o $@
+	$(CC) $(CFLAGS) $(LDFLAGS) $(DBG_FLAGS) -D DBG__NVME_IO_ADMIN_MAIN_ENABLE $(SOURCE_ADMIN) -o $@
 
