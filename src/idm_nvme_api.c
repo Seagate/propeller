@@ -34,6 +34,13 @@ Setup to be gcc-defined (-D) in make file */
 #define DBG__DUMP_STRUCTS
 
 ////////////////////////////////////////////////////////////////////////////////
+// CONSTANT
+////////////////////////////////////////////////////////////////////////////////
+/* This value (from firmware) represent version 1.0.
+To start, just needed a minimum value > 0 */
+#define MIN_IDM_VERSION		10
+
+////////////////////////////////////////////////////////////////////////////////
 // INCLUDES
 ////////////////////////////////////////////////////////////////////////////////
 #include <byteswap.h>
@@ -46,6 +53,7 @@ Setup to be gcc-defined (-D) in make file */
 
 #include "idm_nvme_api.h"
 #include "idm_nvme_io.h"
+#include "idm_nvme_io_admin.h"
 #include "idm_nvme_utils.h"
 #include "inject_fault.h"
 #include "log.h"
@@ -694,16 +702,63 @@ int nvme_idm_get_fd(uint64_t handle)
 }
 
 /**
- * nvme_idm_read_version - Read out IDM version
+ * nvme_idm_read_version - Unfortunately, this function name is completely
+ * misleading relative to it's current behavior.  This is entirely due to the
+ * legacy behavior of the corresponding scsi cmd, which is, essentially, using
+ * the "read version" function to detect a feature flag in the propeller
+ * drive firmware.
+ *
+ * That "flag" is a bit set in the propeller firmware, which is supposed to
+ * identify it as propeller-capable firmware.  The SCSI drive firmware
+ * currently just sets a single bit if the firmware is for propeller.
+ * The SCSI software then reads that bit and then (for unknown
+ * reasons) shifts it up 8 bits to get a 0x100 value, and then
+ * assigns it to the "version" return value.
+ *
+ * As a result, the expected behavior for this function is that it returns
+ * 0x100 in "version" if propeller firmware is present.  Anythng else, is
+ * considered NOT propeller capable.
+ *
+ * For NVMe, the drive firmware is actually using a real version number.
+ * So, here, as long as the read version isn't less then a minimum IDM
+ * SPEC VERSION value, the returned version value is set to the
+ * 0x100 value to, again, emulate what the SCSI software is currently doing
+ * when it detects valid propeller drive firmware.
+ *
  * @version:    Lock mode (unlock, shareable, exclusive).
  * @drive:      Drive path name.
  *
- * Returns zero or a negative error (ie. EINVAL, ENOMEM, EBUSY, etc).
+ * TODO: This needs work. Done to match SCSI behavior:
+ * Always returns 0, regardless of errors
  */
 int nvme_idm_read_version(int *version, char *drive)
 {
-	ilm_log_dbg("%s: NOT IMPLEMENTED!!", __func__);
-	return FAILURE;
+	#ifdef DBG__LOG_FUNC_ENTRY
+	ilm_log_dbg("%s: ENTRY", __func__);
+	#endif
+
+	struct nvme_id_ctrl id_ctrl;
+	int ver;
+	int ret;
+
+	ret = nvme_admin_identify(drive, &id_ctrl);
+	if (ret < 0){
+		*version = 0;
+		goto EXIT;
+	}
+
+	ver = (int)id_ctrl.vs[1023];
+	ilm_log_dbg("%s: found idm version %d", __func__, ver);
+
+	if (ver < MIN_IDM_VERSION){
+		ilm_log_err("%s: invalid idm version %d", __func__, ver);
+		*version = 0;
+		goto EXIT;
+	}
+
+	*version = 0x100;
+EXIT:
+	return 0;
 }
 
 /**
@@ -2412,6 +2467,7 @@ int main(int argc, char *argv[])
 		int             host_state;
 		int             count;
 		int             self;
+		int             version;
 
 		if(strcmp(argv[1], "async_lock") == 0){
 			ret = nvme_idm_async_lock(lock_id, mode, host_id, drive, timeout, &handle);
@@ -2589,6 +2645,10 @@ int main(int argc, char *argv[])
 		else if(strcmp(argv[1], "sync_read_num") == 0){
 			ret = nvme_idm_sync_read_mutex_num(drive, &mutex_num);
 			printf("output: mutex_num=%u\n", mutex_num);
+		}
+		else if(strcmp(argv[1], "version") == 0){
+			ret = nvme_idm_read_version(&version, drive);
+			printf("output: version=%d\n", version);
 		}
 		else {
 			printf("%s: invalid command option!\n", argv[1]);
