@@ -1,7 +1,7 @@
 /* SPDX-License-Identifier: LGPL-2.1-only */
 /*
  * Copyright (C) 2010-2011 Red Hat, Inc.
- * Copyright (C) 2022 Seagate Technology LLC and/or its Affiliates.
+ * Copyright (C) 2023 Seagate Technology LLC and/or its Affiliates.
  *
  * idm_nvme.h - NVMe interface for In-drive Mutex (IDM)
  */
@@ -18,8 +18,9 @@
 //////////////////////////////////////////
 // Admin Command Enums
 //////////////////////////////////////////
+
 // From Seagate/opensea-transport/include/nvme_helper.h
-typedef enum _eNVMeAdminOpCodes {
+enum nvme_admin_opcodes {
     // NVME_ADMIN_CMD_DELETE_SQ                    = 0x00,
     // NVME_ADMIN_CMD_CREATE_SQ                    = 0x01,
     // NVME_ADMIN_CMD_GET_LOG_PAGE                 = 0x02,
@@ -47,21 +48,22 @@ typedef enum _eNVMeAdminOpCodes {
     // NVME_ADMIN_CMD_SECURITY_SEND                = 0x81,
     // NVME_ADMIN_CMD_SECURITY_RECV                = 0x82,
     // NVME_ADMIN_CMD_SANITIZE                     = 0x84,
-} eNVMeAdminOpCodes;
+} ;
 
 // From Seagate/opensea-transport/include/nvme_helper.h
-typedef enum _eNvmeIdentifyCNS {
+enum nvme_id_cns {
     NVME_IDENTIFY_CNS_NS = 0,
     NVME_IDENTIFY_CNS_CTRL = 1,
     // NVME_IDENTIFY_CNS_ALL_ACTIVE_NS = 2,
     // NVME_IDENTIFY_CNS_NS_ID_DESCRIPTOR_LIST = 3,
-} eNvmeIdentifyCNS;
+};
 
 //////////////////////////////////////////
 // Structs for Admin Identify
 //////////////////////////////////////////
+
 // From Seagate/opensea-transport/include/nvme_helper.h
-typedef struct _nvmeIDPowerState {
+struct nvme_id_power_state {
     uint16_t            maxPower;   /* centiwatts */
     uint8_t             rsvd2;
     uint8_t             flags;
@@ -77,10 +79,10 @@ typedef struct _nvmeIDPowerState {
     uint16_t            activePower;
     uint8_t             activeWorkScale;
     uint8_t             rsvd23[9];
-}nvmeIDPowerState;
+};
 
 // From Seagate/opensea-transport/include/nvme_helper.h
-typedef struct _nvmeIDCtrl {
+struct nvme_id_ctrl {
     //controller capabilities and features
     uint16_t            vid;
     uint16_t            ssvid;
@@ -171,17 +173,18 @@ typedef struct _nvmeIDCtrl {
     char                subnqn[256];
     uint8_t             reservedBytes1791_1024[768];
     uint8_t             nvmeOverFabrics[256];
-    nvmeIDPowerState    psd[32];
+    struct nvme_id_power_state psd[32];
     uint8_t             vs[1024];
-}nvmeIDCtrl;
+};
 
 //////////////////////////////////////////
 // Functions
 //////////////////////////////////////////
-int nvme_admin_identify(char *drive);
+
+int nvme_admin_identify(char *drive, struct nvme_id_ctrl *data_identify_ctrl);
 
 void _gen_nvme_cmd_identify(struct nvme_admin_cmd *cmd_admin,
-                            nvmeIDCtrl *data_identify_ctrl);
+                            struct nvme_id_ctrl *data_identify_ctrl);
 int _send_nvme_cmd_admin(char *drive, struct nvme_admin_cmd *cmd_admin);
 
 #endif /*__IDM_NVME_IO_ADMIN_H__ */
