@@ -36,8 +36,12 @@ Setup to be gcc-defined (-D) in make file */
 ////////////////////////////////////////////////////////////////////////////////
 // CONSTANT
 ////////////////////////////////////////////////////////////////////////////////
-/* This value (from firmware) represent version 1.0.
-To start, just needed a minimum value > 0 */
+/* This version value correpsonds to a version of the "IDM SPEC".
+This value is stored in the drive firmware.
+It is used to identify the minimum level of IDM funcionality that both the
+firmware and this software should support.
+For example, a value of 0x10, as read from the firmware, represents a "IDM SPEC"
+version of 1.0 */
 #define MIN_IDM_VERSION		0x10
 
 ////////////////////////////////////////////////////////////////////////////////
