@@ -19,6 +19,7 @@ IDM_OBJECT_FILES = \
 	 ../src/idm_cmd_common.o \
 	 ../src/idm_nvme_api.o \
 	 ../src/idm_nvme_io.o \
+	 ../src/idm_nvme_io_admin.o \
 	 ../src/idm_nvme_utils.o \
 	 ../src/idm_scsi.o \
 	 ../src/idm_api.o
