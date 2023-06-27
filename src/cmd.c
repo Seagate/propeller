@@ -186,7 +186,7 @@ static void ilm_cmd_inject_fault(struct ilm_cmd *cmd)
 
 static void ilm_cmd_handle(struct ilm_cmd *cmd)
 {
-	ilm_log_dbg("cmd=%d", cmd->cmd);
+	ilm_log_dbg("cmd=%d (%s)", cmd->cmd, CMD_NAMES[cmd->cmd]);
 
 	switch (cmd->cmd) {
 	case ILM_CMD_VERSION:

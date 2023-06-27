@@ -29,6 +29,25 @@ enum {
 	ILM_CMD_INJECT_FAULT,	/* For testing purpose */
 };
 
+const char *CMD_NAMES[16] = {
+	"ILM_CMD_VERSION",
+	"ILM_CMD_ADD_LOCKSPACE"
+	"ILM_CMD_DEL_LOCKSPACE"
+	"ILM_CMD_ACQUIRE"
+	"ILM_CMD_RELEASE"
+	"ILM_CMD_CONVERT"
+	"ILM_CMD_WRITE_LVB"
+	"ILM_CMD_READ_LVB"
+	"ILM_CMD_LOCK_HOST_COUNT"
+	"ILM_CMD_LOCK_MODE"
+	"ILM_CMD_SET_SIGNAL"
+	"ILM_CMD_SET_KILLPATH"
+	"ILM_CMD_SET_HOST_ID"
+	"ILM_CMD_STOP_RENEW"
+	"ILM_CMD_START_RENEW"
+	"ILM_CMD_INJECT_FAULT"
+};
+
 struct ilm_cmd {
 	struct list_head list; /* thread_pool data */
 	struct client *cl;
