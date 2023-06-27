@@ -31,6 +31,8 @@
 #define SYSFS_ROOT		"/sys"
 #define BUS_SCSI_DEVS		"/bus/scsi/devices"
 
+#define DEVICE_MAPPER_PREFIX	"dm-"
+
 struct ilm_hw_drive_path {
 	char *blk_path;
 	char *sg_path;
@@ -866,6 +868,12 @@ static void *drive_thd_fn(void *arg __maybe_unused)
 			i = strlen(dev_name);
 			if (!i)
 				continue;
+
+			// Ignore device mapper devices and handle the
+			// physical devices only
+			if (strstr(dev_name, DEVICE_MAPPER_PREFIX)){
+				continue;
+			}
 
 			ilm_log_dbg("%s: action=%s dev_name=%s", __func__,
 				    action, dev_name);

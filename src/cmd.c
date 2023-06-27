@@ -26,6 +26,25 @@
 #define ILM_MIN_WORKER_THREADS		2
 #define ILM_MAX_WORKER_THREADS		8
 
+const char *CMD_NAMES[16] = {
+	"ILM_CMD_VERSION",
+	"ILM_CMD_ADD_LOCKSPACE"
+	"ILM_CMD_DEL_LOCKSPACE"
+	"ILM_CMD_ACQUIRE"
+	"ILM_CMD_RELEASE"
+	"ILM_CMD_CONVERT"
+	"ILM_CMD_WRITE_LVB"
+	"ILM_CMD_READ_LVB"
+	"ILM_CMD_LOCK_HOST_COUNT"
+	"ILM_CMD_LOCK_MODE"
+	"ILM_CMD_SET_SIGNAL"
+	"ILM_CMD_SET_KILLPATH"
+	"ILM_CMD_SET_HOST_ID"
+	"ILM_CMD_STOP_RENEW"
+	"ILM_CMD_START_RENEW"
+	"ILM_CMD_INJECT_FAULT"
+};
+
 struct ilm_cmd_queue {
 	int exit;
 	struct list_head list;
@@ -186,7 +205,7 @@ static void ilm_cmd_inject_fault(struct ilm_cmd *cmd)
 
 static void ilm_cmd_handle(struct ilm_cmd *cmd)
 {
-	ilm_log_dbg("cmd=%d", cmd->cmd);
+	ilm_log_dbg("cmd=%d (%s)", cmd->cmd, CMD_NAMES[cmd->cmd]);
 
 	switch (cmd->cmd) {
 	case ILM_CMD_VERSION:
