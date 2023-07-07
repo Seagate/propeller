@@ -383,7 +383,7 @@ static char *ilm_find_sg_nvme(char *blk_dev)
 {
 	char devs_path[PATH_MAX];
 	char dev_path[PATH_MAX];
-	int fd;
+	// int fd;
 	int ret;
 	char *result = NULL;
 
@@ -396,13 +396,13 @@ static char *ilm_find_sg_nvme(char *blk_dev)
 		goto out;
 	}
 
-	fd = open(dev_path, O_RDWR | O_NONBLOCK);
-	if (fd < 0) {
-		ilm_log_err("%s: invalid block device %s, fd %d",
-		            __func__, dev_path, fd);
-		goto out;
-	}
-	close(fd);
+	// fd = open(dev_path, O_RDWR | O_NONBLOCK);
+	// if (fd < 0) {
+	// 	ilm_log_err("%s: invalid block device %s, fd %d",
+	// 	            __func__, dev_path, fd);
+	// 	goto out;
+	// }
+	// close(fd);
 
 	result = strdup(dev_path);
 
@@ -828,6 +828,7 @@ static void *drive_thd_fn(void *arg __maybe_unused)
 		ilm_log_err("%s: Can't create udev", __func__);
 		goto out;
 	}
+	ilm_log_err("%s: note: open() removed for nvme", __func__);
 
 	mon = udev_monitor_new_from_netlink(udev, "udev");
 	udev_monitor_filter_add_match_subsystem_devtype(mon, "block", "disk");
