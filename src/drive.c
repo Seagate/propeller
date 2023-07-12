@@ -383,7 +383,7 @@ static char *ilm_find_sg_nvme(char *blk_dev)
 {
 	char devs_path[PATH_MAX];
 	char dev_path[PATH_MAX];
-	// int fd;
+        struct stat a_stat;
 	int ret;
 	char *result = NULL;
 
@@ -396,13 +396,12 @@ static char *ilm_find_sg_nvme(char *blk_dev)
 		goto out;
 	}
 
-	// fd = open(dev_path, O_RDWR | O_NONBLOCK);
-	// if (fd < 0) {
-	// 	ilm_log_err("%s: invalid block device %s, fd %d",
-	// 	            __func__, dev_path, fd);
-	// 	goto out;
-	// }
-	// close(fd);
+	if ((stat(dev_path, &a_stat) < 0)) {
+		/* The folder doesn't exist */
+		ilm_log_err("%s: invalid block device path %s",
+		            __func__, dev_path);
+		goto out;
+	}
 
 	result = strdup(dev_path);
 
