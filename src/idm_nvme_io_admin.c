@@ -89,7 +89,7 @@ int _send_nvme_cmd_admin(char *drive, struct nvme_admin_cmd *cmd_admin)
 	int nvme_fd;
 	int ret;
 
-	if ((nvme_fd = open(drive, O_RDWR | O_NONBLOCK)) < 0) {
+	if ((nvme_fd = open(drive, O_RDONLY)) < 0) {
 		ilm_log_err("%s: error opening drive %s fd %d",
 		            __func__, drive, nvme_fd);
 		return nvme_fd;
