@@ -738,14 +738,17 @@ int main(int argc, char *argv[])
             uint64_t    timeout     = 10;
 
             //Create required input structs the IDM API would normally create
-            struct idm_nvme_request *request_idm = NULL;
+            struct idm_nvme_request request_idm;
+	    struct idm_data data;
             int ret = FAILURE;
 
+	    request_idm.data_idm = &data;
+
             ret = nvme_idm_write_init(lock_id, mode, host_id, drive, timeout,
-                                      request_idm);
+                                      &request_idm);
             printf("%s exiting with %d\n", argv[1], ret);
 
-            ret = nvme_idm_sync_write(request_idm);
+            ret = nvme_idm_sync_write(&request_idm);
             printf("%s exiting with %d\n", argv[1], ret);
         }
 
