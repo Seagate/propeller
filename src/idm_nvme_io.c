@@ -359,7 +359,7 @@ int _async_idm_cmd_send(struct idm_nvme_request *request_idm)
 	dumpIdmDataStruct(request_idm->data_idm);
 	#endif
 
-	fd_nvme = open(request_idm->drive, O_RDWR | O_NONBLOCK);
+	fd_nvme = open(request_idm->drive, O_RDONLY);
 	if (fd_nvme < 0) {
 		ilm_log_err("%s: error opening drive %s fd %d",
 		            __func__, request_idm->drive, fd_nvme);
@@ -664,7 +664,7 @@ int _sync_idm_cmd_send(struct idm_nvme_request *request_idm)
 
 	memset(&cmd_nvme_passthru, 0, sizeof(struct nvme_passthru_cmd));
 
-	fd_nvme = open(request_idm->drive, O_RDWR | O_NONBLOCK);
+	fd_nvme = open(request_idm->drive, O_RDONLY);
 	if (fd_nvme < 0) {
 		ilm_log_err("%s: error opening drive %s fd %d",
 		            __func__, request_idm->drive, fd_nvme);
@@ -738,14 +738,17 @@ int main(int argc, char *argv[])
             uint64_t    timeout     = 10;
 
             //Create required input structs the IDM API would normally create
-            struct idm_nvme_request *request_idm = NULL;
+            struct idm_nvme_request request_idm;
+	    struct idm_data data;
             int ret = FAILURE;
 
+	    request_idm.data_idm = &data;
+
             ret = nvme_idm_write_init(lock_id, mode, host_id, drive, timeout,
-                                      request_idm);
+                                      &request_idm);
             printf("%s exiting with %d\n", argv[1], ret);
 
-            ret = nvme_idm_sync_write(request_idm);
+            ret = nvme_idm_sync_write(&request_idm);
             printf("%s exiting with %d\n", argv[1], ret);
         }
 

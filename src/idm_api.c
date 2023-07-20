@@ -712,7 +712,7 @@ int idm_drive_destroy(char *lock_id, int mode, char *host_id,
 		ret = nvme_idm_sync_lock_destroy(lock_id, mode, host_id,
 		                                 drive);
 	else
-		ret = nvme_idm_sync_lock_destroy(lock_id, mode, host_id,
+		ret = scsi_idm_sync_lock_destroy(lock_id, mode, host_id,
 		                                 drive);
 
 	return ret;
@@ -746,7 +746,7 @@ int idm_drive_get_fd(char *drive, uint64_t handle)
  * The unit tests call directly into the idm_api.so lib.
  * As a result, things like ilm_log... are NOT running and the ANI thread
  * pools are NOT intialized (like they would be at service strtup)
- * This code allows for them to be manually init'ed\destory'ed in the unit
+ * This code allows for them to be manually init'ed\destroy'ed in the unit
  * test environ.  In particluar, the ANI MUST be setup to function properly
  * during async calls.
  *
