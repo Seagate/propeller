@@ -1615,9 +1615,9 @@ int scsi_idm_sync_read_lock_count(char *lock_id, char *host_id,
 			    IDM_HOST_ID_LEN)) {
 			/* Must be wrong if self has been accounted */
 			if (*self) {
-				ilm_log_err("%s: account self %d > 1",
-					    __func__, *self);
-				goto out;
+				ilm_log_err("%s: duplicate host id (%s) found for lock id (%s) on %s",
+					    __func__, request->host_id, request->lock_id,
+					    request->drive);
 			}
 
 			*self = 1;
@@ -1744,9 +1744,8 @@ int scsi_idm_async_get_result_lock_count(uint64_t handle, int *count, int *self,
 			    IDM_HOST_ID_LEN)) {
 			/* Must be wrong if self has been accounted */
 			if (*self) {
-				ilm_log_err("%s: account self %d > 1",
-					    __func__, *self);
-				goto out;
+				ilm_log_err("%s: duplicate host id (%s) found for lock id (%s) on %s",
+					    __func__, request->host_id, request->lock_id, request->drive);
 			}
 
 			*self = 1;
@@ -1757,7 +1756,6 @@ int scsi_idm_async_get_result_lock_count(uint64_t handle, int *count, int *self,
 
 	*result = ret;
 
-out:
 	free(request->data);
 	free(request);
 	return ret;
