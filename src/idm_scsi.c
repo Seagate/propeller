@@ -1403,6 +1403,10 @@ int scsi_idm_sync_read_lvb(char *lock_id, char *host_id,
 		break;
 	}
 
+	if (ret)
+		ilm_log_err("%s: lvb not found: host id(%s), lock id(%s) on %s: %d",
+			    __func__, request->host_id, request->lock_id,
+			    request->drive, ret);
 out:
 	free(request->data);
 	free(request);

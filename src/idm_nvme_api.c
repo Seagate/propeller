@@ -2225,7 +2225,10 @@ int _parse_lvb(struct idm_nvme_request *request_idm, char *lvb, int lvb_size)
 		break;
 	}
 
-	ilm_log_err("%s: lock and host id NOT found: err: %d", __func__, ret);
+	if (ret)
+		ilm_log_err("%s: lvb not found: host id(%s), lock id(%s) on %s: %d",
+			    __func__, request_idm->host_id, request_idm->lock_id,
+			    request_idm->drive, ret);
 
 	return ret;
 }
