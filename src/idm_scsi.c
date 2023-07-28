@@ -1315,6 +1315,12 @@ static int scsi_idm_drive_read_mutex_num(char *drive, unsigned int *num)
 	ilm_log_dbg("%s: data[0]=%u data[1]=%u mutex num=%u",
 		    __func__, data[0], data[1], *num);
 
+	if ((*num > MAX_MUTEX_NUM_WARNING_LIMIT) && (*num <= MAX_MUTEX_NUM_ERROR_LIMIT))
+		ilm_log_warn("%s: total mutex_num warning limit exceeded: %d > %d",
+			__func__, *num, MAX_MUTEX_NUM_WARNING_LIMIT);
+	if (*num > MAX_MUTEX_NUM_ERROR_LIMIT)
+		ilm_log_err("%s: total mutex_num error limit exceeded: %d > %d",
+			__func__, *num, MAX_MUTEX_NUM_ERROR_LIMIT);
 out:
 	free(request->data);
 	free(request);

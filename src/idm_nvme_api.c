@@ -2368,6 +2368,13 @@ void _parse_mutex_num(struct idm_nvme_request *request_idm,
 
 	ilm_log_dbg("%s: data[0]=%u data[1]=%u mutex mutex_num=%u",
 	            __func__, data[0], data[1], *mutex_num);
+
+	if ((*mutex_num > MAX_MUTEX_NUM_WARNING_LIMIT) && (*mutex_num <= MAX_MUTEX_NUM_ERROR_LIMIT))
+		ilm_log_warn("%s: total mutex_num warning limit exceeded: %d > %d",
+			__func__, *mutex_num, MAX_MUTEX_NUM_WARNING_LIMIT);
+	if (*mutex_num > MAX_MUTEX_NUM_ERROR_LIMIT)
+		ilm_log_err("%s: total mutex_num error limit exceeded: %d > %d",
+			__func__, *mutex_num, MAX_MUTEX_NUM_ERROR_LIMIT);
 }
 
 /**

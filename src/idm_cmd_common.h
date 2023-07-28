@@ -47,6 +47,9 @@
 #define IDM_MODE_EXCLUSIVE		1
 #define IDM_MODE_SHAREABLE		2
 
+#define MAX_MUTEX_NUM_WARNING_LIMIT	3500
+#define MAX_MUTEX_NUM_ERROR_LIMIT	3950
+
 //////////////////////////////////////////
 // Enums
 //////////////////////////////////////////
