@@ -2057,7 +2057,6 @@ int _parse_lock_count(struct idm_nvme_request *request_idm, int *count,
 	int                i;
 	uint64_t           state, locked;
 	unsigned int       mutex_num = request_idm->data_num;
-	int                ret       = FAILURE;
 
 	bswap_char_arr(bswap_lock_id, request_idm->lock_id,
 	               IDM_LOCK_ID_LEN_BYTES);
@@ -2092,9 +2091,9 @@ int _parse_lock_count(struct idm_nvme_request *request_idm, int *count,
 		           IDM_HOST_ID_LEN_BYTES)) {
 			if (*self) {
 				/* Must be wrong if self has been accounted */
-				ilm_log_err("%s: account self %d > 1",
-					__func__, *self);
-				goto EXIT;
+				ilm_log_err("%s: duplicate host id (%s) found for lock id (%s) on %s",
+					    __func__, request_idm->host_id, request_idm->lock_id,
+					    request_idm->drive);
 			}
 			*self = 1;
 		}
@@ -2103,9 +2102,7 @@ int _parse_lock_count(struct idm_nvme_request *request_idm, int *count,
 		}
 	}
 
-	ret = SUCCESS;
-EXIT:
-	return ret;
+	return SUCCESS;
 }
 
 /**
@@ -2227,6 +2224,11 @@ int _parse_lvb(struct idm_nvme_request *request_idm, char *lvb, int lvb_size)
 		ret = SUCCESS;
 		break;
 	}
+
+	if (ret)
+		ilm_log_err("%s: lvb not found: host id(%s), lock id(%s) on %s: %d",
+			    __func__, request_idm->host_id, request_idm->lock_id,
+			    request_idm->drive, ret);
 
 	return ret;
 }
@@ -2366,6 +2368,13 @@ void _parse_mutex_num(struct idm_nvme_request *request_idm,
 
 	ilm_log_dbg("%s: data[0]=%u data[1]=%u mutex mutex_num=%u",
 	            __func__, data[0], data[1], *mutex_num);
+
+	if ((*mutex_num > MAX_MUTEX_NUM_WARNING_LIMIT) && (*mutex_num <= MAX_MUTEX_NUM_ERROR_LIMIT))
+		ilm_log_warn("%s: total mutex_num warning limit exceeded: %d > %d",
+			__func__, *mutex_num, MAX_MUTEX_NUM_WARNING_LIMIT);
+	if (*mutex_num > MAX_MUTEX_NUM_ERROR_LIMIT)
+		ilm_log_err("%s: total mutex_num error limit exceeded: %d > %d",
+			__func__, *mutex_num, MAX_MUTEX_NUM_ERROR_LIMIT);
 }
 
 /**

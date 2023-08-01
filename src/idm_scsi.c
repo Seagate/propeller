@@ -1315,6 +1315,12 @@ static int scsi_idm_drive_read_mutex_num(char *drive, unsigned int *num)
 	ilm_log_dbg("%s: data[0]=%u data[1]=%u mutex num=%u",
 		    __func__, data[0], data[1], *num);
 
+	if ((*num > MAX_MUTEX_NUM_WARNING_LIMIT) && (*num <= MAX_MUTEX_NUM_ERROR_LIMIT))
+		ilm_log_warn("%s: total mutex_num warning limit exceeded: %d > %d",
+			__func__, *num, MAX_MUTEX_NUM_WARNING_LIMIT);
+	if (*num > MAX_MUTEX_NUM_ERROR_LIMIT)
+		ilm_log_err("%s: total mutex_num error limit exceeded: %d > %d",
+			__func__, *num, MAX_MUTEX_NUM_ERROR_LIMIT);
 out:
 	free(request->data);
 	free(request);
@@ -1403,6 +1409,10 @@ int scsi_idm_sync_read_lvb(char *lock_id, char *host_id,
 		break;
 	}
 
+	if (ret)
+		ilm_log_err("%s: lvb not found: host id(%s), lock id(%s) on %s: %d",
+			    __func__, request->host_id, request->lock_id,
+			    request->drive, ret);
 out:
 	free(request->data);
 	free(request);
@@ -1615,9 +1625,9 @@ int scsi_idm_sync_read_lock_count(char *lock_id, char *host_id,
 			    IDM_HOST_ID_LEN)) {
 			/* Must be wrong if self has been accounted */
 			if (*self) {
-				ilm_log_err("%s: account self %d > 1",
-					    __func__, *self);
-				goto out;
+				ilm_log_err("%s: duplicate host id (%s) found for lock id (%s) on %s",
+					    __func__, request->host_id, request->lock_id,
+					    request->drive);
 			}
 
 			*self = 1;
@@ -1744,9 +1754,8 @@ int scsi_idm_async_get_result_lock_count(uint64_t handle, int *count, int *self,
 			    IDM_HOST_ID_LEN)) {
 			/* Must be wrong if self has been accounted */
 			if (*self) {
-				ilm_log_err("%s: account self %d > 1",
-					    __func__, *self);
-				goto out;
+				ilm_log_err("%s: duplicate host id (%s) found for lock id (%s) on %s",
+					    __func__, request->host_id, request->lock_id, request->drive);
 			}
 
 			*self = 1;
@@ -1757,7 +1766,6 @@ int scsi_idm_async_get_result_lock_count(uint64_t handle, int *count, int *self,
 
 	*result = ret;
 
-out:
 	free(request->data);
 	free(request);
 	return ret;
