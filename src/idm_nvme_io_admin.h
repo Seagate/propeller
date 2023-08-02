@@ -3,7 +3,10 @@
  * Copyright (C) 2010-2011 Red Hat, Inc.
  * Copyright (C) 2023 Seagate Technology LLC and/or its Affiliates.
  *
- * idm_nvme.h - NVMe interface for In-drive Mutex (IDM)
+ * idm_nvme_io_admin.h - NVMe interface for In-drive Mutex (IDM)
+ *
+ * For functions directly related to implementing functionality for the
+ * pre-defined NVME Admin Command Set (ie - no custom commands).
  */
 
 #ifndef __IDM_NVME_IO_ADMIN_H__

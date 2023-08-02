@@ -4,7 +4,10 @@
  * Copyright (C) 2023 Seagate Technology LLC and/or its Affiliates.
  *
  * idm_nvme_io_admin.c - NVMe Admin interface for In-drive Mutex (IDM)
- */
+ *
+ * For functions directly related to implementing functionality for the
+ * pre-defined NVME Admin Command Set (ie - no custom commands).
+*/
 
 #include <fcntl.h>
 #include <linux/nvme_ioctl.h>
