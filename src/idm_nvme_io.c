@@ -346,6 +346,9 @@ int nvme_idm_sync_write(struct idm_nvme_request *request_idm)
 	return ret;
 }
 
+////////////////////////////////////////////////////////////////////////////////
+// STATIC FUNCTIONS
+////////////////////////////////////////////////////////////////////////////////
 /**
  * _async_idm_cmd_send - Forms and then sends an NVMe IDM command to the
  * system device, but does so asynchronously.
