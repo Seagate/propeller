@@ -35,9 +35,6 @@ int nvme_idm_async_lock_convert(char *lock_id, int mode, char *host_id,
                                 uint64_t *handle);
 int nvme_idm_async_lock_destroy(char *lock_id, int mode, char *host_id,
                                 char *drive, uint64_t *handle);
-int nvme_idm_async_lock_refresh(char *lock_id, int mode, char *host_id,
-                                char *drive, uint64_t timeout,
-                                uint64_t *handle);
 int nvme_idm_async_lock_renew(char *lock_id, int mode, char *host_id,
                               char *drive, uint64_t timeout, uint64_t *handle);
 int nvme_idm_async_read_lock_count(char *lock_id, char *host_id, char *drive,
@@ -62,8 +59,6 @@ int nvme_idm_sync_lock_convert(char *lock_id, int mode, char *host_id,
                                char *drive, uint64_t timeout);
 int nvme_idm_sync_lock_destroy(char *lock_id, int mode, char *host_id,
                                char *drive);
-int nvme_idm_sync_lock_refresh(char *lock_id, int mode, char *host_id,
-                               char *drive, uint64_t timeout);
 int nvme_idm_sync_lock_renew(char *lock_id, int mode, char *host_id,
                              char *drive, uint64_t timeout);
 int nvme_idm_sync_read_host_state(char *lock_id, char *host_id,
@@ -75,7 +70,6 @@ int nvme_idm_sync_read_lvb(char *lock_id, char *host_id, char *lvb,
                            int lvb_size, char *drive);
 int nvme_idm_sync_read_mutex_group(char *drive, struct idm_info **info_ptr,
                                    int *info_num);
-int nvme_idm_sync_read_mutex_num(char *drive, unsigned int *mutex_num);
 int nvme_idm_sync_unlock(char *lock_id, int mode, char *host_id,
                          char *lvb, int lvb_size, char *drive);
 
