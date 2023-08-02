@@ -31,6 +31,13 @@ Setup to be gcc-defined (-D) in make file */
 #endif
 
 ////////////////////////////////////////////////////////////////////////////////
+// STATIC PROTOTYPES
+////////////////////////////////////////////////////////////////////////////////
+static void _gen_nvme_cmd_identify(struct nvme_admin_cmd *cmd_admin,
+                                   struct nvme_id_ctrl *data_identify_ctrl);
+static int _send_nvme_cmd_admin(char *drive, struct nvme_admin_cmd *cmd_admin);
+
+////////////////////////////////////////////////////////////////////////////////
 // FUNCTIONS
 ////////////////////////////////////////////////////////////////////////////////
 
@@ -64,8 +71,8 @@ int nvme_admin_identify(char *drive, struct nvme_id_ctrl *id_ctrl)
  *                      This is the cmd output destination.
  *
  */
-void _gen_nvme_cmd_identify(struct nvme_admin_cmd *cmd_admin,
-                            struct nvme_id_ctrl *id_ctrl)
+static void _gen_nvme_cmd_identify(struct nvme_admin_cmd *cmd_admin,
+                                   struct nvme_id_ctrl *id_ctrl)
 {
 	memset(cmd_admin, 0, sizeof(struct nvme_admin_cmd));
 	memset(id_ctrl,   0, sizeof(struct nvme_id_ctrl));
@@ -84,7 +91,7 @@ void _gen_nvme_cmd_identify(struct nvme_admin_cmd *cmd_admin,
  *
   * Returns zero or a negative error (ie. EINVAL, ENOMEM, EBUSY, etc).
 */
-int _send_nvme_cmd_admin(char *drive, struct nvme_admin_cmd *cmd_admin)
+static int _send_nvme_cmd_admin(char *drive, struct nvme_admin_cmd *cmd_admin)
 {
 	int nvme_fd;
 	int ret;

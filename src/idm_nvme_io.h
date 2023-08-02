@@ -138,11 +138,4 @@ void nvme_idm_read_init(char *drive, struct idm_nvme_request *request_idm);
 int nvme_idm_write_init(char *lock_id, int mode, char *host_id, char *drive,
                         uint64_t timeout, struct idm_nvme_request *request_idm);
 
-int _async_idm_cmd_send(struct idm_nvme_request *request_idm);  // Uses write()   (_scsi_write())
-int _async_idm_data_rcv(struct idm_nvme_request *request_idm, int *result); // Uses read()    (_scsi_read()) (ALWAYS returns status code.  MAY fill data)
-int _idm_cmd_check_status(int status, uint8_t opcode_idm);
-int _idm_cmd_init(struct idm_nvme_request *request_idm, uint8_t opcode_nvme);
-int _idm_data_init_wrt(struct idm_nvme_request *request_idm);
-int _sync_idm_cmd_send(struct idm_nvme_request *request_idm);   // Uses ioctl()
-
 #endif /*__IDM_NVME_IO_H__ */

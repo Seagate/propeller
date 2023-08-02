@@ -70,6 +70,18 @@ Setup to be gcc-defined (-D) in make file */
 #include "util.h"
 
 ////////////////////////////////////////////////////////////////////////////////
+// STATIC PROTOTYPES
+////////////////////////////////////////////////////////////////////////////////
+static int _async_idm_cmd_send(struct idm_nvme_request *request_idm);
+static int _async_idm_data_rcv(struct idm_nvme_request *request_idm,
+                               int *result);
+static int _idm_cmd_check_status(int status, uint8_t opcode_idm);
+static int _idm_cmd_init(struct idm_nvme_request *request_idm,
+                         uint8_t opcode_nvme);
+static int _idm_data_init_wrt(struct idm_nvme_request *request_idm);
+static int _sync_idm_cmd_send(struct idm_nvme_request *request_idm);
+
+////////////////////////////////////////////////////////////////////////////////
 // FUNCTIONS
 ////////////////////////////////////////////////////////////////////////////////
 
@@ -345,7 +357,7 @@ int nvme_idm_sync_write(struct idm_nvme_request *request_idm)
  *
  * Returns zero or a negative error (ie. EINVAL, ENOMEM, EBUSY, etc).
  */
-int _async_idm_cmd_send(struct idm_nvme_request *request_idm)
+static int _async_idm_cmd_send(struct idm_nvme_request *request_idm)
 {
 	#ifdef DBG__LOG_FUNC_ENTRY
 	ilm_log_dbg("%s: ENTRY", __func__);
@@ -388,7 +400,8 @@ EXIT:
  *
  * Returns zero or a negative error (ie. EINVAL, ENOMEM, EBUSY, etc).
  */
-int _async_idm_data_rcv(struct idm_nvme_request *request_idm, int *result)
+static int _async_idm_data_rcv(struct idm_nvme_request *request_idm,
+                               int *result)
 {
 	#ifdef DBG__LOG_FUNC_ENTRY
 	ilm_log_dbg("%s: ENTRY", __func__);
@@ -436,7 +449,7 @@ EXIT:
  *
  * Returns zero or a negative error (ie. EINVAL, ENOMEM, EBUSY, etc).
  */
-int _idm_cmd_check_status(int status, uint8_t opcode_idm)
+static int _idm_cmd_check_status(int status, uint8_t opcode_idm)
 {
 	#ifdef DBG__LOG_FUNC_ENTRY
 	ilm_log_dbg("%s: ENTRY", __func__);
@@ -564,7 +577,8 @@ int _idm_cmd_check_status(int status, uint8_t opcode_idm)
  *
  * Returns zero or a negative error (ie. EINVAL, ENOMEM, EBUSY, etc).
  */
-int _idm_cmd_init(struct idm_nvme_request *request_idm, uint8_t opcode_nvme)
+static int _idm_cmd_init(struct idm_nvme_request *request_idm,
+                         uint8_t opcode_nvme)
 {
 	#ifdef DBG__LOG_FUNC_ENTRY
 	ilm_log_dbg("%s: ENTRY", __func__);
@@ -592,7 +606,7 @@ int _idm_cmd_init(struct idm_nvme_request *request_idm, uint8_t opcode_nvme)
  *
  * Returns zero or a negative error (ie. EINVAL, ENOMEM, EBUSY, etc).
  */
-int _idm_data_init_wrt(struct idm_nvme_request *request_idm)
+static int _idm_data_init_wrt(struct idm_nvme_request *request_idm)
 {
 	#ifdef DBG__LOG_FUNC_ENTRY
 	ilm_log_dbg("%s: ENTRY", __func__);
@@ -647,7 +661,7 @@ int _idm_data_init_wrt(struct idm_nvme_request *request_idm)
  *
  * Returns zero or a negative error (ie. EINVAL, ENOMEM, EBUSY, etc).
  */
-int _sync_idm_cmd_send(struct idm_nvme_request *request_idm)
+static int _sync_idm_cmd_send(struct idm_nvme_request *request_idm)
 {
 	#ifdef DBG__LOG_FUNC_ENTRY
 	ilm_log_dbg("%s: ENTRY", __func__);
