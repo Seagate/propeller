@@ -64,6 +64,65 @@ version of 1.0 */
 #include "util.h"
 
 ////////////////////////////////////////////////////////////////////////////////
+// STATIC PROTOTYPES
+////////////////////////////////////////////////////////////////////////////////
+static int _idm_async_lock_refresh(char *lock_id, int mode, char *host_id,
+                                   char *drive, uint64_t timeout,
+                                   uint64_t *handle);
+static int _idm_sync_read_mutex_num(char *drive, unsigned int *mutex_num);
+static int _idm_sync_lock_refresh(char *lock_id, int mode, char *host_id,
+                                  char *drive, uint64_t timeout);
+
+static int _init_lock(char *lock_id, int mode, char *host_id, char *drive,
+                      uint64_t timeout, struct idm_nvme_request **request_idm);
+static int _init_lock_break(char *lock_id, int mode, char *host_id, char *drive,
+                            uint64_t timeout,
+			    struct idm_nvme_request **request_idm);
+static int _init_lock_destroy(char *lock_id, int mode, char *host_id,
+                              char *drive,
+			      struct idm_nvme_request **request_idm);
+static int _init_lock_refresh(char *lock_id, int mode, char *host_id,
+                              char *drive, uint64_t timeout,
+			      struct idm_nvme_request **request_idm);
+static int _init_read_host_state(char *lock_id, char *host_id, char *drive,
+                                 struct idm_nvme_request **request_idm);
+static int _init_read_lock_count(int async_on, char *lock_id, char *host_id,
+                                 char *drive,
+				 struct idm_nvme_request **request_idm);
+static int _init_read_lock_mode(int async_on, char *lock_id, char *drive,
+                                struct idm_nvme_request **request_idm);
+static int _init_read_lvb(int async_on, char *lock_id, char *host_id,
+                          char *drive,
+                          struct idm_nvme_request **request_idm);
+static int _init_read_mutex_group(char *drive,
+                                  struct idm_nvme_request **request_idm);
+static int _init_read_mutex_num(char *drive,
+                                struct idm_nvme_request **request_idm);
+static int _init_unlock(char *lock_id, int mode, char *host_id, char *lvb,
+                        int lvb_size, char *drive,
+                        struct idm_nvme_request **request_idm);
+
+static void _memory_free_idm_request(struct idm_nvme_request *request_idm);
+static int _memory_init_idm_request(struct idm_nvme_request **request_idm,
+                                    unsigned int data_num);
+
+static int _parse_host_state(struct idm_nvme_request *request_idm,
+                             int *host_state);
+static int _parse_lock_count(struct idm_nvme_request *request_idm, int *count,
+                             int *self);
+static int _parse_lock_mode(struct idm_nvme_request *request_idm, int *mode);
+static int _parse_lvb(struct idm_nvme_request *request_idm, char *lvb,
+                      int lvb_size);
+static int _parse_mutex_group(struct idm_nvme_request *request_idm,
+                              struct idm_info **info_ptr, int *info_num);
+static void _parse_mutex_num(struct idm_nvme_request *request_idm,
+                             unsigned int *mutex_num);
+
+static int _validate_input_common(char *lock_id, char *host_id, char *drive);
+static int _validate_input_write(char *lock_id, int mode, char *host_id,
+                                 char *drive);
+
+////////////////////////////////////////////////////////////////////////////////
 // FUNCTIONS
 ////////////////////////////////////////////////////////////////////////////////
 
@@ -384,8 +443,8 @@ int nvme_idm_async_lock_convert(char *lock_id, int mode, char *host_id,
                                 char *drive, uint64_t timeout,
                                 uint64_t *handle)
 {
-	return nvme_idm_async_lock_refresh(lock_id, mode, host_id,
-	                                   drive, timeout, handle);
+	return _idm_async_lock_refresh(lock_id, mode, host_id, drive, timeout,
+	                               handle);
 }
 
 /**
@@ -431,51 +490,6 @@ EXIT:
 }
 
 /**
- * nvme_idm_async_lock_refresh - Asynchronously refreshes the host's
- * membership for an IDM.
- *
- * @lock_id:    Lock ID (64 bytes).
- * @mode:       Lock mode (unlock, shareable, exclusive).
- * @host_id:    Host ID (32 bytes).
- * @drive:      Drive path name.
- * @timeout:    Timeout for membership (unit: millisecond).
- * @handle:     Returned NVMe request handle.
- *
- * Returns zero or a negative error (ie. EINVAL, ENOMEM, EBUSY, etc).
- */
-int nvme_idm_async_lock_refresh(char *lock_id, int mode, char *host_id,
-                                char *drive, uint64_t timeout,
-                                uint64_t *handle)
-{
-	#ifdef DBG__LOG_FUNC_ENTRY
-	ilm_log_dbg("%s: ENTRY", __func__);
-	#endif
-
-	struct idm_nvme_request *request_idm = NULL;
-	int ret;
-
-	ret = _init_lock_refresh(lock_id, mode, host_id, drive, timeout,
-	                         &request_idm);
-	if (ret < 0) {
-		ilm_log_err("%s: _init_lock_refresh fail %d", __func__, ret);
-		goto EXIT_FAIL;
-	}
-
-	ret = nvme_idm_async_write(request_idm);
-	if (ret < 0) {
-		ilm_log_err("%s: nvme_idm_async_write fail %d", __func__, ret);
-		goto EXIT_FAIL;
-	}
-
-	*handle = (uint64_t)request_idm;
-	goto EXIT;
-EXIT_FAIL:
-	_memory_free_idm_request(request_idm);
-EXIT:
-	return ret;
-}
-
-/**
  * nvme_idm_async_lock_renew - Asynchronously renew host's membership for
  * an IDM.
  *
@@ -491,8 +505,8 @@ EXIT:
 int nvme_idm_async_lock_renew(char *lock_id, int mode, char *host_id,
                               char *drive, uint64_t timeout, uint64_t *handle)
 {
-	return nvme_idm_async_lock_refresh(lock_id, mode, host_id,
-	                                   drive, timeout, handle);
+	return _idm_async_lock_refresh(lock_id, mode, host_id, drive, timeout,
+	                               handle);
 }
 
 /**
@@ -857,8 +871,7 @@ EXIT:
 int nvme_idm_sync_lock_convert(char *lock_id, int mode, char *host_id,
                                char *drive, uint64_t timeout)
 {
-	return nvme_idm_sync_lock_refresh(lock_id, mode, host_id,
-	                                  drive, timeout);
+	return _idm_sync_lock_refresh(lock_id, mode, host_id, drive, timeout);
 }
 
 /**
@@ -899,45 +912,6 @@ EXIT:
 }
 
 /**
- * nvme_idm_sync_lock_refresh - Synchronously refreshes the host's membership
- * for an IDM.
- *
- * @lock_id:    Lock ID (64 bytes).
- * @mode:       Lock mode (unlock, shareable, exclusive).
- * @host_id:    Host ID (32 bytes).
- * @drive:      Drive path name.
- * @timeout:    Timeout for membership (unit: millisecond).
- *
- * Returns zero or a negative error (ie. EINVAL, ENOMEM, EBUSY, etc).
- */
-int nvme_idm_sync_lock_refresh(char *lock_id, int mode, char *host_id,
-                                  char *drive, uint64_t timeout)
-{
-	#ifdef DBG__LOG_FUNC_ENTRY
-	ilm_log_dbg("%s: ENTRY", __func__);
-	#endif
-
-	struct idm_nvme_request *request_idm = NULL;
-	int ret;
-
-	ret = _init_lock_refresh(lock_id, mode, host_id, drive, timeout,
-	                         &request_idm);
-	if (ret < 0) {
-		ilm_log_err("%s: _init_lock_refresh fail %d", __func__, ret);
-		goto EXIT;
-	}
-
-	ret = nvme_idm_sync_write(request_idm);
-	if (ret < 0) {
-		ilm_log_err("%s: nvme_idm_sync_write fail %d", __func__, ret);
-	}
-
-EXIT:
-	_memory_free_idm_request(request_idm);
-	return ret;
-}
-
-/**
  * nvme_idm_sync_lock_renew - Synchronously renew host's membership for an IDM.
  *
  * @lock_id:    Lock ID (64 bytes).
@@ -951,8 +925,7 @@ EXIT:
 int nvme_idm_sync_lock_renew(char *lock_id, int mode, char *host_id,
                              char *drive, uint64_t timeout)
 {
-	return nvme_idm_sync_lock_refresh(lock_id, mode, host_id,
-	                                  drive, timeout);
+	return _idm_sync_lock_refresh(lock_id, mode, host_id, drive, timeout);
 }
 
 /**
@@ -1231,50 +1204,6 @@ EXIT_FAIL:
 }
 
 /**
- * nvme_idm_sync_read_mutex_num - Synchronously retrieves the number of mutexes
- * present on the drive.
- *
- * @drive:       Drive path name.
- * @mutex_num:   Returned number of mutexes present on the drive.
-//TODO: Does ALWAYS setting to 0 on failure make sense?
- *               Set to 0 on failure.
- *
- * Returns zero or a negative error (ie. EINVAL, ENOMEM, EBUSY, etc).
- */
-int nvme_idm_sync_read_mutex_num(char *drive, unsigned int *mutex_num)
-{
-	#ifdef DBG__LOG_FUNC_ENTRY
-	ilm_log_dbg("%s: ENTRY", __func__);
-	#endif
-
-	struct idm_nvme_request *request_idm = NULL;
-	int ret;
-
-//TODO: The SCSI-side code tends to set this to 0 on certain failures.
-//          Does ALWAYS setting to 0 on failure HERE make sense (this is a bit different from scsi-side?
-	*mutex_num = 0;
-
-	ret = _init_read_mutex_num(drive, &request_idm);
-	if (ret < 0) {
-		ilm_log_err("%s: _init_read_mutex_num fail %d", __func__, ret);
-		goto EXIT_FAIL;
-	}
-
-	ret = nvme_idm_sync_read(request_idm);
-	if (ret < 0) {
-		ilm_log_err("%s: nvme_idm_sync_read fail %d", __func__, ret);
-		goto EXIT_FAIL;
-	}
-
-	_parse_mutex_num(request_idm, mutex_num);
-
-	ilm_log_dbg("%s: found: mutex_num=%d", __func__, *mutex_num);
-EXIT_FAIL:
-	_memory_free_idm_request(request_idm);
-	return ret;
-}
-
-/**
  * nvme_idm_sync_unlock - Synchronously release an IDM on a specified drive.
  *
  * @lock_id:    Lock ID (64 bytes).
@@ -1313,6 +1242,135 @@ EXIT:
 	return ret;
 }
 
+////////////////////////////////////////////////////////////////////////////////
+// STATIC FUNCTIONS
+////////////////////////////////////////////////////////////////////////////////
+/**
+ * _idm_async_lock_refresh - Asynchronously refreshes the host's
+ * membership for an IDM.
+ *
+ * @lock_id:    Lock ID (64 bytes).
+ * @mode:       Lock mode (unlock, shareable, exclusive).
+ * @host_id:    Host ID (32 bytes).
+ * @drive:      Drive path name.
+ * @timeout:    Timeout for membership (unit: millisecond).
+ * @handle:     Returned NVMe request handle.
+ *
+ * Returns zero or a negative error (ie. EINVAL, ENOMEM, EBUSY, etc).
+ */
+static int _idm_async_lock_refresh(char *lock_id, int mode, char *host_id,
+                                        char *drive, uint64_t timeout,
+                                        uint64_t *handle)
+{
+	#ifdef DBG__LOG_FUNC_ENTRY
+	ilm_log_dbg("%s: ENTRY", __func__);
+	#endif
+
+	struct idm_nvme_request *request_idm = NULL;
+	int ret;
+
+	ret = _init_lock_refresh(lock_id, mode, host_id, drive, timeout,
+	                         &request_idm);
+	if (ret < 0) {
+		ilm_log_err("%s: _init_lock_refresh fail %d", __func__, ret);
+		goto EXIT_FAIL;
+	}
+
+	ret = nvme_idm_async_write(request_idm);
+	if (ret < 0) {
+		ilm_log_err("%s: nvme_idm_async_write fail %d", __func__, ret);
+		goto EXIT_FAIL;
+	}
+
+	*handle = (uint64_t)request_idm;
+	goto EXIT;
+EXIT_FAIL:
+	_memory_free_idm_request(request_idm);
+EXIT:
+	return ret;
+}
+
+/**
+ * _idm_sync_read_mutex_num - Synchronously retrieves the number of mutexes
+ * present on the drive.
+ *
+ * @drive:       Drive path name.
+ * @mutex_num:   Returned number of mutexes present on the drive.
+//TODO: Does ALWAYS setting to 0 on failure make sense?
+ *               Set to 0 on failure.
+ *
+ * Returns zero or a negative error (ie. EINVAL, ENOMEM, EBUSY, etc).
+ */
+static int _idm_sync_read_mutex_num(char *drive, unsigned int *mutex_num)
+{
+	#ifdef DBG__LOG_FUNC_ENTRY
+	ilm_log_dbg("%s: ENTRY", __func__);
+	#endif
+
+	struct idm_nvme_request *request_idm = NULL;
+	int ret;
+
+	*mutex_num = 0;
+
+	ret = _init_read_mutex_num(drive, &request_idm);
+	if (ret < 0) {
+		ilm_log_err("%s: _init_read_mutex_num fail %d", __func__, ret);
+		goto EXIT_FAIL;
+	}
+
+	ret = nvme_idm_sync_read(request_idm);
+	if (ret < 0) {
+		ilm_log_err("%s: nvme_idm_sync_read fail %d", __func__, ret);
+		goto EXIT_FAIL;
+	}
+
+	_parse_mutex_num(request_idm, mutex_num);
+
+	ilm_log_dbg("%s: found: mutex_num=%d", __func__, *mutex_num);
+EXIT_FAIL:
+	_memory_free_idm_request(request_idm);
+	return ret;
+}
+
+/**
+ * _idm_sync_lock_refresh - Synchronously refreshes the host's membership
+ * for an IDM.
+ *
+ * @lock_id:    Lock ID (64 bytes).
+ * @mode:       Lock mode (unlock, shareable, exclusive).
+ * @host_id:    Host ID (32 bytes).
+ * @drive:      Drive path name.
+ * @timeout:    Timeout for membership (unit: millisecond).
+ *
+ * Returns zero or a negative error (ie. EINVAL, ENOMEM, EBUSY, etc).
+ */
+static int _idm_sync_lock_refresh(char *lock_id, int mode, char *host_id,
+                                       char *drive, uint64_t timeout)
+{
+	#ifdef DBG__LOG_FUNC_ENTRY
+	ilm_log_dbg("%s: ENTRY", __func__);
+	#endif
+
+	struct idm_nvme_request *request_idm = NULL;
+	int ret;
+
+	ret = _init_lock_refresh(lock_id, mode, host_id, drive, timeout,
+	                         &request_idm);
+	if (ret < 0) {
+		ilm_log_err("%s: _init_lock_refresh fail %d", __func__, ret);
+		goto EXIT;
+	}
+
+	ret = nvme_idm_sync_write(request_idm);
+	if (ret < 0) {
+		ilm_log_err("%s: nvme_idm_sync_write fail %d", __func__, ret);
+	}
+
+EXIT:
+	_memory_free_idm_request(request_idm);
+	return ret;
+}
+
 /**
  * _init_lock - Convenience function containing common code for the
  * IDM lock action.
@@ -1327,8 +1385,8 @@ EXIT:
  *
  * Returns zero or a negative error (ie. EINVAL, ENOMEM, EBUSY, etc).
  */
-int _init_lock(char *lock_id, int mode, char *host_id, char *drive,
-               uint64_t timeout, struct idm_nvme_request **request_idm)
+static int _init_lock(char *lock_id, int mode, char *host_id, char *drive,
+                      uint64_t timeout, struct idm_nvme_request **request_idm)
 {
 	#ifdef DBG__LOG_FUNC_ENTRY
 	ilm_log_dbg("%s: ENTRY", __func__);
@@ -1378,8 +1436,9 @@ int _init_lock(char *lock_id, int mode, char *host_id, char *drive,
  *
  * Returns zero or a negative error (ie. EINVAL, ENOMEM, EBUSY, etc).
  */
-int _init_lock_break(char *lock_id, int mode, char *host_id, char *drive,
-                     uint64_t timeout, struct idm_nvme_request **request_idm)
+static int _init_lock_break(char *lock_id, int mode, char *host_id, char *drive,
+                             uint64_t timeout,
+                             struct idm_nvme_request **request_idm)
 {
 	#ifdef DBG__LOG_FUNC_ENTRY
 	ilm_log_dbg("%s: ENTRY", __func__);
@@ -1428,8 +1487,9 @@ int _init_lock_break(char *lock_id, int mode, char *host_id, char *drive,
  *
  * Returns zero or a negative error (ie. EINVAL, ENOMEM, EBUSY, etc).
  */
-int _init_lock_destroy(char *lock_id, int mode, char *host_id, char *drive,
-                       struct idm_nvme_request **request_idm)
+static int _init_lock_destroy(char *lock_id, int mode, char *host_id,
+                              char *drive,
+                              struct idm_nvme_request **request_idm)
 {
 	#ifdef DBG__LOG_FUNC_ENTRY
 	ilm_log_dbg("%s: ENTRY", __func__);
@@ -1479,8 +1539,9 @@ int _init_lock_destroy(char *lock_id, int mode, char *host_id, char *drive,
  *
  * Returns zero or a negative error (ie. EINVAL, ENOMEM, EBUSY, etc).
  */
-int _init_lock_refresh(char *lock_id, int mode, char *host_id, char *drive,
-                       uint64_t timeout, struct idm_nvme_request **request_idm)
+static int _init_lock_refresh(char *lock_id, int mode, char *host_id,
+                              char *drive, uint64_t timeout,
+                              struct idm_nvme_request **request_idm)
 {
 	#ifdef DBG__LOG_FUNC_ENTRY
 	ilm_log_dbg("%s: ENTRY", __func__);
@@ -1528,8 +1589,8 @@ int _init_lock_refresh(char *lock_id, int mode, char *host_id, char *drive,
  *
  * Returns zero or a negative error (ie. EINVAL, ENOMEM, EBUSY, etc).
  */
-int _init_read_host_state(char *lock_id, char *host_id, char *drive,
-                          struct idm_nvme_request **request_idm)
+static int _init_read_host_state(char *lock_id, char *host_id, char *drive,
+                                 struct idm_nvme_request **request_idm)
 {
 	#ifdef DBG__LOG_FUNC_ENTRY
 	ilm_log_dbg("%s: ENTRY", __func__);
@@ -1542,7 +1603,7 @@ int _init_read_host_state(char *lock_id, char *host_id, char *drive,
 	if (ret < 0)
 		return ret;
 
-	ret = nvme_idm_sync_read_mutex_num(drive, &mutex_num);
+	ret = _idm_sync_read_mutex_num(drive, &mutex_num);
 	if (ret < 0)
 		return -ENOENT;
 	else if (!mutex_num)
@@ -1576,8 +1637,9 @@ int _init_read_host_state(char *lock_id, char *host_id, char *drive,
  *
  * Returns zero or a negative error (ie. EINVAL, ENOMEM, EBUSY, etc).
  */
-int _init_read_lock_count(int async_on, char *lock_id, char *host_id,
-                          char *drive, struct idm_nvme_request **request_idm)
+static int _init_read_lock_count(int async_on, char *lock_id, char *host_id,
+                                 char *drive,
+				 struct idm_nvme_request **request_idm)
 {
 	#ifdef DBG__LOG_FUNC_ENTRY
 	ilm_log_dbg("%s: ENTRY", __func__);
@@ -1590,7 +1652,7 @@ int _init_read_lock_count(int async_on, char *lock_id, char *host_id,
 	if (ret < 0)
 		return ret;
 
-	ret = nvme_idm_sync_read_mutex_num(drive, &mutex_num);
+	ret = _idm_sync_read_mutex_num(drive, &mutex_num);
 	if (ret < 0)
 		return -ENOENT;
 
@@ -1642,8 +1704,8 @@ int _init_read_lock_count(int async_on, char *lock_id, char *host_id,
  *
  * Returns zero or a negative error (ie. EINVAL, ENOMEM, EBUSY, etc).
  */
-int _init_read_lock_mode(int async_on, char *lock_id, char *drive,
-                         struct idm_nvme_request **request_idm)
+static int _init_read_lock_mode(int async_on, char *lock_id, char *drive,
+                                struct idm_nvme_request **request_idm)
 {
 	#ifdef DBG__LOG_FUNC_ENTRY
 	ilm_log_dbg("%s: ENTRY", __func__);
@@ -1658,7 +1720,7 @@ int _init_read_lock_mode(int async_on, char *lock_id, char *drive,
 	if (!lock_id || !drive)
 		return -EINVAL;
 
-	ret = nvme_idm_sync_read_mutex_num(drive, &mutex_num);
+	ret = _idm_sync_read_mutex_num(drive, &mutex_num);
 	if (ret < 0)
 		return -ENOENT;
 
@@ -1710,8 +1772,8 @@ int _init_read_lock_mode(int async_on, char *lock_id, char *drive,
  *
  * Returns zero or a negative error (ie. EINVAL, ENOMEM, EBUSY, etc).
  */
-int _init_read_lvb(int async_on, char *lock_id, char *host_id, char *drive,
-                   struct idm_nvme_request **request_idm)
+static int _init_read_lvb(int async_on, char *lock_id, char *host_id, char *drive,
+                          struct idm_nvme_request **request_idm)
 {
 	#ifdef DBG__LOG_FUNC_ENTRY
 	ilm_log_dbg("%s: ENTRY", __func__);
@@ -1724,7 +1786,7 @@ int _init_read_lvb(int async_on, char *lock_id, char *host_id, char *drive,
 	if (ret < 0)
 		return ret;
 
-	ret = nvme_idm_sync_read_mutex_num(drive, &mutex_num);
+	ret = _idm_sync_read_mutex_num(drive, &mutex_num);
 	if (ret < 0)
 		return -ENOENT;
 
@@ -1773,7 +1835,8 @@ int _init_read_lvb(int async_on, char *lock_id, char *host_id, char *drive,
  *
  * Returns zero or a negative error (ie. EINVAL, ENOMEM, EBUSY, etc).
  */
-int _init_read_mutex_group(char *drive, struct idm_nvme_request **request_idm)
+static int _init_read_mutex_group(char *drive,
+                                  struct idm_nvme_request **request_idm)
 {
 	#ifdef DBG__LOG_FUNC_ENTRY
 	ilm_log_dbg("%s: ENTRY", __func__);
@@ -1788,7 +1851,7 @@ int _init_read_mutex_group(char *drive, struct idm_nvme_request **request_idm)
 	if (!drive)
 		return -EINVAL;
 
-	ret = nvme_idm_sync_read_mutex_num(drive, &mutex_num);
+	ret = _idm_sync_read_mutex_num(drive, &mutex_num);
 	if (ret < 0)
 		return -ENOENT;
 	else if (!mutex_num)
@@ -1816,7 +1879,8 @@ int _init_read_mutex_group(char *drive, struct idm_nvme_request **request_idm)
  *
  * Returns zero or a negative error (ie. EINVAL, ENOMEM, EBUSY, etc).
  */
-int _init_read_mutex_num(char *drive, struct idm_nvme_request **request_idm)
+static int _init_read_mutex_num(char *drive,
+                                struct idm_nvme_request **request_idm)
 {
 	#ifdef DBG__LOG_FUNC_ENTRY
 	ilm_log_dbg("%s: ENTRY", __func__);
@@ -1857,9 +1921,9 @@ int _init_read_mutex_num(char *drive, struct idm_nvme_request **request_idm)
  *
  * Returns zero or a negative error (ie. EINVAL, ENOMEM, EBUSY, etc).
  */
-int _init_unlock(char *lock_id, int mode, char *host_id, char *lvb,
-                 int lvb_size, char *drive,
-		 struct idm_nvme_request **request_idm)
+static int _init_unlock(char *lock_id, int mode, char *host_id, char *lvb,
+                        int lvb_size, char *drive,
+                        struct idm_nvme_request **request_idm)
 {
 	#ifdef DBG__LOG_FUNC_ENTRY
 	ilm_log_dbg("%s: ENTRY", __func__);
@@ -1867,7 +1931,8 @@ int _init_unlock(char *lock_id, int mode, char *host_id, char *lvb,
 
 	int ret;
 
-	//TODO: The -ve check here should go away cuz lvb_size should be of unsigned type.
+	//TODO: The -ve check here should go away cuz lvb_size should be of
+	//      unsigned type.
 	//However, this requires an IDM API parameter type change.
 	if ((!lvb) || (lvb_size <= 0) || (lvb_size > IDM_LVB_LEN_BYTES))
 		return -EINVAL;
@@ -1911,7 +1976,7 @@ int _init_unlock(char *lock_id, int mode, char *host_id, char *lvb,
  *
  * Returns zero or a negative error (ie. EINVAL, ENOMEM, EBUSY, etc).
  */
-void _memory_free_idm_request(struct idm_nvme_request *request_idm) {
+static void _memory_free_idm_request(struct idm_nvme_request *request_idm) {
 
 	#ifdef DBG__LOG_FUNC_ENTRY
 	ilm_log_dbg("%s: ENTRY", __func__);
@@ -1949,8 +2014,8 @@ void _memory_free_idm_request(struct idm_nvme_request *request_idm) {
  *
  * Returns zero or a negative error (ie. EINVAL, ENOMEM, EBUSY, etc).
  */
-int _memory_init_idm_request(struct idm_nvme_request **request_idm,
-                             unsigned int data_num)
+static int _memory_init_idm_request(struct idm_nvme_request **request_idm,
+                                    unsigned int data_num)
 {
 	#ifdef DBG__LOG_FUNC_ENTRY
 	ilm_log_dbg("%s: ENTRY", __func__);
@@ -1992,7 +2057,8 @@ int _memory_init_idm_request(struct idm_nvme_request **request_idm,
  *
  * Returns zero or a negative error (ie. EINVAL, ENOMEM, EBUSY, etc).
  */
-int _parse_host_state(struct idm_nvme_request *request_idm, int *host_state)
+static int _parse_host_state(struct idm_nvme_request *request_idm,
+                             int *host_state)
 {
 	#ifdef DBG__LOG_FUNC_ENTRY
 	ilm_log_dbg("%s: ENTRY", __func__);
@@ -2044,8 +2110,8 @@ int _parse_host_state(struct idm_nvme_request *request_idm, int *host_state)
  *
  * Returns zero or a negative error (ie. EINVAL, ENOMEM, EBUSY, etc).
  */
-int _parse_lock_count(struct idm_nvme_request *request_idm, int *count,
-                      int *self)
+static int _parse_lock_count(struct idm_nvme_request *request_idm, int *count,
+                             int *self)
 {
 	#ifdef DBG__LOG_FUNC_ENTRY
 	ilm_log_dbg("%s: ENTRY", __func__);
@@ -2116,7 +2182,7 @@ int _parse_lock_count(struct idm_nvme_request *request_idm, int *count,
  *
  * Returns zero or a negative error (ie. EINVAL, ENOMEM, EBUSY, etc).
  */
-int _parse_lock_mode(struct idm_nvme_request *request_idm, int *mode)
+static int _parse_lock_mode(struct idm_nvme_request *request_idm, int *mode)
 {
 	#ifdef DBG__LOG_FUNC_ENTRY
 	ilm_log_dbg("%s: ENTRY", __func__);
@@ -2190,7 +2256,8 @@ EXIT:
  *
  * Returns zero or a negative error (ie. EINVAL, ENOMEM, EBUSY, etc).
  */
-int _parse_lvb(struct idm_nvme_request *request_idm, char *lvb, int lvb_size)
+static int _parse_lvb(struct idm_nvme_request *request_idm, char *lvb,
+                      int lvb_size)
 {
 	#ifdef DBG__LOG_FUNC_ENTRY
 	ilm_log_dbg("%s: ENTRY", __func__);
@@ -2246,8 +2313,8 @@ int _parse_lvb(struct idm_nvme_request *request_idm, char *lvb, int lvb_size)
  *
  * Returns zero or a negative error (ie. EINVAL, ENOMEM, EBUSY, etc).
  */
-int _parse_mutex_group(struct idm_nvme_request *request_idm,
-                       struct idm_info **info_ptr, int *info_num)
+static int _parse_mutex_group(struct idm_nvme_request *request_idm,
+                              struct idm_info **info_ptr, int *info_num)
 {
 	#ifdef DBG__LOG_FUNC_ENTRY
 	ilm_log_dbg("%s: ENTRY", __func__);
@@ -2270,6 +2337,7 @@ int _parse_mutex_group(struct idm_nvme_request *request_idm,
 	for (i = 0; i < mutex_num; i++) {
 
 		state = __bswap_64(data_idm[i].state);
+		//dead state implies last active mutex (End of record marker(for active mutexes))
 		if (state == IDM_STATE_DEAD)
 		break;
 
@@ -2330,8 +2398,8 @@ EXIT:
  *                  requested IDM action.
  * @mutex_num:      Returned number of mutexes present on the drive.
  */
-void _parse_mutex_num(struct idm_nvme_request *request_idm,
-                      unsigned int *mutex_num)
+static void _parse_mutex_num(struct idm_nvme_request *request_idm,
+                             unsigned int *mutex_num)
 {
 	#ifdef DBG__LOG_FUNC_ENTRY
 	ilm_log_dbg("%s: ENTRY", __func__);
@@ -2387,7 +2455,7 @@ void _parse_mutex_num(struct idm_nvme_request *request_idm,
  *
  * Returns zero or a negative error (ie. EINVAL, ENOMEM, EBUSY, etc).
  */
-int _validate_input_common(char *lock_id, char *host_id, char *drive)
+static int _validate_input_common(char *lock_id, char *host_id, char *drive)
 {
 	#ifdef DBG__LOG_FUNC_ENTRY
 	ilm_log_dbg("%s: ENTRY", __func__);
@@ -2413,7 +2481,8 @@ int _validate_input_common(char *lock_id, char *host_id, char *drive)
  *
  * Returns zero or a negative error (ie. EINVAL, ENOMEM, EBUSY, etc).
  */
-int _validate_input_write(char *lock_id, int mode, char *host_id, char *drive)
+static int _validate_input_write(char *lock_id, int mode, char *host_id,
+                                 char *drive)
 {
 	#ifdef DBG__LOG_FUNC_ENTRY
 	ilm_log_dbg("%s: ENTRY", __func__);
@@ -2535,7 +2604,7 @@ int main(int argc, char *argv[])
 			}
 		}
 		else if(strcmp(argv[1], "async_lock_refresh") == 0){
-			ret = nvme_idm_async_lock_refresh(lock_id, mode, host_id, drive, timeout, &handle);
+			ret = _idm_async_lock_refresh(lock_id, mode, host_id, drive, timeout, &handle);
 			if (ret){
 				printf("%s: send cmd fail: %d\n", argv[1], ret);
 				nvme_idm_async_free_result(handle);
@@ -2628,7 +2697,7 @@ int main(int argc, char *argv[])
 			ret = nvme_idm_sync_lock_destroy(lock_id, mode, host_id, drive);
 		}
 		else if(strcmp(argv[1], "sync_lock_refresh") == 0){
-			ret = nvme_idm_sync_lock_refresh(lock_id, mode, host_id, drive, timeout);
+			ret = _idm_sync_lock_refresh(lock_id, mode, host_id, drive, timeout);
 		}
 		else if(strcmp(argv[1], "sync_lock_renew") == 0){
 			ret = nvme_idm_sync_lock_renew(lock_id, mode, host_id, drive, timeout);
@@ -2656,7 +2725,7 @@ int main(int argc, char *argv[])
 			printf("output: info_num=%u\n", info_num);
 		}
 		else if(strcmp(argv[1], "sync_read_num") == 0){
-			ret = nvme_idm_sync_read_mutex_num(drive, &mutex_num);
+			ret = _idm_sync_read_mutex_num(drive, &mutex_num);
 			printf("output: mutex_num=%u\n", mutex_num);
 		}
 		else if(strcmp(argv[1], "version") == 0){
