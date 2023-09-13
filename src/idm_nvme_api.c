@@ -726,7 +726,7 @@ int nvme_idm_get_fd(uint64_t handle)
  * supports. (NOT the version of this service software)
  * This function will then compare this retrieved version against a minimum
  * version that this service software supports.
- * This is a rudimenatry compatibility check between the drive firmware
+ * This is a rudimentary compatibility check between the drive firmware
  * and the ilm service software
  *
  * @drive:		Drive path name.
