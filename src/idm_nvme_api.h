@@ -1,7 +1,7 @@
 /* SPDX-License-Identifier: LGPL-2.1-only */
 /*
  * Copyright (C) 2010-2011 Red Hat, Inc.
- * Copyright (C) 2022 Seagate Technology LLC and/or its Affiliates.
+ * Copyright (C) 2023 Seagate Technology LLC and/or its Affiliates.
  *
  * idm_nvme_api.h - Primary NVMe interface for the In-drive Mutex (IDM)
   */
@@ -49,7 +49,7 @@ int nvme_idm_async_unlock(char *lock_id, int mode, char *host_id,
 int nvme_idm_environ_init(void);
 void nvme_idm_environ_destroy(void);
 int nvme_idm_get_fd(uint64_t handle);
-int nvme_idm_read_version(int *version, char *drive);
+int nvme_idm_read_version(char *drive, uint8_t *version_major, uint8_t *version_minor);
 
 int nvme_idm_sync_lock(char *lock_id, int mode, char *host_id,
                        char *drive, uint64_t timeout);

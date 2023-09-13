@@ -1,5 +1,5 @@
 # SPDX-License-Identifier: LGPL-2.1-only
-# Copyright (C) 2022 Seagate Technology LLC and/or its Affiliates.
+# Copyright (C) 2023 Seagate Technology LLC and/or its Affiliates.
 
 
 import errno
@@ -26,9 +26,10 @@ def test_version(ilm_daemon, reset_devices):
     assert ret == 0
     assert s > 0
 
-    ret, version = ilm.ilm_version(s, BLK_DEVICE1)
+    ret, version_major, version_minor = ilm.ilm_version(s, BLK_DEVICE1)
     assert ret == 0
-    assert version == 0x100
+    assert version_major == 8
+    assert version_minor == 4
 
     ret = ilm.ilm_disconnect(s)
     assert ret == 0

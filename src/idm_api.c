@@ -1,6 +1,6 @@
 /* SPDX-License-Identifier: LGPL-2.1-only */
 /*
- * Copyright (C) 2022 Seagate Technology LLC and/or its Affiliates.
+ * Copyright (C) 2023 Seagate Technology LLC and/or its Affiliates.
  */
 
 #include <string.h>
@@ -15,21 +15,21 @@
 //////////////////////////////////////////
 
 /**
- * idm_drive_version - Read out IDM version
- *
- * @version:	Lock mode (unlock, shareable, exclusive).
- * @drive:	Drive path name.
+ * idm_drive_version - Read out IDM spec version
+ * @drive:		Drive path name.
+ * @version_major:	Returned major version, using "major.minor" version format
+ * @version_minor:	Returned minor version, using 'major.minor" version format
  *
  * Returns zero or a negative error (ie. EINVAL, ENOMEM, EBUSY, etc).
  */
-int idm_drive_version(int *version, char *drive)
+int idm_drive_version(char *drive, uint8_t *version_major, uint8_t *version_minor)
 {
 	int ret;
 
 	if (strstr(drive, NVME_DEVICE_TAG))
-		ret = nvme_idm_read_version(version, drive);
-	else
-		ret = scsi_idm_read_version(version, drive);
+		ret = nvme_idm_read_version(drive, version_major, version_minor);
+	// else
+	// 	ret = scsi_idm_read_version(version, drive);
 
 	return ret;
 }

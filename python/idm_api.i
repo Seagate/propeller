@@ -9,7 +9,8 @@
 %apply int *OUTPUT { int *count };
 %apply int *OUTPUT { int *self };
 %apply int *OUTPUT { int *mode };
-%apply int *OUTPUT { int *version };
+%apply uint8_t *OUTPUT { uint8_t *version_major };
+%apply uint8_t *OUTPUT { uint8_t *version_minor };
 %apply int *OUTPUT { int *result };
 %apply uint64_t *OUTPUT { uint64_t *handle };
 
@@ -37,7 +38,7 @@ struct idm_info {
         int timeout;
 };
 
-int idm_drive_version(int *version, char *drive);
+int idm_drive_version(char *drive, uint8_t *version_major, uint8_t *version_minor);
 int idm_drive_lock(char *lock_id, int mode, char *host_id,
                    char *drive, uint64_t timeout);
 int idm_drive_lock_async(char *lock_id, int mode, char *host_id,
@@ -115,7 +116,7 @@ struct idm_info {
         int timeout;
 };
 
-int idm_drive_version(int *version, char *drive);
+int idm_drive_version(char *drive, uint8_t *version_major, uint8_t *version_minor);
 int idm_drive_lock(char *lock_id, int mode, char *host_id,
                    char *drive, uint64_t timeout);
 int idm_drive_lock_async(char *lock_id, int mode, char *host_id,
