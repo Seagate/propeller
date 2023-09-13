@@ -28,8 +28,8 @@ int idm_drive_version(char *drive, uint8_t *version_major, uint8_t *version_mino
 
 	if (strstr(drive, NVME_DEVICE_TAG))
 		ret = nvme_idm_read_version(drive, version_major, version_minor);
-	// else
-	// 	ret = scsi_idm_read_version(version, drive);
+	else
+		ret = scsi_idm_read_version(drive, version_major, version_minor);
 
 	return ret;
 }

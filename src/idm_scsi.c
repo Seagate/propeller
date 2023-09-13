@@ -661,13 +661,14 @@ static int _scsi_get_async_result(struct idm_scsi_request *request,
 }
 
 /**
- * scsi_idm_read_version - Read out IDM version
- * @version:		Lock mode (unlock, shareable, exclusive).
+  * scsi_idm_read_version - Read out IDM spec version
  * @drive:		Drive path name.
- *
+ * @version_major:	Returned major version, using "major.minor" version format
+ * @version_minor:	Returned minor version, using 'major.minor" version format
+*
  * Returns zero or a negative error (ie. EINVAL, ENOMEM, EBUSY, etc).
  */
-int scsi_idm_read_version(int *version, char *drive)
+int scsi_idm_read_version(char *drive, uint8_t *version_major, uint8_t *version_minor)
 {
 	uint8_t ver_request[SCSI_VER_INQ_LEN];
 	uint8_t sense[SCSI_SENSE_LEN];
@@ -682,7 +683,10 @@ int scsi_idm_read_version(int *version, char *drive)
 	ilm_log_array_warn("SCSI SENSE:", (char *)sense, SCSI_SENSE_LEN);
 	ilm_log_warn("MUTEX VERSION: %u", data[96]);
 
-	*version = ((0 << 16) | (data[96] << 8) | (0));
+	//TODO: Update SCSI firmware to use new versioning using the IDM Spec version (major.minor)
+	// *version = ((0 << 16) | (data[96] << 8) | (0));
+	*version_major = data[96];
+	*version_minor = 0;
 	return 0;
 }
 
