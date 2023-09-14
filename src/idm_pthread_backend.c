@@ -345,8 +345,8 @@ static int idm_self_count(struct idm_emulation *idm, char *host_id)
  */
 int idm_drive_version(char *drive, uint8_t *version_major, uint8_t *version_minor)
 {
-	*version_major = 1;
-	*version_minor = 0;
+	*version_major = MIN_IDM_SPEC_VERSION_MAJOR;
+	*version_minor = MIN_IDM_SPEC_VERSION_MINOR;
 	return 0;
 }
 
