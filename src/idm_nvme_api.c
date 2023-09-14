@@ -40,7 +40,7 @@ Setup to be gcc-defined (-D) in make file */
 This value is stored in the drive firmware.
 It is used to identify the minimum level of IDM funcionality that both the
 firmware and this software should support. */
-#define MIN_IDM_SPEC_VERSION_MAJOR	5
+#define MIN_IDM_SPEC_VERSION_MAJOR	1
 #define MIN_IDM_SPEC_VERSION_MINOR	0
 
 ////////////////////////////////////////////////////////////////////////////////
