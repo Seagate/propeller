@@ -1,7 +1,7 @@
 /* SPDX-License-Identifier: LGPL-2.1-only */
 /*
  * Copyright (C) 2010-2011 Red Hat, Inc.
- * Copyright (C) 2021 Seagate Technology LLC and/or its Affiliates.
+ * Copyright (C) 2023 Seagate Technology LLC and/or its Affiliates.
  *
  * Derived from the sanlock file of src/client.c, where the
  * license was LGPL-2.1-or-later.
@@ -181,11 +181,15 @@ int ilm_disconnect(int sock)
 	return 0;
 }
 
-int ilm_version(int sock, char *drive, int *version)
+int ilm_version(int sock, char *drive, uint8_t *version_major, uint8_t *version_minor)
 {
 	struct ilm_lock_payload payload;
 	char path[PATH_MAX];
 	int len, ret;
+	struct _version {
+		uint8_t major;
+		uint8_t minor;
+	} version;
 
 	len = sizeof(struct ilm_lock_payload) + PATH_MAX;
 
@@ -210,9 +214,12 @@ int ilm_version(int sock, char *drive, int *version)
 	if (ret < 0)
 		return ret;
 
-	ret = recv_data(sock, (char *)version, sizeof(int), 0);
+	ret = recv_data(sock, (char *)&version, sizeof(version), 0);
 	if (ret < 0)
 		return ret;
+
+	*version_major = version.major;
+	*version_minor = version.minor;
 
 	return 0;
 }

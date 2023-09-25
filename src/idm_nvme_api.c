@@ -34,17 +34,6 @@ Setup to be gcc-defined (-D) in make file */
 #define DBG__DUMP_STRUCTS
 
 ////////////////////////////////////////////////////////////////////////////////
-// CONSTANT
-////////////////////////////////////////////////////////////////////////////////
-/* This version value correpsonds to a version of the "IDM SPEC".
-This value is stored in the drive firmware.
-It is used to identify the minimum level of IDM funcionality that both the
-firmware and this software should support.
-For example, a value of 0x10, as read from the firmware, represents a "IDM SPEC"
-version of 1.0 */
-#define MIN_IDM_VERSION		0x10
-
-////////////////////////////////////////////////////////////////////////////////
 // INCLUDES
 ////////////////////////////////////////////////////////////////////////////////
 #include <byteswap.h>
@@ -720,63 +709,65 @@ int nvme_idm_get_fd(uint64_t handle)
 }
 
 /**
- * nvme_idm_read_version - Unfortunately, this function name is completely
- * misleading relative to it's current behavior.  This is entirely due to the
- * legacy behavior of the corresponding scsi cmd, which is, essentially, using
- * the "read version" function to detect a feature flag in the propeller
- * drive firmware.
+ * nvme_idm_read_version -  This function retreives a version from
+ * the drive firmware.
+ * However, it is important to note that the retreived version represents
+ * the minimum IDM Specification version that the loaded drive firmware
+ * supports. (NOT the version of this service software)
+ * This function will then compare this retrieved version against a minimum
+ * version that this service software supports.
+ * This is a rudimentary compatibility check between the drive firmware
+ * and the ilm service software
  *
- * That "flag" is a bit set in the propeller firmware, which is supposed to
- * identify it as propeller-capable firmware.  The SCSI drive firmware
- * currently just sets a single bit if the firmware is for propeller.
- * The SCSI software then reads that bit and then (for unknown
- * reasons) shifts it up 8 bits to get a 0x100 value, and then
- * assigns it to the "version" return value.
+ * @drive:		Drive path name.
+ * @version_major:	Returned major version, using "major.minor" version format
+ * @version_minor:	Returned minor version, using 'major.minor" version format
  *
- * As a result, the expected behavior for this function is that it returns
- * 0x100 in "version" if propeller firmware is present.  Anythng else, is
- * considered NOT propeller capable.
- *
- * For NVMe, the drive firmware is actually using a real version number.
- * So, here, as long as the read version isn't less then a minimum IDM
- * SPEC VERSION value, the returned version value is set to the
- * 0x100 value to, again, emulate what the SCSI software is currently doing
- * when it detects valid propeller drive firmware.
- *
- * @version:    Lock mode (unlock, shareable, exclusive).
- * @drive:      Drive path name.
- *
- * TODO: This needs work. Done to match SCSI behavior:
- * Always returns 0, regardless of errors
+ * Returns zero or a negative error (ie. EINVAL, ENOMEM, EBUSY, etc).
  */
-int nvme_idm_read_version(int *version, char *drive)
+int nvme_idm_read_version(char *drive, uint8_t *version_major, uint8_t *version_minor)
 {
 	#ifdef DBG__LOG_FUNC_ENTRY
 	ilm_log_dbg("%s: ENTRY", __func__);
 	#endif
 
 	struct nvme_id_ctrl id_ctrl;
-	int ver;
+	uint8_t version_raw, major, minor;
 	int ret;
 
 	ret = nvme_admin_identify(drive, &id_ctrl);
 	if (ret < 0){
-		*version = 0;
+		ilm_log_err("%s: version read fail: %d", __func__, ret);
+		return ret;
+	}
+
+	version_raw = id_ctrl.vs[1023];
+	ilm_log_dbg("%s: drive reports raw idm spec version %X", __func__, version_raw);
+	major = version_raw >> 4;
+	minor = version_raw & 0xF;
+
+	if (major < (uint8_t)MIN_IDM_SPEC_VERSION_MAJOR){
+		ilm_log_err("%s: INVALID major IDM spec version: \
+		             drive reports %d, service requires %d",
+		             __func__, major, MIN_IDM_SPEC_VERSION_MAJOR);
+		goto EXIT;
+	}
+	// Note: casting to signed to silence compiler warning when constant = 0
+	//	Constant may get changed to non-zero in future
+	if ((int8_t)minor < (int8_t)MIN_IDM_SPEC_VERSION_MINOR){
+		ilm_log_err("%s: INVALID minor IDM spec version: \
+		             drive reports %d.%d, service requires %d.%d",
+		             __func__, major, minor,
+		             MIN_IDM_SPEC_VERSION_MAJOR,
+			     MIN_IDM_SPEC_VERSION_MINOR);
 		goto EXIT;
 	}
 
-	ver = (int)id_ctrl.vs[1023];
-	ilm_log_dbg("%s: found idm version %d", __func__, ver);
-
-	if (ver < MIN_IDM_VERSION){
-		ilm_log_err("%s: invalid idm version %d", __func__, ver);
-		*version = 0;
-		goto EXIT;
-	}
-
-	*version = 0x100;
+	ilm_log_dbg("%s: drive reports idm spec version %d.%d", __func__, major, minor);
+	*version_major = major;
+	*version_minor = minor;
 EXIT:
-	return 0;
+	return SUCCESS;
 }
 
 /**
@@ -2549,7 +2540,8 @@ int main(int argc, char *argv[])
 		int             host_state;
 		int             count;
 		int             self;
-		int             version;
+		uint8_t         version_major;
+		uint8_t         version_minor;
 
 		if(strcmp(argv[1], "async_lock") == 0){
 			ret = nvme_idm_async_lock(lock_id, mode, host_id, drive, timeout, &handle);
@@ -2729,8 +2721,8 @@ int main(int argc, char *argv[])
 			printf("output: mutex_num=%u\n", mutex_num);
 		}
 		else if(strcmp(argv[1], "version") == 0){
-			ret = nvme_idm_read_version(&version, drive);
-			printf("output: version=%d\n", version);
+			ret = nvme_idm_read_version(drive, version_major, version_minor);
+			printf("output: version=%d.%d\n", version_major, version_minor);
 		}
 		else {
 			printf("%s: invalid command option!\n", argv[1]);

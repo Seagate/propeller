@@ -1,7 +1,7 @@
 /* SPDX-License-Identifier: GPL-2.0-or-later */
 /*
  * Copyright (C) 2010-2011 Red Hat, Inc.
- * Copyright (C) 2021 Seagate Technology LLC and/or its Affiliates.
+ * Copyright (C) 2023 Seagate Technology LLC and/or its Affiliates.
  *
  * Derived from the sanlock file of the same name.
  */
@@ -28,20 +28,20 @@
 
 const char *CMD_NAMES[16] = {
 	"ILM_CMD_VERSION",
-	"ILM_CMD_ADD_LOCKSPACE"
-	"ILM_CMD_DEL_LOCKSPACE"
-	"ILM_CMD_ACQUIRE"
-	"ILM_CMD_RELEASE"
-	"ILM_CMD_CONVERT"
-	"ILM_CMD_WRITE_LVB"
-	"ILM_CMD_READ_LVB"
-	"ILM_CMD_LOCK_HOST_COUNT"
-	"ILM_CMD_LOCK_MODE"
-	"ILM_CMD_SET_SIGNAL"
-	"ILM_CMD_SET_KILLPATH"
-	"ILM_CMD_SET_HOST_ID"
-	"ILM_CMD_STOP_RENEW"
-	"ILM_CMD_START_RENEW"
+	"ILM_CMD_ADD_LOCKSPACE",
+	"ILM_CMD_DEL_LOCKSPACE",
+	"ILM_CMD_ACQUIRE",
+	"ILM_CMD_RELEASE",
+	"ILM_CMD_CONVERT",
+	"ILM_CMD_WRITE_LVB",
+	"ILM_CMD_READ_LVB",
+	"ILM_CMD_LOCK_HOST_COUNT",
+	"ILM_CMD_LOCK_MODE",
+	"ILM_CMD_SET_SIGNAL",
+	"ILM_CMD_SET_KILLPATH",
+	"ILM_CMD_SET_HOST_ID",
+	"ILM_CMD_STOP_RENEW",
+	"ILM_CMD_START_RENEW",
 	"ILM_CMD_INJECT_FAULT"
 };
 

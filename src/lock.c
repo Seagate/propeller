@@ -1,6 +1,6 @@
 /* SPDX-License-Identifier: LGPL-2.1-only */
 /*
- * Copyright (C) 2021 Seagate Technology LLC and/or its Affiliates.
+ * Copyright (C) 2023 Seagate Technology LLC and/or its Affiliates.
  */
 
 #include <errno.h>
@@ -766,7 +766,11 @@ int ilm_lock_version(struct ilm_cmd *cmd, struct ilm_lockspace *ls)
 {
 	struct ilm_lock_payload payload;
 	char path[PATH_MAX];
-	int version, pos = 0, ret;
+	int pos = 0, ret;
+	struct _version {
+		uint8_t major;
+		uint8_t minor;
+	} version;
 
 	ret = ilm_lock_payload_read(cmd, &payload);
 	if (ret < 0)
@@ -787,7 +791,7 @@ int ilm_lock_version(struct ilm_cmd *cmd, struct ilm_lockspace *ls)
 	}
 	pos += ret;
 
-	ret = idm_drive_version(&version, path);
+	ret = idm_drive_version(path, &version.major, &version.minor);
 	if (ret < 0)
 		ilm_log_err("Fail to read out version\n");
 

@@ -1,5 +1,5 @@
 # SPDX-License-Identifier: LGPL-2.1-only
-# Copyright (C) 2022 Seagate Technology LLC and/or its Affiliates.
+# Copyright (C) 2023 Seagate Technology LLC and/or its Affiliates.
 
 
 from distutils.log import debug
@@ -16,9 +16,10 @@ import idm_api
 from test_conf import *     # Normally bad practice, but only importing 'constants' here
 
 def test_idm_version(idm_sync_daemon, reset_devices):
-    ret, version = idm_api.idm_drive_version(SG_DEVICE1)
+    ret, version_major, verion_minor = idm_api.idm_drive_version(SG_DEVICE1)
     assert ret == 0
-    assert version == 0x100
+    assert version_major == 8
+    assert verion_minor == 4
 
 def test_idm__sync_lock_exclusive(idm_sync_daemon, reset_devices):
 

@@ -14,7 +14,7 @@
 #define IDM_HOST_ID_LEN			32
 #define IDM_VALUE_LEN			8
 
-int scsi_idm_read_version(int *version, char *drive);
+int scsi_idm_read_version(char *drive, uint8_t *version_major, uint8_t *version_minor);
 int scsi_idm_sync_lock(char *lock_id, int mode, char *host_id,
                    char *drive, uint64_t timeout);
 int scsi_idm_async_lock(char *lock_id, int mode, char *host_id,

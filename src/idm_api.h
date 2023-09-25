@@ -1,6 +1,6 @@
 /* SPDX-License-Identifier: LGPL-2.1-only */
 /*
- * Copyright (C) 2021 Seagate Technology LLC and/or its Affiliates.
+ * Copyright (C) 2023 Seagate Technology LLC and/or its Affiliates.
  */
 
 #ifndef __IDM_API_H__
@@ -26,7 +26,7 @@ int idm_drive_init(char *lock_id, char *host_id, char *drive);
 int idm_drive_destroy(char *lock_id, char *host_id, char *drive);
 #endif
 
-int idm_drive_version(int *version, char *drive);
+int idm_drive_version(char *drive, uint8_t *version_major, uint8_t *version_minor);
 int idm_drive_lock(char *lock_id, int mode, char *host_id, char *drive,
                    uint64_t timeout);
 int idm_drive_lock_async(char *lock_id, int mode, char *host_id, char *drive,

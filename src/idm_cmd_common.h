@@ -50,6 +50,13 @@
 #define MAX_MUTEX_NUM_WARNING_LIMIT	3500
 #define MAX_MUTEX_NUM_ERROR_LIMIT	3950
 
+/* This version value correpsonds to a version of the "IDM SPEC".
+This value is stored in the drive firmware.
+It is used to identify the minimum level of IDM funcionality that both the
+firmware and this software should support. */
+#define MIN_IDM_SPEC_VERSION_MAJOR	1
+#define MIN_IDM_SPEC_VERSION_MINOR	0
+
 //////////////////////////////////////////
 // Enums
 //////////////////////////////////////////
