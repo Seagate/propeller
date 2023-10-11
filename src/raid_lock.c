@@ -39,6 +39,7 @@ enum {
 	ILM_OP_READ_LVB,
 	ILM_OP_COUNT,
 	ILM_OP_MODE,
+	ILM_OP_DESTROY,
 };
 
 enum {
@@ -330,6 +331,8 @@ static const char *_raid_op_str(int op)
 		return "ILM_OP_COUNT";
 	if (op == ILM_OP_MODE)
 		return "ILM_OP_MODE";
+	if (op == ILM_OP_DESTROY)
+		return "ILM_OP_DESTROY";
 
 	return "UNKNOWN OP";
 }
@@ -438,6 +441,11 @@ static int _raid_dispatch_request_async(struct _raid_request *req)
 	case ILM_OP_MODE:
 		ret = idm_drive_lock_mode_async(lock->id, req->path, &handle);
 		break;
+	case ILM_OP_DESTROY:
+		ret = idm_drive_destroy_lock_async(lock->id, req->mode,
+						   req->host_id, req->path,
+						   &handle);
+		break;
 	default:
 		ret = -EINVAL;
 		assert(1);
@@ -460,6 +468,7 @@ static int _raid_read_result_async(struct _raid_request *req)
 	case ILM_OP_UNLOCK:
 	case ILM_OP_CONVERT:
 	case ILM_OP_RENEW:
+	case ILM_OP_DESTROY:
 		ret = idm_drive_async_result(req->path, req->handle,
 					     &req->result);
 		break;
@@ -522,7 +531,8 @@ static int _raid_state_find_op(int state, int func)
 	case IDM_INIT:
 		assert(func == ILM_OP_LOCK || func == ILM_OP_COUNT ||
 		       func == ILM_OP_MODE || func == ILM_OP_RENEW ||
-		       func == ILM_OP_CONVERT || func == ILM_OP_READ_LVB);
+		       func == ILM_OP_CONVERT || func == ILM_OP_READ_LVB ||
+		       func == ILM_OP_DESTROY);
 
 		/* Enlarge majority when renew or convert */
 		if (func == ILM_OP_RENEW || func == ILM_OP_CONVERT)
@@ -931,7 +941,7 @@ int idm_raid_thread_create(struct _raid_thread **rth)
 	return 0;
 }
 
-static void idm_raid_destroy(char *path)
+static void idm_raid_destroy_lock_stale(char *path)
 {
 	struct idm_info *info_list, *info, *least_renew = NULL;
 	int info_num;
@@ -980,8 +990,8 @@ static void idm_raid_destroy(char *path)
 		    least_renew->state, least_renew->mode,
 		    least_renew->last_renew_time);
 
-	idm_drive_destroy(least_renew->id, least_renew->mode,
-			  least_renew->host_id, path);
+	idm_drive_destroy_lock(least_renew->id, least_renew->mode,
+			       least_renew->host_id, path);
 }
 
 static void idm_raid_multi_issue(struct ilm_lock *lock, char *host_id,
@@ -1091,7 +1101,7 @@ static void idm_raid_multi_issue(struct ilm_lock *lock, char *host_id,
 
 		/* Drive compliants no free memory, destroy mutex */
 		if (drive->state == IDM_INIT && req->result == -ENOMEM)
-			idm_raid_destroy(req->path);
+			idm_raid_destroy_lock_stale(req->path);
 
 		/*
 		 * When release mutex, if returns -EINVAL usually it means
@@ -1110,8 +1120,8 @@ static void idm_raid_multi_issue(struct ilm_lock *lock, char *host_id,
 
 			idm_drive_unlock(lock->id, reverse_mode, req->host_id,
 					 req->lvb, req->lvb_size, req->path);
-			idm_drive_destroy(lock->id, reverse_mode,
-					  req->host_id, req->path);
+			idm_drive_destroy_lock(lock->id, reverse_mode,
+					       req->host_id, req->path);
 		}
 
 		/*
@@ -1267,6 +1277,40 @@ int idm_raid_unlock(struct ilm_lock *lock, char *host_id)
 		ilm_raid_lock_dump("raid_unlock failed", lock);
 
 	return ret;
+}
+
+int idm_raid_destroy_lock(struct ilm_lock *lock, char *host_id)
+{
+	// struct ilm_drive *drive;
+	// int io_err = 0, timeout = 0;
+	// int i, ret = 0;
+
+	ilm_raid_lock_dump("raid_destroy", lock);
+
+	idm_raid_multi_issue(lock, host_id, ILM_OP_DESTROY, lock->mode, 0);
+
+	// for (i = 0; i < lock->good_drive_num; i++) {
+	// 	drive = &lock->drive[i];
+
+	// 	if (drive->result == -EIO)
+	// 		io_err++;
+
+	// 	if (drive->result == -ETIME)
+	// 		timeout++;
+	// }
+
+	// /* All drives have been timeout */
+	// if (timeout >= (lock->total_drive_num - (lock->total_drive_num >> 1)))
+	// 	ret = -ETIME;
+
+	// if ((io_err + lock->fail_drive_num) >=
+	// 		(lock->total_drive_num - (lock->total_drive_num >> 1)))
+	// 	ret = -EIO;
+
+	// if (ret)
+	// 	ilm_raid_lock_dump("raid_destroy failed", lock);
+
+	return 0;
 }
 
 int idm_raid_convert_lock(struct ilm_lock *lock, char *host_id, int mode)
