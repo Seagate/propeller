@@ -696,15 +696,17 @@ int idm_drive_read_group(char *drive, struct idm_info **info_ptr, int *info_num)
 }
 
 /**
- * idm_drive_destroy - Destroy an IDM and release all associated resource.
+ * idm_drive_destroy_lock - Destroy an IDM and release all associated resource.
  *
  * @lock_id:	Lock ID (64 bytes).
+ * @mode:	Lock mode (unlock, shareable, exclusive).
+ * @host_id:	Host ID (64 bytes).
  * @drive:	Drive path name.
  *
  * Returns zero or a negative error (ie. EINVAL, ENOMEM, EBUSY, etc).
  */
-int idm_drive_destroy(char *lock_id, int mode, char *host_id,
-                      char *drive)
+int idm_drive_destroy_lock(char *lock_id, int mode, char *host_id,
+                           char *drive)
 {
 	int ret;
 
@@ -714,6 +716,33 @@ int idm_drive_destroy(char *lock_id, int mode, char *host_id,
 	else
 		ret = scsi_idm_sync_lock_destroy(lock_id, mode, host_id,
 		                                 drive);
+
+	return ret;
+}
+
+/**
+ * idm_drive_destroy_lock_async - Asynchronously destroy an IDM and release all
+ *                           associated resource.
+ *
+ * @lock_id:	Lock ID (64 bytes).
+ * @mode:	Lock mode (unlock, shareable, exclusive).
+ * @host_id:	Host ID (32 bytes).
+ * @drive:	Drive path name.
+ * @handle:	Returned request handle for device.
+ *
+ * Returns zero or a negative error (ie. EINVAL, ENOMEM, EBUSY, etc).
+ */
+int idm_drive_destroy_lock_async(char *lock_id, int mode, char *host_id,
+                                 char *drive, uint64_t *handle)
+{
+	int ret;
+
+	if (strstr(drive, NVME_DEVICE_TAG))
+		ret = nvme_idm_async_lock_destroy(lock_id, mode, host_id,
+		                                  drive, handle);
+	else
+		ret = scsi_idm_async_lock_destroy(lock_id, mode, host_id,
+		                                  drive, handle);
 
 	return ret;
 }

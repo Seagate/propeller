@@ -55,6 +55,7 @@ int scsi_idm_async_read_lock_mode(char *lock_id, char *drive, uint64_t *handle);
 int scsi_idm_async_get_result_lock_mode(uint64_t handle, int *mode, int *result);
 int scsi_idm_sync_read_mutex_group(char *drive, struct idm_info **info_ptr, int *info_num);
 int scsi_idm_sync_lock_destroy(char *lock_id, int mode, char *host_id, char *drive);
+int scsi_idm_async_lock_destroy(char *lock_id, int mode, char *host_id, char *drive, uint64_t *handle);
 
 int scsi_idm_async_get_result(uint64_t handle, int *result);
 
