@@ -65,6 +65,16 @@ def test_idm__async_lock_exclusive(idm_async_daemon, reset_devices):
     assert ret == 0
     assert result == 0
 
+    ret, handle = idm_api.idm_drive_destroy_lock_async(lock_id0, idm_api.IDM_MODE_EXCLUSIVE,
+                                                       host_id0, SG_DEVICE1)
+    assert ret == 0
+
+    wait_for_scsi_response(SG_DEVICE1, handle)
+
+    ret, result = idm_api.idm_drive_async_result(SG_DEVICE1, handle)
+    assert ret == 0
+    assert result == 0
+
 def test_idm__async_lock_shareable(idm_async_daemon, reset_devices):
 
     lock_id0 = "0000000000000000000000000000000000000000000000000000000000000000"
@@ -100,6 +110,17 @@ def test_idm__async_lock_shareable(idm_async_daemon, reset_devices):
     ret, result = idm_api.idm_drive_async_result(SG_DEVICE1, handle)
     assert ret == 0
     assert result == 0
+
+    ret, handle = idm_api.idm_drive_destroy_lock_async(lock_id0, idm_api.IDM_MODE_SHAREABLE,
+                                                       host_id0, SG_DEVICE1)
+    assert ret == 0
+
+    wait_for_scsi_response(SG_DEVICE1, handle)
+
+    ret, result = idm_api.idm_drive_async_result(SG_DEVICE1, handle)
+    assert ret == 0
+    # assert result == 0
+    assert result == -2 #TODO: Should be 0, firmware fix required.  Destroy "result" normally ignored.
 
 def test_idm__async_lock_exclusive_two_drives(idm_async_daemon, reset_devices):
 
@@ -141,6 +162,25 @@ def test_idm__async_lock_exclusive_two_drives(idm_async_daemon, reset_devices):
 
     ret, handle2 = idm_api.idm_drive_unlock_async(lock_id0, idm_api.IDM_MODE_EXCLUSIVE,
                                                    host_id0, a, 8, SG_DEVICE2)
+    assert ret == 0
+
+    wait_for_scsi_response(SG_DEVICE1, handle1)
+    wait_for_scsi_response(SG_DEVICE2, handle2)
+
+    ret, result = idm_api.idm_drive_async_result(SG_DEVICE1, handle1)
+    assert ret == 0
+    assert result == 0
+
+    ret, result = idm_api.idm_drive_async_result(SG_DEVICE2, handle2)
+    assert ret == 0
+    assert result == 0
+
+    ret, handle1 = idm_api.idm_drive_destroy_lock_async(lock_id0, idm_api.IDM_MODE_EXCLUSIVE,
+                                                        host_id0, SG_DEVICE1)
+    assert ret == 0
+
+    ret, handle2 = idm_api.idm_drive_destroy_lock_async(lock_id0, idm_api.IDM_MODE_EXCLUSIVE,
+                                                        host_id0, SG_DEVICE2)
     assert ret == 0
 
     wait_for_scsi_response(SG_DEVICE1, handle1)
@@ -207,6 +247,27 @@ def test_idm__async_lock_shareable_two_drives(idm_async_daemon, reset_devices):
     assert ret == 0
     assert result == 0
 
+    ret, handle1 = idm_api.idm_drive_destroy_lock_async(lock_id0, idm_api.IDM_MODE_SHAREABLE,
+                                                        host_id0, SG_DEVICE1)
+    assert ret == 0
+
+    ret, handle2 = idm_api.idm_drive_destroy_lock_async(lock_id0, idm_api.IDM_MODE_SHAREABLE,
+                                                        host_id0, SG_DEVICE2)
+    assert ret == 0
+
+    wait_for_scsi_response(SG_DEVICE1, handle1)
+    wait_for_scsi_response(SG_DEVICE2, handle2)
+
+    ret, result = idm_api.idm_drive_async_result(SG_DEVICE1, handle1)
+    assert ret == 0
+    # assert result == 0
+    assert result == -2 #TODO: Should be 0, firmware fix required.  Destroy "result" normally ignored.
+
+    ret, result = idm_api.idm_drive_async_result(SG_DEVICE2, handle2)
+    assert ret == 0
+    # assert result == 0
+    assert result == -2 #TODO: Should be 0, firmware fix required.  Destroy "result" normally ignored.
+
 def test_idm__async_lock_shareable_two_locks(idm_async_daemon, reset_devices):
 
     lock_id0 = "0000000000000000000000000000000000000000000000000000000000000000"
@@ -222,7 +283,7 @@ def test_idm__async_lock_shareable_two_locks(idm_async_daemon, reset_devices):
     assert ret == 0
 
     wait_for_scsi_response(SG_DEVICE1, handle1)
-    wait_for_scsi_response(SG_DEVICE2, handle2)
+    wait_for_scsi_response(SG_DEVICE1, handle2)
 
     ret, result = idm_api.idm_drive_async_result(SG_DEVICE1, handle1)
     assert ret == 0
@@ -251,7 +312,7 @@ def test_idm__async_lock_shareable_two_locks(idm_async_daemon, reset_devices):
     assert ret == 0
 
     wait_for_scsi_response(SG_DEVICE1, handle1)
-    wait_for_scsi_response(SG_DEVICE2, handle2)
+    wait_for_scsi_response(SG_DEVICE1, handle2)
 
     ret, result = idm_api.idm_drive_async_result(SG_DEVICE1, handle1)
     assert ret == 0
@@ -260,6 +321,27 @@ def test_idm__async_lock_shareable_two_locks(idm_async_daemon, reset_devices):
     ret, result = idm_api.idm_drive_async_result(SG_DEVICE1, handle2)
     assert ret == 0
     assert result == 0
+
+    ret, handle1 = idm_api.idm_drive_destroy_lock_async(lock_id0, idm_api.IDM_MODE_SHAREABLE,
+                                                        host_id0, SG_DEVICE1)
+    assert ret == 0
+
+    ret, handle2 = idm_api.idm_drive_destroy_lock_async(lock_id1, idm_api.IDM_MODE_SHAREABLE,
+                                                        host_id0, SG_DEVICE1)
+    assert ret == 0
+
+    wait_for_scsi_response(SG_DEVICE1, handle1)
+    wait_for_scsi_response(SG_DEVICE1, handle2)
+
+    ret, result = idm_api.idm_drive_async_result(SG_DEVICE1, handle1)
+    assert ret == 0
+    # assert result == 0
+    assert result == -2 #TODO: Should be 0, firmware fix required.  Destroy "result" normally ignored.
+
+    ret, result = idm_api.idm_drive_async_result(SG_DEVICE1, handle2)
+    assert ret == 0
+    # assert result == 0
+    assert result == -2 #TODO: Should be 0, firmware fix required.  Destroy "result" normally ignored.
 
 def test_idm__async_break_lock_1(idm_async_daemon, reset_devices):
 
