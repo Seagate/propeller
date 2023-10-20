@@ -1566,13 +1566,13 @@ int idm_drive_read_group(char *drive, struct idm_info **info_ptr, int *info_num)
 }
 
 /**
- * idm_drive_destroy - Destroy an IDM and release all associated resource.
+ * idm_drive_destroy_lock - Destroy an IDM and release all associated resource.
  * @lock_id:		Lock ID (64 bytes).
  * @drive:		Drive path name.
  *
  * Returns zero or a negative error (ie. EINVAL).
  */
-int idm_drive_destroy(char *lock_id, char *drive)
+int idm_drive_destroy_lock(char *lock_id, char *drive)
 {
 	struct idm_emulation *idm;
 	struct idm_host *host, *next;

@@ -44,6 +44,10 @@ def test_idm__sync_lock_exclusive(idm_sync_daemon, reset_devices):
 		    		    host_id0, a, 8, SG_DEVICE1)
     assert ret == 0
 
+    ret = idm_api.idm_drive_destroy_lock(lock_id0, idm_api.IDM_MODE_EXCLUSIVE,
+                                         host_id0, SG_DEVICE1)
+    assert ret == 0
+
 def test_idm__sync_lock_shareable(idm_sync_daemon, reset_devices):
 
     lock_id0 = "0000000000000000000000000000000000000000000000000000000000000000"
@@ -66,6 +70,10 @@ def test_idm__sync_lock_shareable(idm_sync_daemon, reset_devices):
     ret = idm_api.idm_drive_unlock(lock_id0, idm_api.IDM_MODE_SHAREABLE,
 		    		    host_id0, a, 8, SG_DEVICE1)
     assert ret == 0
+
+    ret = idm_api.idm_drive_destroy_lock(lock_id0, idm_api.IDM_MODE_SHAREABLE,
+                                         host_id0, SG_DEVICE1)
+    assert ret == -2 #TODO: Should be 0, firmware fix required.  Destroy "ret" normally ignored.
 
 def test_idm__sync_lock_exclusive_twice(idm_sync_daemon, reset_devices):
 
@@ -96,6 +104,10 @@ def test_idm__sync_lock_exclusive_twice(idm_sync_daemon, reset_devices):
 
     ret = idm_api.idm_drive_unlock(lock_id0, idm_api.IDM_MODE_EXCLUSIVE,
 		    		    host_id0, a, 8, SG_DEVICE1)
+    assert ret == 0
+
+    ret = idm_api.idm_drive_destroy_lock(lock_id0, idm_api.IDM_MODE_EXCLUSIVE,
+                                         host_id0, SG_DEVICE1)
     assert ret == 0
 
 def test_idm__sync_lock_shareable_twice(idm_sync_daemon, reset_devices):
@@ -129,6 +141,10 @@ def test_idm__sync_lock_shareable_twice(idm_sync_daemon, reset_devices):
 		    		    host_id0, a, 8, SG_DEVICE1)
     assert ret == -2
 
+    ret = idm_api.idm_drive_destroy_lock(lock_id0, idm_api.IDM_MODE_SHAREABLE,
+                                         host_id0, SG_DEVICE1)
+    assert ret == -2 #TODO: Should be 0, firmware fix required.  Destroy "ret" normally ignored.
+
 def test_idm__sync_lock_exclusive_two_hosts(idm_sync_daemon, reset_devices):
 
     lock_id0 = "0000000000000000000000000000000000000000000000000000000000000000"
@@ -161,6 +177,10 @@ def test_idm__sync_lock_exclusive_two_hosts(idm_sync_daemon, reset_devices):
 		    		    host_id1, a, 8, SG_DEVICE1)
     assert ret == 0
 
+    ret = idm_api.idm_drive_destroy_lock(lock_id0, idm_api.IDM_MODE_EXCLUSIVE,
+                                         host_id0, SG_DEVICE1)
+    assert ret == 0
+
 def test_idm__sync_lock_shareable_two_hosts(idm_sync_daemon, reset_devices):
 
     lock_id0 = "0000000000000000000000000000000000000000000000000000000000000000"
@@ -189,9 +209,17 @@ def test_idm__sync_lock_shareable_two_hosts(idm_sync_daemon, reset_devices):
 		    		    host_id0, a, 8, SG_DEVICE1)
     assert ret == 0
 
+    ret = idm_api.idm_drive_destroy_lock(lock_id0, idm_api.IDM_MODE_SHAREABLE,
+                                         host_id0, SG_DEVICE1)
+    assert ret == -16
+
     ret = idm_api.idm_drive_unlock(lock_id0, idm_api.IDM_MODE_SHAREABLE,
 		    		    host_id1, a, 8, SG_DEVICE1)
     assert ret == 0
+
+    ret = idm_api.idm_drive_destroy_lock(lock_id0, idm_api.IDM_MODE_SHAREABLE,
+                                         host_id1, SG_DEVICE1)
+    assert ret == -2 #TODO: Should be 0, firmware fix required.  Destroy "ret" normally ignored.
 
 def test_idm__sync_break_lock_1(idm_sync_daemon, reset_devices):
 

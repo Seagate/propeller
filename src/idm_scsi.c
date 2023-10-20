@@ -2306,6 +2306,74 @@ int scsi_idm_sync_lock_destroy(char *lock_id, int mode, char *host_id,
 	return ret;
 }
 
+/**
+ * scsi_idm_async_lock_destroy - Asynchronously destroy an IDM and release
+ * all associated resource.
+ *
+ * @lock_id:		Lock ID (64 bytes).
+ * @mode:		Lock mode (unlock, shareable, exclusive).
+ * @host_id:		Host ID (32 bytes).
+ * @drive:		Drive path name.
+ * @handle:		Returned request handle for device.
+ *
+ * Returns zero or a negative error (ie. EINVAL, ETIME).
+ */
+int scsi_idm_async_lock_destroy(char *lock_id, int mode, char *host_id,
+                                char *drive, uint64_t *handle)
+{
+	struct idm_scsi_request *request;
+	int ret;
+
+	if (ilm_inject_fault_is_hit())
+		return -EIO;
+
+	if (!lock_id || !host_id || !drive)
+		return -EINVAL;
+
+	if (mode != IDM_MODE_EXCLUSIVE && mode != IDM_MODE_SHAREABLE)
+		return -EINVAL;
+
+	request = malloc(sizeof(struct idm_scsi_request));
+	if (!request) {
+		ilm_log_err("%s: fail to allocat scsi request", __func__);
+		return -ENOMEM;
+	}
+	memset(request, 0x0, sizeof(struct idm_scsi_request));
+
+	request->data = malloc(sizeof(struct idm_data));
+	if (!request->data) {
+		free(request);
+		ilm_log_err("%s: fail to allocat scsi data", __func__);
+		return -ENOMEM;
+	}
+	memset(request->data, 0x0, sizeof(struct idm_data));
+
+	if (mode == IDM_MODE_EXCLUSIVE)
+		mode = IDM_CLASS_EXCLUSIVE;
+	else if (mode == IDM_MODE_SHAREABLE)
+		mode = IDM_CLASS_SHARED_PROTECTED_READ;
+
+	strncpy(request->drive, drive, PATH_MAX);
+	request->op = IDM_MUTEX_OP_DESTROY;
+	request->mode = mode;
+	request->timeout = 0;
+	request->res_ver_type = IDM_RES_VER_NO_UPDATE_NO_VALID;
+	request->data_len = sizeof(struct idm_data);
+	memcpy(request->lock_id, lock_id, IDM_LOCK_ID_LEN);
+	memcpy(request->host_id, host_id, IDM_HOST_ID_LEN);
+
+	ret = _scsi_xfer_async(request);
+	if (ret < 0) {
+		ilm_log_err("%s: command fail %d", __func__, ret);
+		free(request->data);
+		free(request);
+		return ret;
+	}
+
+	*handle = (uint64_t)request;
+	return ret;
+}
+
 int scsi_idm_get_fd(uint64_t handle)
 {
 	struct idm_scsi_request *request = (struct idm_scsi_request *)handle;

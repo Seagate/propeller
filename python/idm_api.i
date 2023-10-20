@@ -77,7 +77,8 @@ int idm_drive_lock_mode(char *lock_id, int *mode, char *drive);
 int idm_drive_lock_mode_async(char *lock_id, char *drive, uint64_t *handle);
 int idm_drive_lock_mode_async_result(char *drive, uint64_t handle, int *mode, int *result);
 int idm_drive_read_group(char *drive, struct idm_info **info_ptr, int *info_num);
-int idm_drive_destroy(char *lock_id, char *drive);
+int idm_drive_destroy_lock(char *lock_id, int mode, char *host_id, char *drive);
+int idm_drive_destroy_lock_async(char *lock_id, int mode, char *host_id, char *drive, uint64_t *handle);
 
 int idm_drive_async_result(char *drive, uint64_t handle, int *result);
 
@@ -155,7 +156,8 @@ int idm_drive_lock_mode(char *lock_id, int *mode, char *drive);
 int idm_drive_lock_mode_async(char *lock_id, char *drive, uint64_t *handle);
 int idm_drive_lock_mode_async_result(char *drive, uint64_t handle, int *mode, int *result);
 int idm_drive_read_group(char *drive, struct idm_info **info_ptr, int *info_num);
-int idm_drive_destroy(char *lock_id, char *drive);
+int idm_drive_destroy_lock(char *lock_id, int mode, char *host_id, char *drive);
+int idm_drive_destroy_lock_async(char *lock_id, int mode, char *host_id, char *drive, uint64_t *handle);
 
 int idm_drive_async_result(char *drive, uint64_t handle, int *result);
 

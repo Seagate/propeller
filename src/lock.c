@@ -482,6 +482,11 @@ int ilm_lock_release(struct ilm_cmd *cmd, struct ilm_lockspace *ls)
 
 	pthread_mutex_lock(&lock->mutex);
 	ret = idm_raid_unlock(lock, ls->host_id);
+	/* Blind destroy of every mutex acting as a rudimentary real-time
+	mutex cleanup mechanism.
+	Temp solution until max available mutexes can reliably be >128.
+	Requires firmware\software changes.*/
+	idm_raid_destroy_lock(lock, ls->host_id);
 	pthread_mutex_unlock(&lock->mutex);
 
 	ilm_free(ls, lock);
@@ -757,6 +762,7 @@ out:
 int ilm_lock_terminate(struct ilm_lockspace *ls, struct ilm_lock *lock)
 {
 	idm_raid_unlock(lock, ls->host_id);
+	idm_raid_destroy_lock(lock, ls->host_id);
 	free(lock);
 
 	return 0;

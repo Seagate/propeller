@@ -17,13 +17,13 @@
 #define NVME_DEVICE_TAG "nvme"
 
 /*
- * NOTE: assumes the functions idm_drive_init() and idm_drive_destroy()
+ * NOTE: assumes the functions idm_drive_init() and idm_drive_destroy_lock()
  * will be used internally in IDM wrapper layer; so this can be transparent
  * to upper layer and reduce the complexity in raid lock layer.
  */
 #if 0
 int idm_drive_init(char *lock_id, char *host_id, char *drive);
-int idm_drive_destroy(char *lock_id, char *host_id, char *drive);
+int idm_drive_destroy_lock(char *lock_id, char *host_id, char *drive);
 #endif
 
 int idm_drive_version(char *drive, uint8_t *version_major, uint8_t *version_minor);
@@ -73,7 +73,8 @@ int idm_drive_lock_mode_async_result(char *drive, uint64_t handle, int *mode,
                                      int *result);
 int idm_drive_read_group(char *drive, struct idm_info **info_ptr,
                          int *info_num);
-int idm_drive_destroy(char *lock_id, int mode, char *host_id, char *drive);
+int idm_drive_destroy_lock(char *lock_id, int mode, char *host_id, char *drive);
+int idm_drive_destroy_lock_async(char *lock_id, int mode, char *host_id, char *drive, uint64_t *handle);
 int idm_drive_async_result(char *drive, uint64_t handle, int *result);
 int idm_drive_host_state(char *lock_id, char *host_id, int *host_state,
                          char *drive);
