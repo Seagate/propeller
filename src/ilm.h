@@ -35,7 +35,7 @@ struct idm_lock_op {
 	int timeout; /* -1 means unlimited timeout */
 };
 
-uuid_t ilm_uuid;
+extern uuid_t ilm_uuid;
 int ilm_connect(int *sock);
 int ilm_disconnect(int sock);
 int ilm_version(int sock, char *drive, uint8_t *version_major, uint8_t *version_minor);
